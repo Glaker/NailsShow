@@ -1,0 +1,43 @@
+# Dependencias
+node_modules/
+
+# Build
+dist/
+dist-ssr/
+*.local
+
+# Entorno — nunca se versionan (CLAUDE.md §3, invariante 5)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.example
+
+# Credenciales y certificados.
+# Los certificados fiscales de ARCA y sus claves privadas viven en el almacén de
+# secretos de Supabase y se usan desde Edge Functions. Nunca en el repositorio
+# ni en el cliente. (RN-66, CLAUDE.md §3 invariante 5)
+*.p12
+*.pem
+*.key
+*.crt
+*.pfx
+*.jks
+*.der
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+
+# Editores y sistema
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.swp
+
+# Logs
+*.log
+npm-debug.log*

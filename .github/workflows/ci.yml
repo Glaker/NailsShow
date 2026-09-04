@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Base de datos: levanta Supabase local, aplica migraciones y corre pgTAP.
+  #
+  # Las pruebas pgTAP son la evidencia de calificación operacional del sistema
+  # (CLAUDE.md §2). Este job es el que bloquea el merge cuando una regla de
+  # negocio deja de cumplirse, incluida la prueba de arquitectura que verifica
+  # la dirección de dependencia comercial -> gmp -> core (invariante 7).
+  # ---------------------------------------------------------------------------
+  base-de-datos:
+    name: Base de datos (migraciones + pgTAP)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Levantar Supabase local
+        run: supabase start
+
+      - name: Verificar que las migraciones aplican en limpio
+        run: supabase db reset
+
+      - name: Correr pruebas pgTAP
+        run: supabase test db
+
+      - name: Bajar Supabase local
+        if: always()
+        run: supabase stop
+
+  # ---------------------------------------------------------------------------
+  # Frontend: lint, typecheck, build y el chequeo de service_role.
+  #
+  # El chequeo de service_role corre DESPUÉS del build, a propósito: así revisa
+  # el bundle publicable de dist/ y no sólo las fuentes. Es la invariante 4 de
+  # CLAUDE.md §3, verificada sobre el artefacto que efectivamente se despliega.
+  # ---------------------------------------------------------------------------
+  frontend:
+    name: Frontend (lint, typecheck, build, service_role)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Formato (Prettier)
+        run: npm run format:check
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: http://127.0.0.1:54321
+          VITE_SUPABASE_ANON_KEY: clave-anonima-de-ci
+
+      - name: Chequeo de fuga de service_role
+        run: npm run check:service-role
