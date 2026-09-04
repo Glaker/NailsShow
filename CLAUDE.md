@@ -22,6 +22,9 @@ El documento fuente de requisitos es `docs/ALCANCE_SISTEMA_TRAZABILIDAD.md`. Las
 de negocio están numeradas RN-01 a RN-70. Cuando implementes una, citá su identificador
 en un comentario SQL o TSDoc.
 
+**El estado actual, el plan y las decisiones abiertas viven en `docs/ESTADO.md`.**
+Leelo al empezar cada sesión: este archivo tiene las reglas, ése tiene la situación.
+
 ## 2. Stack
 
 | Capa            | Tecnología                        | Nota                                                             |
@@ -29,13 +32,13 @@ en un comentario SQL o TSDoc.
 | Base de datos   | PostgreSQL vía Supabase           | migraciones versionadas con Supabase CLI                         |
 | Autenticación   | Supabase Auth                     | rol inyectado en el JWT por custom access token hook             |
 | Backend         | PostgREST + Edge Functions (Deno) | Edge Functions solo para integración fiscal y tareas programadas |
-| Frontend        | React 18 + TypeScript + Vite      |                                                                  |
+| Frontend        | React 18 + TypeScript + Vite      | React 18 fijo: Mantine 9 exige React 19                          |
 | Estado servidor | TanStack Query                    |                                                                  |
 | Formularios     | @mantine/form + zod (resolver)    |                                                                  |
-| Estilos         | Mantine UI                        | tema propio en `src/app/theme.ts`                                |
+| Estilos         | Mantine UI **8.x**                | tema propio en `src/app/theme.ts`. No subir a 9: pide React 19   |
 | Hosting front   | Vercel                            |                                                                  |
 | Tests de base   | pgTAP                             | son la evidencia de calificación operacional, no un lujo         |
-| Tests front     | Vitest + Testing Library          |                                                                  |
+| Tests front     | Vitest + Testing Library          | **todavía no instalados**; decisión tomada, pendiente de montar  |
 
 ## 3. Invariantes innegociables
 
@@ -130,13 +133,34 @@ a la Dirección Técnica titular.
 - Tipos generados con `supabase gen types typescript`. No escribas tipos de tablas a mano.
 - Un esquema zod por formulario, derivado de las restricciones reales de la base.
 - Los formularios usan `@mantine/form` con resolver de zod (`mantine-form-zod-resolver`),
-  no `react-hook-form`.
+  no `react-hook-form`. El proyecto usa **zod 4**, así que el export correcto es
+  `zod4Resolver`. `zodResolver` es el de zod 3 y falla en silencio con esquemas v4.
 - Nada de `localStorage` para datos de negocio.
 - La interfaz oculta lo que el rol no puede hacer, pero la autoridad sigue siendo RLS.
   Nunca confíes en el chequeo del cliente.
 - Textos en español rioplatense. Interfaz densa en información, pensada para uso en planta
   con guantes y en tablet: áreas de toque grandes, contraste alto, nada de animaciones
   decorativas.
+
+### Flujo de trabajo contra la base
+
+Se trabaja directo contra el proyecto Supabase alojado. No hay instancia local.
+Eso quita la red de seguridad de `db reset`, así que estas reglas la reemplazan:
+
+- **La migración se escribe antes de aplicarse.** Primero el archivo en
+  `supabase/migrations/` con su encabezado (propósito, reglas implementadas, fecha),
+  después `supabase db push`. Nunca DDL suelto por `psql`: deja la base en un estado
+  que el repositorio no describe, y el control de cambios de GAMP 5 se queda sin
+  respaldo.
+- `psql` contra la base es para **consultar y correr pruebas pgTAP**, no para
+  modificar el esquema.
+- Conectarse siempre por el **pooler de sesión**. La conexión directa
+  (`db.<ref>.supabase.co`) resuelve a IPv6 y no siempre hay ruta.
+- `npm run db:types` usa `--linked`, no `--local`: no hay base local que consultar.
+- El hook de access token no basta con declararlo en `config.toml`; se aplica al
+  proyecto alojado con `supabase config push`.
+- En cuanto el cliente cargue datos reales, pasar el acceso de las herramientas de
+  desarrollo a solo lectura.
 
 ### Git
 

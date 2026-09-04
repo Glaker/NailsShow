@@ -5,6 +5,7 @@ node_modules/
 dist/
 dist-ssr/
 *.local
+*.tsbuildinfo
 
 # Entorno — nunca se versionan (CLAUDE.md §3, invariante 5)
 .env
