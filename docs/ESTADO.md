@@ -59,67 +59,152 @@ El acceso real es por dos vías, ambas verificadas:
 
 ## Estado de la base
 
-Al 2026-09-04, **virgen**:
+Al 2026-09-04 la fase 1 recortada está **aplicada y verificada contra el
+proyecto alojado**. Seis migraciones, todas por `supabase db push`:
 
-```
-Esquemas:               auth  extensions  graphql  graphql_public  public  realtime  storage  vault
-core / gmp / comercial: 0 de 3 (no existen)
-Tablas en public:       0
-Migraciones:            ninguna, ni local ni remota
-```
+| Migración                                          | Qué trae                                                                 |
+| -------------------------------------------------- | ------------------------------------------------------------------------ |
+| `20260904140000_esquemas_y_enumeraciones`          | `core`, `gmp`, `comercial` + enums del Anexo A que usa la fase 1         |
+| `20260904140100_core_identidad_y_auditoria`        | `core.usuarios`, `core.auditoria`, trigger genérico, hook de JWT, RLS    |
+| `20260904140200_gmp_maestros`                      | `depositos` (con los diez de los POE), `proveedores`, `insumos_catalogo` |
+| `20260904140300_gmp_recepcion_lotes_rotulos`       | `recepciones`, `lotes_insumo`, `rotulos`, contadores, máquina de estado  |
+| `20260904140400_gmp_vistas_tablero`                | vistas de lectura del tablero y del listado de lotes                     |
+| `20260904150000_numeracion_por_defecto_y_roles…`   | correlativos opcionales en el INSERT + rol exigido por transición        |
+| `20260904160000_correcciones_auditoria_y_rotulado` | `db_role` real, y rotulado solo en los estados que I.20.2 rotula         |
 
-Verificado disponible para la fase 1:
+El hook de access token está aplicado al proyecto alojado con
+`supabase config push`. Inyecta `rol`, `roles`, `usuario_id`, `sector`, `nombre`
+y `es_dt_titular` en el JWT.
 
-- `pgcrypto` 1.3 **instalada** — `gen_random_uuid()` funciona
-- `uuid-ossp` 1.1 instalada
-- **`pgtap` 1.3.3 disponible**, no instalada — se habilita por migración
-- `auth.users` existe (35 columnas), lista para el FK de `core.usuarios`
-- `ENABLE` + `FORCE ROW LEVEL SECURITY` probados contra esta base
+`comercial` existe y está vacío: se creó para fijar la dirección de dependencia
+desde el principio, no porque esta fase lo pueble.
+
+### Qué está implementado, regla por regla
+
+| Regla                                  | Dónde vive                                                          |
+| -------------------------------------- | ------------------------------------------------------------------- |
+| RN-01 protocolo de análisis            | `gmp.fn_validar_lote_insumo` + precondición de cuarentena           |
+| RN-02 bulto disparejo se cuenta        | `CHECK lotes_insumo_rn02_conteo_obligatorio`                        |
+| RN-03 pesada de pigmentos              | `gmp.fn_validar_lote_insumo`                                        |
+| RN-04 color por estado                 | `gmp.color_rotulo()` + columna generada `rotulos.color`             |
+| RN-05 el rótulo no se modifica         | `gmp.fn_rotulo_inmutable` + índice de un solo vigente por entidad   |
+| RN-44 etiquetas por plancha            | columna generada `lotes_insumo.total_etiquetas`                     |
+| RN-48 inflamables al depósito exterior | `gmp.fn_validar_lote_insumo`                                        |
+| RN-49 el usuario no se borra           | sin política ni GRANT de DELETE + `CHECK usuarios_baja_consistente` |
+| RN-50 auditoría de toda escritura      | `core.fn_auditar` adjuntado a las siete tablas de negocio           |
+| §5.1 máquina de estado del lote        | `gmp.fn_transicion_lote_insumo`, con el rol exigido por transición  |
+| §3.3 matriz de permisos                | políticas RLS por tabla, más triggers donde RLS no alcanza          |
+
+### Verificación hecha contra la base real
+
+Se corrió el circuito completo por PostgREST con una sesión de usuario. Dieron
+lo esperado, incluidos los rechazos:
+
+- El hook inyecta rol y roles; un usuario con `roles_adicionales` los recibe en
+  el token siguiente, no en el vigente.
+- Alta de proveedor como `ADMINISTRADOR_SISTEMA`: **rechazada** por RLS (42501).
+  Es correcto, §3.3 no le da esa atribución.
+- Lote sin protocolo de un insumo que lo exige: **rechazado**, RN-01.
+- Bultos dispares sin conteo: **rechazado**, RN-02.
+- Numeración: `00001/2026` y `RI-00001/2026`, sin huecos.
+- Rotulado: amarillo en cuarentena, gris en análisis, verde aprobado, uno solo
+  vigente y cadena de reemplazos completa.
+- `CUARENTENA → APROBADO` salteando el muestreo: **rechazada**, §5.1.
+- Modificar un rótulo: **rechazado**, RN-05.
+- Borrar un lote: **rechazado**, sin GRANT de DELETE.
+- Auditoría: un asiento por escritura, con autor, valores anterior y posterior.
+
+Dos defectos aparecieron en esa verificación y se corrigieron en la migración
+`…160000`:
+
+1. **`db_role` guardaba siempre `postgres`.** El trigger de auditoría es
+   SECURITY DEFINER, así que `current_user` dentro de él es el dueño de la
+   función y no quien pidió la escritura. La columna de detección de CLAUDE.md
+   §5 quedaba inservible: todo parecía privilegiado y por lo tanto nada lo
+   parecía. Ahora se lee del claim `role` del JWT, que es justamente donde una
+   clave de servicio se delata.
+2. **Se emitía rótulo para `MUESTREADO`.** I.20.2 rotula cuatro estados y ése no
+   es uno. Quedaba un R.20.2.1 con color «SIN_ROTULO» y, peor, el material
+   perdía su rótulo amarillo justo mientras seguía en cuarentena.
 
 ---
 
-## Qué se hizo
+## Estado del frontend
 
-Solo la **fase 0**: andamiaje. Verificado con `lint`, `format:check`,
-`typecheck`, `build`, `dev` y `check:service-role`, todos en verde.
+Aplicación completa sobre las siete tablas, en producción de datos reales desde
+el primer día.
 
-Incluye estructura de carpetas, tema Mantine con los cuatro colores de estado de
-rótulo de I.20.2 como colores nombrados, CI en dos jobs, y `.gitignore` que
-excluye `.env` y `*.p12`/`*.pem`/`*.key`/`*.crt`.
+- **Ingreso.** Correo y contraseña, sin verificación de correo. El primer
+  registro queda como administrador del sistema; los siguientes entran
+  desactivados y con una pantalla que explica qué falta (ver D-12).
+- **Tablero.** Indicadores accionables, gráfico de ingreso de lotes de 30 días
+  (SVG propio, sin biblioteca de gráficos), lotes por estado, y la lista de lo
+  que está en cuarentena esperando muestreo.
+- **Recepciones.** Alta con sus lotes en un solo formulario, con las
+  verificaciones de I.20.1 y la emisión del rótulo de cuarentena en el mismo
+  acto.
+- **Lotes.** Búsqueda por número interno o lote del proveedor, filtro por
+  estado en la URL, ficha con historial de rótulos y avance de estado con
+  confirmación.
+- **Rótulo R.20.2.1.** Se imprime en A6 apaisado con los campos del registro y
+  un QR que lleva a la ficha del lote. La hoja de impresión oculta todo lo
+  demás.
+- **Maestros.** Catálogo de insumos, proveedores con dictamen de DT, depósitos.
+- **Usuarios.** Rol, roles adicionales, sector y baja lógica.
+- **Auditoría.** Últimas 200 escrituras con autor, momento, valores y rol de
+  base, con las escrituras privilegiadas marcadas.
 
-**Cero base de datos.** Sin esquemas, tablas, RLS, funciones ni migraciones.
+Diseño: violeta y ciruela, por identidad del cliente. La condición que cualquier
+color de marca tiene que cumplir en este sistema es no competir con los cuatro
+colores reservados de I.20.2, y la cumple. Barra lateral en escritorio; en
+teléfono, barra inferior con las cuatro pantallas de uso diario y un botón «+»
+abajo a la derecha que despliega la navegación completa.
+
+Dependencias nuevas, ambas justificadas: `@tabler/icons-react` (la navegación se
+apoya en iconos, se usa con guantes) y `qrcode` (el QR del rótulo). El gráfico
+del tablero está escrito a mano justamente para no sumar una tercera.
 
 ---
 
-## Qué sigue: fase 1 recortada para el demo
+## Cuenta de verificación
 
-1. Esquemas `core`, `gmp`, `comercial` + enums del Anexo A del documento de alcance
-2. `core.usuarios` + custom access token hook que inyecta el rol en el JWT
-3. Trigger genérico de auditoría: `core.fn_auditar` + `core.adjuntar_auditoria`
-4. RLS sobre `core.usuarios`
+La verificación del circuito creó la primera cuenta del sistema, y por lo tanto
+es la que quedó como administradora:
 
-Después: maestros (`depositos` con los diez de semilla, `proveedores`,
-`insumos_catalogo`) y el vertical slice del demo:
-**recepción → lote → rótulo de cuarentena amarillo con QR**.
-Toca RN-01, RN-02, RN-04, RN-05, RN-44.
+```
+verificacion@nailshow.com.ar
+```
+
+La contraseña se entregó por chat. **Hay que rotarla o desactivar la cuenta**
+en cuanto el dueño tenga la suya, por la misma razón que las credenciales de la
+sección de deuda: quedó en un transcript.
+
+Los datos que cargó esa verificación (un proveedor, un insumo, una recepción y
+dos lotes) **no se pueden borrar**: la invariante 1 se aplica también a los
+datos de prueba, y así tiene que ser. Están identificados y son pocos.
+
+---
+
+## Qué sigue
+
+1. **Muestreo (I.50.4)** con las cinco verificaciones previas de RN-10 y la
+   etiqueta R.50.4.1 automática de RN-07. Es la transición
+   `CUARENTENA → MUESTREADO`, que hoy avanza sin registrar el muestreo.
+2. **Control de calidad de insumos (I.50.5)** con especificaciones y el motor de
+   evaluación de §7.3. Es lo que hoy hace que `EN_ANALISIS → APROBADO` sea un
+   botón y no un dictamen.
+3. **Firma electrónica.** Bloqueada por D-01.
+4. **Suite pgTAP**, empezando por las dos invariantes que hoy están declaradas y
+   no verificadas: `core.tablas_sin_auditoria()` ya existe y devuelve conjunto
+   vacío, pero falta la prueba que lo exija; y falta entera la prueba de
+   dirección de dependencia entre esquemas.
 
 ### Diferido, no descartado
 
 - Firma electrónica con hash canónico + script de verificación en Python
 - Separación de funciones configurable (§3.4 del alcance)
 - Suite pgTAP completa
-
-**Excepción a lo diferido.** La invariante 6 de `CLAUDE.md` afirma que existe un
-test que verifica que ninguna tabla de negocio quedó sin trigger de auditoría.
-Como pgTAP **sí** corre contra esta base, conviene no diferir ese test puntual:
-`core.tablas_sin_auditoria()` más una prueba que exija conjunto vacío. Es una
-prueba, y es la que sostiene una invariante que de otro modo queda escrita pero
-sin verificar.
-
-Lo mismo vale para la invariante 7: afirma que hay un test sobre el catálogo que
-verifica la dirección `comercial → gmp → core` y bloquea el merge. Ese test
-tampoco existe todavía. Son las dos invariantes que se declaran verificadas y no
-lo están.
+- Módulo `comercial`
 
 ---
 
@@ -134,6 +219,17 @@ lo están.
   al proyecto alojado con `supabase config push`.
 - **Columnas generadas:** `date + interval` devuelve `timestamp` y necesita cast
   explícito a `date`.
+- **`current_user` dentro de una función SECURITY DEFINER** es el dueño de la
+  función, no quien pidió la operación. Costó un defecto real en la columna
+  `db_role` de la auditoría. Para saber quién pidió la escritura hay que leer el
+  claim `role` del JWT o el GUC `role`, que sí sobreviven al cambio de contexto.
+- **El generador de tipos no conoce los triggers.** Una columna `NOT NULL` sin
+  `DEFAULT` que llena un `BEFORE INSERT` sale como obligatoria en el tipo del
+  cliente. Se resuelve con un `DEFAULT` vacío que el trigger pisa siempre.
+- **PostgREST no da transacción entre llamadas.** El alta de recepción con sus
+  lotes son varias llamadas: si falla la segunda, la recepción ya quedó escrita
+  y no se puede borrar. Cuando el circuito crezca, esa operación pasa a una
+  función de base.
 
 ---
 
@@ -151,6 +247,11 @@ Ambas hay que rotarlas:
 
 - PAT: Dashboard → Account → Access Tokens
 - Contraseña: Dashboard → Settings → Database
+
+A eso se suma, desde esta sesión, la contraseña de la cuenta
+`verificacion@nailshow.com.ar`, que también viajó por chat y además es hoy la
+única cuenta con rol de administrador del sistema. Rotarla o desactivar la
+cuenta apenas el dueño tenga la suya.
 
 Esto es más urgente que cortar el acceso de escritura, porque el alcance del PAT
 es la cuenta entera, no un proyecto.

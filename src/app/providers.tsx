@@ -5,12 +5,13 @@ import { ModalsProvider } from '@mantine/modals';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { theme } from './theme';
+import { ProveedorSesion } from '@/features/auth/sesion';
 
 /**
  * Proveedores de la aplicación.
  *
  * Orden: Mantine por fuera (los modales y notificaciones necesitan su contexto
- * de tema), después React Query, y el Router por dentro.
+ * de tema), después la sesión, después React Query, y el Router por dentro.
  */
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -33,11 +34,13 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <MantineProvider theme={theme} defaultColorScheme="light">
-      <Notifications position="top-right" />
+      <Notifications position="top-right" limit={3} />
       <ModalsProvider>
-        <QueryClientProvider client={queryClient}>
-          <BrowserRouter>{children}</BrowserRouter>
-        </QueryClientProvider>
+        <ProveedorSesion>
+          <QueryClientProvider client={queryClient}>
+            <BrowserRouter>{children}</BrowserRouter>
+          </QueryClientProvider>
+        </ProveedorSesion>
       </ModalsProvider>
     </MantineProvider>
   );

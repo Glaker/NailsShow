@@ -106,6 +106,50 @@ el sistema anterior parece haber usado solo tres.
 **Estado.** Los cuatro colores ya están en `src/app/theme.ts`. Confirmar si el
 estado se usa en la práctica.
 
+### D-10 · Formato del número de registro interno del lote
+
+**Fuente.** RN — I.20.1 paso 7 manda asignar un número de registro interno al
+lote recibido, pero no define cómo se compone.
+**Valor provisorio.** Correlativo por año con prefijo: `RI-00001/2026`, generado
+por `trg_numerar_lote_insumo` contra `gmp.contadores`.
+**Requiere.** Confirmación de DT, o el POE que fije la regla. Si el formato
+cambia, cambia solo la función de numeración: los números ya emitidos no se
+tocan, porque están en registros firmados.
+
+### D-11 · Codificación de los depósitos sin número en los POE
+
+**Fuente.** §4.1. Los POE numeran cinco depósitos (01 envase/empaque cuarentena,
+04 materia prima cuarentena, 05 materia prima aprobada, 19 PT importado
+aprobado, 20 PT importado cuarentena) y nombran otros cinco sin numerarlos.
+**Valor provisorio.** Código mnemotécnico: `INF` inflamables, `GRA-CUA` graneles
+cuarentena, `ENV-APR` envases aprobados, `CTM` contramuestras, `RET` retiro de
+mercado.
+**Requiere.** Que la planta confirme si esos depósitos tienen número asignado en
+la práctica. Es un dato que se contesta caminando el depósito.
+
+### D-12 · Alta de cuentas durante el demo
+
+**Fuente.** Decisión de implementación, no de negocio.
+**Situación.** El registro está abierto (`enable_signup = true`) y sin
+verificación de correo (`enable_confirmations = false`), a pedido de la
+conducción del proyecto para el demo. El primer usuario que se registra queda
+como `ADMINISTRADOR_SISTEMA`; los siguientes entran **desactivados** y sin rol,
+y un administrador los habilita. El rol nunca se lee de los metadatos del alta:
+con registro abierto, eso sería dejar que cada uno elija su propio permiso.
+**Antes de producción.** Cerrar el registro y pasar a alta por invitación. En un
+sistema BPF, quién puede tener credencial es parte de lo que se audita, y una
+cuenta que se crea sola no tiene a nadie que responda por ella.
+
+### D-13 · Movimiento en la interfaz
+
+**Fuente.** Decisión de la conducción del proyecto, 2026-09-04.
+**Situación.** La fase 0 prohibía toda animación. Se revisó: ahora hay
+transiciones suaves de estado (hover, foco, apertura de panel, entrada de
+tarjeta), de 160 a 220 ms, y sigue prohibido todo lo que se mueva solo o
+sugiera que algo se guardó o cambió de estado. `prefers-reduced-motion` anula
+todo. Documentado en el encabezado de `src/app/theme.ts`.
+**Estado.** Resuelto, se deja anotado porque revierte un criterio anterior.
+
 ---
 
 ## Resueltas

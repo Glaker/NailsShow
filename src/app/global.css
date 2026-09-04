@@ -1,0 +1,191 @@
+/*
+ * Estilos globales.
+ *
+ * Tres cosas y ninguna más: la base de la página, el vocabulario de movimiento
+ * descrito en `theme.ts`, y las reglas de impresión del rótulo. Todo lo demás
+ * vive en el tema o en el componente.
+ */
+
+:root {
+  --transicion: 160ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  --superficie-fondo: #faf7fb;
+  --superficie-borde: #efe6f3;
+  --barra-fondo: #1a0e22;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--superficie-fondo);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Barra de desplazamiento discreta: en tablet la barra ancha se toca sin querer. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d6c6dd transparent;
+}
+
+/*
+ * Entrada de contenido. Un desplazamiento de 6 px y una opacidad: alcanza para
+ * que la pantalla no aparezca de golpe, y es lo bastante corto como para no
+ * hacer esperar a nadie. No se repite: se ejecuta una vez al montar.
+ */
+@keyframes entrada-suave {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.entrada {
+  animation: entrada-suave 220ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+/* Escalonado para listas de tarjetas: cada una entra 40 ms después de la anterior. */
+.entrada-escalonada > * {
+  animation: entrada-suave 220ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.entrada-escalonada > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.entrada-escalonada > *:nth-child(2) {
+  animation-delay: 40ms;
+}
+.entrada-escalonada > *:nth-child(3) {
+  animation-delay: 80ms;
+}
+.entrada-escalonada > *:nth-child(4) {
+  animation-delay: 120ms;
+}
+.entrada-escalonada > *:nth-child(5) {
+  animation-delay: 160ms;
+}
+.entrada-escalonada > *:nth-child(6) {
+  animation-delay: 200ms;
+}
+
+/*
+ * Quien tenga reducción de movimiento configurada en su sistema no ve nada de
+ * lo anterior. No es un agregado opcional: buena parte del personal de planta
+ * trabaja turnos largos frente a pantalla.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/*
+ * Impresión del rótulo. El rótulo se imprime, se corta y se pega en el cuerpo
+ * del recipiente (I.20.2, RN-06). Todo lo que no sea el rótulo desaparece.
+ */
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .no-imprimir {
+    display: none !important;
+  }
+
+  .solo-impresion {
+    display: block !important;
+  }
+
+  .hoja-rotulo {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+    box-shadow: none !important;
+    border: 2px solid #000 !important;
+    page-break-inside: avoid;
+  }
+
+  @page {
+    size: A6 landscape;
+    margin: 8mm;
+  }
+}
+
+/* --------------------------------------------------------------------- *
+ * Interacciones
+ * --------------------------------------------------------------------- */
+
+/* Tarjeta que es enlace: se levanta apenas. Sin escala, para no mover el texto. */
+.tarjeta-enlace:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(40, 23, 50, 0.1);
+}
+
+/* Ítem de la barra lateral. */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  color: #c9b3d1;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition:
+    background-color var(--transicion),
+    color var(--transicion);
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.nav-item[data-activo='true'] {
+  background: linear-gradient(135deg, #6d4a7f 0%, #a8406f 130%);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+
+.nav-item[data-activo='true'] svg {
+  color: #fff;
+}
+
+/* Barra inferior del teléfono. */
+.nav-inferior {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 56px;
+  color: #8b679d;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 600;
+  transition: color var(--transicion);
+}
+
+.nav-inferior[data-activo='true'] {
+  color: var(--mantine-color-violeta-7);
+}
+
+/* Fila de tabla que se puede tocar entera. */
+.fila-tocable {
+  cursor: pointer;
+  transition: background-color var(--transicion);
+}

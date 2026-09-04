@@ -9,6 +9,9 @@ import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import '@mantine/notifications/styles.css';
 
+/* Estilos propios al final: fondo de página, movimiento e impresión del rótulo. */
+import './app/global.css';
+
 import { App } from './app/App';
 
 const contenedor = document.getElementById('root');
