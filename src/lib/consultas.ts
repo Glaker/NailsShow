@@ -15,7 +15,11 @@ export type Recepcion = Database['gmp']['Tables']['recepciones']['Row'];
 export type LoteInsumo = Database['gmp']['Tables']['lotes_insumo']['Row'];
 export type Rotulo = Database['gmp']['Tables']['rotulos']['Row'];
 export type LoteVista = Database['gmp']['Views']['v_lotes_insumo']['Row'];
+export type MuestreoVista = Database['gmp']['Views']['v_muestreos']['Row'];
+export type DestinoMuestra = Database['gmp']['Enums']['destino_muestra_enum'];
+export type CategoriaMuestreo = Database['gmp']['Enums']['categoria_muestreo_enum'];
 export type Tablero = Database['gmp']['Views']['v_tablero']['Row'];
+export type ExistenciaVista = Database['gmp']['Views']['v_existencias_recibidas']['Row'];
 export type Auditoria = Database['core']['Tables']['auditoria']['Row'];
 export type EstadoCalidad = Database['gmp']['Enums']['estado_calidad_enum'];
 export type TipoInsumo = Database['gmp']['Enums']['tipo_insumo_enum'];
@@ -97,6 +101,32 @@ export function useLotesPorEstado() {
 }
 
 /* ------------------------------------------------------------------------- *
+ * Existencias recibidas
+ *
+ * Ojo con el nombre: es lo recibido agrupado por estado, no stock. No hay
+ * registro de consumo, así que las cantidades solo crecen. La existencia real
+ * será `comercial.movimientos_stock`, que todavía no existe. La vista de la
+ * base lleva el mismo aviso en su COMMENT.
+ * ------------------------------------------------------------------------- */
+
+export function useExistencias() {
+  return useQuery({
+    queryKey: ['existencias'],
+    queryFn: async () => {
+      /* El orden por `estado` sale del enum, que está declarado en el orden
+         del circuito (RECIBIDO → … → RECHAZADO), no alfabético. */
+      const { data, error } = await gmp()
+        .from('v_existencias_recibidas')
+        .select('*')
+        .order('insumo_nombre')
+        .order('estado');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+/* ------------------------------------------------------------------------- *
  * Lotes de insumo
  * ------------------------------------------------------------------------- */
 
@@ -112,7 +142,10 @@ export function useLotes(filtro?: { estado?: EstadoCalidad | null; texto?: strin
 
       if (filtro?.estado) consulta = consulta.eq('estado', filtro.estado);
 
-      const texto = filtro?.texto?.trim();
+      /* PostgREST separa los términos de `or()` con comas y paréntesis, así
+         que un texto que los contenga rompe la consulta. Se quitan: nadie
+         busca un lote por una coma. */
+      const texto = filtro?.texto?.replace(/[(),*"']/g, ' ').trim();
       if (texto) {
         /* Búsqueda por lo que el operario tiene a mano: el número interno, el
            lote del proveedor o el nombre del insumo. */
@@ -186,6 +219,92 @@ export function useEmitirRotulo() {
       void qc.invalidateQueries({ queryKey: ['tablero'] });
       void qc.invalidateQueries({ queryKey: ['lotes-por-estado'] });
       avisarExito('Rótulo emitido y estado actualizado.');
+    },
+    onError: avisarError,
+  });
+}
+
+/* ------------------------------------------------------------------------- *
+ * Muestreo (I.50.4)
+ * ------------------------------------------------------------------------- */
+
+export function useMuestreosDeLote(loteId: string | undefined) {
+  return useQuery({
+    queryKey: ['muestreos', loteId],
+    enabled: Boolean(loteId),
+    queryFn: async () => {
+      const { data, error } = await gmp()
+        .from('v_muestreos')
+        .select('*')
+        .eq('entidad_tipo', 'lote_insumo')
+        .eq('entidad_id', loteId!)
+        .order('fecha_hora', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export interface MuestreoNuevo {
+  loteId: string;
+  cantidadTomada: number;
+  unidad: string;
+  areaMuestreo: string;
+  contenedorIntegro: boolean;
+  contenedorLimpio: boolean;
+  rotuladoCorrecto: boolean;
+  cantidadContenedores: number;
+  destinoSobrante: DestinoMuestra;
+  loteCoincideCertificado: boolean | null;
+  justificacionCantidad: string | null;
+  circunstanciaInusual: string | null;
+  signosNoConformidad: string | null;
+}
+
+/**
+ * Registro del muestreo.
+ *
+ * Una sola llamada porque en la base es una sola transacción: el muestreo, la
+ * etiqueta R.50.4.1 que exige RN-07 y el avance del lote a muestreado van
+ * juntos. Separarlos dejaría material muestreado sin identificar.
+ */
+export function useRegistrarMuestreo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (m: MuestreoNuevo) => {
+      /*
+       * Los parámetros que en la base tienen DEFAULT salen tipados como
+       * opcionales, así que hay que omitir la clave y no pasarla en null.
+       */
+      const { data, error } = await gmp().rpc('registrar_muestreo', {
+        p_lote_id: m.loteId,
+        p_cantidad_tomada: m.cantidadTomada,
+        p_unidad: m.unidad,
+        p_area_muestreo: m.areaMuestreo,
+        p_contenedor_integro: m.contenedorIntegro,
+        p_contenedor_limpio: m.contenedorLimpio,
+        p_rotulado_correcto: m.rotuladoCorrecto,
+        p_cantidad_contenedores: m.cantidadContenedores,
+        p_destino_sobrante: m.destinoSobrante,
+        ...(m.loteCoincideCertificado !== null
+          ? { p_lote_coincide_certificado: m.loteCoincideCertificado }
+          : {}),
+        ...(m.justificacionCantidad
+          ? { p_justificacion_cantidad: m.justificacionCantidad }
+          : {}),
+        ...(m.circunstanciaInusual
+          ? { p_circunstancia_inusual: m.circunstanciaInusual }
+          : {}),
+        ...(m.signosNoConformidad
+          ? { p_signos_no_conformidad: m.signosNoConformidad }
+          : {}),
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (m) => {
+      void qc.invalidateQueries();
+      avisarExito(`Muestreo ${m?.numero ?? ''} registrado y etiqueta R.50.4.1 emitida.`);
     },
     onError: avisarError,
   });

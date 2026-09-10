@@ -3,6 +3,7 @@ import { PaginaTablero } from '@/features/tablero/PaginaTablero';
 import { PaginaRecepciones } from '@/features/recepcion/PaginaRecepciones';
 import { PaginaLotes } from '@/features/trazabilidad/PaginaLotes';
 import { PaginaLote } from '@/features/trazabilidad/PaginaLote';
+import { PaginaExistencias } from '@/features/existencias/PaginaExistencias';
 import { PaginaInsumos } from '@/features/maestros/PaginaInsumos';
 import { PaginaProveedores } from '@/features/maestros/PaginaProveedores';
 import { PaginaDepositos } from '@/features/maestros/PaginaDepositos';
@@ -24,6 +25,7 @@ export function AppRoutes() {
       <Route path="/recepciones" element={<PaginaRecepciones />} />
       <Route path="/lotes" element={<PaginaLotes />} />
       <Route path="/lotes/:id" element={<PaginaLote />} />
+      <Route path="/existencias" element={<PaginaExistencias />} />
       <Route path="/insumos" element={<PaginaInsumos />} />
       <Route path="/proveedores" element={<PaginaProveedores />} />
       <Route path="/depositos" element={<PaginaDepositos />} />

@@ -2,6 +2,7 @@ import {
   IconLayoutDashboard,
   IconTruckDelivery,
   IconPackages,
+  IconScale,
   IconFlask,
   IconBuildingWarehouse,
   IconAddressBook,
@@ -48,6 +49,12 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiquetaCorta: 'Lotes',
     icono: IconPackages,
     principal: true,
+  },
+  {
+    ruta: '/existencias',
+    etiqueta: 'Material en planta',
+    etiquetaCorta: 'Material',
+    icono: IconScale,
   },
   {
     ruta: '/insumos',

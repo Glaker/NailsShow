@@ -127,6 +127,76 @@ Dos defectos aparecieron en esa verificación y se corrigieron en la migración
    es uno. Quedaba un R.20.2.1 con color «SIN_ROTULO» y, peor, el material
    perdía su rótulo amarillo justo mientras seguía en cuarentena.
 
+### Repaso de la fase 1 (2026-09-04)
+
+Se revisó lo construido y aparecieron cuatro defectos, todos corregidos y
+verificados:
+
+1. **La serie diaria del tablero multiplicaba.** El `LEFT JOIN` contra lotes
+   repetía la fila de la recepción una vez por lote, así que `count(r.id)`
+   contaba una recepción de tres lotes como tres. El gráfico exageraba
+   justo los días de más trabajo, que son los que uno mira.
+2. **La recepción y el lote se podían editar enteros.** Las políticas RLS
+   decidían _quién_ podía hacer UPDATE, pero no _sobre qué_. Administración
+   podía cambiarle el proveedor a una recepción registrada, y un operario la
+   cantidad de bultos de un lote. Ahora la recepción solo admite su carga
+   administrativa diferida y el lote solo el avance de su circuito; lo demás lo
+   rechaza un trigger, con el mensaje que indica el camino correcto (no
+   conformidad PG.60.18 y registro rectificativo).
+3. **La vista informaba el color derivado del estado, no el del rótulo puesto.**
+   Con el lote en `MUESTREADO` decía «SIN_ROTULO» mientras en el tambor seguía,
+   correctamente, el amarillo de cuarentena. La distinción importa: `estado` es
+   dónde está el lote en el circuito, `color_rotulo` es qué cartel tiene encima.
+4. **La transición a `MUESTREADO` se podía forzar sin muestreo.** §5.1 lo pone
+   como precondición y estaba escrito solo en el documento. Ahora lo exige la
+   base.
+
+Además se agregó `core.verificar_invariantes()`, que lee el catálogo y contesta
+con datos si las invariantes estructurales de §3 se cumplen. Es el sujeto de las
+pruebas pgTAP pendientes, y mientras no existan se puede consultar. Al
+2026-09-04 las cinco exigibles dan verde.
+
+Esa misma función dejó a la vista un dato que conviene no perder: **el rol
+`postgres` tiene `BYPASSRLS`**, igual que `service_role`, `supabase_admin`,
+`supabase_etl_admin` y `supabase_read_only_user`. Son cinco roles que saltean
+RLS. `CLAUDE.md` §3.5 afirma que «ni siquiera el rol postgres de la aplicación
+la puede saltear»: eso es cierto para la aplicación, que corre como
+`authenticated` y no saltea nada, pero no para `postgres`. La afirmación del
+documento hay que precisarla, y el número —cinco— es el que conviene tener
+contestado antes de que lo pregunte un inspector.
+
+---
+
+## Muestreo (I.50.4)
+
+Cierra el hueco que quedaba en `CUARENTENA → MUESTREADO`, que hasta el
+2026-09-04 avanzaba el estado sin registrar nada.
+
+`gmp.registrar_muestreo()` hace tres cosas en una sola transacción: registra el
+muestreo, emite la etiqueta R.50.4.1 que exige RN-07 y avanza el lote. Van
+juntas porque separarlas dejaría, aunque sea un instante, material muestreado
+sin identificar.
+
+Las cinco verificaciones previas de RN-10 son bloqueantes de verdad: no alcanza
+con registrarlas. Si el contenedor no está íntegro, no está limpio, el rotulado
+no corresponde o el lote no coincide con el certificado, la base rechaza el
+muestreo y el mensaje indica que lo que corresponde es abrir una no conformidad,
+no tomar la muestra igual.
+
+Dos detalles que valen la pena:
+
+- **La etiqueta R.50.4.1 no lleva ninguno de los cuatro colores de I.20.2.** Ese
+  POE define esos colores para comunicar el estado de calidad de un material, y
+  esto identifica una muestra. Pintarla de amarillo diría algo que el POE no
+  dijo.
+- **El rótulo amarillo del lote sigue puesto.** Entre el muestreo y el inicio
+  del análisis el material avanzó en el circuito pero sigue en cuarentena, y su
+  cartel tiene que decir eso.
+
+Queda fuera, y anotado: RN-09 (envases a muestrear por presentación de producto
+terminado) y RN-12 (ventana de «inmediatamente» del granel, D-07). Los dos
+aplican a circuitos de producto que todavía no existen.
+
 ---
 
 ## Estado del frontend
@@ -146,9 +216,14 @@ el primer día.
 - **Lotes.** Búsqueda por número interno o lote del proveedor, filtro por
   estado en la URL, ficha con historial de rótulos y avance de estado con
   confirmación.
-- **Rótulo R.20.2.1.** Se imprime en A6 apaisado con los campos del registro y
-  un QR que lleva a la ficha del lote. La hoja de impresión oculta todo lo
-  demás.
+- **Muestreo.** Formulario de I.50.4 en el orden del POE: primero las cinco
+  verificaciones previas, después la muestra. Mientras alguna no esté conforme
+  el botón está deshabilitado y la pantalla dice por qué. El tamaño de muestra
+  viene sugerido con el criterio que lo produjo a la vista, y apartarse pide
+  justificación.
+- **Rótulos.** El R.20.2.1 del lote y la etiqueta R.50.4.1 de la muestra se
+  imprimen en A6 apaisado con los campos del registro y un QR que lleva a la
+  ficha del lote. La hoja de impresión oculta todo lo demás.
 - **Maestros.** Catálogo de insumos, proveedores con dictamen de DT, depósitos.
 - **Usuarios.** Rol, roles adicionales, sector y baja lógica.
 - **Auditoría.** Últimas 200 escrituras con autor, momento, valores y rol de
@@ -187,17 +262,20 @@ datos de prueba, y así tiene que ser. Están identificados y son pocos.
 
 ## Qué sigue
 
-1. **Muestreo (I.50.4)** con las cinco verificaciones previas de RN-10 y la
-   etiqueta R.50.4.1 automática de RN-07. Es la transición
-   `CUARENTENA → MUESTREADO`, que hoy avanza sin registrar el muestreo.
-2. **Control de calidad de insumos (I.50.5)** con especificaciones y el motor de
-   evaluación de §7.3. Es lo que hoy hace que `EN_ANALISIS → APROBADO` sea un
-   botón y no un dictamen.
+1. **Control de calidad de insumos (I.50.5)** con especificaciones (§4.6) y el
+   motor de evaluación de §7.3. Es lo que hoy hace que `EN_ANALISIS → APROBADO`
+   sea un botón y no un dictamen: falta la contraparte de lo que se acaba de
+   hacer con el muestreo. **Ojo:** choca con D-02, que define quién firma el
+   veredicto, y esa la contesta Dirección Técnica.
+2. **Suite pgTAP.** `core.verificar_invariantes()` ya contesta las cinco
+   invariantes exigibles; falta envolverla en pruebas que fallen el merge. Es
+   barato y es evidencia de calificación operacional. Requiere conexión SQL
+   directa, y la contraseña de la base es una de las que hay que rotar.
 3. **Firma electrónica.** Bloqueada por D-01.
-4. **Suite pgTAP**, empezando por las dos invariantes que hoy están declaradas y
-   no verificadas: `core.tablas_sin_auditoria()` ya existe y devuelve conjunto
-   vacío, pero falta la prueba que lo exija; y falta entera la prueba de
-   dirección de dependencia entre esquemas.
+4. **No conformidades (PG.60.18).** El muestreo ya registra signos de no
+   conformidad y varios mensajes de error remiten a ese procedimiento, pero el
+   módulo no existe. Cada mensaje que dice «corresponde abrir una no
+   conformidad» es hoy una instrucción al operario, no un flujo del sistema.
 
 ### Diferido, no descartado
 

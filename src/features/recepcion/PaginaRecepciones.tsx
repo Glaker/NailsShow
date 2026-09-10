@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   Badge,
   Button,
@@ -29,7 +28,6 @@ import { useTieneRol } from '@/features/auth/sesion';
 export function PaginaRecepciones() {
   const recepciones = useRecepciones();
   const [abierto, modal] = useDisclosure(false);
-  const [busqueda] = useState('');
   const puedeRegistrar = useTieneRol(
     'OPERARIO',
     'CONTROL_CALIDAD',
@@ -37,9 +35,7 @@ export function PaginaRecepciones() {
     'GERENCIA_PRODUCCION',
   );
 
-  const filas = (recepciones.data ?? []).filter((r) =>
-    busqueda ? r.numero_remito.includes(busqueda) : true,
-  );
+  const filas = recepciones.data ?? [];
 
   return (
     <>

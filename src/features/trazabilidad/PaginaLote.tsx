@@ -8,12 +8,15 @@ import {
   Group,
   Paper,
   Skeleton,
+  Modal,
   Stack,
+  Table,
   Text,
   Timeline,
   Title,
 } from '@mantine/core';
 import { modals } from '@mantine/modals';
+import { useDisclosure } from '@mantine/hooks';
 import { Link, useParams } from 'react-router-dom';
 import {
   IconArrowLeft,
@@ -22,12 +25,16 @@ import {
   IconFlask,
   IconPrinter,
   IconTag,
+  IconTestPipe,
 } from '@tabler/icons-react';
 import { InsigniaEstado, TEXTO_ESTADO } from '@/components/InsigniaEstado';
 import { RotuloLote } from '@/features/rotulos/RotuloLote';
+import { EtiquetaMuestreo } from '@/features/rotulos/EtiquetaMuestreo';
+import { FormularioMuestreo } from '@/features/muestreo/FormularioMuestreo';
 import {
   useEmitirRotulo,
   useLote,
+  useMuestreosDeLote,
   useRotulosDeLote,
   type EstadoCalidad,
 } from '@/lib/consultas';
@@ -54,14 +61,13 @@ const TRANSICIONES: Record<
       nota: 'Emite el rótulo amarillo R.20.2.1 y manda el material al depósito de cuarentena.',
     },
   ],
-  CUARENTENA: [
-    {
-      destino: 'MUESTREADO',
-      etiqueta: 'Registrar muestreo',
-      roles: ['CONTROL_CALIDAD', 'DIRECCION_TECNICA'],
-      nota: 'El muestreo completo de I.50.4, con sus cinco verificaciones previas, se implementa en la fase siguiente.',
-    },
-  ],
+  /*
+   * CUARENTENA → MUESTREADO no está acá a propósito. Esa transición no es un
+   * cambio de rótulo: exige registrar el muestreo de I.50.4 con sus cinco
+   * verificaciones previas y emitir la etiqueta R.50.4.1 (RN-07). Tiene su
+   * propio formulario, y la base rechaza el avance si el muestreo no existe.
+   */
+  CUARENTENA: [],
   MUESTREADO: [
     {
       destino: 'EN_ANALISIS',
@@ -105,8 +111,10 @@ export function PaginaLote() {
   const { id } = useParams();
   const lote = useLote(id);
   const rotulos = useRotulosDeLote(id);
+  const muestreos = useMuestreosDeLote(id);
   const emitir = useEmitirRotulo();
   const { claims } = useSesion();
+  const [muestreoAbierto, modalMuestreo] = useDisclosure(false);
 
   if (lote.isLoading) {
     return <Skeleton h={420} radius="lg" />;
@@ -129,6 +137,10 @@ export function PaginaLote() {
   const opciones = TRANSICIONES[estado].filter((t) =>
     t.roles.some((r) => roles.includes(r)),
   );
+  const listaMuestreos = muestreos.data ?? [];
+  const puedeMuestrear =
+    estado === 'CUARENTENA' &&
+    (roles.includes('CONTROL_CALIDAD') || roles.includes('DIRECCION_TECNICA'));
 
   const confirmarTransicion = (
     destino: EstadoCalidad,
@@ -187,6 +199,16 @@ export function PaginaLote() {
         </Stack>
 
         <Group gap="sm">
+          {puedeMuestrear ? (
+            <Button
+              variant="gradient"
+              gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
+              leftSection={<IconTestPipe size={18} />}
+              onClick={modalMuestreo.open}
+            >
+              Registrar muestreo
+            </Button>
+          ) : null}
           {rotuloVigente ? (
             <Button
               variant="light"
@@ -309,6 +331,83 @@ export function PaginaLote() {
               </Group>
             </Paper>
 
+            {listaMuestreos.length > 0 ? (
+              <Paper
+                withBorder
+                p="lg"
+                style={{ borderColor: 'var(--superficie-borde)' }}
+                className="no-imprimir"
+              >
+                <Title order={3} mb="md">
+                  Muestreos
+                </Title>
+                <Table.ScrollContainer minWidth={560}>
+                  <Table verticalSpacing="sm">
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th>N°</Table.Th>
+                        <Table.Th>Fecha</Table.Th>
+                        <Table.Th>Tomado</Table.Th>
+                        <Table.Th>Sobrante</Table.Th>
+                        <Table.Th>Responsable</Table.Th>
+                      </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {listaMuestreos.map((m) => (
+                        <Table.Tr key={m.id}>
+                          <Table.Td>
+                            <Text size="sm" ff="monospace" fw={600}>
+                              {m.numero}
+                            </Text>
+                          </Table.Td>
+                          <Table.Td>
+                            <Text size="sm">{fechaHora(m.fecha_hora)}</Text>
+                          </Table.Td>
+                          <Table.Td>
+                            <Text size="sm">
+                              {numero(m.cantidad_tomada, 3)} {m.unidad}
+                            </Text>
+                            {m.justificacion_cantidad ? (
+                              <Text size="xs" c="dimmed">
+                                desvío justificado
+                              </Text>
+                            ) : null}
+                          </Table.Td>
+                          <Table.Td>
+                            <Text size="sm">
+                              {(m.destino_sobrante ?? '')
+                                .replace(/_/g, ' ')
+                                .toLowerCase()}
+                            </Text>
+                          </Table.Td>
+                          <Table.Td>
+                            <Text size="sm">{m.realizado_por_nombre}</Text>
+                            <Text size="xs" c="dimmed">
+                              {m.area_muestreo}
+                            </Text>
+                          </Table.Td>
+                        </Table.Tr>
+                      ))}
+                    </Table.Tbody>
+                  </Table>
+                </Table.ScrollContainer>
+
+                {listaMuestreos.some((m) => m.signos_no_conformidad) ? (
+                  <Alert color="estadoCuarentena" variant="light" radius="md" mt="md">
+                    Se registraron signos de no conformidad durante el muestreo.
+                    Corresponde evaluarlos según PG.60.18.
+                    {listaMuestreos
+                      .filter((m) => m.signos_no_conformidad)
+                      .map((m) => (
+                        <Text size="sm" mt={6} key={m.id}>
+                          <b>{m.numero}:</b> {m.signos_no_conformidad}
+                        </Text>
+                      ))}
+                  </Alert>
+                ) : null}
+              </Paper>
+            ) : null}
+
             <Paper
               withBorder
               p="lg"
@@ -365,9 +464,27 @@ export function PaginaLote() {
                 puede ingresar a cuarentena: I.20.2 exige rotular el estado.
               </Alert>
             )}
+
+            {listaMuestreos.length > 0 ? (
+              <>
+                <Text fw={600} size="sm" c="dimmed" mt="sm" className="no-imprimir">
+                  Etiqueta de la muestra
+                </Text>
+                <EtiquetaMuestreo muestreo={listaMuestreos[0]!} />
+              </>
+            ) : null}
           </Stack>
         </Grid.Col>
       </Grid>
+
+      <Modal
+        opened={muestreoAbierto}
+        onClose={modalMuestreo.close}
+        title={<Text fw={700}>Registrar muestreo · I.50.4</Text>}
+        size="lg"
+      >
+        <FormularioMuestreo lote={l} onListo={modalMuestreo.close} />
+      </Modal>
     </>
   );
 }
