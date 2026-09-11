@@ -542,6 +542,66 @@ cambio fue sólo de RLS: la interfaz ya estaba alineada.
 
 ---
 
+## Edición de los maestros (2026-09-11)
+
+Faltaba lo más básico y se notaba: el catálogo sólo se podía dar de alta. Los
+`es_inflamable` de las 40 materias primas y los `origen` de los 483 productos se
+señalaron dos veces como «editables después» sin que hubiera dónde editarlos.
+
+Ahora **al hacer clic en cualquier fila de `/insumos` o `/productos` se abre la
+ficha en un modal**, con los mismos campos del alta más un interruptor de
+`activo`. Es el mismo componente para alta y edición: separarlos en dos habría
+sido duplicar reglas para que después se desincronicen. El `key` del modal
+fuerza el remontaje al cambiar de ficha, porque Mantine conserva los valores
+iniciales del formulario anterior.
+
+`/insumos` ganó además un buscador por nombre y código. Con 340 ítems, la tabla
+sin filtro hacía inservible la edición por fila; `/productos` ya lo tenía.
+
+### El código interno se congela cuando hay existencia
+
+`20260911200000_maestros_identidad_del_codigo.sql`. Es el único campo que la
+edición no puede dejar suelto.
+
+`codigo_interno` no es un atributo, es la identidad de negocio. Cuando un insumo
+entra a stock por primera vez, `comercial.articulo_de_insumo()` copia ese código
+como `sku`. La copia es deliberada —el artículo es de `comercial` y no puede
+depender de `gmp` fila por fila— pero significa que cambiar el código después
+deja el SKU citando un código que ya no existe, sin que falle nada: simplemente
+dejan de coincidir.
+
+Propagar el cambio a `comercial.articulos` desde un trigger de `gmp` invertiría
+la dirección de dependencia de la invariante 7, que es exactamente el motivo por
+el que `articulo_de_insumo()` vive en `comercial`. Así que el criterio es otro:
+el código se corrige mientras el insumo sea sólo una ficha, y se congela en
+cuanto tiene lotes o artículo de stock. Un error de tipeo se arregla el día que
+se carga; si ya hay material recibido contra ese código, el código es el que
+figura en el papel.
+
+El resto de la ficha se edita siempre, y la auditoría guarda el valor anterior
+de cada campo (RN-50).
+
+**`gmp.productos` todavía no lleva el resguardo equivalente** porque nada copia
+su código: no hay lotes de producto ni artículo de stock de producto terminado.
+Cuando se cree cualquiera de los dos, **hay que espejar este trigger ahí**.
+
+### Verificación
+
+Con la sesión de Nazarena (`SET LOCAL ROLE authenticated` y sus claims), en una
+transacción revertida al final para no ensuciar la auditoría, que es append-only:
+
+| Caso                                                | Resultado     |
+| --------------------------------------------------- | ------------- |
+| editar ficha de insumo (nombre, unidad, inflamable) | OK            |
+| cambiar código de un insumo sin lotes ni stock      | OK, editable  |
+| cambiar código de un insumo con artículo de stock   | **rechazado** |
+| editar ficha de producto (origen, tipo, activo)     | OK            |
+
+Confirmado después que no quedó ninguna fila tocada ni asiento de auditoría de
+la prueba.
+
+---
+
 ## Qué sigue
 
 0. **RETOMAR ACÁ — separar producto cosmético de accesorio (D-18).** Es lo que

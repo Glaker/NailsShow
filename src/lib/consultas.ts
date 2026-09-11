@@ -457,6 +457,34 @@ export function useProductos() {
   });
 }
 
+export function useActualizarInsumo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      cambios,
+    }: {
+      id: string;
+      cambios: Database['gmp']['Tables']['insumos_catalogo']['Update'];
+    }) => {
+      const { data, error } = await gmp()
+        .from('insumos_catalogo')
+        .update(cambios)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['insumos'] });
+      void qc.invalidateQueries({ queryKey: ['tablero'] });
+      avisarExito('Ficha del insumo actualizada.');
+    },
+    onError: avisarError,
+  });
+}
+
 export function useCrearProducto() {
   const qc = useQueryClient();
   return useMutation({
@@ -472,6 +500,33 @@ export function useCrearProducto() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['productos'] });
       avisarExito('Producto agregado al catálogo.');
+    },
+    onError: avisarError,
+  });
+}
+
+export function useActualizarProducto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      cambios,
+    }: {
+      id: string;
+      cambios: Database['gmp']['Tables']['productos']['Update'];
+    }) => {
+      const { data, error } = await gmp()
+        .from('productos')
+        .update(cambios)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['productos'] });
+      avisarExito('Ficha del producto actualizada.');
     },
     onError: avisarError,
   });

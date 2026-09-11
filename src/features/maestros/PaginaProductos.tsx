@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Badge,
   Button,
@@ -10,6 +10,7 @@ import {
   Select,
   Skeleton,
   Stack,
+  Switch,
   Table,
   Text,
   TextInput,
@@ -23,7 +24,12 @@ import { z } from 'zod';
 import { IconPackage, IconPlus, IconSearch } from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { Vacio } from '@/components/Vacio';
-import { useCrearProducto, useProductos } from '@/lib/consultas';
+import {
+  useActualizarProducto,
+  useCrearProducto,
+  useProductos,
+  type Producto,
+} from '@/lib/consultas';
 import { etiquetaEnum } from '@/lib/formato';
 import { useTieneRol } from '@/features/auth/sesion';
 
@@ -35,26 +41,42 @@ const esquema = z.object({
   variedad: z.string().trim(),
   tipo: z.string().trim(),
   forma_cosmetica: z.string().trim(),
-  origen: z.enum(ORIGENES),
+  /* Nullable: la lista cargada no traía el origen, y un 'FABRICADO' supuesto
+     mandaría el producto al circuito de elaboración equivocado. */
+  origen: z.enum(ORIGENES).nullable(),
   /* Nullable de verdad: un 0 sería un dato falso. Sin vida útil, el vencimiento
      del lote se completa después. */
   vida_util_meses: z.number().int().positive().nullable(),
+  activo: z.boolean(),
 });
 
 type Valores = z.infer<typeof esquema>;
 
-function FormularioProducto({ onListo }: { onListo: () => void }) {
+/**
+ * Alta y edición de la ficha, en el mismo formulario. `producto` ausente =
+ * alta; presente = edición de esa ficha.
+ */
+function FormularioProducto({
+  producto,
+  onListo,
+}: {
+  producto?: Producto | undefined;
+  onListo: () => void;
+}) {
   const crear = useCrearProducto();
+  const actualizar = useActualizarProducto();
+  const editando = Boolean(producto);
   const form = useForm<Valores>({
     mode: 'controlled',
     initialValues: {
-      codigo_interno: '',
-      nombre: '',
-      variedad: '',
-      tipo: '',
-      forma_cosmetica: '',
-      origen: 'FABRICADO',
-      vida_util_meses: null,
+      codigo_interno: producto?.codigo_interno ?? '',
+      nombre: producto?.nombre ?? '',
+      variedad: producto?.variedad ?? '',
+      tipo: producto?.tipo ?? '',
+      forma_cosmetica: producto?.forma_cosmetica ?? '',
+      origen: (producto?.origen as Valores['origen']) ?? (producto ? null : 'FABRICADO'),
+      vida_util_meses: producto?.vida_util_meses ?? null,
+      activo: producto?.activo ?? true,
     },
     validate: zod4Resolver(esquema),
   });
@@ -64,7 +86,7 @@ function FormularioProducto({ onListo }: { onListo: () => void }) {
       onSubmit={form.onSubmit(async (v) => {
         /* Los text vacíos van como null: un '' en la base no es un dato, es
            ruido que después hay que limpiar. */
-        await crear.mutateAsync({
+        const campos = {
           codigo_interno: v.codigo_interno,
           nombre: v.nombre,
           variedad: v.variedad || null,
@@ -72,7 +94,13 @@ function FormularioProducto({ onListo }: { onListo: () => void }) {
           forma_cosmetica: v.forma_cosmetica || null,
           origen: v.origen,
           vida_util_meses: v.vida_util_meses,
-        });
+          activo: v.activo,
+        };
+        if (producto) {
+          await actualizar.mutateAsync({ id: producto.id, cambios: campos });
+        } else {
+          await crear.mutateAsync(campos);
+        }
         onListo();
       })}
     >
@@ -102,8 +130,10 @@ function FormularioProducto({ onListo }: { onListo: () => void }) {
           <Grid.Col span={{ base: 12, sm: 6 }}>
             <Select
               label="Origen"
+              placeholder="Sin definir"
+              description="Sin origen no se puede abrir una orden de producción."
               data={ORIGENES.map((o) => ({ value: o, label: etiquetaEnum(o) }))}
-              allowDeselect={false}
+              clearable
               {...form.getInputProps('origen')}
             />
           </Grid.Col>
@@ -132,17 +162,25 @@ function FormularioProducto({ onListo }: { onListo: () => void }) {
           </Grid.Col>
         </Grid>
 
+        {editando ? (
+          <Switch
+            label="Activo"
+            description="Un producto no se borra, se desactiva."
+            {...form.getInputProps('activo', { type: 'checkbox' })}
+          />
+        ) : null}
+
         <Group justify="flex-end">
           <Button variant="subtle" color="gray" onClick={onListo}>
             Cancelar
           </Button>
           <Button
             type="submit"
-            loading={crear.isPending}
+            loading={crear.isPending || actualizar.isPending}
             variant="gradient"
             gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
           >
-            Agregar al catálogo
+            {editando ? 'Guardar cambios' : 'Agregar al catálogo'}
           </Button>
         </Group>
       </Stack>
@@ -161,12 +199,24 @@ function FormularioProducto({ onListo }: { onListo: () => void }) {
 export function PaginaProductos() {
   const productos = useProductos();
   const [abierto, modal] = useDisclosure(false);
+  const [enEdicion, setEnEdicion] = useState<Producto | undefined>();
   const [texto, setTexto] = useDebouncedState('', 250);
   const puedeEditar = useTieneRol(
     'DIRECCION_TECNICA',
     'GERENCIA_PRODUCCION',
     'ADMINISTRADOR_SISTEMA',
   );
+
+  const abrirAlta = () => {
+    setEnEdicion(undefined);
+    modal.open();
+  };
+
+  const abrirEdicion = (producto: Producto) => {
+    if (!puedeEditar) return;
+    setEnEdicion(producto);
+    modal.open();
+  };
 
   const filas = useMemo(() => {
     const b = texto.trim().toLowerCase();
@@ -190,7 +240,7 @@ export function PaginaProductos() {
               leftSection={<IconPlus size={18} />}
               variant="gradient"
               gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
-              onClick={modal.open}
+              onClick={abrirAlta}
             >
               Nuevo producto
             </Button>
@@ -231,7 +281,7 @@ export function PaginaProductos() {
                 <Button
                   variant="light"
                   leftSection={<IconPlus size={16} />}
-                  onClick={modal.open}
+                  onClick={abrirAlta}
                 >
                   Nuevo producto
                 </Button>
@@ -259,7 +309,11 @@ export function PaginaProductos() {
                 </Table.Thead>
                 <Table.Tbody>
                   {filas.map((p) => (
-                    <Table.Tr key={p.id}>
+                    <Table.Tr
+                      key={p.id}
+                      onClick={() => abrirEdicion(p)}
+                      style={puedeEditar ? { cursor: 'pointer' } : undefined}
+                    >
                       <Table.Td>
                         <Text size="sm" ff="monospace" fw={600}>
                           {p.codigo_interno}
@@ -315,10 +369,22 @@ export function PaginaProductos() {
       <Modal
         opened={abierto}
         onClose={modal.close}
-        title={<Text fw={700}>Nuevo producto</Text>}
+        title={
+          <Text fw={700}>
+            {enEdicion
+              ? `${enEdicion.codigo_interno} — ${enEdicion.nombre}`
+              : 'Nuevo producto'}
+          </Text>
+        }
         size="lg"
       >
-        <FormularioProducto onListo={modal.close} />
+        {/* `key` fuerza a remontar al cambiar de ficha: sin eso Mantine
+            conserva los valores iniciales de la anterior. */}
+        <FormularioProducto
+          key={enEdicion?.id ?? 'alta'}
+          producto={enEdicion}
+          onListo={modal.close}
+        />
       </Modal>
     </>
   );
