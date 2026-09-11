@@ -14,16 +14,399 @@ export type Database = {
   }
   comercial: {
     Tables: {
-      [_ in never]: never
+      articulos: {
+        Row: {
+          activo: boolean
+          creado_en: string
+          descripcion: string
+          id: string
+          insumo_id: string
+          metodo_costeo: Database["comercial"]["Enums"]["metodo_costeo_enum"]
+          sku: string
+          stock_minimo: number | null
+        }
+        Insert: {
+          activo?: boolean
+          creado_en?: string
+          descripcion: string
+          id?: string
+          insumo_id: string
+          metodo_costeo?: Database["comercial"]["Enums"]["metodo_costeo_enum"]
+          sku: string
+          stock_minimo?: number | null
+        }
+        Update: {
+          activo?: boolean
+          creado_en?: string
+          descripcion?: string
+          id?: string
+          insumo_id?: string
+          metodo_costeo?: Database["comercial"]["Enums"]["metodo_costeo_enum"]
+          sku?: string
+          stock_minimo?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "articulos_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: true
+            referencedRelation: "v_existencias"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "articulos_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: true
+            referencedRelation: "v_stock_por_articulo"
+            referencedColumns: ["insumo_id"]
+          },
+        ]
+      }
+      movimientos_stock: {
+        Row: {
+          anula_a_movimiento_id: string | null
+          articulo_id: string
+          cantidad: number
+          deposito_id: string
+          documento_id: string | null
+          documento_tipo: string | null
+          id: string
+          lote_insumo_id: string
+          motivo: string | null
+          ocurrido_en: string
+          orden: number
+          periodo: string | null
+          registrado_por: string
+          tipo: Database["comercial"]["Enums"]["tipo_movimiento_enum"]
+          transferencia_id: string | null
+          unidad: string
+        }
+        Insert: {
+          anula_a_movimiento_id?: string | null
+          articulo_id: string
+          cantidad: number
+          deposito_id: string
+          documento_id?: string | null
+          documento_tipo?: string | null
+          id?: string
+          lote_insumo_id: string
+          motivo?: string | null
+          ocurrido_en?: string
+          orden?: never
+          periodo?: string | null
+          registrado_por?: string
+          tipo: Database["comercial"]["Enums"]["tipo_movimiento_enum"]
+          transferencia_id?: string | null
+          unidad?: string
+        }
+        Update: {
+          anula_a_movimiento_id?: string | null
+          articulo_id?: string
+          cantidad?: number
+          deposito_id?: string
+          documento_id?: string | null
+          documento_tipo?: string | null
+          id?: string
+          lote_insumo_id?: string
+          motivo?: string | null
+          ocurrido_en?: string
+          orden?: never
+          periodo?: string | null
+          registrado_por?: string
+          tipo?: Database["comercial"]["Enums"]["tipo_movimiento_enum"]
+          transferencia_id?: string | null
+          unidad?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimientos_stock_anula_a_movimiento_id_fkey"
+            columns: ["anula_a_movimiento_id"]
+            isOneToOne: true
+            referencedRelation: "movimientos_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_stock_anula_a_movimiento_id_fkey"
+            columns: ["anula_a_movimiento_id"]
+            isOneToOne: true
+            referencedRelation: "v_kardex"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_stock_articulo_id_fkey"
+            columns: ["articulo_id"]
+            isOneToOne: false
+            referencedRelation: "articulos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_stock_articulo_id_fkey"
+            columns: ["articulo_id"]
+            isOneToOne: false
+            referencedRelation: "v_stock_por_articulo"
+            referencedColumns: ["articulo_id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      v_existencias: {
+        Row: {
+          articulo_id: string | null
+          codigo_interno: string | null
+          color_rotulo: string | null
+          deposito_es_exterior: boolean | null
+          deposito_id: string | null
+          deposito_nombre: string | null
+          deposito_numero: string | null
+          es_inflamable: boolean | null
+          estado: Database["gmp"]["Enums"]["estado_calidad_enum"] | null
+          impedimento_despacho: string | null
+          insumo_id: string | null
+          insumo_nombre: string | null
+          insumo_tipo: Database["gmp"]["Enums"]["tipo_insumo_enum"] | null
+          lote_insumo_id: string | null
+          lote_proveedor: string | null
+          movimientos: number | null
+          numero_registro_interno: string | null
+          plazo_validez: string | null
+          saldo: number | null
+          sku: string | null
+          stock_minimo: number | null
+          ultimo_movimiento: string | null
+          unidad: string | null
+          vence_en_90_dias: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimientos_stock_articulo_id_fkey"
+            columns: ["articulo_id"]
+            isOneToOne: false
+            referencedRelation: "articulos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_stock_articulo_id_fkey"
+            columns: ["articulo_id"]
+            isOneToOne: false
+            referencedRelation: "v_stock_por_articulo"
+            referencedColumns: ["articulo_id"]
+          },
+        ]
+      }
+      v_kardex: {
+        Row: {
+          anula_a_movimiento_id: string | null
+          anulado: boolean | null
+          articulo_id: string | null
+          cantidad: number | null
+          codigo_interno: string | null
+          deposito_id: string | null
+          deposito_nombre: string | null
+          deposito_numero: string | null
+          id: string | null
+          insumo_nombre: string | null
+          lote_insumo_id: string | null
+          lote_proveedor: string | null
+          motivo: string | null
+          numero_registro_interno: string | null
+          ocurrido_en: string | null
+          orden: number | null
+          periodo: string | null
+          registrado_por: string | null
+          registrado_por_nombre: string | null
+          saldo_posterior: number | null
+          sku: string | null
+          tipo: Database["comercial"]["Enums"]["tipo_movimiento_enum"] | null
+          transferencia_id: string | null
+          unidad: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimientos_stock_anula_a_movimiento_id_fkey"
+            columns: ["anula_a_movimiento_id"]
+            isOneToOne: true
+            referencedRelation: "movimientos_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_stock_anula_a_movimiento_id_fkey"
+            columns: ["anula_a_movimiento_id"]
+            isOneToOne: true
+            referencedRelation: "v_kardex"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_stock_articulo_id_fkey"
+            columns: ["articulo_id"]
+            isOneToOne: false
+            referencedRelation: "articulos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_stock_articulo_id_fkey"
+            columns: ["articulo_id"]
+            isOneToOne: false
+            referencedRelation: "v_stock_por_articulo"
+            referencedColumns: ["articulo_id"]
+          },
+        ]
+      }
+      v_saldos_stock: {
+        Row: {
+          articulo_id: string | null
+          deposito_id: string | null
+          lote_insumo_id: string | null
+          movimientos: number | null
+          saldo: number | null
+          ultimo_movimiento: string | null
+          unidad: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimientos_stock_articulo_id_fkey"
+            columns: ["articulo_id"]
+            isOneToOne: false
+            referencedRelation: "articulos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_stock_articulo_id_fkey"
+            columns: ["articulo_id"]
+            isOneToOne: false
+            referencedRelation: "v_stock_por_articulo"
+            referencedColumns: ["articulo_id"]
+          },
+        ]
+      }
+      v_stock_por_articulo: {
+        Row: {
+          activo: boolean | null
+          articulo_id: string | null
+          bajo_minimo: boolean | null
+          codigo_interno: string | null
+          depositos: number | null
+          es_inflamable: boolean | null
+          insumo_id: string | null
+          insumo_nombre: string | null
+          insumo_tipo: Database["gmp"]["Enums"]["tipo_insumo_enum"] | null
+          lotes_con_saldo: number | null
+          saldo_aprobado: number | null
+          saldo_despachable: number | null
+          saldo_total: number | null
+          sku: string | null
+          stock_minimo: number | null
+          ultimo_movimiento: string | null
+          unidad_medida: string | null
+          vence_primero: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      anular_movimiento: {
+        Args: { p_motivo: string; p_movimiento_id: string }
+        Returns: {
+          anula_a_movimiento_id: string | null
+          articulo_id: string
+          cantidad: number
+          deposito_id: string
+          documento_id: string | null
+          documento_tipo: string | null
+          id: string
+          lote_insumo_id: string
+          motivo: string | null
+          ocurrido_en: string
+          orden: number
+          periodo: string | null
+          registrado_por: string
+          tipo: Database["comercial"]["Enums"]["tipo_movimiento_enum"]
+          transferencia_id: string | null
+          unidad: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "movimientos_stock"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      articulo_de_insumo: { Args: { p_insumo_id: string }; Returns: string }
+      cargar_recepcion_a_stock: {
+        Args: { p_recepcion_id: string }
+        Returns: {
+          anula_a_movimiento_id: string | null
+          articulo_id: string
+          cantidad: number
+          deposito_id: string
+          documento_id: string | null
+          documento_tipo: string | null
+          id: string
+          lote_insumo_id: string
+          motivo: string | null
+          ocurrido_en: string
+          orden: number
+          periodo: string | null
+          registrado_por: string
+          tipo: Database["comercial"]["Enums"]["tipo_movimiento_enum"]
+          transferencia_id: string | null
+          unidad: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "movimientos_stock"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      transferir_deposito: {
+        Args: {
+          p_cantidad: number
+          p_deposito_destino: string
+          p_deposito_origen: string
+          p_lote_id: string
+          p_motivo: string
+        }
+        Returns: {
+          anula_a_movimiento_id: string | null
+          articulo_id: string
+          cantidad: number
+          deposito_id: string
+          documento_id: string | null
+          documento_tipo: string | null
+          id: string
+          lote_insumo_id: string
+          motivo: string | null
+          ocurrido_en: string
+          orden: number
+          periodo: string | null
+          registrado_por: string
+          tipo: Database["comercial"]["Enums"]["tipo_movimiento_enum"]
+          transferencia_id: string | null
+          unidad: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "movimientos_stock"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
     }
     Enums: {
-      [_ in never]: never
+      metodo_costeo_enum: "PEPS" | "PPP" | "ESTANDAR"
+      tipo_movimiento_enum:
+        | "ENTRADA_COMPRA"
+        | "ENTRADA_PRODUCCION"
+        | "ENTRADA_DEVOLUCION"
+        | "ENTRADA_AJUSTE"
+        | "SALIDA_VENTA"
+        | "SALIDA_CONSUMO_PRODUCCION"
+        | "SALIDA_MUESTRA"
+        | "SALIDA_DESCARTE"
+        | "SALIDA_AJUSTE"
+        | "SALIDA_RETIRO_MERCADO"
+        | "TRANSFERENCIA_ENTRE_DEPOSITOS"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -89,6 +472,13 @@ export type Database = {
             columns: ["usuario_id"]
             isOneToOne: false
             referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditoria_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "v_nomina"
             referencedColumns: ["id"]
           },
         ]
@@ -185,7 +575,35 @@ export type Database = {
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "auditoria_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "v_nomina"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      v_nomina: {
+        Row: {
+          activo: boolean | null
+          id: string | null
+          nombre_completo: string | null
+          rol: Database["core"]["Enums"]["rol_enum"] | null
+        }
+        Insert: {
+          activo?: boolean | null
+          id?: string | null
+          nombre_completo?: string | null
+          rol?: Database["core"]["Enums"]["rol_enum"] | null
+        }
+        Update: {
+          activo?: boolean | null
+          id?: string | null
+          nombre_completo?: string | null
+          rol?: Database["core"]["Enums"]["rol_enum"] | null
+        }
+        Relationships: []
       }
     }
     Functions: {
@@ -245,6 +663,66 @@ export type Database = {
   }
   gmp: {
     Tables: {
+      bloqueos_lote: {
+        Row: {
+          bloqueado_en: string
+          bloqueado_por: string
+          detalle: string
+          id: string
+          levantado: boolean
+          levantado_en: string | null
+          levantado_motivo: string | null
+          levantado_por: string | null
+          lote_insumo_id: string
+          motivo: Database["gmp"]["Enums"]["motivo_bloqueo_enum"]
+          origen: string
+          origen_id: string | null
+        }
+        Insert: {
+          bloqueado_en?: string
+          bloqueado_por?: string
+          detalle: string
+          id?: string
+          levantado?: boolean
+          levantado_en?: string | null
+          levantado_motivo?: string | null
+          levantado_por?: string | null
+          lote_insumo_id: string
+          motivo: Database["gmp"]["Enums"]["motivo_bloqueo_enum"]
+          origen?: string
+          origen_id?: string | null
+        }
+        Update: {
+          bloqueado_en?: string
+          bloqueado_por?: string
+          detalle?: string
+          id?: string
+          levantado?: boolean
+          levantado_en?: string | null
+          levantado_motivo?: string | null
+          levantado_por?: string | null
+          lote_insumo_id?: string
+          motivo?: Database["gmp"]["Enums"]["motivo_bloqueo_enum"]
+          origen?: string
+          origen_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bloqueos_lote_lote_insumo_id_fkey"
+            columns: ["lote_insumo_id"]
+            isOneToOne: false
+            referencedRelation: "lotes_insumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bloqueos_lote_lote_insumo_id_fkey"
+            columns: ["lote_insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_lotes_insumo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contadores: {
         Row: {
           ambito: string
@@ -319,7 +797,7 @@ export type Database = {
           requiere_pesada_recepcion: boolean
           requiere_protocolo: boolean
           tipo: Database["gmp"]["Enums"]["tipo_insumo_enum"]
-          unidad_medida: string
+          unidad_medida: string | null
         }
         Insert: {
           activo?: boolean
@@ -333,7 +811,7 @@ export type Database = {
           requiere_pesada_recepcion?: boolean
           requiere_protocolo?: boolean
           tipo: Database["gmp"]["Enums"]["tipo_insumo_enum"]
-          unidad_medida: string
+          unidad_medida?: string | null
         }
         Update: {
           activo?: boolean
@@ -347,7 +825,7 @@ export type Database = {
           requiere_pesada_recepcion?: boolean
           requiere_protocolo?: boolean
           tipo?: Database["gmp"]["Enums"]["tipo_insumo_enum"]
-          unidad_medida?: string
+          unidad_medida?: string | null
         }
         Relationships: [
           {
@@ -559,6 +1037,45 @@ export type Database = {
         }
         Relationships: []
       }
+      productos: {
+        Row: {
+          activo: boolean
+          codigo_interno: string
+          creado_en: string
+          forma_cosmetica: string | null
+          id: string
+          nombre: string
+          origen: Database["gmp"]["Enums"]["origen_producto_enum"] | null
+          tipo: string | null
+          variedad: string | null
+          vida_util_meses: number | null
+        }
+        Insert: {
+          activo?: boolean
+          codigo_interno: string
+          creado_en?: string
+          forma_cosmetica?: string | null
+          id?: string
+          nombre: string
+          origen?: Database["gmp"]["Enums"]["origen_producto_enum"] | null
+          tipo?: string | null
+          variedad?: string | null
+          vida_util_meses?: number | null
+        }
+        Update: {
+          activo?: boolean
+          codigo_interno?: string
+          creado_en?: string
+          forma_cosmetica?: string | null
+          id?: string
+          nombre?: string
+          origen?: Database["gmp"]["Enums"]["origen_producto_enum"] | null
+          tipo?: string | null
+          variedad?: string | null
+          vida_util_meses?: number | null
+        }
+        Relationships: []
+      }
       proveedores: {
         Row: {
           activo: boolean
@@ -754,6 +1271,41 @@ export type Database = {
       }
     }
     Views: {
+      v_bloqueos_lote: {
+        Row: {
+          bloqueado_en: string | null
+          bloqueado_por: string | null
+          bloqueado_por_nombre: string | null
+          detalle: string | null
+          id: string | null
+          levantado: boolean | null
+          levantado_en: string | null
+          levantado_motivo: string | null
+          levantado_por: string | null
+          levantado_por_nombre: string | null
+          lote_insumo_id: string | null
+          motivo: Database["gmp"]["Enums"]["motivo_bloqueo_enum"] | null
+          numero_registro_interno: string | null
+          origen: string | null
+          origen_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bloqueos_lote_lote_insumo_id_fkey"
+            columns: ["lote_insumo_id"]
+            isOneToOne: false
+            referencedRelation: "lotes_insumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bloqueos_lote_lote_insumo_id_fkey"
+            columns: ["lote_insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_lotes_insumo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_existencias_recibidas: {
         Row: {
           bultos: number | null
@@ -919,6 +1471,8 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      impedimento_despacho: { Args: { p_lote_id: string }; Returns: string }
+      lote_despachable: { Args: { p_lote_id: string }; Returns: boolean }
       registrar_muestreo: {
         Args: {
           p_area_muestreo: string
@@ -997,6 +1551,13 @@ export type Database = {
         | "EN_ANALISIS"
         | "APROBADO"
         | "RECHAZADO"
+      motivo_bloqueo_enum:
+        | "RETIRO_MERCADO"
+        | "NO_CONFORMIDAD"
+        | "INVESTIGACION"
+        | "VENCIMIENTO"
+        | "DECISION_DIRECCION_TECNICA"
+      origen_producto_enum: "FABRICADO" | "FRACCIONADO" | "IMPORTADO"
       tipo_contenido_enum:
         | "MATERIA_PRIMA"
         | "ENVASE_EMPAQUE"
@@ -1180,7 +1741,22 @@ export type CompositeTypes<
 
 export const Constants = {
   comercial: {
-    Enums: {},
+    Enums: {
+      metodo_costeo_enum: ["PEPS", "PPP", "ESTANDAR"],
+      tipo_movimiento_enum: [
+        "ENTRADA_COMPRA",
+        "ENTRADA_PRODUCCION",
+        "ENTRADA_DEVOLUCION",
+        "ENTRADA_AJUSTE",
+        "SALIDA_VENTA",
+        "SALIDA_CONSUMO_PRODUCCION",
+        "SALIDA_MUESTRA",
+        "SALIDA_DESCARTE",
+        "SALIDA_AJUSTE",
+        "SALIDA_RETIRO_MERCADO",
+        "TRANSFERENCIA_ENTRE_DEPOSITOS",
+      ],
+    },
   },
   core: {
     Enums: {
@@ -1228,6 +1804,14 @@ export const Constants = {
         "APROBADO",
         "RECHAZADO",
       ],
+      motivo_bloqueo_enum: [
+        "RETIRO_MERCADO",
+        "NO_CONFORMIDAD",
+        "INVESTIGACION",
+        "VENCIMIENTO",
+        "DECISION_DIRECCION_TECNICA",
+      ],
+      origen_producto_enum: ["FABRICADO", "FRACCIONADO", "IMPORTADO"],
       tipo_contenido_enum: [
         "MATERIA_PRIMA",
         "ENVASE_EMPAQUE",

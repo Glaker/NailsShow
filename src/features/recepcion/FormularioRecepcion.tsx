@@ -129,9 +129,19 @@ export function FormularioRecepcion({ onListo }: Props) {
           : `${p.razon_social} · ${p.estado_aprobacion.toLowerCase()}`,
     }));
 
+  /* El insumo sin unidad de medida confirmada aparece en la lista pero no se
+     puede elegir: la base rechaza el lote (gmp.fn_validar_lote_insumo), y es
+     preferible que el operario lo vea deshabilitado con el motivo a que lo
+     busque, no lo encuentre y piense que falta en el catálogo. */
   const opcionesInsumo = (insumos.data ?? [])
     .filter((i) => i.activo)
-    .map((i) => ({ value: i.id, label: `${i.codigo_interno} — ${i.nombre}` }));
+    .map((i) => ({
+      value: i.id,
+      label: i.unidad_medida
+        ? `${i.codigo_interno} — ${i.nombre}`
+        : `${i.codigo_interno} — ${i.nombre} · sin unidad de medida definida`,
+      disabled: !i.unidad_medida,
+    }));
 
   const enviar = form.onSubmit(async (valores) => {
     /* Validaciones que dependen de la ficha del insumo y por eso no entran en
@@ -335,7 +345,10 @@ export function FormularioRecepcion({ onListo }: Props) {
                         form.setFieldValue(`lotes.${i}.insumo_id`, valor ?? '');
                         const elegido = valor ? porId.get(valor) : undefined;
                         if (elegido) {
-                          form.setFieldValue(`lotes.${i}.unidad`, elegido.unidad_medida);
+                          form.setFieldValue(
+                            `lotes.${i}.unidad`,
+                            elegido.unidad_medida ?? '',
+                          );
                         }
                       }}
                     />

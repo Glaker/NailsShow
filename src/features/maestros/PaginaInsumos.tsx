@@ -262,7 +262,15 @@ export function PaginaInsumos() {
                       <Text size="sm">{etiquetaEnum(i.tipo)}</Text>
                     </Table.Td>
                     <Table.Td>
-                      <Text size="sm">{i.unidad_medida}</Text>
+                      {i.unidad_medida ? (
+                        <Text size="sm">{i.unidad_medida}</Text>
+                      ) : (
+                        <Tooltip label="Pendiente de confirmación en planta. Sin unidad no se puede recepcionar este insumo.">
+                          <Text size="sm" c="dimmed">
+                            sin definir
+                          </Text>
+                        </Tooltip>
+                      )}
                     </Table.Td>
                     <Table.Td>
                       <Group gap={6}>

@@ -4,6 +4,7 @@ import {
   IconPackages,
   IconScale,
   IconFlask,
+  IconPackage,
   IconBuildingWarehouse,
   IconAddressBook,
   IconUsers,
@@ -51,9 +52,9 @@ export const NAVEGACION: ItemNavegacion[] = [
     principal: true,
   },
   {
-    ruta: '/existencias',
-    etiqueta: 'Material en planta',
-    etiquetaCorta: 'Material',
+    ruta: '/stock',
+    etiqueta: 'Stock',
+    etiquetaCorta: 'Stock',
     icono: IconScale,
   },
   {
@@ -62,6 +63,12 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiquetaCorta: 'Insumos',
     icono: IconFlask,
     principal: true,
+  },
+  {
+    ruta: '/productos',
+    etiqueta: 'Catálogo de productos',
+    etiquetaCorta: 'Productos',
+    icono: IconPackage,
   },
   {
     ruta: '/proveedores',

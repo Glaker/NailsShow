@@ -24,3 +24,4 @@ export const supabase = createClient<Database>(
  */
 export const core = () => supabase.schema('core');
 export const gmp = () => supabase.schema('gmp');
+export const comercial = () => supabase.schema('comercial');

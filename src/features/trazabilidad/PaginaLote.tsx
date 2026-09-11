@@ -31,6 +31,8 @@ import { InsigniaEstado, TEXTO_ESTADO } from '@/components/InsigniaEstado';
 import { RotuloLote } from '@/features/rotulos/RotuloLote';
 import { EtiquetaMuestreo } from '@/features/rotulos/EtiquetaMuestreo';
 import { FormularioMuestreo } from '@/features/muestreo/FormularioMuestreo';
+import { PanelBloqueos } from '@/features/stock/PanelBloqueos';
+import { PanelStockLote } from '@/features/stock/PanelStockLote';
 import {
   useEmitirRotulo,
   useLote,
@@ -280,7 +282,11 @@ export function PaginaLote() {
                   </Dato>
                 </Grid.Col>
                 <Grid.Col span={{ base: 6, sm: 4 }}>
-                  <Dato etiqueta="Depósito actual">
+                  {/* El destino que le asignó el circuito de calidad al cambiar de
+                      estado. No es necesariamente dónde está la mercadería: un lote
+                      puede quedar repartido entre depósitos, y eso lo contesta el
+                      panel de existencia. */}
+                  <Dato etiqueta="Depósito del circuito">
                     {l.deposito_nombre ?? 'Sin asignar'}
                   </Dato>
                 </Grid.Col>
@@ -330,6 +336,10 @@ export function PaginaLote() {
                 ) : null}
               </Group>
             </Paper>
+
+            <PanelBloqueos loteId={loteId} />
+
+            <PanelStockLote loteId={loteId} />
 
             {listaMuestreos.length > 0 ? (
               <Paper

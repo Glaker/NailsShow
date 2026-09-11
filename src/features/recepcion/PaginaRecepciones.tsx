@@ -10,11 +10,17 @@ import {
   Tooltip,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconAlertTriangle, IconPlus, IconTruckDelivery } from '@tabler/icons-react';
+import {
+  IconAlertTriangle,
+  IconPackageImport,
+  IconPlus,
+  IconTruckDelivery,
+} from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { Vacio } from '@/components/Vacio';
 import { FormularioRecepcion } from './FormularioRecepcion';
-import { useRecepciones } from '@/lib/consultas';
+import { modals } from '@mantine/modals';
+import { useCargarRecepcionAStock, useRecepciones } from '@/lib/consultas';
 import { fechaHora, numero } from '@/lib/formato';
 import { useTieneRol } from '@/features/auth/sesion';
 
@@ -27,7 +33,16 @@ import { useTieneRol } from '@/features/auth/sesion';
  */
 export function PaginaRecepciones() {
   const recepciones = useRecepciones();
+  const cargar = useCargarRecepcionAStock();
   const [abierto, modal] = useDisclosure(false);
+  /* §3.3 no tiene fila para la entrada por compra. Toma el conjunto de
+     «Ajustar stock por diferencia de inventario», que es el mismo que ya puede
+     completar la carga administrativa de la recepción (decisión abierta D-14). */
+  const puedeCargarStock = useTieneRol(
+    'DIRECCION_TECNICA',
+    'ADMINISTRACION',
+    'GERENCIA_PRODUCCION',
+  );
   const puedeRegistrar = useTieneRol(
     'OPERARIO',
     'CONTROL_CALIDAD',
@@ -36,6 +51,29 @@ export function PaginaRecepciones() {
   );
 
   const filas = recepciones.data ?? [];
+
+  /**
+   * La carga a stock es un acto administrativo deliberado y posterior a la
+   * recepción física, no un efecto automático de ella: Depósito recibe y
+   * Administración concilia. Se confirma porque no tiene vuelta atrás por la
+   * vía fácil —deshacerla exige anular movimiento por movimiento (RN-54)—.
+   */
+  const confirmarCarga = (id: string, numeroRecepcion: string, lotes: number) => {
+    modals.openConfirmModal({
+      title: <Text fw={700}>Cargar a stock la recepción {numeroRecepcion}</Text>,
+      children: (
+        <Text size="sm">
+          Se registra una entrada por cada uno de los {numero(lotes)}{' '}
+          {lotes === 1 ? 'lote' : 'lotes'} de la recepción, en el depósito que tiene
+          asignado cada uno. Queda a tu nombre y no se deshace: un movimiento de stock no
+          se borra, se anula con su inverso.
+        </Text>
+      ),
+      labels: { confirm: 'Cargar a stock', cancel: 'Cancelar' },
+      confirmProps: { color: 'violeta' },
+      onConfirm: () => cargar.mutate(id),
+    });
+  };
 
   return (
     <>
@@ -90,6 +128,7 @@ export function PaginaRecepciones() {
                   <Table.Th>Remito</Table.Th>
                   <Table.Th>Lotes</Table.Th>
                   <Table.Th>Estado administrativo</Table.Th>
+                  {puedeCargarStock ? <Table.Th /> : null}
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
@@ -140,7 +179,28 @@ export function PaginaRecepciones() {
                         >
                           {r.cargado_a_stock ? 'Cargada a stock' : 'Pendiente'}
                         </Badge>
+                        {r.cargado_a_stock ? (
+                          <Text size="xs" c="dimmed" mt={2}>
+                            {fechaHora(r.cargado_en)}
+                          </Text>
+                        ) : null}
                       </Table.Td>
+                      {puedeCargarStock ? (
+                        <Table.Td>
+                          {!r.cargado_a_stock ? (
+                            <Button
+                              size="compact-sm"
+                              variant="light"
+                              color="violeta"
+                              leftSection={<IconPackageImport size={15} />}
+                              loading={cargar.isPending && cargar.variables === r.id}
+                              onClick={() => confirmarCarga(r.id, r.numero, lotes.length)}
+                            >
+                              Cargar a stock
+                            </Button>
+                          ) : null}
+                        </Table.Td>
+                      ) : null}
                     </Table.Tr>
                   );
                 })}

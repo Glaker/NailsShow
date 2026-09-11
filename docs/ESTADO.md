@@ -1,6 +1,6 @@
 # Estado del proyecto y plan — handoff entre sesiones
 
-Última actualización: 2026-09-04.
+Última actualización: 2026-09-11.
 Este archivo es el punto de entrada de cada sesión nueva. Las reglas permanentes
 están en `CLAUDE.md`; acá va el estado y el plan, que cambian.
 
@@ -31,11 +31,38 @@ No hay MCP de Supabase para este proyecto. El único MCP configurado
 
 El acceso real es por dos vías, ambas verificadas:
 
-1. **Supabase CLI**, autenticada con un personal access token (`sbp_…`) guardado
-   en el keyring del sistema vía `supabase login`. Habilita `db push`,
-   `gen types --linked` y `config push`.
-2. **`psql` contra el pooler de sesión**, con la contraseña de la base pasada por
-   `PGPASSWORD` en cada comando. Habilita DDL, consultas y pgTAP.
+1. **Supabase CLI**, autenticada con un personal access token (`sbp_…`).
+   Habilita `db push`, `gen types --linked` y `config push`.
+
+   **El token va en `SUPABASE_ACCESS_TOKEN`, no en el keyring.** Persistido en
+   `~/.zshenv` (el shell del Bash tool de Claude es zsh) y como variable
+   universal de fish (el shell interactivo). El keyring guardaba un
+   PAT de **otra** cuenta —la dueña de `equdata`/`AgroControl`, org
+   `pmdgdtezwvyijgrrlovm`—, que no tiene acceso a NailsShow (org
+   `oorfhopbocfwlduednqi`) y devolvía 403 sin que se notara que era la cuenta
+   equivocada. La variable de entorno precede al keyring y sobrevive entre
+   sesiones. Da acceso a toda la cuenta: se revoca en Dashboard → Account →
+   Access Tokens.
+
+2. **Management API con el mismo `SUPABASE_ACCESS_TOKEN`**, que corre SQL
+   arbitrario sin contraseña de base. Es la vía para verificar una carga o
+   consultar el catálogo, y la que conviene usar por defecto:
+
+   ```sh
+   curl -s -X POST \
+     "https://api.supabase.com/v1/projects/yxpzsxkefqfuhyvslkfw/database/query" \
+     -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"query":"select count(*) from gmp.insumos_catalogo;"}'
+   ```
+
+   Corre como superusuario: sirve para **consultar**, no para hacer DDL suelto
+   (CLAUDE.md §6, el esquema lo cambian las migraciones).
+
+3. **`psql` contra el pooler de sesión**, con la contraseña de la base pasada por
+   `PGPASSWORD` en cada comando. Habilita DDL, consultas y pgTAP. La contraseña
+   **no** está persistida en ningún lado: si sólo hace falta consultar, usar la
+   vía 2 y no pedirla.
 
    ```
    postgresql://postgres.yxpzsxkefqfuhyvslkfw@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
@@ -199,6 +226,116 @@ aplican a circuitos de producto que todavía no existen.
 
 ---
 
+## Stock de insumos (fase 10 recortada) — 2026-09-10
+
+Primer poblamiento de `comercial`. Hasta acá el esquema existía vacío, solo
+para fijar la dirección de dependencia.
+
+**Aplicado y verificado contra el proyecto alojado.** Las dos migraciones se
+pushearon con `supabase db push` (Postgres 17.6). Sobre la base alojada se
+confirmó: las tres tablas nuevas con `ENABLE` y `FORCE` RLS (invariante 3),
+`core.tablas_sin_auditoria()` en vacío (invariante 6) y `movimientos_stock` sin
+`GRANT` de UPDATE ni DELETE (RN-54). Los tipos del cliente se regeneraron con
+`npm run db:types` desde la base real. El circuito funcional —inserts y
+rechazos— se verificó con 46 pruebas contra un Postgres local; **no** se corrió
+contra la base alojada para no ensuciarla con datos de prueba que el trigger de
+auditoría no deja borrar (está en cero para el arranque real).
+
+**Recorte deliberado: el stock no está valorizado.** §4.12.2 define
+`costo_unitario` NOT NULL sobre cada movimiento, y en el sistema no hay ningún
+dato de costo: `gmp.recepciones.monto` es el total del remito, no un precio por
+insumo, y la recepción fiscal de la factura (RN-65) es de una fase posterior.
+Poner un costo ahora obligaría a inventarlo. Un stock valorizado con números
+inventados es peor que uno sin valorizar: el segundo se sabe incompleto, el
+primero se cree exacto. Cuando llegue la valorización, agrega columnas; no
+reescribe nada.
+
+### Migraciones
+
+| Migración                                    | Qué trae                                                                |
+| -------------------------------------------- | ----------------------------------------------------------------------- |
+| `20260910160000_gmp_bloqueos_lote`           | `gmp.bloqueos_lote`, `gmp.lote_despachable()`, `impedimento_despacho()` |
+| `20260910170000_comercial_stock_movimientos` | artículos, libro de movimientos, saldos, kardex, operaciones            |
+
+### Reglas implementadas
+
+| Regla                              | Dónde vive                                                                      |
+| ---------------------------------- | ------------------------------------------------------------------------------- |
+| RN-51 solo se despacha lo liberado | `gmp.impedimento_despacho()`, invocada desde `comercial`                        |
+| RN-52 el lote bloqueado no sale    | `gmp.bloqueos_lote` + la misma función                                          |
+| RN-54 el movimiento no se edita    | sin GRANT de UPDATE/DELETE + `trg_movimiento_inmutable` + anulación por inverso |
+| §3.3 ajuste de inventario          | políticas RLS sobre `movimientos_stock` (DT, ADM, GP)                           |
+
+`gmp.bloqueos_lote` se escribió **antes** que el módulo de retiro de mercado a
+propósito: el consumidor —los movimientos de salida— nace en la misma tanda, y
+sin la autoridad en `gmp` el esquema `comercial` habría tenido que evaluar por
+su cuenta si un lote está liberado, que es lo que CLAUDE.md §4 prohíbe. Lo que
+falta de la fase de retiro es el disparador automático del bloqueo, no el
+bloqueo.
+
+### Tres apartamientos del documento de alcance, con su motivo
+
+1. **La clave primaria de `movimientos_stock` es `uuid`, no `bigserial`.** El
+   trigger genérico de auditoría hace `(to_jsonb(new) ->> 'id')::uuid` para
+   llenar `core.auditoria.registro_id`. Una tabla de negocio con clave entera
+   **rompe la auditoría en tiempo de ejecución**, y la invariante 6 no se
+   negocia. El orden del kardex, que es lo que `bigserial` daba, lo da la
+   columna `orden` como identidad.
+2. **El puntero de anulación va en el movimiento que anula, no en el anulado.**
+   §4.12.2 pone `anulado_por_id` en el original, lo que obliga a hacerle UPDATE
+   cuando se lo anula — y RN-54 dice que un movimiento no se edita nunca. El
+   campo se llama `anula_a_movimiento_id`, «está anulado» se deriva, y la regla
+   se cumple sin la excepción que la ponía a prueba. De paso respeta CLAUDE.md
+   §6, que reserva el sufijo `*_por` para referencias a `core.usuarios`.
+3. **La carga a stock es un acto explícito, no un efecto de la recepción.**
+   `gmp.recepciones.cargado_a_stock` existía desde la fase 1 sin que nadie lo
+   escribiera; éste es su acto. Un trigger sobre `gmp.lotes_insumo` que
+   escribiera en `comercial` habría invertido la dirección de dependencia sin
+   que ninguna clave foránea lo delatara.
+
+### Un defecto evitado que vale anotar
+
+La primera versión de la política de levantamiento de bloqueo habilitaba solo a
+`DIRECCION_TECNICA` en el `USING`. **Un UPDATE que RLS filtra no falla: afecta
+cero filas.** Control de Calidad habría apretado «levantar», no habría pasado
+nada, y la pantalla habría informado éxito. Ahora la política deja pasar la
+fila a los tres roles que pueden bloquear y el trigger reserva el levantamiento
+a DT con un mensaje escrito. El mismo cuidado está en el cliente:
+`useLevantarBloqueo` trata «cero filas» como error.
+
+La misma trampa obligó a que `comercial.transferir_deposito()` **no** toque
+`gmp.lotes_insumo.deposito_actual_id`: `lotes_insumo_update_circuito` no incluye
+a `ADMINISTRACION`, que sí mueve stock. Desde ahora `deposito_actual_id` es la
+aproximación de fase 1 —un lote, un depósito— y la existencia por depósito la
+contesta `comercial.v_existencias`, que admite que un lote esté repartido.
+
+### Frontend
+
+- **Stock** (`/stock`) reemplaza a «Material en planta». Existencia por
+  artículo con desglose por lote y depósito, filtros por bajo mínimo y por
+  material retenido. Distingue en la misma fila **cuánto hay** de **cuánto se
+  puede despachar**: confundirlos es prometer mercadería que no puede salir.
+- **Recepciones** gana la acción «Cargar a stock», con confirmación.
+- **Ficha del lote** gana dos paneles: existencia por depósito con transferencia,
+  ajuste, descarte y muestra; y bloqueos, con su historial completo incluidos
+  los levantados.
+- `gmp.v_existencias_recibidas` sigue en la base pero ya no tiene pantalla: la
+  existencia real la contesta `comercial`.
+
+### Verificación
+
+`supabase/tests/` levanta un PostgreSQL descartable con `initdb`, reproduce las
+dieciséis migraciones desde cero y corre **46 pruebas funcionales** con sesiones
+de usuario reales: 46 en verde. Aproximadamente la mitad verifica un rechazo.
+Esto destraba lo que la deuda 4 daba por bloqueado: `db reset`, `db diff` y
+`test db` piden Docker, pero `initdb` no.
+
+**No reemplaza la suite pgTAP**, que sigue siendo la evidencia de calificación
+operacional. Cubre el mismo terreno y hoy corre, que es la diferencia entre
+tener una verificación y tener una intención.
+
+---
+
 ## Estado del frontend
 
 Aplicación completa sobre las siete tablas, en producción de datos reales desde
@@ -260,19 +397,188 @@ datos de prueba, y así tiene que ser. Están identificados y son pocos.
 
 ---
 
+## Carga de materias primas (2026-09-11)
+
+Entraron las **40 materias primas** que faltaban (migración
+`20260911140000_carga_materias_primas.sql`). El catálogo pasa de 300 a 340
+ítems y por primera vez tiene material real sobre el cual RN-01 y RN-03 se
+ejercen: `requiere_protocolo` en las 40, `requiere_pesada_recepcion` en los 29
+pigmentos. Esto contesta la mayor parte de D-15.
+
+Verificado contra la base alojada el 2026-09-11: 340 ítems, 41 de tipo
+`MATERIA_PRIMA` —los 40 nuevos más `MP-0001` «Nitrocelulosa E 1/2 s», el insumo
+de prueba del 2026-09-04 que no se puede borrar por la invariante 1—, con 29
+pesadas y 11 sin pesada, todos con protocolo. La auditoría registró los 40
+asientos de INSERT con `db_role = 'postgres'`, que es lo correcto para una
+migración: no es una escritura privilegiada de las que vigila CLAUDE.md §5.
+
+### Unidad de medida: gramos, y la columna queda nullable
+
+El archivo llegó sin unidad. La migración
+`20260911130000_insumos_unidad_medida_pendiente.sql` relajó el `NOT NULL` en vez
+de inventar un `kg`, con la misma lógica con la que `gmp.productos` dejó `tipo`
+y `forma_cosmetica` en `text`: mejor que la ignorancia se vea a que quede
+disfrazada de dato. A cambio, `gmp.fn_validar_lote_insumo` **rechaza la
+recepción** de un lote cuyo insumo no tenga unidad confirmada.
+
+La Gerencia confirmó **gramos** para las 40, y
+`20260911150000_materias_primas_unidad_gramos.sql` las completó. Verificado: 40
+en `g`, **cero ítems sin unidad en todo el catálogo**, y los 40 ya son
+recepcionables.
+
+**El `NOT NULL` no se restauró**, aunque la migración `…130000` lo había
+anunciado: el catálogo se carga por tandas desde planillas y ya llegó una sin
+unidad, así que poder decir «pendiente» sirve de forma permanente; y el
+`NOT NULL` nunca fue la protección real —garantizaba que hubiera algo escrito,
+no que fuera cierto—, esa es la precondición de recepción, que queda vigente. El
+razonamiento completo está en el encabezado de `…150000` y en R-03. La interfaz
+que muestra «sin definir» y deshabilita esos insumos en el selector de recepción
+queda en su lugar, lista para la próxima tanda incompleta.
+
+D-16 y D-17 quedaron **resueltas** el mismo día (ver R-03 y R-04 en
+`docs/DECISIONES_ABIERTAS.md`): gramos, y los ordinales romanos de los pigmentos
+se dejan tal cual vinieron por indicación de la Gerencia, anomalías incluidas
+—XXIV repetido, y el salto de XXVII a XXXI—, porque son la denominación del
+papel y la identidad la lleva `codigo_interno`.
+
+### Lo que sigue abierto: inflamables
+
+`es_inflamable` está en `false` en las 40 por indicación de la Gerencia, «por
+ahora». Con fragancias, esencias y monómero en la lista, conviene volver a
+preguntarlo y no leer ese `false` como una respuesta. Mientras siga así,
+**RN-48 y el depósito exterior `INF` no se ejercen sobre ningún ítem**: la regla
+está implementada y sin material al cual aplicarse.
+
+Se dijo que es «editable después», y conviene precisarlo: la base lo permite
+—`insumos_catalogo` tiene política de UPDATE para DT, GP y SYS—, pero **no hay
+pantalla de edición de insumo**; `/insumos` sólo da de alta. Hoy el cambio va
+por migración. Si se espera que lo toquen ellos desde la aplicación, hay que
+construir esa edición primero.
+
+---
+
+## Catálogo de productos y cuenta de Nazarena (2026-09-11)
+
+### Los 483 productos están cargados
+
+`20260911170000_carga_productos.sql`. El archivo traía **dos columnas**, código
+y nombre, así que `variedad`, `tipo` y `forma_cosmetica` quedaron en NULL: no
+hay de dónde sacarlos. `tipo` y `forma_cosmetica` siguen en `text` esperando que
+algún archivo fije su vocabulario; éste no lo fijó.
+
+**`origen` pasó a admitir NULL** (`20260911160000`). Estaba
+`not null default 'FABRICADO'`, y dejar correr el default habría escrito «esto
+se fabrica en planta» en las 483 filas, que es falso —los «Nail Tips» son
+importados y los pinceles no se fabrican— y no es cosmético: `origen` decide qué
+recorrido de producción le toca al producto. **Cuando se construya el circuito
+de producción, la orden tiene que rechazar un producto sin `origen`**, igual que
+la recepción rechaza un insumo sin unidad. Esa precondición es parte del alcance
+de esa fase; hoy no existe porque no existe el circuito.
+
+**Vida útil 36 meses en los 483**, por indicación de la Gerencia. Escrita en las
+filas y no como `DEFAULT` de la columna, para que un producto futuro no nazca
+afirmando tres años sin que nadie lo haya dicho de él.
+
+**Cuatro decisiones abiertas salieron de esta carga**, y la primera importa más
+que las otras tres juntas:
+
+- **D-18: ~108 de los 483 no son producto cosmético.** Pinceles, fresas, limas,
+  tijeras, dappen dishes, nail tips, exhibidores. Están en el catálogo que
+  gobierna orden de producción, liberación de lote y retiro de mercado. Hay que
+  separarlos, y `tipo` es el lugar (COSMETICO / ACCESORIO).
+- **D-19:** los 36 meses son un provisorio; la vida útil sale del estudio de
+  estabilidad y es por producto. Y los ítems de D-18 directamente no vencen.
+- **D-20:** 36 nombres vienen cortados en 40 caracteres, varios a mitad de
+  palabra, y uno con el carácter final dañado (`176`, «DISEí» por «DISEÑO»).
+- **D-21:** `136` y `138` traen «no se usa» en el nombre y quedaron activos.
+
+### Nazarena: cuenta creada y nómina cerrada
+
+Cuenta `naza@nailshow.com`, **GERENCIA_PRODUCCION**, sector PRODUCCION, activa.
+Creada por el registro público de Auth —que da de alta como OPERARIO
+desactivado, porque el rol nunca se lee de los metadatos del alta— y promovida
+por `20260911190000_alta_gerencia_produccion.sql`. La promoción va en migración
+a propósito: así la asignación de permisos tiene historial en el repositorio.
+
+**Rotar la contraseña.** Se transmitió por chat, igual que la de
+`verificacion@nailshow.com.ar`. Una credencial que quedó en un transcript no es
+una credencial.
+
+El pedido era «todo menos ver usuarios y auditoría». Auditoría ya estaba cerrada
+(`auditoria_select_supervision` es de DT, GERENCIA y SYS). **Usuarios no lo
+estaba**: `usuarios_select_authenticated` daba la nómina completa a cualquier rol
+con sesión. Esa política tenía un motivo bueno —sin resolver el nombre del autor,
+cada registro muestra un uuid— pero pagaba de más: entregaba la ficha entera,
+con documento, email, sector y fecha de baja, a quien supiera pedirla por la API.
+
+`20260911180000_nomina_restringida.sql` separa las dos cosas:
+
+- `core.v_nomina` (id, nombre, rol, activo) la lee cualquier usuario con sesión.
+  Es lo que la trazabilidad necesita. **Deliberadamente sin `security_invoker`**:
+  corre con los privilegios del dueño y no aplica el RLS de la tabla base, que es
+  el punto. No es un atajo del tipo que vigila §5 —no hay `service_role`, no
+  escribe, y lo que expone es lo que el sistema está obligado a mostrar.
+- `core.usuarios` la leen DT, GERENCIA y SYS, más cada uno su propia ficha.
+- Las tres vistas que resolvían autor (`gmp.v_muestreos`, `gmp.v_bloqueos_lote`,
+  `comercial.v_kardex`) pasaron a unir contra `core.v_nomina`. Se
+  reescribieron desde `pg_get_viewdef`, no de memoria, para no perder nada en el
+  camino.
+
+Verificado contra la base con `SET LOCAL ROLE authenticated` y sus claims:
+
+| Qué                                      | Resultado                           |
+| ---------------------------------------- | ----------------------------------- |
+| `core.usuarios`                          | **1 fila** (la suya)                |
+| `core.auditoria`                         | **0 filas**                         |
+| `core.v_nomina`                          | 2 filas — resuelve nombres de autor |
+| `gmp.productos` / `gmp.insumos_catalogo` | 483 / 340                           |
+| registrar movimientos de stock           | **sí**                              |
+| alta y edición de artículos              | **sí**                              |
+| alta de proveedor, maestros técnicos     | **sí**                              |
+| leer auditoría, administrar usuarios     | **no**                              |
+
+La navegación ya escondía `/usuarios` y `/auditoria` para su rol, así que el
+cambio fue sólo de RLS: la interfaz ya estaba alineada.
+
+---
+
 ## Qué sigue
 
-1. **Control de calidad de insumos (I.50.5)** con especificaciones (§4.6) y el
+0. **RETOMAR ACÁ — separar producto cosmético de accesorio (D-18).** Es lo que
+   dejó pendiente la carga del catálogo, y bloquea al circuito de producción:
+   hoy `gmp.productos` tiene 108 herramientas conviviendo con los cosméticos, y
+   una orden de producción sobre un pincel no significa nada. Se resuelve
+   poniendo vocabulario en `tipo` (COSMETICO / ACCESORIO) en cuanto la Gerencia
+   confirme, y de paso es la ocasión de promover `tipo` a enum, que era el plan
+   desde que se creó la tabla. Detrás vienen D-19 (vida útil real), D-20
+   (nombres truncados) y D-21 (dos ítems a desactivar).
+
+   Después: el circuito de **producción para stock** —registrar qué se produjo y
+   qué insumos consumió (baja por `SALIDA_CONSUMO_PRODUCCION`, hoy bloqueada en
+   `comercial.fn_validar_movimiento` a la espera de este circuito)—. Quedó
+   pendiente de decidir: consumo solo, o consumo + entrada de producto terminado
+   al stock (esto último arrastra presentaciones y numeración de lote, bloqueada
+   por I.40.25 / D-04). **Cuando se construya, la orden de producción tiene que
+   rechazar un producto sin `origen`**, que hoy está en NULL en los 483.
+
+1. **Circuito de stock contra la base alojada, con datos reales.** El DDL ya
+   está aplicado y lo estructural verificado en producción, pero el circuito
+   funcional (cargar una recepción a stock, transferir, bloquear, anular) se
+   probó contra un Postgres local, no contra la alojada, para no dejarle datos
+   de prueba imborrables. Conviene correrlo una vez apenas entre el primer lote
+   real, o con datos de prueba si se acepta que quedan.
+
+2. **Control de calidad de insumos (I.50.5)** con especificaciones (§4.6) y el
    motor de evaluación de §7.3. Es lo que hoy hace que `EN_ANALISIS → APROBADO`
    sea un botón y no un dictamen: falta la contraparte de lo que se acaba de
    hacer con el muestreo. **Ojo:** choca con D-02, que define quién firma el
    veredicto, y esa la contesta Dirección Técnica.
-2. **Suite pgTAP.** `core.verificar_invariantes()` ya contesta las cinco
+3. **Suite pgTAP.** `core.verificar_invariantes()` ya contesta las cinco
    invariantes exigibles; falta envolverla en pruebas que fallen el merge. Es
    barato y es evidencia de calificación operacional. Requiere conexión SQL
    directa, y la contraseña de la base es una de las que hay que rotar.
-3. **Firma electrónica.** Bloqueada por D-01.
-4. **No conformidades (PG.60.18).** El muestreo ya registra signos de no
+4. **Firma electrónica.** Bloqueada por D-01.
+5. **No conformidades (PG.60.18).** El muestreo ya registra signos de no
    conformidad y varios mensajes de error remiten a ese procedimiento, pero el
    módulo no existe. Cada mensaje que dice «corresponde abrir una no
    conformidad» es hoy una instrucción al operario, no un flujo del sistema.

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { notifications } from '@mantine/notifications';
-import { core, gmp } from './supabase';
+import { comercial, core, gmp } from './supabase';
 import type { Database } from './database.types';
 
 /* ------------------------------------------------------------------------- *
@@ -11,6 +11,8 @@ export type Usuario = Database['core']['Tables']['usuarios']['Row'];
 export type Deposito = Database['gmp']['Tables']['depositos']['Row'];
 export type Proveedor = Database['gmp']['Tables']['proveedores']['Row'];
 export type Insumo = Database['gmp']['Tables']['insumos_catalogo']['Row'];
+export type Producto = Database['gmp']['Tables']['productos']['Row'];
+export type OrigenProducto = Database['gmp']['Enums']['origen_producto_enum'];
 export type Recepcion = Database['gmp']['Tables']['recepciones']['Row'];
 export type LoteInsumo = Database['gmp']['Tables']['lotes_insumo']['Row'];
 export type Rotulo = Database['gmp']['Tables']['rotulos']['Row'];
@@ -19,7 +21,6 @@ export type MuestreoVista = Database['gmp']['Views']['v_muestreos']['Row'];
 export type DestinoMuestra = Database['gmp']['Enums']['destino_muestra_enum'];
 export type CategoriaMuestreo = Database['gmp']['Enums']['categoria_muestreo_enum'];
 export type Tablero = Database['gmp']['Views']['v_tablero']['Row'];
-export type ExistenciaVista = Database['gmp']['Views']['v_existencias_recibidas']['Row'];
 export type Auditoria = Database['core']['Tables']['auditoria']['Row'];
 export type EstadoCalidad = Database['gmp']['Enums']['estado_calidad_enum'];
 export type TipoInsumo = Database['gmp']['Enums']['tipo_insumo_enum'];
@@ -94,32 +95,6 @@ export function useLotesPorEstado() {
     queryKey: ['lotes-por-estado'],
     queryFn: async () => {
       const { data, error } = await gmp().from('v_lotes_por_estado').select('*');
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-}
-
-/* ------------------------------------------------------------------------- *
- * Existencias recibidas
- *
- * Ojo con el nombre: es lo recibido agrupado por estado, no stock. No hay
- * registro de consumo, así que las cantidades solo crecen. La existencia real
- * será `comercial.movimientos_stock`, que todavía no existe. La vista de la
- * base lleva el mismo aviso en su COMMENT.
- * ------------------------------------------------------------------------- */
-
-export function useExistencias() {
-  return useQuery({
-    queryKey: ['existencias'],
-    queryFn: async () => {
-      /* El orden por `estado` sale del enum, que está declarado en el orden
-         del circuito (RECIBIDO → … → RECHAZADO), no alfabético. */
-      const { data, error } = await gmp()
-        .from('v_existencias_recibidas')
-        .select('*')
-        .order('insumo_nombre')
-        .order('estado');
       if (error) throw error;
       return data ?? [];
     },
@@ -467,6 +442,41 @@ export function useCrearInsumo() {
   });
 }
 
+/* ------------------------------------------------------------------------- *
+ * Productos terminados (§4.7)
+ * ------------------------------------------------------------------------- */
+
+export function useProductos() {
+  return useQuery({
+    queryKey: ['productos'],
+    queryFn: async () => {
+      const { data, error } = await gmp().from('productos').select('*').order('nombre');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useCrearProducto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (producto: Database['gmp']['Tables']['productos']['Insert']) => {
+      const { data, error } = await gmp()
+        .from('productos')
+        .insert(producto)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['productos'] });
+      avisarExito('Producto agregado al catálogo.');
+    },
+    onError: avisarError,
+  });
+}
+
 export function useProveedores() {
   return useQuery({
     queryKey: ['proveedores'],
@@ -608,5 +618,339 @@ export function useAuditoria(limite = 200) {
       if (error) throw error;
       return data ?? [];
     },
+  });
+}
+
+/* ------------------------------------------------------------------------- *
+ * Stock (comercial)
+ *
+ * La existencia real, con movimientos: cuánto hay, de qué lote y en qué
+ * depósito. Reemplaza a la lectura de `gmp.v_existencias_recibidas`, que
+ * contestaba otra pregunta —cuánto entró por el circuito de calidad, que solo
+ * crece— y que quedó sin pantalla desde que existe el libro de movimientos.
+ * ------------------------------------------------------------------------- */
+
+export type StockArticulo = Database['comercial']['Views']['v_stock_por_articulo']['Row'];
+export type ExistenciaLote = Database['comercial']['Views']['v_existencias']['Row'];
+export type MovimientoKardex = Database['comercial']['Views']['v_kardex']['Row'];
+export type TipoMovimiento = Database['comercial']['Enums']['tipo_movimiento_enum'];
+export type BloqueoLote = Database['gmp']['Views']['v_bloqueos_lote']['Row'];
+export type MotivoBloqueo = Database['gmp']['Enums']['motivo_bloqueo_enum'];
+
+/** Los tipos que hoy tienen circuito. El resto los rechaza la base por fase. */
+export const TIPOS_MOVIMIENTO_MANUAL = [
+  'ENTRADA_AJUSTE',
+  'SALIDA_AJUSTE',
+  'SALIDA_DESCARTE',
+  'SALIDA_MUESTRA',
+] as const satisfies readonly TipoMovimiento[];
+
+export const TEXTO_TIPO_MOVIMIENTO: Record<TipoMovimiento, string> = {
+  ENTRADA_COMPRA: 'Entrada por compra',
+  ENTRADA_PRODUCCION: 'Entrada de producción',
+  ENTRADA_DEVOLUCION: 'Entrada por devolución',
+  ENTRADA_AJUSTE: 'Ajuste de más',
+  SALIDA_VENTA: 'Salida por venta',
+  SALIDA_CONSUMO_PRODUCCION: 'Consumo de producción',
+  SALIDA_MUESTRA: 'Salida de muestra',
+  SALIDA_DESCARTE: 'Descarte',
+  SALIDA_AJUSTE: 'Ajuste de menos',
+  SALIDA_RETIRO_MERCADO: 'Retiro de mercado',
+  TRANSFERENCIA_ENTRE_DEPOSITOS: 'Transferencia',
+};
+
+export const TEXTO_MOTIVO_BLOQUEO: Record<MotivoBloqueo, string> = {
+  RETIRO_MERCADO: 'Retiro de mercado',
+  NO_CONFORMIDAD: 'No conformidad',
+  INVESTIGACION: 'En investigación',
+  VENCIMIENTO: 'Vencido',
+  DECISION_DIRECCION_TECNICA: 'Decisión de Dirección Técnica',
+};
+
+/** Existencia consolidada por artículo: la vista de reposición. */
+export function useStockPorArticulo() {
+  return useQuery({
+    queryKey: ['stock-articulos'],
+    queryFn: async () => {
+      const { data, error } = await comercial()
+        .from('v_stock_por_articulo')
+        .select('*')
+        .order('insumo_nombre');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+/**
+ * Existencia por lote y depósito.
+ *
+ * Con `articuloId` trae el desglose de un artículo; sin él, todo. El desglose
+ * es el que importa para operar: el total de un artículo no dice de qué lote
+ * sacar ni de qué depósito, y esas dos son las preguntas del depósito.
+ */
+export function useExistenciasPorLote(articuloId?: string) {
+  return useQuery({
+    queryKey: ['stock-existencias', articuloId ?? 'todas'],
+    queryFn: async () => {
+      let consulta = comercial().from('v_existencias').select('*');
+      if (articuloId) consulta = consulta.eq('articulo_id', articuloId);
+      const { data, error } = await consulta
+        .order('insumo_nombre')
+        .order('plazo_validez', { nullsFirst: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+/** Existencia de un lote, repartida por depósito. */
+export function useExistenciasDeLote(loteId: string | undefined) {
+  return useQuery({
+    queryKey: ['stock-lote', loteId],
+    enabled: Boolean(loteId),
+    queryFn: async () => {
+      const { data, error } = await comercial()
+        .from('v_existencias')
+        .select('*')
+        .eq('lote_insumo_id', loteId!)
+        .order('deposito_numero');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+/** Kardex de un lote: sus movimientos con saldo corrido, del más nuevo al más viejo. */
+export function useKardexDeLote(loteId: string | undefined) {
+  return useQuery({
+    queryKey: ['kardex', loteId],
+    enabled: Boolean(loteId),
+    queryFn: async () => {
+      const { data, error } = await comercial()
+        .from('v_kardex')
+        .select('*')
+        .eq('lote_insumo_id', loteId!)
+        .order('orden', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+/** Últimos movimientos de toda la planta. */
+export function useKardex(limite = 200) {
+  return useQuery({
+    queryKey: ['kardex-general', limite],
+    queryFn: async () => {
+      const { data, error } = await comercial()
+        .from('v_kardex')
+        .select('*')
+        .order('orden', { ascending: false })
+        .limit(limite);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+/* Toda mutación de stock invalida lo mismo: el saldo por artículo, el desglose
+   por lote, el kardex y el tablero. Centralizado para que agregar una
+   operación nueva no se olvide de refrescar una pantalla. */
+function invalidarStock(qc: ReturnType<typeof useQueryClient>) {
+  void qc.invalidateQueries({ queryKey: ['stock-articulos'] });
+  void qc.invalidateQueries({ queryKey: ['stock-existencias'] });
+  void qc.invalidateQueries({ queryKey: ['stock-lote'] });
+  void qc.invalidateQueries({ queryKey: ['kardex'] });
+  void qc.invalidateQueries({ queryKey: ['kardex-general'] });
+  void qc.invalidateQueries({ queryKey: ['recepciones'] });
+  void qc.invalidateQueries({ queryKey: ['tablero'] });
+}
+
+/**
+ * Carga a stock todos los lotes de una recepción, en una sola transacción.
+ *
+ * Va por función de base y no por varios INSERT desde acá porque PostgREST no
+ * da transacción entre llamadas: con tres lotes y un fallo en el segundo,
+ * quedaría media recepción cargada y sin forma de deshacerlo (RN-54).
+ */
+export function useCargarRecepcionAStock() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (recepcionId: string) => {
+      const { data, error } = await comercial().rpc('cargar_recepcion_a_stock', {
+        p_recepcion_id: recepcionId,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      invalidarStock(qc);
+      const n = Array.isArray(data) ? data.length : 0;
+      avisarExito(`${n} ${n === 1 ? 'lote cargado' : 'lotes cargados'} a stock.`);
+    },
+    onError: avisarError,
+  });
+}
+
+/** Movimiento manual: ajuste por diferencia de inventario, descarte o muestra. */
+export function useRegistrarMovimiento() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (m: {
+      articuloId: string;
+      loteId: string;
+      depositoId: string;
+      tipo: TipoMovimiento;
+      /** Siempre positiva: el signo lo pone el tipo, como en la base. */
+      cantidad: number;
+      motivo: string;
+    }) => {
+      const entra = m.tipo.startsWith('ENTRADA');
+      const { data, error } = await comercial()
+        .from('movimientos_stock')
+        .insert({
+          articulo_id: m.articuloId,
+          lote_insumo_id: m.loteId,
+          deposito_id: m.depositoId,
+          tipo: m.tipo,
+          cantidad: entra ? Math.abs(m.cantidad) : -Math.abs(m.cantidad),
+          motivo: m.motivo,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      invalidarStock(qc);
+      avisarExito('Movimiento registrado.');
+    },
+    onError: avisarError,
+  });
+}
+
+export function useTransferirDeposito() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (t: {
+      loteId: string;
+      origenId: string;
+      destinoId: string;
+      cantidad: number;
+      motivo: string;
+    }) => {
+      const { data, error } = await comercial().rpc('transferir_deposito', {
+        p_lote_id: t.loteId,
+        p_deposito_origen: t.origenId,
+        p_deposito_destino: t.destinoId,
+        p_cantidad: t.cantidad,
+        p_motivo: t.motivo,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      invalidarStock(qc);
+      avisarExito('Material transferido.');
+    },
+    onError: avisarError,
+  });
+}
+
+/**
+ * Anula un movimiento con su inverso (RN-54).
+ *
+ * El original no se toca ni se oculta: sigue en el kardex, marcado, junto al
+ * movimiento que lo corrige. Eso es lo que pide BPF y lo que un inspector
+ * espera ver: el error y su corrección, no un renglón que desapareció.
+ */
+export function useAnularMovimiento() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, motivo }: { id: string; motivo: string }) => {
+      const { data, error } = await comercial().rpc('anular_movimiento', {
+        p_movimiento_id: id,
+        p_motivo: motivo,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      invalidarStock(qc);
+      avisarExito('Movimiento anulado con su inverso.');
+    },
+    onError: avisarError,
+  });
+}
+
+/* ------------------------------------------------------------------------- *
+ * Bloqueo de lote (RN-51, RN-52)
+ * ------------------------------------------------------------------------- */
+
+export function useBloqueosDeLote(loteId: string | undefined) {
+  return useQuery({
+    queryKey: ['bloqueos', loteId],
+    enabled: Boolean(loteId),
+    queryFn: async () => {
+      const { data, error } = await gmp()
+        .from('v_bloqueos_lote')
+        .select('*')
+        .eq('lote_insumo_id', loteId!)
+        .order('bloqueado_en', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useBloquearLote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (b: { loteId: string; motivo: MotivoBloqueo; detalle: string }) => {
+      const { data, error } = await gmp()
+        .from('bloqueos_lote')
+        .insert({ lote_insumo_id: b.loteId, motivo: b.motivo, detalle: b.detalle })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['bloqueos'] });
+      invalidarStock(qc);
+      avisarExito('Lote bloqueado. No se puede despachar hasta que se levante.');
+    },
+    onError: avisarError,
+  });
+}
+
+export function useLevantarBloqueo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, motivo }: { id: string; motivo: string }) => {
+      /* `levantado_por` y `levantado_en` los pone el trigger. Mandarlos desde
+         acá sería dejar que el cliente firme, y no firma el cliente. */
+      const { data, error } = await gmp()
+        .from('bloqueos_lote')
+        .update({ levantado: true, levantado_motivo: motivo })
+        .eq('id', id)
+        .select();
+      if (error) throw error;
+      /* Un UPDATE que RLS filtra no falla: afecta cero filas. Sin esto, la
+         pantalla informaría un levantamiento que nunca ocurrió. */
+      if (!data || data.length === 0) {
+        throw new Error(
+          'No se levantó el bloqueo: tu rol no tiene esa atribución. El levantamiento es de Dirección Técnica.',
+        );
+      }
+      return data[0];
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['bloqueos'] });
+      invalidarStock(qc);
+      avisarExito('Bloqueo levantado.');
+    },
+    onError: avisarError,
   });
 }
