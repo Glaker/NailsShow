@@ -761,3 +761,50 @@ gradual: si existe una credencial capaz de alterar un registro firmado, ningún
 registro del sistema prueba nada. El razonamiento completo está en §3.5 del
 documento de alcance y vale leerlo entero antes de la primera conversación
 incómoda.
+
+---
+
+## Saldo inicial de apertura (2026-09-16, sin verificar contra la base)
+
+Implementado a partir de `docs/ESPEC_SALDO_INICIAL.md`. Cinco migraciones
+nuevas, en este orden (dos van solas por la restricción de Postgres de no usar
+un valor de enum agregado en la misma transacción que lo agrega):
+
+| Migración                                                | Qué trae                                                                 |
+| --------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `20260916120000_gmp_estado_saldo_apertura`                | agrega `SALDO_APERTURA` a `gmp.estado_calidad_enum`                     |
+| `20260916130000_gmp_migracion_apertura`                   | `gmp.migracion_apertura`, columnas nuevas en `lotes_insumo`, exención del circuito de calidad para ese estado, depósito `APE`, color de rótulo AZUL |
+| `20260916140000_comercial_tipo_movimiento_saldo_apertura` | agrega `ENTRADA_SALDO_APERTURA` a `comercial.tipo_movimiento_enum`       |
+| `20260916150000_comercial_cargar_apertura_a_stock`        | `comercial.cargar_apertura_a_stock()`, `comercial.deshacer_apertura()`   |
+| `20260916160000_carga_saldo_apertura`                     | los datos: 336 de 647 renglones de `inventario_apertura.csv`, generados por `scripts/apertura/generar_migracion.mjs` |
+
+**No se aplicaron todavía** (`supabase db push` pendiente) ni se corrieron
+contra el proyecto alojado: esta sesión no tuvo acceso a la base. Antes de
+darlas por buenas falta lo de siempre — `db push` y, si hay pgTAP para el
+circuito de lotes, correrlo.
+
+**Apartamiento deliberado de §6 del documento de la carga.** El documento pide
+que la carga se deshaga con `delete from movimientos where migracion_id = …`.
+Eso borra un registro de negocio, y la invariante 1 de CLAUDE.md (más RN-54) lo
+prohíben sin excepción para scripts de migración; `comercial.movimientos_stock`
+ni siquiera tiene GRANT de DELETE. `comercial.deshacer_apertura()` cumple el
+mismo requisito —reversión completa en una sola llamada— anulando cada
+movimiento con `comercial.anular_movimiento()` (ya existente, RN-54), no
+borrándolo. El razonamiento completo está en la cabecera de `…130000`.
+
+**Cobertura real: 336 de 647 códigos (52%).** Los 294 restantes —herramientas,
+mobiliario (código `550`), merchandising, libros, y materias primas/semielaborados
+que la planilla trae pero que todavía no están en `gmp.insumos_catalogo`— quedan
+fuera a propósito: clasificarlos (`tipo_insumo_enum`, `requiere_protocolo`,
+`es_inflamable`) es una decisión de catálogo que le corresponde a la Gerencia, no
+algo que se pueda inferir de un nombre de planilla. Lista completa en
+`scripts/apertura/pendientes.md` y las tres decisiones abiertas D-22, D-23 y D-24
+de `docs/DECISIONES_ABIERTAS.md`. El color de fila del CSV (`color_origen`) se
+guardó como metadato crudo sin interpretar: su significado también está abierto
+(D-22).
+
+**Reconciliación de conteo.** El CSV adjunto trae 647 renglones parseables; el
+documento de la carga declara 650. La diferencia (3) es de la transcripción del
+archivo a este repositorio, no de la lógica de importación; si aparece el xlsx
+original convendría re-generar `scripts/apertura/inventario_apertura.csv` desde
+la fuente y volver a correr el generador.

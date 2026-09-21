@@ -270,6 +270,60 @@ Nótese que `385` es «CLARIFICADOR ( CLEANSER ) 250ml. (NUEVO)», lo que sugier
 que `138` es su versión vieja.
 **Requiere.** Confirmar y desactivarlos. Es un `update` de dos filas.
 
+### D-22 · Significado del color de fila del inventario de apertura
+
+**Pregunta.** `inventario_apertura.csv` (carga de saldo inicial de apertura,
+2026-09-16) trae una columna `color_origen` con VERDE, AMARILLO, ROJO, VIOLETA
+y CELESTE en casi todas las filas (644 de 650). No correlaciona con tener
+cantidad cargada (103 de 289 «verde» están vacíos), así que no significa «hay
+stock». Se desconoce qué codifica: ¿depósito físico? ¿categoría de reposición?
+¿urgencia de reconteo?
+**Fuente.** §4.1 de `docs/ESPEC_SALDO_INICIAL.md`.
+**Bloquea.** Nada todavía: se importó como metadato crudo en
+`gmp.lotes_insumo.color_origen`, sin interpretar (migración
+`20260916160000_carga_saldo_apertura.sql`). Bloquea sí cualquier regla o vista
+que quiera usar el color para algo (filtro, alerta, agrupación).
+**Estado.** Sin resolver.
+
+### D-23 · Clasificación de los ítems del inventario fuera del catálogo de insumos
+
+**Pregunta.** `inventario_apertura.csv` trae 294 códigos (de 647) que no están
+en `gmp.insumos_catalogo`: herramientas (pinceles, limas, fresas, tijeras,
+empujadores), mobiliario y POP (código `550`, exhibidores), merchandising
+(remeras, gorras, delantales), libros, lámparas y algunas materias
+primas/semielaborados todavía no catalogados (geles, cremas, monómeros,
+aceites, alcoholes, pigmentos adicionales a los ya cargados, etc. — ver el
+detalle completo en `scripts/apertura/pendientes.md`, generado junto con la
+migración). Decidir esto implica: (a) si entran al catálogo GMP en absoluto —
+las herramientas y el merchandising probablemente no, por el mismo motivo que
+`docs/DECISIONES_ABIERTAS.md` ya señala para `gmp.productos` (herramientas
+mezcladas con producto cosmético); (b) para lo que sí es insumo real, qué
+`tipo_insumo_enum`, `requiere_protocolo`, `requiere_pesada_recepcion` y
+`es_inflamable` les corresponde.
+**Fuente.** Análisis de la carga de saldo de apertura, 2026-09-16.
+**Bloquea.** Que esos 294 códigos tengan saldo inicial cargado. Hasta que se
+resuelva, quedan fuera del sistema por completo (ni catálogo ni stock).
+**Estado.** Sin resolver. No se inventó una clasificación para no fabricar
+`requiere_protocolo`/`es_inflamable` sin que la planta lo confirme (CLAUDE.md
+§7).
+
+### D-24 · Códigos duplicados del inventario de apertura, para cuando se catalogen
+
+**Pregunta.** 9 códigos de la planilla de origen aparecen más de una vez bajo
+el mismo `codigo_interno` (`101ET`, `105ET`, `131ENV`, `135GAT` ×3, `136PRE`,
+`340AC`, `391BOM`, `511`, y `550` con 9 renglones de mobiliario). Ninguno está
+hoy en `gmp.insumos_catalogo` (quedan dentro de D-23), así que la migración
+`20260916160000` no tuvo que resolverlos todavía, pero el script
+(`scripts/apertura/generar_migracion.mjs`) ya los consolidaría sumando
+cantidades el día que el código exista en el catálogo. Falta confirmar que sumar
+sea lo correcto en cada caso: por ejemplo `136PRE` junta dos materias primas
+con nombre distinto (`NAIL PREP` y `ACETATO DE BUTILO`) bajo el mismo código,
+que podría ser un error de captura en vez de dos compras del mismo insumo.
+**Fuente.** §4.2 de `docs/ESPEC_SALDO_INICIAL.md`.
+**Bloquea.** La exactitud del saldo de estos 9 códigos el día que entren al
+catálogo (D-23).
+**Estado.** Sin resolver.
+
 ---
 
 ## Resueltas
