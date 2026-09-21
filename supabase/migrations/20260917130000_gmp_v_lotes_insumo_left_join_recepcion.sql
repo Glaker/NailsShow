@@ -36,9 +36,17 @@
 --    usan `gmp.v_lotes_insumo`: consultan `gmp.lotes_insumo` directo. Ningún
 --    otro archivo referencia esta vista.
 
-drop view if exists gmp.v_lotes_insumo;
+-- 5. NO SE USA `drop view`. `comercial.v_proveedores_por_insumo` (migración
+--    …120000 de este mismo día, que se aplica antes que ésta) depende de esta
+--    vista, y un DROP sin CASCADE falla con SQLSTATE 2BP01. CASCADE tampoco es
+--    opción: borraría la vista dependiente en silencio, y el repositorio dejaría
+--    de describir el estado de la base. `create or replace view` conserva la
+--    dependencia. Es válido acá porque la lista de columnas no cambia: las
+--    mismas 30 columnas, con los mismos nombres, tipos y orden que la
+--    definición vigente. Lo único que cambia es el JOIN, y la nulabilidad no
+--    forma parte de la firma de una vista.
 
-create view gmp.v_lotes_insumo with (security_invoker = true) as
+create or replace view gmp.v_lotes_insumo with (security_invoker = true) as
   select
     l.id,
     l.numero_registro_interno,
