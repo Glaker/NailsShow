@@ -73,34 +73,65 @@ function renglon(r: ResultadoLote, orden: number): RenglonCalculado {
 // Fixtures
 // ---------------------------------------------------------------------------
 
-/** Etanol absoluto. Densidad de certificado, beta de literatura. */
-const ETANOL: Densidad = {
-  densidadRef: 0.7893,
-  tempRefC: 20,
-  betaK: 1.09e-3,
-  fuente: 'CERTIFICADO_PROVEEDOR',
-};
+/** Constructor de densidad lineal: un punto y, quizá, un coeficiente. */
+function densidadLineal(
+  densidadRef: number,
+  betaK: number | null,
+  fuente: Densidad['fuente'] = 'MEDICION_PROPIA',
+): Densidad {
+  return {
+    densidadRef,
+    tempRefC: 20,
+    betaK,
+    coeficientes: null,
+    validoDesdeC: 0,
+    validoHastaC: 45,
+    fuente,
+  };
+}
 
-const AGUA: Densidad = {
-  densidadRef: 0.9982,
-  tempRefC: 20,
-  betaK: 2.07e-4,
-  fuente: 'FARMACOPEA',
-};
+/** Etanol absoluto. Densidad de certificado, beta de literatura. */
+const ETANOL: Densidad = densidadLineal(0.7893, 1.09e-3, 'CERTIFICADO_PROVEEDOR');
+
+const AGUA: Densidad = densidadLineal(0.9982, 2.07e-4, 'FARMACOPEA');
 
 /** Sin beta: la densidad no se corrige por temperatura. */
-const DENSA: Densidad = {
-  densidadRef: 2,
+const DENSA: Densidad = densidadLineal(2, null);
+
+const LIVIANA: Densidad = densidadLineal(0.5, null);
+
+/**
+ * Etanol según el ajuste polinómico de `gmp.densidades_referencia`
+ * (20260922210000, origen Densidades_liquidos_0-45C.xlsx). Los coeficientes se
+ * copian tal cual de la tabla y los valores esperados de las pruebas salen de
+ * la hoja «Tabla cada 5 °C» del mismo libro, no de correr esta función: si la
+ * evaluación estuviera mal, compararla contra sí misma no lo mostraría.
+ */
+const ETANOL_POLI: Densidad = {
+  densidadRef: null,
   tempRefC: 20,
   betaK: null,
-  fuente: 'MEDICION_PROPIA',
+  coeficientes: [
+    0.806413774768253, -0.000845832981684972, -8.60796206808377e-8, -4.70355794058011e-9,
+    -2.00817210630658e-11,
+  ],
+  validoDesdeC: 0,
+  validoHastaC: 45,
+  fuente: 'LITERATURA',
 };
 
-const LIVIANA: Densidad = {
-  densidadRef: 0.5,
+/** Agua, IAPWS-95. Tiene máximo de densidad a 3,98 °C: a1 es positivo. */
+const AGUA_POLI: Densidad = {
+  densidadRef: null,
   tempRefC: 20,
   betaK: null,
-  fuente: 'MEDICION_PROPIA',
+  coeficientes: [
+    0.999846169590415, 6.51101347498192e-5, -8.61963710873087e-6, 7.1195320239951e-8,
+    -3.89812347670752e-10,
+  ],
+  validoDesdeC: 0,
+  validoHastaC: 45,
+  fuente: 'LITERATURA',
 };
 
 /**
@@ -193,10 +224,10 @@ function formulaCon(
 // ---------------------------------------------------------------------------
 
 describe('densidadA', () => {
-  it('sin beta devuelve la densidad de referencia, cualquiera sea la temperatura', () => {
-    expect(densidadA(DENSA, -40)).toBe(2);
+  it('sin beta devuelve la densidad de referencia a cualquier temperatura del rango', () => {
+    expect(densidadA(DENSA, 0)).toBe(2);
     expect(densidadA(DENSA, 20)).toBe(2);
-    expect(densidadA(DENSA, 90)).toBe(2);
+    expect(densidadA(DENSA, 45)).toBe(2);
   });
 
   it('a la temperatura de referencia devuelve exactamente la densidad de referencia', () => {
@@ -204,8 +235,8 @@ describe('densidadA', () => {
   });
 
   it('la densidad baja al subir la temperatura y sube al bajarla', () => {
-    expect(densidadA(ETANOL, 30)).toBeLessThan(ETANOL.densidadRef);
-    expect(densidadA(ETANOL, 10)).toBeGreaterThan(ETANOL.densidadRef);
+    expect(densidadA(ETANOL, 30)).toBeLessThan(0.7893);
+    expect(densidadA(ETANOL, 10)).toBeGreaterThan(0.7893);
   });
 
   it('aplica rho(T) = rho_ref * (1 - beta * (T - T_ref))', () => {
@@ -222,6 +253,53 @@ describe('densidadA', () => {
     const volumenA12 = 1 / densidadA(ETANOL, 12);
     const volumenA30 = 1 / densidadA(ETANOL, 30);
     expect(volumenA30 / volumenA12 - 1).toBeCloseTo(0.0198, 4);
+  });
+
+  /**
+   * Los esperados salen de la hoja «Tabla cada 5 °C» del libro de origen. Es la
+   * verificación que importa: que la evaluación por Horner reproduzca la tabla
+   * publicada, y no que coincida consigo misma.
+   */
+  it('evalúa el polinomio contra la tabla de origen (etanol)', () => {
+    expect(densidadA(ETANOL_POLI, 0)).toBeCloseTo(0.806413774768253, 12);
+    expect(densidadA(ETANOL_POLI, 20)).toBeCloseTo(0.789421841747386, 12);
+    expect(densidadA(ETANOL_POLI, 45)).toBeCloseTo(0.767666020035781, 12);
+  });
+
+  it('evalúa el polinomio contra la tabla de origen (agua)', () => {
+    expect(densidadA(AGUA_POLI, 0)).toBeCloseTo(0.999846169590415, 12);
+    expect(densidadA(AGUA_POLI, 20)).toBeCloseTo(0.998207710028212, 12);
+    expect(densidadA(AGUA_POLI, 25)).toBeCloseTo(0.997046806196644, 12);
+  });
+
+  /**
+   * El agua tiene su máximo de densidad a 3,98 °C: por debajo, calentar la
+   * densifica. Un modelo lineal no puede representar eso, y es la razón concreta
+   * por la que el polinomio no es un lujo.
+   */
+  it('reproduce el máximo de densidad del agua cerca de 4 °C', () => {
+    expect(densidadA(AGUA_POLI, 4)).toBeGreaterThan(densidadA(AGUA_POLI, 0));
+    expect(densidadA(AGUA_POLI, 4)).toBeGreaterThan(densidadA(AGUA_POLI, 10));
+  });
+
+  it('el polinomio manda sobre el punto de referencia si están los dos', () => {
+    const mixta: Densidad = { ...ETANOL_POLI, densidadRef: 99, betaK: 0.5 };
+    expect(densidadA(mixta, 20)).toBeCloseTo(0.789421841747386, 12);
+  });
+
+  /**
+   * Un ajuste de grado 4 se dispara apenas se sale del intervalo donde se
+   * ajustó. Mismo criterio que `gmp.densidad_a()`, que también corta.
+   */
+  it('no extrapola fuera del rango de validez', () => {
+    expect(() => densidadA(ETANOL_POLI, -1)).toThrow(/entre 0 y 45/);
+    expect(() => densidadA(ETANOL_POLI, 46)).toThrow(/no se extrapola/i);
+    expect(() => densidadA(DENSA, 90)).toThrow(/entre 0 y 45/);
+  });
+
+  it('falla si no hay ni polinomio ni punto de referencia', () => {
+    const vacia: Densidad = { ...ETANOL_POLI, coeficientes: null };
+    expect(() => densidadA(vacia, 20)).toThrow(/ni ajuste polinómico ni valor/i);
   });
 });
 
@@ -448,12 +526,7 @@ describe('avisos', () => {
         componente: 'Único',
         porcentajePP: 100,
         seMideAVolumen: true,
-        densidad: {
-          densidadRef: 1,
-          tempRefC: 20,
-          betaK: null,
-          fuente: 'MEDICION_PROPIA',
-        },
+        densidad: densidadLineal(1, null),
       }),
     ]);
 

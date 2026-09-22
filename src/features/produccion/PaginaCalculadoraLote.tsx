@@ -26,6 +26,7 @@ import {
   useFormulaCompleta,
   useFormulasFabricacion,
   type EstadoDocumento,
+  type DensidadReferenciaRow,
   type FormulaComponenteRow,
   type FormulaFabricacionRow,
 } from '@/lib/consultas';
@@ -38,9 +39,30 @@ import {
   useClimaPlanta,
 } from '@/lib/clima';
 import { BadgeEstadoFormula } from './estadoFormula';
-import { calcularLote, type Formula } from './calculoLote';
+import { calcularLote, type Densidad, type Formula } from './calculoLote';
 
 type TipoObjetivo = 'volumen' | 'masa';
+
+/**
+ * Densidad de la base a la forma que pide `calcularLote`.
+ *
+ * Los coeficientes se arman solo si hay `a0`: una fila sin ajuste es una
+ * densidad que entró por certificado o medición propia y se evalúa con el
+ * modelo lineal. Los nulos del medio se completan con cero, que es lo que vale
+ * un término ausente del polinomio.
+ */
+function densidadParaCalculo(d: DensidadReferenciaRow): Densidad {
+  return {
+    densidadRef: d.densidad_ref,
+    tempRefC: d.temp_ref_c,
+    betaK: d.beta_k,
+    coeficientes:
+      d.a0 === null ? null : [d.a0, d.a1 ?? 0, d.a2 ?? 0, d.a3 ?? 0, d.a4 ?? 0],
+    validoDesdeC: d.valido_desde_c,
+    validoHastaC: d.valido_hasta_c,
+    fuente: d.fuente,
+  };
+}
 
 /** Traduce las filas de la base a la forma que pide `calcularLote`. */
 function formulaParaCalculo(datos: {
@@ -59,14 +81,7 @@ function formulaParaCalculo(datos: {
       esCsp: c.es_csp,
       seMideAVolumen: c.se_mide_a_volumen,
       etapa: c.etapa,
-      densidad: c.densidad
-        ? {
-            densidadRef: c.densidad.densidad_ref,
-            tempRefC: c.densidad.temp_ref_c,
-            betaK: c.densidad.beta_k,
-            fuente: c.densidad.fuente,
-          }
-        : null,
+      densidad: c.densidad ? densidadParaCalculo(c.densidad) : null,
     })),
   };
 }

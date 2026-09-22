@@ -1033,10 +1033,7 @@ export type EstadoDocumento =
   | 'DADO_DE_BAJA';
 
 export type FuenteDensidadDb =
-  | 'LITERATURA'
-  | 'CERTIFICADO_PROVEEDOR'
-  | 'MEDICION_PROPIA'
-  | 'FARMACOPEA';
+  'LITERATURA' | 'CERTIFICADO_PROVEEDOR' | 'MEDICION_PROPIA' | 'FARMACOPEA';
 
 export interface FormulaFabricacionRow {
   id: string;
@@ -1054,11 +1051,22 @@ export interface DensidadReferenciaRow {
   id: string;
   nombre: string;
   insumo_id: string | null;
-  densidad_ref: number;
+  densidad_ref: number | null;
   temp_ref_c: number;
   beta_k: number | null;
   fuente: FuenteDensidadDb;
   activo: boolean;
+  /** Ajuste rho(T) = a0 + a1·T + … (20260922210000). Null en las que solo tienen punto. */
+  a0: number | null;
+  a1: number | null;
+  a2: number | null;
+  a3: number | null;
+  a4: number | null;
+  valido_desde_c: number;
+  valido_hasta_c: number;
+  cas: string | null;
+  categoria: string | null;
+  calidad: string | null;
 }
 
 export interface FormulaComponenteRow {
@@ -1130,7 +1138,9 @@ export function useFormulasFabricacion() {
       const filas = data ?? [];
       return filas
         .slice()
-        .sort((a, b) => (a.estado === 'VIGENTE' ? 0 : 1) - (b.estado === 'VIGENTE' ? 0 : 1));
+        .sort(
+          (a, b) => (a.estado === 'VIGENTE' ? 0 : 1) - (b.estado === 'VIGENTE' ? 0 : 1),
+        );
     },
   });
 }
@@ -1163,7 +1173,9 @@ export function useFormulaCompleta(formulaId: string | undefined) {
       if (errorComp) throw errorComp;
 
       return {
-        formula: formula as FormulaFabricacionRow & { producto: { nombre: string } | null },
+        formula: formula as FormulaFabricacionRow & {
+          producto: { nombre: string } | null;
+        },
         componentes: componentes ?? [],
       };
     },
@@ -1197,7 +1209,9 @@ export function useCrearFormula() {
       codigoMe: string | null;
       version: string;
     }) => {
-      const { data, error } = await tablaSinTipar<FormulaFabricacionRow>('formulas_fabricacion')
+      const { data, error } = await tablaSinTipar<FormulaFabricacionRow>(
+        'formulas_fabricacion',
+      )
         .insert({
           producto_id: f.productoId,
           variedad: f.variedad,
@@ -1239,7 +1253,9 @@ export function useActualizarFormula() {
         estado: EstadoDocumento;
       }>;
     }) => {
-      const { data, error } = await tablaSinTipar<FormulaFabricacionRow>('formulas_fabricacion')
+      const { data, error } = await tablaSinTipar<FormulaFabricacionRow>(
+        'formulas_fabricacion',
+      )
         .update(cambios)
         .eq('id', id)
         .select()
@@ -1273,7 +1289,9 @@ export function useCrearComponenteFormula() {
       densidadId: string | null;
       etapa: string | null;
     }) => {
-      const { data, error } = await tablaSinTipar<FormulaComponenteRow>('formula_componentes')
+      const { data, error } = await tablaSinTipar<FormulaComponenteRow>(
+        'formula_componentes',
+      )
         .insert({
           formula_id: c.formulaId,
           orden: c.orden,
@@ -1303,7 +1321,9 @@ export function useEliminarComponenteFormula() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id }: { id: string; formulaId: string }) => {
-      const { error } = await tablaSinTipar<null>('formula_componentes').delete().eq('id', id);
+      const { error } = await tablaSinTipar<null>('formula_componentes')
+        .delete()
+        .eq('id', id);
       if (error) throw error;
     },
     onSuccess: (_v, variables) => {

@@ -15,12 +15,20 @@
  */
 
 export interface Densidad {
-  /** g/mL, numéricamente igual a kg/L. */
-  densidadRef: number;
+  /** g/mL, numéricamente igual a kg/L. Null cuando solo hay polinomio. */
+  densidadRef: number | null;
   /** °C a la que se midió `densidadRef`. */
   tempRefC: number;
   /** Coeficiente de expansión volumétrica, K⁻¹. Null = no corregir. */
   betaK: number | null;
+  /**
+   * `[a0, a1, a2, a3, a4]` de rho(T) = a0 + a1·T + a2·T² + a3·T³ + a4·T⁴,
+   * con T en °C. Null = no hay ajuste y se usa el modelo lineal.
+   */
+  coeficientes: number[] | null;
+  /** Rango donde el ajuste vale. Fuera de él no se extrapola. */
+  validoDesdeC: number;
+  validoHastaC: number;
   fuente: 'LITERATURA' | 'CERTIFICADO_PROVEEDOR' | 'MEDICION_PROPIA' | 'FARMACOPEA';
 }
 
@@ -69,17 +77,46 @@ export interface ResultadoLote {
 }
 
 /**
- * rho(T) = rho_ref * (1 - beta * (T - T_ref))
+ * Densidad de un componente a una temperatura, en g/mL.
  *
- * Linealización de primer orden del coeficiente de expansión volumétrica.
- * Válida dentro de unos ±20 °C de la referencia, de sobra para una planta.
+ * Dos modelos, en este orden:
  *
- * La magnitud no es despreciable acá: beta del etanol ≈ 1,09e-3 K⁻¹, o sea
- * 0,109 % por grado. Entre fraccionar a 12 °C y a 30 °C hay casi 2 % de
- * diferencia en volumen, y en un producto cuyo activo es el alcohol eso se
- * come buena parte de la tolerancia de especificación.
+ * 1. **Ajuste polinómico** `rho(T) = a0 + a1·T + a2·T² + a3·T³ + a4·T⁴`, que es
+ *    lo que trae la tabla de referencia cargada en `gmp.densidades_referencia`
+ *    para 91 compuestos, válido de 0 a 45 °C.
+ * 2. **Linealización** `rho_ref * (1 - beta * (T - T_ref))`, para las densidades
+ *    que entran por certificado de lote o medición propia, donde hay un punto
+ *    y a lo sumo un coeficiente de expansión.
+ *
+ * Fuera del rango de validez **no extrapola**: un ajuste de grado 4 se dispara
+ * apenas se sale del intervalo donde se ajustó, y devolver un número que parece
+ * una densidad es peor que fallar. Es el mismo criterio que `gmp.densidad_a()`,
+ * que es la autoridad cuando se emite la hoja de pesada.
+ *
+ * La magnitud no es despreciable: entre fraccionar a 12 °C y a 30 °C hay casi
+ * 2 % de diferencia de volumen para la misma masa de etanol, y en un producto
+ * cuyo activo es el alcohol eso se come buena parte de la tolerancia.
  */
 export function densidadA(d: Densidad, tempC: number): number {
+  if (tempC < d.validoDesdeC || tempC > d.validoHastaC) {
+    throw new Error(
+      `La densidad está definida entre ${d.validoDesdeC} y ${d.validoHastaC} °C; ` +
+        `se pidió a ${tempC} °C. No se extrapola.`,
+    );
+  }
+
+  if (d.coeficientes && d.coeficientes.length > 0) {
+    // Horner: menos operaciones y menos error de redondeo que evaluar potencias.
+    let r = 0;
+    for (let i = d.coeficientes.length - 1; i >= 0; i--) {
+      r = r * tempC + (d.coeficientes[i] ?? 0);
+    }
+    return r;
+  }
+
+  if (d.densidadRef === null) {
+    throw new Error('La densidad no tiene ni ajuste polinómico ni valor de referencia.');
+  }
   if (d.betaK === null) return d.densidadRef;
   return d.densidadRef * (1 - d.betaK * (tempC - d.tempRefC));
 }
@@ -129,7 +166,9 @@ export function calcularLote(
 
   const cantidadCsp = formula.componentes.filter((c) => c.esCsp).length;
   if (cantidadCsp > 1) {
-    throw new Error(`La fórmula tiene ${cantidadCsp} componentes csp. Solo puede haber uno.`);
+    throw new Error(
+      `La fórmula tiene ${cantidadCsp} componentes csp. Solo puede haber uno.`,
+    );
   }
   if (cantidadCsp === 0 && Math.abs(declarado - 100) > 1e-4) {
     throw new Error(
@@ -175,7 +214,8 @@ export function calcularLote(
         porcentajePP: redondear(porcentajePP, 6),
         masaKg: redondear(masaKg, 4),
         volumenL: volumenL === null ? null : redondear(volumenL, 4),
-        densidadAplicada: densidadAplicada === null ? null : redondear(densidadAplicada, 5),
+        densidadAplicada:
+          densidadAplicada === null ? null : redondear(densidadAplicada, 5),
         densidadNoVerificada: c.densidad?.fuente === 'LITERATURA',
         etapa: c.etapa ?? null,
       };
