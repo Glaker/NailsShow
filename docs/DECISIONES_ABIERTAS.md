@@ -8,7 +8,7 @@ Cuando una se resuelve, se mueve a «Resueltas» con fecha y quién decidió —
 historial importa: el control de cambios de GAMP 5 exige poder reconstruir por
 qué el sistema hace lo que hace.
 
-Última actualización: 2026-09-04.
+Última actualización: 2026-09-22.
 
 ---
 
@@ -50,6 +50,43 @@ planta no puede cumplir con 11 personas lleva a que el operario busque la vuelta
 que es peor que registrar el desvío.
 **Requiere.** Decisión explícita de DT documentada en el control de cambios.
 **Estado.** Provisorio en uso, sin confirmar.
+
+### D-25 · Con qué alcance firma la Dirección Técnica suplente
+
+**Pregunta.** ¿La DT suplente (Eliseo Agustín Coggiola) firma las mismas cosas
+que la titular (Anabella Gregorini), o hay actos reservados a la titular?
+
+**Conflicto.** Las dos fuentes dicen cosas distintas.
+
+- El **alcance** es explícito: «Dos personas en el rol se modelan como titular y
+  suplente… **Ambos pueden firmar liberaciones**, y cada firma queda atribuida a
+  la persona concreta que la ejecutó. El sistema no permite firmar en
+  representación de otro bajo ninguna circunstancia.»
+- La **conducción del proyecto** informó lo contrario el 2026-09-22: el suplente
+  ejerce las funciones de Dirección Técnica —aprueba lotes, carga fórmulas— pero
+  **no firma el batch record**, que firma únicamente la titular.
+
+No son necesariamente incompatibles: «liberación de lote» y «batch record» son
+dos documentos distintos, y es posible que el suplente libere lotes y no cierre
+el registro de fabricación. Pero el alcance no distingue, y la diferencia
+determina qué puede hacer una credencial.
+
+**Fuente.** § nómina del alcance («Sobre la Dirección Técnica») contra lo
+informado por la conducción del proyecto.
+**Bloquea.** El batch record —que todavía no existe como tabla— y, antes que
+eso, si `gmp.fn_formula_aprobacion` (20260921090000) debe exigir
+`es_dt_titular` además de rol `DIRECCION_TECNICA` para pasar una fórmula a
+VIGENTE. Hoy no lo exige: cualquiera de las dos personas puede hacer vigente una
+fórmula, y queda atribuida a quien lo hizo.
+**Valor provisorio.** El del alcance: ambas personas con los mismos permisos,
+cada acto atribuido a quien lo ejecutó. Es lo que implementa
+`20260922190000_alta_direccion_tecnica_suplente`. No se restringió nada de más
+porque restringir sin regla escrita es inventar la regla (CLAUDE.md §7).
+**Requiere.** Confirmación de Anabella Gregorini como DT titular, documentada en
+el control de cambios. Si hay actos reservados, hay que enumerarlos: en un
+sistema BPF «lo firma la titular» tiene que ser una restricción de la base, no
+una costumbre.
+**Estado.** Sin resolver. Abierta el 2026-09-22.
 
 ---
 
