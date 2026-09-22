@@ -39,10 +39,18 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const MIGRATIONS_DIR = path.join(REPO_ROOT, 'supabase', 'migrations');
 const CSV_PATH = path.join(__dirname, 'inventario_apertura.csv');
+const ORIGEN_PATH = path.join(__dirname, 'origen.json');
 const PENDIENTES_PATH = path.join(__dirname, 'pendientes.md');
 
-const FECHA_CORTE = '2026-09-16';
-const ARCHIVO_ORIGEN = '05 INVENTARIO NAIL SHOW FABRICA (inventario_apertura.csv)';
+const FECHA_CORTE = '2026-09-22';
+
+// Identidad del archivo de origen, producida por `xlsx_a_csv.py`. El hash es
+// el del **xlsx**, no el del csv: el xlsx es la fuente y el csv un intermedio
+// de esa herramienta. `gmp.migracion_apertura.hash_archivo` guarda esto como
+// evidencia de integridad, y una evidencia sobre un intermedio no sirve para
+// demostrar de qué planilla salió el saldo.
+const origen = JSON.parse(readFileSync(ORIGEN_PATH, 'utf8'));
+const ARCHIVO_ORIGEN = `${origen.archivo_origen} (hoja ${origen.hoja})`;
 
 // ===========================================================================
 // 1. Parseo de CSV (con soporte de campos entre comillas, coma y comillas
@@ -92,11 +100,27 @@ function parseCsv(text) {
   return rows.filter((r) => r.some((f) => f.trim() !== ''));
 }
 
+/** Cantidades que no eran un número limpio y de las que se tomó el número inicial. */
+const cantidadesImprecisas = [];
+
+/**
+ * La columna CANTIDAD casi siempre es un número, pero la planilla trae algún
+ * renglón escrito a mano («1 litro»). Se toma el número que encabeza el texto
+ * y se deja constancia: descartarlo silenciosamente perdería una existencia
+ * declarada, y adivinarlo sin registro sería peor.
+ */
 function toNumberOrNull(text) {
   const t = (text ?? '').trim();
   if (t === '') return null;
   const n = Number(t);
-  return Number.isFinite(n) ? n : null;
+  if (Number.isFinite(n)) return n;
+
+  const m = /^(-?\d+(?:[.,]\d+)?)/.exec(t);
+  if (!m) return null;
+  const parcial = Number(m[1].replace(',', '.'));
+  if (!Number.isFinite(parcial)) return null;
+  cantidadesImprecisas.push({ original: t, tomado: parcial });
+  return parcial;
 }
 
 // ===========================================================================
@@ -222,7 +246,8 @@ writeFileSync(PENDIENTES_PATH, pendientesMd, 'utf8');
 // 5. Migración SQL
 // ===========================================================================
 
-const hashArchivo = createHash('sha256').update(csvText, 'utf8').digest('hex');
+const hashArchivo = origen.hash_archivo;
+const hashCsv = createHash('sha256').update(csvText, 'utf8').digest('hex');
 
 function sqlLiteral(v) {
   if (v === null || v === undefined) return 'null';
@@ -237,13 +262,15 @@ const valuesRows = importables
   })
   .join(',\n');
 
-const timestamp = '20260916160000';
+const timestamp = '20260922200000';
 const outPath = path.join(MIGRATIONS_DIR, `${timestamp}_carga_saldo_apertura.sql`);
 
 const observaciones =
   `${importables.length} de ${renglones.length} renglones de origen importados. El resto ` +
   `(herramientas, mobiliario, merchandising, libros) queda fuera del catálogo de insumos ` +
-  `y listado en scripts/apertura/pendientes.md.`;
+  `y listado en scripts/apertura/pendientes.md. Origen: ${ARCHIVO_ORIGEN}, sha256 ` +
+  `${hashArchivo}. CANTIDAD de la planilla leída como unidades en existencia por ` +
+  `indicación de la conducción del proyecto (2026-09-22).`;
 
 const sql = `-- ---------------------------------------------------------------------------
 -- Propósito : Carga del saldo inicial de apertura (docs/ESPEC_SALDO_INICIAL.md)
@@ -256,7 +283,7 @@ const sql = `-- ----------------------------------------------------------------
 -- Reglas    : §2, §3 y §4 de docs/ESPEC_SALDO_INICIAL.md. No crea aprobación
 --             de calidad ni firma (§7 del mismo documento). RN-50 (auditoría,
 --             vía el trigger genérico que ya lleva gmp.lotes_insumo).
--- Fecha     : 2026-09-16
+-- Fecha     : ${FECHA_CORTE}
 -- ---------------------------------------------------------------------------
 --
 -- ALCANCE: ${importables.length} de los ${renglones.length} renglones del CSV, los que tienen
@@ -281,7 +308,24 @@ do $$
 declare
   v_migracion_id uuid;
   v_ejecutada_por uuid;
+  v_ya_cargado integer;
 begin
+  -- CANDADO CONTRA DOBLE CARGA.
+  -- El stock es un libro de movimientos: cargar dos veces no pisa el saldo,
+  -- lo duplica, y la corrección sería un movimiento inverso por cada renglón
+  -- (invariante 8, RN-54). Si ya hay una carga de apertura asentada, esta se
+  -- detiene. No es paranoia: hubo una migración de carga anterior que se
+  -- escribió, no se aplicó, y se reemplazó por ésta; si aquélla hubiera
+  -- llegado a correr en algún entorno, esto lo detecta.
+  select count(*) into v_ya_cargado from gmp.migracion_apertura;
+  if v_ya_cargado > 0 then
+    raise exception
+      'Ya hay % carga(s) de saldo de apertura asentada(s) en gmp.migracion_apertura. '
+      'Una segunda carga duplicaría el stock en vez de corregirlo. Si el saldo cambió, '
+      'corresponde un ajuste de inventario, no otra apertura.', v_ya_cargado
+      using errcode = 'check_violation';
+  end if;
+
   -- La carga la asienta la Dirección Técnica titular: es la autoridad
   -- regulatoria responsable de que un dato migrado sin circuito de calidad
   -- entre al sistema (§2 de docs/ESPEC_SALDO_INICIAL.md). Si todavía no hay
