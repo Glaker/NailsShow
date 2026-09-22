@@ -9,6 +9,8 @@ import {
   IconAddressBook,
   IconUsers,
   IconHistory,
+  IconCalculator,
+  IconClipboardList,
   type Icon,
 } from '@tabler/icons-react';
 import type { Rol } from '@/features/auth/sesion';
@@ -63,6 +65,18 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiquetaCorta: 'Insumos',
     icono: IconFlask,
     principal: true,
+  },
+  {
+    ruta: '/formulas',
+    etiqueta: 'Fórmulas de fabricación',
+    etiquetaCorta: 'Fórmulas',
+    icono: IconClipboardList,
+  },
+  {
+    ruta: '/calculadora-lote',
+    etiqueta: 'Calculadora de lote',
+    etiquetaCorta: 'Calculadora',
+    icono: IconCalculator,
   },
   {
     ruta: '/productos',

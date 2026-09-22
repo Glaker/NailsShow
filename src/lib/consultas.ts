@@ -1009,3 +1009,307 @@ export function useLevantarBloqueo() {
     onError: avisarError,
   });
 }
+
+/* ------------------------------------------------------------------------- *
+ * Fórmulas de fabricación (PG.60.8) — calculadora de lote
+ *
+ * `database.types.ts` todavía no incluye `gmp.formulas_fabricacion`,
+ * `gmp.formula_componentes` ni `gmp.densidades_referencia`: la migración
+ * `20260917110000_gmp_formulas_fabricacion` está en el repositorio, pero esta
+ * sesión no tuvo credenciales para confirmar `supabase db push` ni para correr
+ * `npm run db:types` contra el proyecto alojado. Los tipos de fila de acá
+ * están escritos a mano como puente temporal, en contra de CLAUDE.md §6. En
+ * cuanto se regeneren los tipos, hay que borrar este bloque de tipos e `as
+ * any` y usar `Database['gmp']['Tables'][...]`, igual que el resto del
+ * archivo.
+ * ------------------------------------------------------------------------- */
+
+export type EstadoDocumento =
+  | 'EN_DESARROLLO'
+  | 'BORRADOR'
+  | 'LISTO_PARA_EMITIR'
+  | 'VIGENTE'
+  | 'EN_REVISION'
+  | 'DADO_DE_BAJA';
+
+export type FuenteDensidadDb =
+  | 'LITERATURA'
+  | 'CERTIFICADO_PROVEEDOR'
+  | 'MEDICION_PROPIA'
+  | 'FARMACOPEA';
+
+export interface FormulaFabricacionRow {
+  id: string;
+  producto_id: string;
+  variedad: string | null;
+  codigo_me: string | null;
+  version: string;
+  densidad_producto: number | null;
+  densidad_temp_c: number | null;
+  rendimiento: number;
+  estado: EstadoDocumento;
+}
+
+export interface DensidadReferenciaRow {
+  id: string;
+  nombre: string;
+  insumo_id: string | null;
+  densidad_ref: number;
+  temp_ref_c: number;
+  beta_k: number | null;
+  fuente: FuenteDensidadDb;
+  activo: boolean;
+}
+
+export interface FormulaComponenteRow {
+  id: string;
+  orden: number;
+  insumo_id: string | null;
+  nombre_libre: string | null;
+  porcentaje_pp: number | null;
+  es_csp: boolean;
+  se_mide_a_volumen: boolean;
+  etapa: string | null;
+  insumo: { nombre: string; codigo_interno: string | null } | null;
+  densidad: DensidadReferenciaRow | null;
+}
+
+interface RespuestaTabla<T> {
+  data: T | null;
+  error: (Error & { code?: string; details?: string }) | null;
+}
+
+interface ConsultaTabla<T> extends PromiseLike<RespuestaTabla<T>> {
+  select(columnas?: string): ConsultaTabla<T>;
+  insert(valores: Record<string, unknown>): ConsultaTabla<T>;
+  update(valores: Record<string, unknown>): ConsultaTabla<T>;
+  delete(): ConsultaTabla<T>;
+  eq(columna: string, valor: string | number | boolean): ConsultaTabla<T>;
+  order(columna: string, opciones?: { ascending?: boolean }): ConsultaTabla<T>;
+  single(): PromiseLike<RespuestaTabla<T>>;
+}
+
+/**
+ * Punto de entrada a una tabla que la migración ya creó pero que
+ * `database.types.ts` todavía no conoce (ver la nota de arriba). El único
+ * `as` de todo el bloque vive acá: a partir de acá, `ConsultaTabla<T>` tipa
+ * cada método de la cadena, así que el resto del código queda seguro.
+ *
+ * `.bind(cliente)` antes del cast: sin él, `@typescript-eslint/unbound-method`
+ * marca el método suelto, y llamarlo despegado de `cliente` podría perder el
+ * `this` que `PostgrestClient` necesita.
+ */
+function tablaSinTipar<T>(nombre: string): ConsultaTabla<T> {
+  const cliente = gmp();
+  const desde = cliente.from.bind(cliente) as unknown as (tabla: string) => unknown;
+  return desde(nombre) as ConsultaTabla<T>;
+}
+
+/**
+ * Fórmulas para el selector de la calculadora.
+ *
+ * Sin filtrar por estado: hasta un borrador sirve para una vista previa. Si
+ * todavía no se cargó ninguna, `data` vuelve `[]` y el selector se muestra
+ * vacío en vez de romper.
+ *
+ * Las vigentes van primero: es la fórmula oficial, y en una lista larga no
+ * tiene que competir por posición con un borrador a medio cargar.
+ */
+export function useFormulasFabricacion() {
+  return useQuery({
+    queryKey: ['formulas-fabricacion'],
+    queryFn: async () => {
+      const { data, error } = await tablaSinTipar<
+        (FormulaFabricacionRow & { producto: { nombre: string } | null })[]
+      >('formulas_fabricacion')
+        .select(
+          'id, producto_id, variedad, codigo_me, version, densidad_producto, densidad_temp_c, rendimiento, estado, producto:productos(nombre)',
+        )
+        .order('version', { ascending: false });
+      if (error) throw error;
+      const filas = data ?? [];
+      return filas
+        .slice()
+        .sort((a, b) => (a.estado === 'VIGENTE' ? 0 : 1) - (b.estado === 'VIGENTE' ? 0 : 1));
+    },
+  });
+}
+
+/**
+ * Fórmula completa —con el nombre del producto, y sus componentes con la
+ * densidad de referencia— para explotarla con `calcularLote` o para editarla.
+ */
+export function useFormulaCompleta(formulaId: string | undefined) {
+  return useQuery({
+    queryKey: ['formula-completa', formulaId],
+    enabled: Boolean(formulaId),
+    queryFn: async () => {
+      const { data: formula, error } = await tablaSinTipar<
+        FormulaFabricacionRow & { producto: { nombre: string } | null }
+      >('formulas_fabricacion')
+        .select('*, producto:productos(nombre)')
+        .eq('id', formulaId!)
+        .single();
+      if (error) throw error;
+
+      const { data: componentes, error: errorComp } = await tablaSinTipar<
+        FormulaComponenteRow[]
+      >('formula_componentes')
+        .select(
+          '*, insumo:insumos_catalogo(nombre, codigo_interno), densidad:densidades_referencia(*)',
+        )
+        .eq('formula_id', formulaId!)
+        .order('orden');
+      if (errorComp) throw errorComp;
+
+      return {
+        formula: formula as FormulaFabricacionRow & { producto: { nombre: string } | null },
+        componentes: componentes ?? [],
+      };
+    },
+  });
+}
+
+/** Densidades de referencia activas, para elegir la de un componente que se mide a volumen. */
+export function useDensidadesReferencia() {
+  return useQuery({
+    queryKey: ['densidades-referencia'],
+    queryFn: async () => {
+      const { data, error } = await tablaSinTipar<DensidadReferenciaRow[]>(
+        'densidades_referencia',
+      )
+        .select('id, nombre, insumo_id, densidad_ref, temp_ref_c, beta_k, fuente, activo')
+        .eq('activo', true)
+        .order('nombre');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+/** Alta de una fórmula nueva, en BORRADOR. Solo Dirección Técnica (RLS `formulas_escribe_dt`). */
+export function useCrearFormula() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (f: {
+      productoId: string;
+      variedad: string | null;
+      codigoMe: string | null;
+      version: string;
+    }) => {
+      const { data, error } = await tablaSinTipar<FormulaFabricacionRow>('formulas_fabricacion')
+        .insert({
+          producto_id: f.productoId,
+          variedad: f.variedad,
+          codigo_me: f.codigoMe,
+          version: f.version,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data as FormulaFabricacionRow;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['formulas-fabricacion'] });
+      avisarExito('Fórmula creada en borrador.');
+    },
+    onError: avisarError,
+  });
+}
+
+/**
+ * Cambios sobre una fórmula: densidad del producto, temperatura de
+ * referencia, o el paso a VIGENTE.
+ *
+ * El paso a VIGENTE no manda `aprobada_por` ni `aprobada_en`: los completa
+ * `gmp.fn_formula_aprobacion` (20260921090000). Mandarlos desde acá sería
+ * dejar que el cliente firme por Dirección Técnica, y no firma el cliente.
+ */
+export function useActualizarFormula() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      cambios,
+    }: {
+      id: string;
+      cambios: Partial<{
+        densidad_producto: number | null;
+        densidad_temp_c: number | null;
+        estado: EstadoDocumento;
+      }>;
+    }) => {
+      const { data, error } = await tablaSinTipar<FormulaFabricacionRow>('formulas_fabricacion')
+        .update(cambios)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as FormulaFabricacionRow;
+    },
+    onSuccess: (f) => {
+      void qc.invalidateQueries({ queryKey: ['formulas-fabricacion'] });
+      void qc.invalidateQueries({ queryKey: ['formula-completa', f.id] });
+      avisarExito(
+        f.estado === 'VIGENTE' ? 'Fórmula marcada como vigente.' : 'Fórmula actualizada.',
+      );
+    },
+    onError: avisarError,
+  });
+}
+
+/** Agrega un componente a una fórmula en borrador (RLS `componentes_escribe_dt`). */
+export function useCrearComponenteFormula() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (c: {
+      formulaId: string;
+      orden: number;
+      insumoId: string | null;
+      nombreLibre: string | null;
+      porcentajePP: number | null;
+      esCsp: boolean;
+      seMideAVolumen: boolean;
+      densidadId: string | null;
+      etapa: string | null;
+    }) => {
+      const { data, error } = await tablaSinTipar<FormulaComponenteRow>('formula_componentes')
+        .insert({
+          formula_id: c.formulaId,
+          orden: c.orden,
+          insumo_id: c.insumoId,
+          nombre_libre: c.nombreLibre,
+          porcentaje_pp: c.porcentajePP,
+          es_csp: c.esCsp,
+          se_mide_a_volumen: c.seMideAVolumen,
+          densidad_id: c.densidadId,
+          etapa: c.etapa,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data as FormulaComponenteRow;
+    },
+    onSuccess: (_c, variables) => {
+      void qc.invalidateQueries({ queryKey: ['formula-completa', variables.formulaId] });
+      avisarExito('Componente agregado.');
+    },
+    onError: avisarError,
+  });
+}
+
+/** Quita un componente de una fórmula en borrador (RLS `componentes_borra_dt`). */
+export function useEliminarComponenteFormula() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; formulaId: string }) => {
+      const { error } = await tablaSinTipar<null>('formula_componentes').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_v, variables) => {
+      void qc.invalidateQueries({ queryKey: ['formula-completa', variables.formulaId] });
+      avisarExito('Componente quitado.');
+    },
+    onError: avisarError,
+  });
+}
