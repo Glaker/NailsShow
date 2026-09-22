@@ -11,6 +11,8 @@ import {
   IconHistory,
   IconCalculator,
   IconClipboardList,
+  IconShoppingCart,
+  IconBuildingStore,
   type Icon,
 } from '@tabler/icons-react';
 import type { Rol } from '@/features/auth/sesion';
@@ -77,6 +79,25 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiqueta: 'Calculadora de lote',
     etiquetaCorta: 'Calculadora',
     icono: IconCalculator,
+  },
+  {
+    ruta: '/pedidos',
+    etiqueta: 'Pedidos por realizar',
+    etiquetaCorta: 'Pedidos',
+    icono: IconShoppingCart,
+    principal: true,
+  },
+  {
+    ruta: '/lista-materiales',
+    etiqueta: 'Qué lleva cada producto',
+    etiquetaCorta: 'Materiales',
+    icono: IconPackages,
+  },
+  {
+    ruta: '/punto-venta',
+    etiqueta: 'Calle 5 — punto de venta',
+    etiquetaCorta: 'Calle 5',
+    icono: IconBuildingStore,
   },
   {
     ruta: '/productos',

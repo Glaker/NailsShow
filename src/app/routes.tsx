@@ -7,6 +7,10 @@ import { PaginaStock } from '@/features/stock/PaginaStock';
 import { PaginaCalculadoraLote } from '@/features/produccion/PaginaCalculadoraLote';
 import { PaginaFormulas } from '@/features/produccion/PaginaFormulas';
 import { PaginaFormula } from '@/features/produccion/PaginaFormula';
+import { PaginaPedidos } from '@/features/comercial/PaginaPedidos';
+import { PaginaPedido } from '@/features/comercial/PaginaPedido';
+import { PaginaListaMateriales } from '@/features/comercial/PaginaListaMateriales';
+import { PaginaPuntoVenta } from '@/features/comercial/PaginaPuntoVenta';
 import { PaginaInsumos } from '@/features/maestros/PaginaInsumos';
 import { PaginaProductos } from '@/features/maestros/PaginaProductos';
 import { PaginaProveedores } from '@/features/maestros/PaginaProveedores';
@@ -33,6 +37,10 @@ export function AppRoutes() {
       <Route path="/calculadora-lote" element={<PaginaCalculadoraLote />} />
       <Route path="/formulas" element={<PaginaFormulas />} />
       <Route path="/formulas/:id" element={<PaginaFormula />} />
+      <Route path="/pedidos" element={<PaginaPedidos />} />
+      <Route path="/pedidos/:id" element={<PaginaPedido />} />
+      <Route path="/lista-materiales" element={<PaginaListaMateriales />} />
+      <Route path="/punto-venta" element={<PaginaPuntoVenta />} />
       <Route path="/insumos" element={<PaginaInsumos />} />
       <Route path="/productos" element={<PaginaProductos />} />
       <Route path="/proveedores" element={<PaginaProveedores />} />

@@ -48,7 +48,7 @@ export function mensajeError(error: unknown): string {
   return texto;
 }
 
-function avisarError(error: unknown) {
+export function avisarError(error: unknown) {
   notifications.show({
     color: 'red',
     title: 'No se pudo guardar',
@@ -57,7 +57,7 @@ function avisarError(error: unknown) {
   });
 }
 
-function avisarExito(mensaje: string) {
+export function avisarExito(mensaje: string) {
   notifications.show({ color: 'violeta', title: 'Listo', message: mensaje });
 }
 
@@ -1082,12 +1082,12 @@ export interface FormulaComponenteRow {
   densidad: DensidadReferenciaRow | null;
 }
 
-interface RespuestaTabla<T> {
+export interface RespuestaTabla<T> {
   data: T | null;
   error: (Error & { code?: string; details?: string }) | null;
 }
 
-interface ConsultaTabla<T> extends PromiseLike<RespuestaTabla<T>> {
+export interface ConsultaTabla<T> extends PromiseLike<RespuestaTabla<T>> {
   select(columnas?: string): ConsultaTabla<T>;
   insert(valores: Record<string, unknown>): ConsultaTabla<T>;
   update(valores: Record<string, unknown>): ConsultaTabla<T>;
