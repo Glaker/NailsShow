@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  Anchor,
   Group,
   NumberInput,
   Paper,
@@ -12,7 +13,12 @@ import {
   Text,
   Tooltip,
 } from '@mantine/core';
-import { IconAlertTriangle, IconCalculator, IconFlask } from '@tabler/icons-react';
+import {
+  IconAlertTriangle,
+  IconCalculator,
+  IconFlask,
+  IconTemperature,
+} from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { TarjetaIndicador } from '@/components/TarjetaIndicador';
 import { Vacio } from '@/components/Vacio';
@@ -24,6 +30,13 @@ import {
   type FormulaFabricacionRow,
 } from '@/lib/consultas';
 import { numero } from '@/lib/formato';
+import {
+  OFFSET_INTERIOR_C,
+  TEMP_MAX_C,
+  TEMP_MIN_C,
+  UBICACION_PLANTA,
+  useClimaPlanta,
+} from '@/lib/clima';
 import { BadgeEstadoFormula } from './estadoFormula';
 import { calcularLote, type Formula } from './calculoLote';
 
@@ -74,8 +87,25 @@ export function PaginaCalculadoraLote() {
   const [masaKg, setMasaKg] = useState<number | ''>('');
   const [tempC, setTempC] = useState<number | ''>(20);
 
+  /**
+   * La sugerencia meteorológica se aplica una sola vez, al llegar. Después el
+   * valor es del usuario: que el refresco de los 15 minutos le pise la
+   * temperatura que acaba de escribir sería peor que no tener la sugerencia.
+   */
+  const clima = useClimaPlanta();
+  const climaAplicado = useRef(false);
+  useEffect(() => {
+    if (climaAplicado.current || !clima.data) return;
+    climaAplicado.current = true;
+    setTempC(clima.data.sugeridaC);
+  }, [clima.data]);
+
   const formulaCompleta = useFormulaCompleta(formulaId ?? undefined);
-  const formulaSeleccionada = (formulas.data ?? []).find((f) => f.id === formulaId) ?? null;
+  const formulaSeleccionada =
+    (formulas.data ?? []).find((f) => f.id === formulaId) ?? null;
+
+  const tempFueraDeRango =
+    typeof tempC === 'number' && (tempC < TEMP_MIN_C || tempC > TEMP_MAX_C);
 
   const objetivo = useMemo(() => {
     if (tipoObjetivo === 'volumen') {
@@ -86,6 +116,11 @@ export function PaginaCalculadoraLote() {
 
   const resultado = useMemo(() => {
     if (!formulaCompleta.data || !objetivo || typeof tempC !== 'number') return null;
+    // Fuera del rango operativo no se calcula. La corrección de densidad es una
+    // linealización de primer orden (ver `densidadA`): devolver una tabla con
+    // cinco decimales para una temperatura imposible es peor que no devolver
+    // nada, porque parece un resultado.
+    if (tempC < TEMP_MIN_C || tempC > TEMP_MAX_C) return null;
     try {
       const formula = formulaParaCalculo(formulaCompleta.data);
       return { ok: true as const, valor: calcularLote(formula, objetivo, tempC) };
@@ -138,8 +173,8 @@ export function PaginaCalculadoraLote() {
 
           {formulas.isLoading ? null : (formulas.data ?? []).length === 0 ? (
             <Text size="sm" c="dimmed">
-              Todavía no se cargó ninguna fórmula de fabricación. La calculadora va a andar en
-              cuanto Dirección Técnica emita la primera.
+              Todavía no se cargó ninguna fórmula de fabricación. La calculadora va a
+              andar en cuanto Dirección Técnica emita la primera.
             </Text>
           ) : null}
 
@@ -184,11 +219,59 @@ export function PaginaCalculadoraLote() {
             <NumberInput
               label="Temperatura de trabajo (°C)"
               withAsterisk
+              min={TEMP_MIN_C}
+              max={TEMP_MAX_C}
+              clampBehavior="strict"
               decimalScale={1}
               hideControls
+              description={`Entre ${TEMP_MIN_C} y ${TEMP_MAX_C} °C`}
+              error={tempFueraDeRango ? `Fuera del rango operativo` : null}
               value={tempC}
               onChange={(v) => setTempC(typeof v === 'number' ? v : '')}
             />
+          </Group>
+
+          {/*
+            De dónde salió el número. La sugerencia es una estimación —dato de
+            una estación que no está en la planta, más un offset que nadie
+            calibró—, así que la pantalla lo dice en vez de presentarla como
+            una medición. Para fabricar, la temperatura se mide.
+          */}
+          <Group gap={6} wrap="nowrap" align="flex-start">
+            <IconTemperature
+              size={16}
+              style={{ marginTop: 2, flexShrink: 0 }}
+              color="var(--mantine-color-dimmed)"
+            />
+            <Text size="xs" c="dimmed">
+              {clima.isLoading ? (
+                `Consultando la temperatura en ${UBICACION_PLANTA.nombre}…`
+              ) : clima.data ? (
+                <>
+                  Sugerido a partir de {numero(clima.data.exteriorC, 1)} °C en{' '}
+                  {UBICACION_PLANTA.nombre} (
+                  {clima.data.medidaEn.toLocaleTimeString('es-AR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                  ) más {OFFSET_INTERIOR_C} °C de interior.{' '}
+                  {clima.data.acotada ? 'Acotado al rango operativo. ' : ''}
+                  Es una estimación: para emitir una hoja de pesada, la temperatura se
+                  mide con el instrumento calibrado.
+                </>
+              ) : (
+                <>
+                  No se pudo consultar la temperatura exterior. Cargala a mano.{' '}
+                  <Anchor
+                    component="button"
+                    type="button"
+                    onClick={() => void clima.refetch()}
+                  >
+                    Reintentar
+                  </Anchor>
+                </>
+              )}
+            </Text>
           </Group>
         </Stack>
       </Paper>
@@ -211,6 +294,17 @@ export function PaginaCalculadoraLote() {
             descripcion="Cargá el volumen o la masa que se quiere producir para ver el desglose por componente."
           />
         </Paper>
+      ) : tempFueraDeRango ? (
+        <Alert
+          color="estadoRechazado"
+          variant="light"
+          radius="md"
+          icon={<IconAlertTriangle size={18} />}
+        >
+          La temperatura de trabajo tiene que estar entre {TEMP_MIN_C} y {TEMP_MAX_C} °C.
+          La corrección de densidad es una linealización válida cerca de la temperatura de
+          referencia; fuera de ese rango el número dejaría de significar algo.
+        </Alert>
       ) : resultado && !resultado.ok ? (
         <Alert
           color="estadoRechazado"
@@ -319,7 +413,9 @@ export function PaginaCalculadoraLote() {
                       </Table.Td>
                       <Table.Td ta="right">
                         <Text size="sm" ff="monospace" c="dimmed">
-                          {r.densidadAplicada === null ? '—' : numero(r.densidadAplicada, 5)}
+                          {r.densidadAplicada === null
+                            ? '—'
+                            : numero(r.densidadAplicada, 5)}
                         </Text>
                       </Table.Td>
                       <Table.Td>
@@ -336,8 +432,9 @@ export function PaginaCalculadoraLote() {
 
           {formulaSeleccionada?.estado !== 'VIGENTE' ? (
             <Alert color="estadoEnAnalisis" variant="light" radius="md">
-              Esta fórmula está en estado <b>{formulaSeleccionada?.estado}</b>, no vigente. Sirve
-              como vista previa; no se pesa un lote real con una fórmula que no está vigente.
+              Esta fórmula está en estado <b>{formulaSeleccionada?.estado}</b>, no
+              vigente. Sirve como vista previa; no se pesa un lote real con una fórmula
+              que no está vigente.
             </Alert>
           ) : null}
         </Stack>
