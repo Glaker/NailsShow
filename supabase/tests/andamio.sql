@@ -14,8 +14,13 @@ create table auth.users (
   raw_user_meta_data jsonb not null default '{}'
 );
 
+-- Misma forma que el auth.uid() de Supabase: tolera el claim vacío, que es lo
+-- que deja un set_config(..., true) al terminar su transacción.
 create function auth.uid() returns uuid language sql stable as $$
-  select nullif(current_setting('request.jwt.claims', true)::jsonb ->> 'sub','')::uuid;
+  select coalesce(
+    nullif(current_setting('request.jwt.claim.sub', true), ''),
+    nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'
+  )::uuid;
 $$;
 
 grant usage on schema auth to authenticated, anon, supabase_auth_admin;
