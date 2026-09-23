@@ -94,6 +94,9 @@ const TRANSICIONES: Record<
   ],
   APROBADO: [],
   RECHAZADO: [],
+  // Terminal: se llega solo por la carga de apertura y no sale de ahí
+  // (gmp.fn_transicion_lote_insumo no tiene transición de ni hacia él).
+  SALDO_APERTURA: [],
 };
 
 function Dato({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {

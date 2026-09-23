@@ -220,6 +220,11 @@ export const COLORES_ESTADO_ROTULO = {
   EN_ANALISIS: 'estadoEnAnalisis',
   APROBADO: 'estadoAprobado',
   RECHAZADO: 'estadoRechazado',
+  // Saldo de apertura: AZUL en gmp.color_rotulo() (20260916130000). No es un
+  // color de I.20.2: es el distintivo de material sin lote identificado ni
+  // control de calidad (ESPEC_SALDO_INICIAL §5.1). Azul de Mantine, que no
+  // compite con los cuatro reservados.
+  SALDO_APERTURA: 'blue',
 } as const;
 
 export type ColorEstadoRotulo =

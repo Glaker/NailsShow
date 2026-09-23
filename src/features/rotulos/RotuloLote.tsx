@@ -23,6 +23,8 @@ const TINTA: Record<EstadoCalidad, { fondo: string; texto: string; borde: string
   EN_ANALISIS: { fondo: '#dee2e6', texto: '#212529', borde: '#868e96' },
   APROBADO: { fondo: '#51cf66', texto: '#0b3d18', borde: '#2b8a3e' },
   RECHAZADO: { fondo: '#fa5252', texto: '#4d0505', borde: '#c92a2a' },
+  // AZUL de gmp.color_rotulo(): saldo de apertura, sin lote identificado.
+  SALDO_APERTURA: { fondo: '#74c0fc', texto: '#0b2e4f', borde: '#1971c2' },
 };
 
 function Campo({ etiqueta, valor }: { etiqueta: string; valor: string }) {

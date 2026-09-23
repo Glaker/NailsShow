@@ -24,6 +24,8 @@ export type Database = {
           metodo_costeo: Database["comercial"]["Enums"]["metodo_costeo_enum"]
           sku: string
           stock_minimo: number | null
+          umbral_ajuste_absoluto: number | null
+          umbral_ajuste_relativo: number
         }
         Insert: {
           activo?: boolean
@@ -34,6 +36,8 @@ export type Database = {
           metodo_costeo?: Database["comercial"]["Enums"]["metodo_costeo_enum"]
           sku: string
           stock_minimo?: number | null
+          umbral_ajuste_absoluto?: number | null
+          umbral_ajuste_relativo?: number
         }
         Update: {
           activo?: boolean
@@ -44,8 +48,17 @@ export type Database = {
           metodo_costeo?: Database["comercial"]["Enums"]["metodo_costeo_enum"]
           sku?: string
           stock_minimo?: number | null
+          umbral_ajuste_absoluto?: number | null
+          umbral_ajuste_relativo?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "articulos_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: true
+            referencedRelation: "v_disponible_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
           {
             foreignKeyName: "articulos_insumo_id_fkey"
             columns: ["insumo_id"]
@@ -57,8 +70,227 @@ export type Database = {
             foreignKeyName: "articulos_insumo_id_fkey"
             columns: ["insumo_id"]
             isOneToOne: true
+            referencedRelation: "v_proveedores_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "articulos_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: true
             referencedRelation: "v_stock_por_articulo"
             referencedColumns: ["insumo_id"]
+          },
+        ]
+      }
+      avisos_compra: {
+        Row: {
+          cantidad: number
+          creado_en: string
+          estado: Database["comercial"]["Enums"]["estado_aviso_enum"]
+          fecha_limite: string | null
+          id: string
+          insumo_id: string
+          nota: string | null
+          pedido_id: string | null
+          proveedor_id: string | null
+          resuelto_en: string | null
+          resuelto_por: string | null
+          unidad: string
+        }
+        Insert: {
+          cantidad: number
+          creado_en?: string
+          estado?: Database["comercial"]["Enums"]["estado_aviso_enum"]
+          fecha_limite?: string | null
+          id?: string
+          insumo_id: string
+          nota?: string | null
+          pedido_id?: string | null
+          proveedor_id?: string | null
+          resuelto_en?: string | null
+          resuelto_por?: string | null
+          unidad: string
+        }
+        Update: {
+          cantidad?: number
+          creado_en?: string
+          estado?: Database["comercial"]["Enums"]["estado_aviso_enum"]
+          fecha_limite?: string | null
+          id?: string
+          insumo_id?: string
+          nota?: string | null
+          pedido_id?: string | null
+          proveedor_id?: string | null
+          resuelto_en?: string | null
+          resuelto_por?: string | null
+          unidad?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avisos_compra_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_disponible_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "avisos_compra_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_existencias"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "avisos_compra_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_proveedores_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "avisos_compra_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_stock_por_articulo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "avisos_compra_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avisos_compra_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "v_proveedores_por_insumo"
+            referencedColumns: ["proveedor_id"]
+          },
+        ]
+      }
+      conteos_inventario: {
+        Row: {
+          cantidad_contada: number
+          diferencia: number | null
+          id: string
+          insumo_id: string
+          observacion: string | null
+          provisorio: boolean
+          registrado_en: string
+          registrado_por: string
+          saldo_previo: number
+          unidad: string
+        }
+        Insert: {
+          cantidad_contada: number
+          diferencia?: number | null
+          id?: string
+          insumo_id: string
+          observacion?: string | null
+          provisorio?: boolean
+          registrado_en?: string
+          registrado_por?: string
+          saldo_previo: number
+          unidad: string
+        }
+        Update: {
+          cantidad_contada?: number
+          diferencia?: number | null
+          id?: string
+          insumo_id?: string
+          observacion?: string | null
+          provisorio?: boolean
+          registrado_en?: string
+          registrado_por?: string
+          saldo_previo?: number
+          unidad?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conteos_inventario_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_disponible_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "conteos_inventario_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_existencias"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "conteos_inventario_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_proveedores_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "conteos_inventario_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_stock_por_articulo"
+            referencedColumns: ["insumo_id"]
+          },
+        ]
+      }
+      movimientos_pt: {
+        Row: {
+          anula_a_movimiento_id: string | null
+          cantidad: number
+          deposito_id: string
+          documento_id: string | null
+          documento_tipo: string | null
+          id: string
+          lote_texto: string | null
+          motivo: string | null
+          ocurrido_en: string
+          orden: number
+          producto_id: string
+          registrado_por: string
+          tipo: Database["comercial"]["Enums"]["tipo_movimiento_enum"]
+        }
+        Insert: {
+          anula_a_movimiento_id?: string | null
+          cantidad: number
+          deposito_id: string
+          documento_id?: string | null
+          documento_tipo?: string | null
+          id?: string
+          lote_texto?: string | null
+          motivo?: string | null
+          ocurrido_en?: string
+          orden?: never
+          producto_id: string
+          registrado_por?: string
+          tipo: Database["comercial"]["Enums"]["tipo_movimiento_enum"]
+        }
+        Update: {
+          anula_a_movimiento_id?: string | null
+          cantidad?: number
+          deposito_id?: string
+          documento_id?: string | null
+          documento_tipo?: string | null
+          id?: string
+          lote_texto?: string | null
+          motivo?: string | null
+          ocurrido_en?: string
+          orden?: never
+          producto_id?: string
+          registrado_por?: string
+          tipo?: Database["comercial"]["Enums"]["tipo_movimiento_enum"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimientos_pt_anula_a_movimiento_id_fkey"
+            columns: ["anula_a_movimiento_id"]
+            isOneToOne: true
+            referencedRelation: "movimientos_pt"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -71,12 +303,17 @@ export type Database = {
           documento_id: string | null
           documento_tipo: string | null
           id: string
+          investigacion_id: string | null
           lote_insumo_id: string
           motivo: string | null
+          motivo_tipo:
+            | Database["comercial"]["Enums"]["motivo_ajuste_enum"]
+            | null
           ocurrido_en: string
           orden: number
           periodo: string | null
           registrado_por: string
+          requiere_investigacion: boolean
           tipo: Database["comercial"]["Enums"]["tipo_movimiento_enum"]
           transferencia_id: string | null
           unidad: string
@@ -89,12 +326,17 @@ export type Database = {
           documento_id?: string | null
           documento_tipo?: string | null
           id?: string
+          investigacion_id?: string | null
           lote_insumo_id: string
           motivo?: string | null
+          motivo_tipo?:
+            | Database["comercial"]["Enums"]["motivo_ajuste_enum"]
+            | null
           ocurrido_en?: string
           orden?: never
           periodo?: string | null
           registrado_por?: string
+          requiere_investigacion?: boolean
           tipo: Database["comercial"]["Enums"]["tipo_movimiento_enum"]
           transferencia_id?: string | null
           unidad?: string
@@ -107,12 +349,17 @@ export type Database = {
           documento_id?: string | null
           documento_tipo?: string | null
           id?: string
+          investigacion_id?: string | null
           lote_insumo_id?: string
           motivo?: string | null
+          motivo_tipo?:
+            | Database["comercial"]["Enums"]["motivo_ajuste_enum"]
+            | null
           ocurrido_en?: string
           orden?: never
           periodo?: string | null
           registrado_por?: string
+          requiere_investigacion?: boolean
           tipo?: Database["comercial"]["Enums"]["tipo_movimiento_enum"]
           transferencia_id?: string | null
           unidad?: string
@@ -123,6 +370,13 @@ export type Database = {
             columns: ["anula_a_movimiento_id"]
             isOneToOne: true
             referencedRelation: "movimientos_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_stock_anula_a_movimiento_id_fkey"
+            columns: ["anula_a_movimiento_id"]
+            isOneToOne: true
+            referencedRelation: "v_ajustes_a_investigar"
             referencedColumns: ["id"]
           },
           {
@@ -148,8 +402,252 @@ export type Database = {
           },
         ]
       }
+      pedido_consumos: {
+        Row: {
+          cantidad_real: number
+          cantidad_teorica: number
+          id: string
+          insumo_id: string
+          motivo_diferencia: string | null
+          pedido_id: string
+          registrado_en: string
+          registrado_por: string
+          unidad: string
+        }
+        Insert: {
+          cantidad_real: number
+          cantidad_teorica: number
+          id?: string
+          insumo_id: string
+          motivo_diferencia?: string | null
+          pedido_id: string
+          registrado_en?: string
+          registrado_por?: string
+          unidad: string
+        }
+        Update: {
+          cantidad_real?: number
+          cantidad_teorica?: number
+          id?: string
+          insumo_id?: string
+          motivo_diferencia?: string | null
+          pedido_id?: string
+          registrado_en?: string
+          registrado_por?: string
+          unidad?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_consumos_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_disponible_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "pedido_consumos_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_existencias"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "pedido_consumos_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_proveedores_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "pedido_consumos_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_stock_por_articulo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "pedido_consumos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedido_renglones: {
+        Row: {
+          cantidad: number
+          id: string
+          pedido_id: string
+          producto_id: string
+        }
+        Insert: {
+          cantidad: number
+          id?: string
+          pedido_id: string
+          producto_id: string
+        }
+        Update: {
+          cantidad?: number
+          id?: string
+          pedido_id?: string
+          producto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_renglones_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedidos: {
+        Row: {
+          cliente: string
+          creado_en: string
+          creado_por: string
+          estado: Database["comercial"]["Enums"]["estado_pedido_enum"]
+          fecha: string
+          fecha_entrega: string | null
+          id: string
+          numero: string
+          observaciones: string | null
+        }
+        Insert: {
+          cliente: string
+          creado_en?: string
+          creado_por?: string
+          estado?: Database["comercial"]["Enums"]["estado_pedido_enum"]
+          fecha?: string
+          fecha_entrega?: string | null
+          id?: string
+          numero: string
+          observaciones?: string | null
+        }
+        Update: {
+          cliente?: string
+          creado_en?: string
+          creado_por?: string
+          estado?: Database["comercial"]["Enums"]["estado_pedido_enum"]
+          fecha?: string
+          fecha_entrega?: string | null
+          id?: string
+          numero?: string
+          observaciones?: string | null
+        }
+        Relationships: []
+      }
+      reservas_stock: {
+        Row: {
+          cantidad: number
+          creado_en: string
+          creado_por: string
+          id: string
+          insumo_id: string
+          liberada: boolean
+          liberada_en: string | null
+          pedido_id: string | null
+          unidad: string
+          vence_en: string
+        }
+        Insert: {
+          cantidad: number
+          creado_en?: string
+          creado_por?: string
+          id?: string
+          insumo_id: string
+          liberada?: boolean
+          liberada_en?: string | null
+          pedido_id?: string | null
+          unidad: string
+          vence_en?: string
+        }
+        Update: {
+          cantidad?: number
+          creado_en?: string
+          creado_por?: string
+          id?: string
+          insumo_id?: string
+          liberada?: boolean
+          liberada_en?: string | null
+          pedido_id?: string | null
+          unidad?: string
+          vence_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservas_stock_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_disponible_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "reservas_stock_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_existencias"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "reservas_stock_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_proveedores_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "reservas_stock_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_stock_por_articulo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "reservas_stock_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
+      v_ajustes_a_investigar: {
+        Row: {
+          cantidad: number | null
+          codigo_interno: string | null
+          deposito: string | null
+          id: string | null
+          insumo: string | null
+          investigacion_id: string | null
+          lote: string | null
+          motivo: string | null
+          motivo_tipo:
+            | Database["comercial"]["Enums"]["motivo_ajuste_enum"]
+            | null
+          ocurrido_en: string | null
+          registro: string | null
+          tipo: Database["comercial"]["Enums"]["tipo_movimiento_enum"] | null
+          unidad: string | null
+        }
+        Relationships: []
+      }
+      v_disponible_por_insumo: {
+        Row: {
+          codigo_interno: string | null
+          disponible: number | null
+          insumo_id: string | null
+          insumo_nombre: string | null
+          reservado: number | null
+          saldo: number | null
+          saldo_apertura: number | null
+        }
+        Relationships: []
+      }
       v_existencias: {
         Row: {
           articulo_id: string | null
@@ -233,6 +731,13 @@ export type Database = {
             foreignKeyName: "movimientos_stock_anula_a_movimiento_id_fkey"
             columns: ["anula_a_movimiento_id"]
             isOneToOne: true
+            referencedRelation: "v_ajustes_a_investigar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_stock_anula_a_movimiento_id_fkey"
+            columns: ["anula_a_movimiento_id"]
+            isOneToOne: true
             referencedRelation: "v_kardex"
             referencedColumns: ["id"]
           },
@@ -249,6 +754,56 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_stock_por_articulo"
             referencedColumns: ["articulo_id"]
+          },
+        ]
+      }
+      v_proveedores_por_insumo: {
+        Row: {
+          activo: boolean | null
+          estado_aprobacion:
+            | Database["gmp"]["Enums"]["aprobacion_proveedor_enum"]
+            | null
+          insumo_id: string | null
+          lotes_recibidos: number | null
+          proveedor_id: string | null
+          razon_social: string | null
+          ultima_compra: string | null
+        }
+        Relationships: []
+      }
+      v_reservado_por_insumo: {
+        Row: {
+          insumo_id: string | null
+          reservado: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservas_stock_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_disponible_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "reservas_stock_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_existencias"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "reservas_stock_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_proveedores_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "reservas_stock_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_stock_por_articulo"
+            referencedColumns: ["insumo_id"]
           },
         ]
       }
@@ -302,6 +857,59 @@ export type Database = {
         }
         Relationships: []
       }
+      v_stock_pt: {
+        Row: {
+          deposito: string | null
+          deposito_id: string | null
+          producto: string | null
+          producto_id: string | null
+          saldo: number | null
+          ultimo_movimiento: string | null
+        }
+        Relationships: []
+      }
+      v_ultimo_conteo: {
+        Row: {
+          cantidad_contada: number | null
+          conteo_id: string | null
+          insumo_id: string | null
+          provisorio: boolean | null
+          registrado_en: string | null
+          registrado_por: string | null
+          registrado_por_nombre: string | null
+          unidad: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conteos_inventario_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_disponible_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "conteos_inventario_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_existencias"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "conteos_inventario_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_proveedores_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "conteos_inventario_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_stock_por_articulo"
+            referencedColumns: ["insumo_id"]
+          },
+        ]
+      }
     }
     Functions: {
       anular_movimiento: {
@@ -314,12 +922,17 @@ export type Database = {
           documento_id: string | null
           documento_tipo: string | null
           id: string
+          investigacion_id: string | null
           lote_insumo_id: string
           motivo: string | null
+          motivo_tipo:
+            | Database["comercial"]["Enums"]["motivo_ajuste_enum"]
+            | null
           ocurrido_en: string
           orden: number
           periodo: string | null
           registrado_por: string
+          requiere_investigacion: boolean
           tipo: Database["comercial"]["Enums"]["tipo_movimiento_enum"]
           transferencia_id: string | null
           unidad: string
@@ -332,8 +945,8 @@ export type Database = {
         }
       }
       articulo_de_insumo: { Args: { p_insumo_id: string }; Returns: string }
-      cargar_recepcion_a_stock: {
-        Args: { p_recepcion_id: string }
+      cargar_apertura_a_stock: {
+        Args: { p_migracion_id: string }
         Returns: {
           anula_a_movimiento_id: string | null
           articulo_id: string
@@ -342,12 +955,17 @@ export type Database = {
           documento_id: string | null
           documento_tipo: string | null
           id: string
+          investigacion_id: string | null
           lote_insumo_id: string
           motivo: string | null
+          motivo_tipo:
+            | Database["comercial"]["Enums"]["motivo_ajuste_enum"]
+            | null
           ocurrido_en: string
           orden: number
           periodo: string | null
           registrado_por: string
+          requiere_investigacion: boolean
           tipo: Database["comercial"]["Enums"]["tipo_movimiento_enum"]
           transferencia_id: string | null
           unidad: string
@@ -358,6 +976,117 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      cargar_recepcion_a_stock: {
+        Args: { p_recepcion_id: string }
+        Returns: {
+          anula_a_movimiento_id: string | null
+          articulo_id: string
+          cantidad: number
+          deposito_id: string
+          documento_id: string | null
+          documento_tipo: string | null
+          id: string
+          investigacion_id: string | null
+          lote_insumo_id: string
+          motivo: string | null
+          motivo_tipo:
+            | Database["comercial"]["Enums"]["motivo_ajuste_enum"]
+            | null
+          ocurrido_en: string
+          orden: number
+          periodo: string | null
+          registrado_por: string
+          requiere_investigacion: boolean
+          tipo: Database["comercial"]["Enums"]["tipo_movimiento_enum"]
+          transferencia_id: string | null
+          unidad: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "movimientos_stock"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      deshacer_apertura: {
+        Args: { p_migracion_id: string; p_motivo: string }
+        Returns: {
+          anula_a_movimiento_id: string | null
+          articulo_id: string
+          cantidad: number
+          deposito_id: string
+          documento_id: string | null
+          documento_tipo: string | null
+          id: string
+          investigacion_id: string | null
+          lote_insumo_id: string
+          motivo: string | null
+          motivo_tipo:
+            | Database["comercial"]["Enums"]["motivo_ajuste_enum"]
+            | null
+          ocurrido_en: string
+          orden: number
+          periodo: string | null
+          registrado_por: string
+          requiere_investigacion: boolean
+          tipo: Database["comercial"]["Enums"]["tipo_movimiento_enum"]
+          transferencia_id: string | null
+          unidad: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "movimientos_stock"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      explotar_pedido: {
+        Args: { p_pedido_id: string }
+        Returns: Database["comercial"]["CompositeTypes"]["renglon_faltante"][]
+        SetofOptions: {
+          from: "*"
+          to: "renglon_faltante"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      faltantes_en_curso: {
+        Args: never
+        Returns: {
+          codigo_interno: string
+          disponible: number
+          faltante: number
+          insumo: string
+          insumo_id: string
+          necesario: number
+          pedidos: Json
+          proveedor: string
+          proveedor_estado: string
+          proveedor_id: string
+          saldo_apertura: number
+          unidad: string
+        }[]
+      }
+      necesidad_pedido: {
+        Args: { p_pedido_id: string }
+        Returns: {
+          insumo_id: string
+          necesario: number
+        }[]
+      }
+      registrar_conteo: {
+        Args: {
+          p_cantidad: number
+          p_insumo_id: string
+          p_observacion?: string
+          p_provisorio?: boolean
+        }
+        Returns: number
+      }
+      terminar_pedido: {
+        Args: { p_consumos?: Json; p_pedido_id: string }
+        Returns: undefined
       }
       transferir_deposito: {
         Args: {
@@ -375,12 +1104,17 @@ export type Database = {
           documento_id: string | null
           documento_tipo: string | null
           id: string
+          investigacion_id: string | null
           lote_insumo_id: string
           motivo: string | null
+          motivo_tipo:
+            | Database["comercial"]["Enums"]["motivo_ajuste_enum"]
+            | null
           ocurrido_en: string
           orden: number
           periodo: string | null
           registrado_por: string
+          requiere_investigacion: boolean
           tipo: Database["comercial"]["Enums"]["tipo_movimiento_enum"]
           transferencia_id: string | null
           unidad: string
@@ -394,7 +1128,24 @@ export type Database = {
       }
     }
     Enums: {
+      estado_aviso_enum: "PENDIENTE" | "EN_COMPRA" | "RESUELTO" | "DESCARTADO"
+      estado_pedido_enum:
+        | "BORRADOR"
+        | "CONFIRMADO"
+        | "EN_PRODUCCION"
+        | "CUMPLIDO"
+        | "CANCELADO"
       metodo_costeo_enum: "PEPS" | "PPP" | "ESTANDAR"
+      motivo_ajuste_enum:
+        | "ROTURA"
+        | "DERRAME"
+        | "VENCIMIENTO"
+        | "MERMA_DE_PROCESO"
+        | "DIFERENCIA_DE_INVENTARIO"
+        | "ERROR_DE_REGISTRO"
+        | "ROBO_O_EXTRAVIO"
+        | "MUESTRA_DE_ARCHIVO"
+        | "DEVOLUCION_A_PROVEEDOR"
       tipo_movimiento_enum:
         | "ENTRADA_COMPRA"
         | "ENTRADA_PRODUCCION"
@@ -407,9 +1158,22 @@ export type Database = {
         | "SALIDA_AJUSTE"
         | "SALIDA_RETIRO_MERCADO"
         | "TRANSFERENCIA_ENTRE_DEPOSITOS"
+        | "ENTRADA_SALDO_APERTURA"
     }
     CompositeTypes: {
-      [_ in never]: never
+      renglon_faltante: {
+        insumo_id: string | null
+        codigo_interno: string | null
+        insumo: string | null
+        unidad: string | null
+        necesario: number | null
+        disponible: number | null
+        faltante: number | null
+        proveedor_id: string | null
+        proveedor: string | null
+        proveedor_estado: string | null
+        ultima_compra: string | null
+      }
     }
   }
   core: {
@@ -646,6 +1410,7 @@ export type Database = {
         | "GERENCIA_PRODUCCION"
         | "GERENCIA"
         | "ADMINISTRADOR_SISTEMA"
+        | "ENCARGADA_STOCK"
       sector_enum:
         | "ADMINISTRACION"
         | "RECEPCION_EXPEDICION"
@@ -741,6 +1506,130 @@ export type Database = {
         }
         Relationships: []
       }
+      densidades_referencia: {
+        Row: {
+          a0: number | null
+          a1: number | null
+          a2: number | null
+          a3: number | null
+          a4: number | null
+          activo: boolean
+          beta_k: number | null
+          calidad: string | null
+          cas: string | null
+          categoria: string | null
+          creado_en: string
+          densidad_ref: number | null
+          documento_ref: string | null
+          formula_quimica: string | null
+          fuente: Database["gmp"]["Enums"]["fuente_densidad_enum"]
+          id: string
+          incertidumbre: string | null
+          insumo_id: string | null
+          masa_molar: number | null
+          metodo: string | null
+          nombre: string
+          notas: string | null
+          rango_datos: string | null
+          referencia: string | null
+          residuo_max: number | null
+          temp_fusion_c: number | null
+          temp_ref_c: number
+          valido_desde_c: number
+          valido_hasta_c: number
+          verificada_en: string | null
+          verificada_por: string | null
+        }
+        Insert: {
+          a0?: number | null
+          a1?: number | null
+          a2?: number | null
+          a3?: number | null
+          a4?: number | null
+          activo?: boolean
+          beta_k?: number | null
+          calidad?: string | null
+          cas?: string | null
+          categoria?: string | null
+          creado_en?: string
+          densidad_ref?: number | null
+          documento_ref?: string | null
+          formula_quimica?: string | null
+          fuente: Database["gmp"]["Enums"]["fuente_densidad_enum"]
+          id?: string
+          incertidumbre?: string | null
+          insumo_id?: string | null
+          masa_molar?: number | null
+          metodo?: string | null
+          nombre: string
+          notas?: string | null
+          rango_datos?: string | null
+          referencia?: string | null
+          residuo_max?: number | null
+          temp_fusion_c?: number | null
+          temp_ref_c?: number
+          valido_desde_c?: number
+          valido_hasta_c?: number
+          verificada_en?: string | null
+          verificada_por?: string | null
+        }
+        Update: {
+          a0?: number | null
+          a1?: number | null
+          a2?: number | null
+          a3?: number | null
+          a4?: number | null
+          activo?: boolean
+          beta_k?: number | null
+          calidad?: string | null
+          cas?: string | null
+          categoria?: string | null
+          creado_en?: string
+          densidad_ref?: number | null
+          documento_ref?: string | null
+          formula_quimica?: string | null
+          fuente?: Database["gmp"]["Enums"]["fuente_densidad_enum"]
+          id?: string
+          incertidumbre?: string | null
+          insumo_id?: string | null
+          masa_molar?: number | null
+          metodo?: string | null
+          nombre?: string
+          notas?: string | null
+          rango_datos?: string | null
+          referencia?: string | null
+          residuo_max?: number | null
+          temp_fusion_c?: number | null
+          temp_ref_c?: number
+          valido_desde_c?: number
+          valido_hasta_c?: number
+          verificada_en?: string | null
+          verificada_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "densidades_referencia_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "insumos_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "densidades_referencia_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_existencias_recibidas"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "densidades_referencia_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_lotes_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+        ]
+      }
       depositos: {
         Row: {
           activo: boolean
@@ -783,6 +1672,149 @@ export type Database = {
             | null
         }
         Relationships: []
+      }
+      formula_componentes: {
+        Row: {
+          densidad_id: string | null
+          es_csp: boolean
+          etapa: string | null
+          formula_id: string
+          id: string
+          insumo_id: string | null
+          nombre_libre: string | null
+          observacion: string | null
+          orden: number
+          porcentaje_pp: number | null
+          se_mide_a_volumen: boolean
+        }
+        Insert: {
+          densidad_id?: string | null
+          es_csp?: boolean
+          etapa?: string | null
+          formula_id: string
+          id?: string
+          insumo_id?: string | null
+          nombre_libre?: string | null
+          observacion?: string | null
+          orden: number
+          porcentaje_pp?: number | null
+          se_mide_a_volumen?: boolean
+        }
+        Update: {
+          densidad_id?: string | null
+          es_csp?: boolean
+          etapa?: string | null
+          formula_id?: string
+          id?: string
+          insumo_id?: string | null
+          nombre_libre?: string | null
+          observacion?: string | null
+          orden?: number
+          porcentaje_pp?: number | null
+          se_mide_a_volumen?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formula_componentes_densidad_id_fkey"
+            columns: ["densidad_id"]
+            isOneToOne: false
+            referencedRelation: "densidades_referencia"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formula_componentes_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "formulas_fabricacion"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formula_componentes_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "insumos_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formula_componentes_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_existencias_recibidas"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "formula_componentes_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_lotes_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+        ]
+      }
+      formulas_fabricacion: {
+        Row: {
+          aprobada_en: string | null
+          aprobada_por: string | null
+          codigo_me: string | null
+          creado_en: string
+          densidad_producto: number | null
+          densidad_temp_c: number | null
+          emitida_por: string
+          especificacion_id: string | null
+          estado: Database["gmp"]["Enums"]["estado_documento_enum"]
+          id: string
+          producto_id: string
+          rendimiento: number
+          variedad: string | null
+          version: string
+          vigencia_desde: string | null
+          vigencia_hasta: string | null
+        }
+        Insert: {
+          aprobada_en?: string | null
+          aprobada_por?: string | null
+          codigo_me?: string | null
+          creado_en?: string
+          densidad_producto?: number | null
+          densidad_temp_c?: number | null
+          emitida_por?: string
+          especificacion_id?: string | null
+          estado?: Database["gmp"]["Enums"]["estado_documento_enum"]
+          id?: string
+          producto_id: string
+          rendimiento?: number
+          variedad?: string | null
+          version: string
+          vigencia_desde?: string | null
+          vigencia_hasta?: string | null
+        }
+        Update: {
+          aprobada_en?: string | null
+          aprobada_por?: string | null
+          codigo_me?: string | null
+          creado_en?: string
+          densidad_producto?: number | null
+          densidad_temp_c?: number | null
+          emitida_por?: string
+          especificacion_id?: string | null
+          estado?: Database["gmp"]["Enums"]["estado_documento_enum"]
+          id?: string
+          producto_id?: string
+          rendimiento?: number
+          variedad?: string | null
+          version?: string
+          vigencia_desde?: string | null
+          vigencia_hasta?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formulas_fabricacion_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       insumos_catalogo: {
         Row: {
@@ -848,7 +1880,9 @@ export type Database = {
         Row: {
           bultos_peso_similar: boolean | null
           cantidad_bultos: number
+          cantidad_no_declarada: boolean
           cantidad_unidades: number | null
+          color_origen: string | null
           contenedores_limpiados: boolean
           creado_en: string
           deposito_actual_id: string | null
@@ -857,13 +1891,14 @@ export type Database = {
           id: string
           insumo_id: string
           lote_proveedor: string
+          migracion_apertura_id: string | null
           numero_registro_interno: string
           peso_pigmento_kg: number | null
           planchas_etiquetas: number | null
           plazo_validez: string | null
           protocolo_archivo_url: string | null
           protocolo_recibido: boolean | null
-          recepcion_id: string
+          recepcion_id: string | null
           registrado_por: string
           total_etiquetas: number | null
           unidad: string
@@ -872,7 +1907,9 @@ export type Database = {
         Insert: {
           bultos_peso_similar?: boolean | null
           cantidad_bultos: number
+          cantidad_no_declarada?: boolean
           cantidad_unidades?: number | null
+          color_origen?: string | null
           contenedores_limpiados?: boolean
           creado_en?: string
           deposito_actual_id?: string | null
@@ -881,13 +1918,14 @@ export type Database = {
           id?: string
           insumo_id: string
           lote_proveedor: string
+          migracion_apertura_id?: string | null
           numero_registro_interno?: string
           peso_pigmento_kg?: number | null
           planchas_etiquetas?: number | null
           plazo_validez?: string | null
           protocolo_archivo_url?: string | null
           protocolo_recibido?: boolean | null
-          recepcion_id: string
+          recepcion_id?: string | null
           registrado_por?: string
           total_etiquetas?: number | null
           unidad: string
@@ -896,7 +1934,9 @@ export type Database = {
         Update: {
           bultos_peso_similar?: boolean | null
           cantidad_bultos?: number
+          cantidad_no_declarada?: boolean
           cantidad_unidades?: number | null
+          color_origen?: string | null
           contenedores_limpiados?: boolean
           creado_en?: string
           deposito_actual_id?: string | null
@@ -905,13 +1945,14 @@ export type Database = {
           id?: string
           insumo_id?: string
           lote_proveedor?: string
+          migracion_apertura_id?: string | null
           numero_registro_interno?: string
           peso_pigmento_kg?: number | null
           planchas_etiquetas?: number | null
           plazo_validez?: string | null
           protocolo_archivo_url?: string | null
           protocolo_recibido?: boolean | null
-          recepcion_id?: string
+          recepcion_id?: string | null
           registrado_por?: string
           total_etiquetas?: number | null
           unidad?: string
@@ -947,6 +1988,13 @@ export type Database = {
             referencedColumns: ["insumo_id"]
           },
           {
+            foreignKeyName: "lotes_insumo_migracion_apertura_id_fkey"
+            columns: ["migracion_apertura_id"]
+            isOneToOne: false
+            referencedRelation: "migracion_apertura"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lotes_insumo_recepcion_id_fkey"
             columns: ["recepcion_id"]
             isOneToOne: false
@@ -961,6 +2009,98 @@ export type Database = {
             referencedColumns: ["recepcion_id"]
           },
         ]
+      }
+      materiales_acondicionamiento: {
+        Row: {
+          activo: boolean
+          cantidad_por_unidad: number
+          creado_en: string
+          id: string
+          insumo_id: string
+          merma: number
+          origen: string | null
+          producto_id: string
+        }
+        Insert: {
+          activo?: boolean
+          cantidad_por_unidad: number
+          creado_en?: string
+          id?: string
+          insumo_id: string
+          merma?: number
+          origen?: string | null
+          producto_id: string
+        }
+        Update: {
+          activo?: boolean
+          cantidad_por_unidad?: number
+          creado_en?: string
+          id?: string
+          insumo_id?: string
+          merma?: number
+          origen?: string | null
+          producto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "materiales_acondicionamiento_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "insumos_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "materiales_acondicionamiento_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_existencias_recibidas"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "materiales_acondicionamiento_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_lotes_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "materiales_acondicionamiento_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      migracion_apertura: {
+        Row: {
+          archivo_origen: string
+          ejecutada_en: string
+          ejecutada_por: string
+          fecha_corte: string
+          hash_archivo: string
+          id: string
+          observaciones: string | null
+        }
+        Insert: {
+          archivo_origen: string
+          ejecutada_en?: string
+          ejecutada_por?: string
+          fecha_corte: string
+          hash_archivo: string
+          id?: string
+          observaciones?: string | null
+        }
+        Update: {
+          archivo_origen?: string
+          ejecutada_en?: string
+          ejecutada_por?: string
+          fecha_corte?: string
+          hash_archivo?: string
+          id?: string
+          observaciones?: string | null
+        }
+        Relationships: []
       }
       muestreos: {
         Row: {
@@ -1431,6 +2571,21 @@ export type Database = {
       }
     }
     Functions: {
+      calcular_lote: {
+        Args: {
+          p_formula_id: string
+          p_masa_kg?: number
+          p_temp_c?: number
+          p_volumen_l?: number
+        }
+        Returns: Database["gmp"]["CompositeTypes"]["renglon_pesada"][]
+        SetofOptions: {
+          from: "*"
+          to: "renglon_pesada"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       categoria_muestreo: {
         Args: { p_tipo: Database["gmp"]["Enums"]["tipo_insumo_enum"] }
         Returns: Database["gmp"]["Enums"]["categoria_muestreo_enum"]
@@ -1438,6 +2593,10 @@ export type Database = {
       color_rotulo: {
         Args: { p_estado: Database["gmp"]["Enums"]["estado_calidad_enum"] }
         Returns: string
+      }
+      densidad_a: {
+        Args: { p_densidad_id: string; p_temp_c: number }
+        Returns: number
       }
       destino_sobrante_sugerido: {
         Args: {
@@ -1471,7 +2630,9 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      impedimento_consumo: { Args: { p_lote_id: string }; Returns: string }
       impedimento_despacho: { Args: { p_lote_id: string }; Returns: string }
+      lote_consumible: { Args: { p_lote_id: string }; Returns: boolean }
       lote_despachable: { Args: { p_lote_id: string }; Returns: boolean }
       registrar_muestreo: {
         Args: {
@@ -1551,6 +2712,19 @@ export type Database = {
         | "EN_ANALISIS"
         | "APROBADO"
         | "RECHAZADO"
+        | "SALDO_APERTURA"
+      estado_documento_enum:
+        | "EN_DESARROLLO"
+        | "BORRADOR"
+        | "LISTO_PARA_EMITIR"
+        | "VIGENTE"
+        | "EN_REVISION"
+        | "DADO_DE_BAJA"
+      fuente_densidad_enum:
+        | "LITERATURA"
+        | "CERTIFICADO_PROVEEDOR"
+        | "MEDICION_PROPIA"
+        | "FARMACOPEA"
       motivo_bloqueo_enum:
         | "RETIRO_MERCADO"
         | "NO_CONFORMIDAD"
@@ -1575,7 +2749,19 @@ export type Database = {
         | "SEMIELABORADO"
     }
     CompositeTypes: {
-      [_ in never]: never
+      renglon_pesada: {
+        orden: number | null
+        componente: string | null
+        insumo_id: string | null
+        codigo_interno: string | null
+        porcentaje_pp: number | null
+        masa_kg: number | null
+        se_mide_a_volumen: boolean | null
+        densidad_aplicada: number | null
+        volumen_l: number | null
+        etapa: string | null
+        observacion: string | null
+      }
     }
   }
   graphql_public: {
@@ -1742,7 +2928,26 @@ export type CompositeTypes<
 export const Constants = {
   comercial: {
     Enums: {
+      estado_aviso_enum: ["PENDIENTE", "EN_COMPRA", "RESUELTO", "DESCARTADO"],
+      estado_pedido_enum: [
+        "BORRADOR",
+        "CONFIRMADO",
+        "EN_PRODUCCION",
+        "CUMPLIDO",
+        "CANCELADO",
+      ],
       metodo_costeo_enum: ["PEPS", "PPP", "ESTANDAR"],
+      motivo_ajuste_enum: [
+        "ROTURA",
+        "DERRAME",
+        "VENCIMIENTO",
+        "MERMA_DE_PROCESO",
+        "DIFERENCIA_DE_INVENTARIO",
+        "ERROR_DE_REGISTRO",
+        "ROBO_O_EXTRAVIO",
+        "MUESTRA_DE_ARCHIVO",
+        "DEVOLUCION_A_PROVEEDOR",
+      ],
       tipo_movimiento_enum: [
         "ENTRADA_COMPRA",
         "ENTRADA_PRODUCCION",
@@ -1755,6 +2960,7 @@ export const Constants = {
         "SALIDA_AJUSTE",
         "SALIDA_RETIRO_MERCADO",
         "TRANSFERENCIA_ENTRE_DEPOSITOS",
+        "ENTRADA_SALDO_APERTURA",
       ],
     },
   },
@@ -1768,6 +2974,7 @@ export const Constants = {
         "GERENCIA_PRODUCCION",
         "GERENCIA",
         "ADMINISTRADOR_SISTEMA",
+        "ENCARGADA_STOCK",
       ],
       sector_enum: [
         "ADMINISTRACION",
@@ -1803,6 +3010,21 @@ export const Constants = {
         "EN_ANALISIS",
         "APROBADO",
         "RECHAZADO",
+        "SALDO_APERTURA",
+      ],
+      estado_documento_enum: [
+        "EN_DESARROLLO",
+        "BORRADOR",
+        "LISTO_PARA_EMITIR",
+        "VIGENTE",
+        "EN_REVISION",
+        "DADO_DE_BAJA",
+      ],
+      fuente_densidad_enum: [
+        "LITERATURA",
+        "CERTIFICADO_PROVEEDOR",
+        "MEDICION_PROPIA",
+        "FARMACOPEA",
       ],
       motivo_bloqueo_enum: [
         "RETIRO_MERCADO",

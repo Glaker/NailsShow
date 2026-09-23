@@ -18,6 +18,7 @@ export const TEXTO_ESTADO: Record<EstadoCalidad, string> = {
   EN_ANALISIS: 'En análisis',
   APROBADO: 'Aprobado',
   RECHAZADO: 'Rechazado',
+  SALDO_APERTURA: 'Saldo de apertura',
 };
 
 interface Props extends Omit<BadgeProps, 'color' | 'children'> {

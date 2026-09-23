@@ -712,6 +712,7 @@ export const TEXTO_TIPO_MOVIMIENTO: Record<TipoMovimiento, string> = {
   SALIDA_AJUSTE: 'Ajuste de menos',
   SALIDA_RETIRO_MERCADO: 'Retiro de mercado',
   TRANSFERENCIA_ENTRE_DEPOSITOS: 'Transferencia',
+  ENTRADA_SALDO_APERTURA: 'Saldo de apertura',
 };
 
 export const TEXTO_MOTIVO_BLOQUEO: Record<MotivoBloqueo, string> = {
