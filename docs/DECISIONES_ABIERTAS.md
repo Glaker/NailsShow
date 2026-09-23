@@ -363,6 +363,66 @@ catálogo (D-23).
 
 ---
 
+### D-26 · El saldo de apertura no es un conteo de existencias
+
+**Hallazgo (2026-09-23).** La carga `20260922200000` tomó como existencia la
+columna CANTIDAD de la hoja INVENTARIO. Para las materias primas vale 1 en todos
+los renglones: es «1 envase», la unidad a la que se refiere el costo. Quedaron 1 g
+de monómero, 1 g de agua, 1 g de glicerina.
+**Resuelto en forma provisoria** (`20260923150000`, indicación del codirector
+técnico): 1 envase × CONTENIDO de la planilla, con la unidad confirmada
+(líquidos en litros, polvo/pigmentos/acrílicos en kg), pasado a la unidad del
+catálogo. Asentado como conteo **provisorio**, con ajuste de inventario: el 1
+original sigue en el kardex.
+**Queda abierto.** El conteo físico. Se carga en «Conteo de inventario»
+(`/conteo`), que arranca mostrando los provisorios. Las fragancias (1000 ml, sin
+densidad, llevadas en g) y las materias primas fuera de la lectura confirmada
+(top coat, nail prep, adhesivo, aloe, propilenglicol, microperlas, resina) no
+tienen provisorio: hay que contarlas.
+**Decide.** Gerencia de Producción (el conteo).
+
+### D-27 · Recetas de la hoja C.V.D. que no entraron
+
+**Contexto.** De 204 renglones celestes entran 142 (26 productos). Los insumos
+que faltaban se dieron de alta en `20260923135000`. Los 62 restantes están en
+`scripts/lista_materiales/pendientes.md`: variantes descartadas o
+discontinuadas, bloques sin producto en el catálogo (esmalte 201, removedor 1 L,
+sanitizante 1 L), los componentes de los DUO (son productos terminados: un DUO
+es un kit de dos productos y una bolsita) y la etiqueta de lote del primer, que
+no tiene código en la planilla.
+**Pregunta.** ¿Se dan de alta como producto el removedor 1 L y el sanitizante
+1 L, y qué código lleva la etiqueta de lote del primer?
+**Decide.** Gerencia de Producción.
+
+### D-28 · Unidades leídas de la hoja C.V.D.
+
+**Contexto.** La planilla no dice la unidad de cada cantidad. Se leyó de la
+fórmula de costo de la celda de al lado y está escrita, con su razón, en
+`scripts/lista_materiales/decisiones.mjs`. Por indicación: esencia siempre en
+ml, aceite de cutícula con la densidad de la vaselina líquida liviana
+(*Paraffinum liquidum perliquidum*, 0,845 g/ml a 20 °C), crema a granel
+(en kg en la planilla, en g en el sistema). Por lectura: monómero en litros;
+en el sanitizante el alcohol, el agua y la glicerina en ml y la fragancia, el
+pigmento y el aloe en g; alcoholes del cleanser en litros.
+**Pregunta.** Confirmar esas lecturas y que 101MONO sea metacrilato de etilo
+(EMA), o cargar la densidad del certificado del proveedor.
+**Decide.** Dirección Técnica.
+
+### D-29 · Criterios propios en el alta de insumos del 2026-09-23
+
+**Contexto.** Al dar de alta los insumos que faltaban (`20260923135000`) hubo
+que elegir cosas que la planilla no dice. Están marcadas para revisar:
+- **Primer, bonder y removedor a granel en ml**, como la esencia: se compran
+  líquidos y no hay densidad medida.
+- **Primer, bonder y removedor marcados inflamables** (RN-48, al depósito
+  exterior): son a base de solvente. Es la opción conservadora; confirmar con
+  la hoja de seguridad.
+- **Alcohol para sanitizante (135SAN) con la densidad del etanol 96 GL** en el
+  saldo provisorio.
+- **Toalla**: la tela como materia prima sin protocolo y la estampa como
+  etiqueta, hasta que se resuelva D-18.
+**Decide.** Dirección Técnica.
+
 ## Resueltas
 
 ### R-01 · Color del rótulo de cuarentena — 2026-09-04
@@ -420,3 +480,24 @@ y no tiene anomalías. Alinear los nombres con una serie «prolija» rompería l
 correspondencia con los registros en papel, que es justamente lo que un
 inspector cruza. Queda anotado para que nadie lo «arregle» más adelante
 creyendo que es un error de carga.
+
+### R-05 · El saldo de apertura se usa en producción — 2026-09-23
+
+**Conflicto.** `docs/ESPEC_SALDO_INICIAL.md` §5.2 dice que un lote en
+`SALDO_APERTURA` no se usa en una producción sin que Dirección Técnica lo
+reclasifique, dejando registro. Todo el stock real está en ese estado.
+**Resolución.** Por indicación de la conducción del proyecto, **el saldo de
+apertura cuenta como disponible y se consume al terminar un pedido, sin
+reclasificación previa.** Es un desvío deliberado de la especificación.
+**Lo que no se afloja.** Vencido o bloqueado (RN-52) no se consume; cuarentena,
+análisis y rechazado tampoco. Para despachar (RN-51) sigue valiendo solo lo
+aprobado.
+**Dónde está.** `gmp.impedimento_consumo()`, en
+`20260923120000_gmp_lote_consumible_en_produccion.sql`.
+
+### R-06 · De qué lote sale el consumo de un pedido — 2026-09-23, provisorio
+
+**Era parte de D-05** (falta I.20.3). **Resolución** de la conducción del
+proyecto: automático, sin que Gerencia de Producción elija. Sale primero del
+lote que vence antes; entre los que no vencen, del más antiguo en el sistema.
+Cada baja queda con su lote en el kardex. Se revisa cuando llegue I.20.3.

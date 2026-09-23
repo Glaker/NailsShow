@@ -1,120 +1,264 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Badge,
   Button,
   Group,
   Modal,
   Paper,
+  SegmentedControl,
   Skeleton,
   Stack,
   Table,
   Text,
-  TextInput,
-  Textarea,
 } from '@mantine/core';
-import { DateInput } from '@mantine/dates';
-import { IconClipboardList, IconPlus } from '@tabler/icons-react';
+import { useMediaQuery } from '@mantine/hooks';
+import { IconClipboardList, IconListCheck, IconPlus } from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { Vacio } from '@/components/Vacio';
-import { useCrearPedido, usePedidos, type EstadoPedido } from '@/lib/consultasComercial';
+import { useTieneRol } from '@/features/auth/sesion';
+import { fecha } from '@/lib/formato';
+import {
+  ROLES_ESCRIBEN_PEDIDOS,
+  useAvisosCompra,
+  useNomina,
+  usePedidos,
+  type EstadoPedido,
+  type PedidoConConteoRow,
+} from '@/lib/consultasComercial';
+import { BadgeEntrega, BadgeEstadoPedido } from './estadoPedido';
+import { FormularioPedido } from './FormularioPedido';
+import { FaltantesConsolidados } from './FaltantesConsolidados';
 
-const COLOR_ESTADO: Record<EstadoPedido, string> = {
-  BORRADOR: 'gray',
-  CONFIRMADO: 'estadoEnAnalisis',
-  EN_PRODUCCION: 'violeta',
-  CUMPLIDO: 'estadoAprobado',
-  CANCELADO: 'estadoRechazado',
+type Vista = 'revisar' | 'produccion' | 'borradores' | 'cerrados';
+
+const ESTADOS_DE_VISTA: Record<Vista, EstadoPedido[]> = {
+  revisar: ['CONFIRMADO'],
+  produccion: ['EN_PRODUCCION'],
+  borradores: ['BORRADOR'],
+  cerrados: ['CUMPLIDO', 'CANCELADO'],
 };
 
-const ETIQUETA_ESTADO: Record<EstadoPedido, string> = {
-  BORRADOR: 'Borrador',
-  CONFIRMADO: 'Confirmado',
-  EN_PRODUCCION: 'En producción',
-  CUMPLIDO: 'Cumplido',
-  CANCELADO: 'Cancelado',
+const DESCRIPCION_VISTA: Record<Vista, string> = {
+  revisar:
+    'Enviados a producción y todavía sin tomar. Abrí cada uno para ver si alcanza el material o hay que comprar.',
+  produccion: 'Pedidos que Producción ya tomó y está fabricando.',
+  borradores: 'Cargados pero no enviados. Producción todavía no los ve como pendientes.',
+  cerrados: 'Terminados y cancelados.',
 };
 
-export function BadgeEstadoPedido({ estado }: { estado: EstadoPedido }) {
-  return (
-    <Badge color={COLOR_ESTADO[estado]} variant="light" radius="sm">
-      {ETIQUETA_ESTADO[estado]}
-    </Badge>
-  );
+function esVista(v: string | null): v is Vista {
+  return v === 'revisar' || v === 'produccion' || v === 'borradores' || v === 'cerrados';
+}
+
+/** Lo más urgente arriba: por entrega, y los sin fecha al final. */
+function porEntrega(a: PedidoConConteoRow, b: PedidoConConteoRow) {
+  if (a.fecha_entrega && b.fecha_entrega)
+    return a.fecha_entrega.localeCompare(b.fecha_entrega);
+  if (a.fecha_entrega) return -1;
+  if (b.fecha_entrega) return 1;
+  return b.creado_en.localeCompare(a.creado_en);
 }
 
 /**
- * Pedidos por realizar.
+ * Bandeja de pedidos.
+ *
+ * La usan dos personas con preguntas distintas: quien carga los pedidos
+ * (Administración) arma borradores y los envía; Gerencia de Producción recibe
+ * los enviados y decide si hay que comprar. Por eso la vista inicial depende
+ * del rol, y la vista elegida queda en la URL para poder pasar el enlace.
  *
  * El listado no calcula la cobertura de stock: eso es una explosión por pedido
- * contra el disponible, y correrla para todos los pedidos de la lista sería una
- * consulta por fila. La cobertura se ve al abrir el pedido.
+ * contra el disponible, y correrla para todos sería una consulta por fila. La
+ * cobertura se ve al abrir el pedido.
  */
 export function PaginaPedidos() {
   const pedidos = usePedidos();
-  const crear = useCrearPedido();
+  const avisos = useAvisosCompra();
+  const nomina = useNomina();
+  const navigate = useNavigate();
+  const puedeCargar = useTieneRol(...ROLES_ESCRIBEN_PEDIDOS);
+  const esProduccion = useTieneRol('GERENCIA_PRODUCCION', 'DIRECCION_TECNICA');
+  const [params, setParams] = useSearchParams();
   const [abierto, setAbierto] = useState(false);
-  const [numero, setNumero] = useState('');
-  const [cliente, setCliente] = useState('');
-  const [entrega, setEntrega] = useState<Date | null>(null);
-  const [observaciones, setObservaciones] = useState('');
+  const angosta = useMediaQuery('(max-width: 36em)');
 
-  const enCurso = (pedidos.data ?? []).filter(
-    (p) => p.estado !== 'CUMPLIDO' && p.estado !== 'CANCELADO',
-  );
-  const cerrados = (pedidos.data ?? []).filter(
-    (p) => p.estado === 'CUMPLIDO' || p.estado === 'CANCELADO',
-  );
+  const vistaUrl = params.get('vista');
+  const vista: Vista = esVista(vistaUrl)
+    ? vistaUrl
+    : !esProduccion && puedeCargar
+      ? 'borradores'
+      : 'revisar';
 
-  function guardar() {
-    crear.mutate(
-      {
-        numero: numero.trim(),
-        cliente: cliente.trim(),
-        fechaEntrega: entrega ? entrega.toISOString().slice(0, 10) : null,
-        observaciones: observaciones.trim() || null,
-      },
-      {
-        onSuccess: () => {
-          setAbierto(false);
-          setNumero('');
-          setCliente('');
-          setEntrega(null);
-          setObservaciones('');
-        },
-      },
-    );
-  }
+  const todos = pedidos.data ?? [];
+  const cuenta = (v: Vista) =>
+    todos.filter((p) => ESTADOS_DE_VISTA[v].includes(p.estado)).length;
+  const filas = todos
+    .filter((p) => ESTADOS_DE_VISTA[vista].includes(p.estado))
+    .sort(vista === 'cerrados' ? (a, b) => b.fecha.localeCompare(a.fecha) : porEntrega);
+
+  const comprasAbiertas = (avisos.data ?? []).filter(
+    (a) => a.estado === 'PENDIENTE' || a.estado === 'EN_COMPRA',
+  ).length;
+
+  const etiqueta = (texto: string, n: number) => (n > 0 ? `${texto} (${n})` : texto);
 
   return (
     <>
       <EncabezadoPagina
-        titulo="Pedidos por realizar"
-        descripcion="Cada pedido se abre para ver si se puede fabricar con el stock que hay y qué falta comprar."
+        titulo="Pedidos"
+        descripcion="Se cargan acá, Producción los revisa contra el stock, y lo que falta queda anotado en compras."
         acciones={
-          <Button leftSection={<IconPlus size={16} />} onClick={() => setAbierto(true)}>
-            Nuevo pedido
-          </Button>
+          <Group gap="sm">
+            <Button
+              component={Link}
+              to="/compras"
+              variant="default"
+              leftSection={<IconListCheck size={16} />}
+              rightSection={
+                comprasAbiertas > 0 ? (
+                  <Badge color="estadoEnAnalisis" variant="filled" radius="sm" size="sm">
+                    {comprasAbiertas}
+                  </Badge>
+                ) : null
+              }
+            >
+              Compras pendientes
+            </Button>
+            {puedeCargar ? (
+              <Button
+                leftSection={<IconPlus size={16} />}
+                onClick={() => setAbierto(true)}
+              >
+                Nuevo pedido
+              </Button>
+            ) : null}
+          </Group>
         }
       />
 
       {pedidos.isLoading ? (
         <Skeleton h={220} />
-      ) : (pedidos.data ?? []).length === 0 ? (
+      ) : todos.length === 0 ? (
         <Paper withBorder style={{ borderColor: 'var(--superficie-borde)' }}>
           <Vacio
             icono={IconClipboardList}
             titulo="No hay pedidos cargados"
             descripcion="Cargá el primer pedido para ver qué hace falta comprar y qué se puede fabricar ya."
-            accion={<Button onClick={() => setAbierto(true)}>Nuevo pedido</Button>}
+            accion={
+              puedeCargar ? (
+                <Button onClick={() => setAbierto(true)}>Nuevo pedido</Button>
+              ) : undefined
+            }
           />
         </Paper>
       ) : (
-        <Stack gap="lg">
-          <TablaPedidos titulo="En curso" filas={enCurso} />
-          {cerrados.length > 0 ? (
-            <TablaPedidos titulo="Cerrados" filas={cerrados} />
-          ) : null}
+        <Stack gap="md">
+          <FaltantesConsolidados
+            hayEnCurso={cuenta('revisar') + cuenta('produccion') > 0}
+          />
+          <SegmentedControl
+            fullWidth
+            orientation={angosta ? 'vertical' : 'horizontal'}
+            size="md"
+            value={vista}
+            onChange={(v) => setParams({ vista: v }, { replace: true })}
+            data={[
+              { value: 'revisar', label: etiqueta('Para revisar', cuenta('revisar')) },
+              {
+                value: 'produccion',
+                label: etiqueta('En producción', cuenta('produccion')),
+              },
+              {
+                value: 'borradores',
+                label: etiqueta('Borradores', cuenta('borradores')),
+              },
+              { value: 'cerrados', label: 'Cerrados' },
+            ]}
+          />
+          <Text size="sm" c="dimmed">
+            {DESCRIPCION_VISTA[vista]}
+          </Text>
+
+          {filas.length === 0 ? (
+            <Paper withBorder style={{ borderColor: 'var(--superficie-borde)' }}>
+              <Vacio icono={IconClipboardList} titulo="Nada en esta bandeja" />
+            </Paper>
+          ) : (
+            <Paper
+              withBorder
+              style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}
+            >
+              <Table.ScrollContainer minWidth={760}>
+                <Table verticalSpacing="md" highlightOnHover>
+                  <Table.Thead>
+                    <Table.Tr>
+                      <Table.Th>Número</Table.Th>
+                      <Table.Th>Cliente</Table.Th>
+                      <Table.Th ta="right">Productos</Table.Th>
+                      <Table.Th>Cargado</Table.Th>
+                      <Table.Th>Entrega</Table.Th>
+                      <Table.Th>Estado</Table.Th>
+                    </Table.Tr>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {filas.map((p) => {
+                      const abiertoPedido =
+                        p.estado !== 'CUMPLIDO' && p.estado !== 'CANCELADO';
+                      return (
+                        <Table.Tr
+                          key={p.id}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => void navigate(`/pedidos/${p.id}`)}
+                        >
+                          <Table.Td>
+                            <Text
+                              component={Link}
+                              to={`/pedidos/${p.id}`}
+                              fw={600}
+                              size="sm"
+                              c="violeta"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {p.numero}
+                            </Text>
+                          </Table.Td>
+                          <Table.Td>
+                            <Text size="sm">{p.cliente}</Text>
+                            {p.observaciones ? (
+                              <Text size="xs" c="dimmed" lineClamp={1} maw={280}>
+                                {p.observaciones}
+                              </Text>
+                            ) : null}
+                          </Table.Td>
+                          <Table.Td ta="right">
+                            <Text size="sm" ff="monospace">
+                              {p.renglones[0]?.count ?? 0}
+                            </Text>
+                          </Table.Td>
+                          <Table.Td>
+                            <Text size="sm">{fecha(p.creado_en)}</Text>
+                            <Text size="xs" c="dimmed">
+                              {nomina.data?.get(p.creado_por) ?? ''}
+                            </Text>
+                          </Table.Td>
+                          <Table.Td>
+                            <BadgeEntrega
+                              fechaEntrega={p.fecha_entrega}
+                              abierto={abiertoPedido}
+                            />
+                          </Table.Td>
+                          <Table.Td>
+                            <BadgeEstadoPedido estado={p.estado} />
+                          </Table.Td>
+                        </Table.Tr>
+                      );
+                    })}
+                  </Table.Tbody>
+                </Table>
+              </Table.ScrollContainer>
+            </Paper>
+          )}
         </Stack>
       )}
 
@@ -122,120 +266,14 @@ export function PaginaPedidos() {
         opened={abierto}
         onClose={() => setAbierto(false)}
         title="Nuevo pedido"
+        size="lg"
         centered
         radius="md"
       >
-        <Stack gap="md">
-          <TextInput
-            label="Número"
-            withAsterisk
-            placeholder="P-0001"
-            value={numero}
-            onChange={(e) => setNumero(e.currentTarget.value)}
-          />
-          <TextInput
-            label="Cliente"
-            withAsterisk
-            value={cliente}
-            onChange={(e) => setCliente(e.currentTarget.value)}
-          />
-          <DateInput
-            label="Fecha de entrega comprometida"
-            description="De acá se calcula hacia atrás la fecha límite de compra de cada faltante."
-            valueFormat="DD/MM/YYYY"
-            clearable
-            value={entrega}
-            onChange={(v) => setEntrega(v === null ? null : new Date(v))}
-          />
-          <Textarea
-            label="Observaciones"
-            autosize
-            minRows={2}
-            value={observaciones}
-            onChange={(e) => setObservaciones(e.currentTarget.value)}
-          />
-          <Group justify="flex-end">
-            <Button variant="default" onClick={() => setAbierto(false)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={guardar}
-              loading={crear.isPending}
-              disabled={!numero.trim() || !cliente.trim()}
-            >
-              Crear
-            </Button>
-          </Group>
-        </Stack>
+        {abierto ? (
+          <FormularioPedido pedidos={todos} onCerrar={() => setAbierto(false)} />
+        ) : null}
       </Modal>
     </>
-  );
-}
-
-function TablaPedidos({
-  titulo,
-  filas,
-}: {
-  titulo: string;
-  filas: ReturnType<typeof usePedidos>['data'];
-}) {
-  if (!filas || filas.length === 0) return null;
-  return (
-    <Stack gap="xs">
-      <Text fw={600} size="sm" c="dimmed">
-        {titulo}
-      </Text>
-      <Paper
-        withBorder
-        style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}
-      >
-        <Table.ScrollContainer minWidth={640}>
-          <Table verticalSpacing="sm" highlightOnHover>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Número</Table.Th>
-                <Table.Th>Cliente</Table.Th>
-                <Table.Th>Fecha</Table.Th>
-                <Table.Th>Entrega</Table.Th>
-                <Table.Th>Estado</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {filas.map((p) => (
-                <Table.Tr key={p.id}>
-                  <Table.Td>
-                    <Text
-                      component={Link}
-                      to={`/pedidos/${p.id}`}
-                      fw={600}
-                      size="sm"
-                      c="violeta"
-                    >
-                      {p.numero}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="sm">{p.cliente}</Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="sm" c="dimmed">
-                      {p.fecha}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="sm" c="dimmed">
-                      {p.fecha_entrega ?? '—'}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <BadgeEstadoPedido estado={p.estado} />
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
-      </Paper>
-    </Stack>
   );
 }

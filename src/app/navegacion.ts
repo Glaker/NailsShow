@@ -13,6 +13,8 @@ import {
   IconClipboardList,
   IconShoppingCart,
   IconBuildingStore,
+  IconListCheck,
+  IconClipboardCheck,
   type Icon,
 } from '@tabler/icons-react';
 import type { Rol } from '@/features/auth/sesion';
@@ -62,6 +64,13 @@ export const NAVEGACION: ItemNavegacion[] = [
     icono: IconScale,
   },
   {
+    ruta: '/conteo',
+    etiqueta: 'Conteo de inventario',
+    etiquetaCorta: 'Conteo',
+    icono: IconClipboardCheck,
+    roles: ['DIRECCION_TECNICA', 'ADMINISTRACION', 'GERENCIA_PRODUCCION'],
+  },
+  {
     ruta: '/insumos',
     etiqueta: 'Catálogo de insumos',
     etiquetaCorta: 'Insumos',
@@ -82,10 +91,16 @@ export const NAVEGACION: ItemNavegacion[] = [
   },
   {
     ruta: '/pedidos',
-    etiqueta: 'Pedidos por realizar',
+    etiqueta: 'Pedidos',
     etiquetaCorta: 'Pedidos',
     icono: IconShoppingCart,
     principal: true,
+  },
+  {
+    ruta: '/compras',
+    etiqueta: 'Compras pendientes',
+    etiquetaCorta: 'Compras',
+    icono: IconListCheck,
   },
   {
     ruta: '/lista-materiales',

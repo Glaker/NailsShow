@@ -808,3 +808,168 @@ documento de la carga declara 650. La diferencia (3) es de la transcripción del
 archivo a este repositorio, no de la lógica de importación; si aparece el xlsx
 original convendría re-generar `scripts/apertura/inventario_apertura.csv` desde
 la fuente y volver a correr el generador.
+
+---
+
+## Front de pedidos para quien carga y quien revisa (2026-09-23, sin verificar contra la base)
+
+Sólo front, sin migraciones: todo corre sobre `20260917120000`. Dos usuarios con
+preguntas distintas: quien **carga** pedidos (Administración, «Mati», todavía sin
+cuenta) y quien los **recibe** y decide qué comprar (Gerencia de Producción,
+Nazarena).
+
+- **`/pedidos`** es una bandeja por estado —para revisar, en producción,
+  borradores, cerrados— con la vista en la URL. Arranca en «borradores» para
+  Administración y en «para revisar» para GP/DT. Ordena por entrega.
+- **Alta en un solo formulario** (`FormularioPedido`), con productos incluidos y
+  dos salidas: guardar borrador o enviar a producción. Cabecera primero, todos
+  los renglones en un único INSERT, y recién después la confirmación: si algo
+  falla queda un borrador, nunca un pedido enviado a medias.
+- **Ficha del pedido.** Botones del paso siguiente en vez de un selector libre
+  de estado. Renglones editables sólo en borrador. Marca los productos **sin
+  lista de materiales**: antes la ficha decía «se puede fabricar» también
+  cuando ningún producto tenía lista, que es «no sé», no «hay».
+- **Compras pendientes (`/compras`)**, primera pantalla sobre
+  `comercial.avisos_compra`. Desde los faltantes se anota uno o todos; la
+  lista sigue por comprar → pedido al proveedor → resuelto, o descartado con
+  motivo. Avisa cuando el mismo insumo está anotado para dos pedidos, porque
+  cada uno se explotó contra el mismo disponible.
+
+### Pendientes de base que este front deja a la vista
+
+1. **Transiciones de estado sin control en la base.** La pantalla sólo ofrece
+   el paso siguiente, pero `pedidos_actualiza` deja poner cualquier valor, y
+   los renglones se pueden editar con el pedido ya enviado. Falta un trigger.
+2. **`avisos_compra.resuelto_por` lo llena el cliente.** No tiene default ni
+   trigger; el autor real igual queda en `core.auditoria`.
+3. **Numeración de pedido** sugerida por el cliente (`P-0001`), protegida sólo
+   por el UNIQUE. No es comprobante fiscal, así que RN-55 no aplica, pero un
+   contador en base sería más limpio.
+4. **La explosión cubre sólo acondicionamiento.** El granel sigue en cero hasta
+   que `gmp.productos` tenga contenido por unidad.
+5. **Rol de quien carga pedidos.** Se asumió `ADMINISTRACION`, que es el que la
+   matriz §3.3 habilita para «Registrar pedido» y el que PG.60.1 asigna a
+   «Recepción de pedidos». Falta confirmarlo y crear la cuenta.
+
+**No se verificó contra la base alojada**: los tipos no conocen estas tablas
+(siguen los tipos puente de `consultasComercial.ts`) y esta sesión no tuvo
+acceso. Antes de darlo por bueno: confirmar que `20260917120000` está aplicada,
+`npm run db:types`, y recorrer el circuito con una cuenta de cada rol.
+
+---
+
+## Recetas de C.V.D., faltantes sumados y «Terminado» (2026-09-23, sin aplicar)
+
+Tres migraciones nuevas, **escritas y reproducidas desde cero sobre PGlite**
+(Postgres 18 en WASM, instalado fuera del repo porque esta máquina no tiene
+Postgres ni Docker), con 23 pruebas funcionales en verde usando sesiones reales
+de Gerencia de Producción y de Administración. **No se aplicaron** al proyecto
+alojado (`supabase db push` pendiente) ni se regeneraron los tipos.
+
+| Migración                                              | Qué trae                                                                                         |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `20260923120000_gmp_lote_consumible_en_produccion`     | `gmp.impedimento_consumo()`: qué lote se puede usar en producción (incluye saldo de apertura, R-05) |
+| `20260923130000_comercial_consumo_y_faltantes_consolidados` | disponible recalculado, `faltantes_en_curso()`, `pedido_consumos`, `terminar_pedido()`, estados del pedido en la base |
+| `20260923140000_carga_lista_materiales_cvd`            | 91 renglones de lista de materiales para 25 productos, generados desde la hoja C.V.D.             |
+
+**Esto cierra los pendientes 1 de la sección anterior**: la base ahora controla
+las transiciones del pedido, los productos solo se tocan en borrador, y
+`CUMPLIDO` solo se alcanza con «Terminado».
+
+### Circuito
+
+1. Administración carga el pedido. Los productos con receta aparecen primero en
+   el selector.
+2. Al enviarlo, aparece en la bandeja de Gerencia de Producción. La ficha dice
+   qué falta; `/pedidos` muestra **el total sumado de todos los pedidos en
+   curso**, con lo que aporta cada pedido debajo de cada insumo. Se suma la
+   necesidad antes de comparar con el stock: sumar faltantes por pedido da un
+   número falso.
+3. «Terminado» abre la receta con cantidades editables. Una diferencia exige
+   motivo, y se puede agregar un insumo que no está en la receta. Al confirmar,
+   en una sola transacción: registra el consumo teórico y real, baja stock lote
+   por lote (vence primero, R-06) y cierra el pedido. Si algo no alcanza, no
+   baja nada y dice qué falta.
+
+Un `SALIDA_CONSUMO_PRODUCCION` solo se acepta si apunta a un consumo registrado
+del mismo insumo y no excede lo declarado: no hay baja suelta que ningún pedido
+explique. El producto terminado **no** entra al stock (sigue D-04).
+
+### Carga de recetas
+
+Cadena reproducible en `scripts/lista_materiales/`: `extraer_cvd.mjs` (xlsx →
+`cvd_celeste.csv`, solo celdas celestes), `decisiones.mjs` (qué bloque es qué
+producto, en qué unidad está cada cantidad, con qué densidad se convierte, cada
+una con su razón), `generar_migracion.mjs` (→ migración + `pendientes.md`). El
+xlsx es el mismo de la carga de apertura (mismo sha256). Los líquidos se pasan a
+gramos con `gmp.densidad_a(…, 20)` y la columna nueva
+`materiales_acondicionamiento.origen` guarda celda, unidad original y densidad.
+113 renglones quedaron afuera con su motivo (D-27); las unidades leídas esperan
+confirmación (D-28).
+
+### Lo que va a pasar al usarlo hoy, y por qué
+
+**El saldo de apertura no es un conteo (D-26).** La carga del 22/09 guardó la
+cantidad del envase de compra: 1 g de alcohol, 1 g de agua. Con eso, casi todo
+va a figurar como faltante y «Terminado» va a rechazar. El circuito está bien;
+los saldos no. Hace falta un conteo físico cargado como ajuste de inventario.
+
+### Para aplicarlo
+
+1. `supabase db push` (las tres en orden).
+2. `npm run db:types`, y borrar los tipos puente de `consultasComercial.ts`.
+3. Recorrer el circuito con la cuenta de Nazarena y una de Administración.
+4. Crear la cuenta de Mati con rol `ADMINISTRACION` (supuesto, ver la sección
+   anterior).
+
+### Pedido del codirector técnico, sin hacer
+
+Cargar fórmulas en %V/V además de %P/P. Hoy `gmp.formula_componentes` tiene
+solo `porcentaje_pp` y la pantalla de fórmulas y la calculadora trabajan solo
+en masa; «se mide a volumen» cambia cómo se muestra la hoja de pesada, no cómo
+se interpreta el porcentaje.
+
+### Segunda tanda del mismo día: insumos faltantes, unidades y saldo provisorio
+
+Por indicación del codirector técnico, dos migraciones más, también **sin
+aplicar** y reproducidas desde cero en PGlite (24 pruebas de pedidos + 14 de
+conteo, en verde):
+
+| Migración                                                   | Qué trae                                                                                   |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `20260923135000_gmp_alta_insumos_listas_materiales`         | 25 insumos nuevos (cierres, etiquetas, cremas, primer/bonder/removedor a granel); esencia a ml |
+| `20260923150000_comercial_conteo_inventario_y_apertura_provisoria` | `conteos_inventario`, `registrar_conteo()`, saldo provisorio de 66 materias primas      |
+
+`20260923140000` (recetas) se regeneró antes de aplicarse: ahora son **142
+renglones en 26 productos**. El orden de aplicación es 120000 → 130000 → 135000
+→ 140000 → 150000.
+
+**El saldo de apertura sigue siendo una estimación (D-26).** Se corrigió a
+«1 envase × contenido» de la planilla (monómero ≈ 182 kg, agua ≈ 10 kg), como
+conteo provisorio y a nombre del codirector técnico, con ajuste de inventario:
+el 1 original queda en el kardex. La pantalla **Conteo de inventario**
+(`/conteo`) imprime la planilla para el depósito y carga lo contado; cada
+conteo lleva el saldo a lo contado con un ajuste sobre el lote de apertura, y
+nunca toca lotes con recepción.
+
+Criterios propios a confirmar: D-29 (granel líquido en ml,
+inflamables, densidad del alcohol del sanitizante, toalla).
+
+### Acceso a la base desde esta máquina (2026-09-23)
+
+**Las cinco migraciones del 2026-09-23 siguen sin aplicar.** En la máquina
+Windows del codirector técnico la CLI está logueada con una cuenta que **no**
+ve el proyecto de la app:
+
+- Proyecto de la app: `yxpzsxkefqfuhyvslkfw`, en la organización del
+  colaborador que lo administra. Es al que apunta `.env`.
+- Proyecto que ve la CLI: `ungcuiiuqkmdjcaeyzae`, también llamado
+  «NailsShow», de la cuenta del codirector técnico. Se creó por error y está
+  **pausado**. `supabase/.temp/linked-project.json` apunta a él: **no hacer
+  `db push` con ese vínculo.**
+
+Camino acordado: que el dueño de la organización invite al codirector técnico
+(Team → Invite), y recién entonces `supabase login` + `supabase link
+--project-ref yxpzsxkefqfuhyvslkfw`. Ojo: `npm run db:types` redirige a
+`src/lib/database.types.ts` y, si la CLI falla, deja ese archivo **vacío**. Se
+restaura con `git checkout -- src/lib/database.types.ts`.

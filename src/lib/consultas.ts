@@ -1089,10 +1089,11 @@ export interface RespuestaTabla<T> {
 
 export interface ConsultaTabla<T> extends PromiseLike<RespuestaTabla<T>> {
   select(columnas?: string): ConsultaTabla<T>;
-  insert(valores: Record<string, unknown>): ConsultaTabla<T>;
+  insert(valores: Record<string, unknown> | Record<string, unknown>[]): ConsultaTabla<T>;
   update(valores: Record<string, unknown>): ConsultaTabla<T>;
   delete(): ConsultaTabla<T>;
   eq(columna: string, valor: string | number | boolean): ConsultaTabla<T>;
+  in(columna: string, valores: readonly (string | number)[]): ConsultaTabla<T>;
   order(columna: string, opciones?: { ascending?: boolean }): ConsultaTabla<T>;
   single(): PromiseLike<RespuestaTabla<T>>;
 }
