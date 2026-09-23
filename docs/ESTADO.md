@@ -973,3 +973,11 @@ Camino acordado: que el dueño de la organización invite al codirector técnico
 --project-ref yxpzsxkefqfuhyvslkfw`. Ojo: `npm run db:types` redirige a
 `src/lib/database.types.ts` y, si la CLI falla, deja ese archivo **vacío**. Se
 restaura con `git checkout -- src/lib/database.types.ts`.
+
+**Actualización, mismo día.** Apareció un token con acceso al proyecto de la
+app y la CLI quedó vinculada a `yxpzsxkefqfuhyvslkfw`. Estaban pendientes 12
+migraciones (desde `20260921090000`), no solo las del 23/09. En la base real no
+había ninguna DT titular marcada, así que la carga de saldo de apertura
+(`20260922200000`, todavía sin aplicar) se corrigió para asentarse a nombre de
+la Dirección Técnica activa: la titular si existe, si no la suplente. Decisión
+del codirector técnico.

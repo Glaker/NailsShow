@@ -328,13 +328,22 @@ begin
 
   -- La carga la asienta la Dirección Técnica titular: es la autoridad
   -- regulatoria responsable de que un dato migrado sin circuito de calidad
-  -- entre al sistema (§2 de docs/ESPEC_SALDO_INICIAL.md). Si todavía no hay
-  -- una persona marcada como titular, la migración se detiene acá con un
-  -- mensaje claro en vez de asentar la carga a nombre de cualquiera.
-  select id into v_ejecutada_por from core.usuarios where es_dt_titular and activo limit 1;
+  -- entre al sistema (§2 de docs/ESPEC_SALDO_INICIAL.md).
+  --
+  -- CAMBIO DEL 2026-09-23, antes de aplicarse: la titular no tiene cuenta en el
+  -- sistema. Por decisión del codirector técnico, la carga la asienta la
+  -- Dirección Técnica activa: la titular si está, y si no la DT suplente
+  -- (salta.agustin@gmail.com, promovida por 20260922190000). Sigue sin
+  -- asentarse a nombre de cualquiera: si no hay ninguna de las dos, se detiene.
+  select id into v_ejecutada_por
+    from core.usuarios
+   where rol = 'DIRECCION_TECNICA' and activo
+     and (es_dt_titular or email = 'salta.agustin@gmail.com')
+   order by es_dt_titular desc
+   limit 1;
   if v_ejecutada_por is null then
     raise exception
-      'No hay ninguna Dirección Técnica titular activa en core.usuarios. '
+      'No hay Dirección Técnica activa (titular ni suplente) en core.usuarios. '
       'La carga de saldo de apertura necesita un responsable regulatorio identificado antes de asentarse.'
       using errcode = 'check_violation';
   end if;
