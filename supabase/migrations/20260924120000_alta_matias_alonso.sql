@@ -27,18 +27,18 @@ update core.usuarios
        nombre_completo = 'Matias Alonso',
        activo          = true,
        fecha_baja      = null
- where email = 'corponailshow@gmail.com';
+ where email = 'corporativo.nailshow@gmail.com';
 
 do $$
 begin
   if not exists (
     select 1 from core.usuarios
-     where email = 'corponailshow@gmail.com'
+     where email = 'corporativo.nailshow@gmail.com'
        and rol = 'GERENCIA_PRODUCCION'
        and activo
   ) then
     raise exception
-      'No existe la cuenta corponailshow@gmail.com en core.usuarios. Tiene que registrarse en la app antes de aplicar esta migración.';
+      'No existe la cuenta corporativo.nailshow@gmail.com en core.usuarios. Tiene que registrarse en la app antes de aplicar esta migración.';
   end if;
 end;
 $$;
