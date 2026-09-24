@@ -16,6 +16,11 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
-    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    // Las Edge Functions separan su lógica pura en supabase/functions/_shared
+    // para poder probarla acá, sin Deno ni red.
+    include: [
+      'src/**/*.{test,spec}.{ts,tsx}',
+      'supabase/functions/_shared/**/*.{test,spec}.ts',
+    ],
   },
 });

@@ -7,7 +7,16 @@ import prettier from 'eslint-config-prettier';
 
 export default tseslint.config(
   {
-    ignores: ['dist', 'node_modules', 'supabase/.temp', 'src/lib/database.types.ts'],
+    // Los puntos de entrada de las Edge Functions son Deno (Deno.serve, npm:),
+    // fuera del proyecto TypeScript de Node: los valida Supabase al desplegar.
+    // Su lógica pura, en supabase/functions/_shared, sí se lintea y se tipa.
+    ignores: [
+      'dist',
+      'node_modules',
+      'supabase/.temp',
+      'src/lib/database.types.ts',
+      'supabase/functions/*/index.ts',
+    ],
   },
   {
     files: ['**/*.{ts,tsx}'],

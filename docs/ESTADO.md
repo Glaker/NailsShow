@@ -999,3 +999,40 @@ Anotados para charlarlos antes de encarar; **no empezar sin esa conversación**.
    manos de un tercero (fasón). Definir antes: si es un depósito más
    (`gmp.depositos`, como Calle 5) o un circuito propio, y si ese stock cuenta
    como disponible para los pedidos.
+
+---
+
+## Facturación electrónica ARCA (2026-09-24, en homologación)
+
+Emisión de facturas desde los pedidos a través de Afip SDK. **Ambiente de
+homologación**: el CUIT es el de demostración de Afip SDK (20409378472), no el
+de Nail Show, y los comprobantes no son fiscales.
+
+| Pieza | Qué es |
+| --- | --- |
+| `20260924130000_comercial_clientes_y_facturas` | clientes con condición frente al IVA, precio en los renglones, configuración fiscal, `comercial.facturas`, `preparar_factura()`, `registrar_resultado_factura()` |
+| `supabase/functions/emitir-factura` | Edge Function: recibe `pedido_id`, pide el número a ARCA, envía y registra |
+| `supabase/functions/_shared/arca.ts` | armado y lectura de los cuerpos de Afip SDK, sin Deno, probado con Vitest |
+
+**Formas de la API verificadas, no supuestas**: documentación de Afip SDK más
+llamadas reales en homologación (auth, FECompUltimoAutorizado, FECAESolicitar,
+FECompConsultar, FEParamGetCondicionIvaReceptor). ARCA contesta HTTP 200 aunque
+rechace: el resultado se lee de `Resultado` y los motivos de Observaciones y
+Errors.
+
+**Qué se probó.** 10 pruebas unitarias del armado con respuestas reales, y 18
+de punta a punta: la base local con la migración, y emisiones reales en
+homologación (B a consumidor final, A a responsable inscripto y a
+monotributista, un rechazo 10016 registrado con su motivo, inmutabilidad,
+permisos).
+
+**Tres cosas a decidir** (D-30, D-31, D-32): A y no B a monotributistas (ARCA
+rechaza B); quién emite (GERENCIA_PRODUCCION agregado a la matriz por
+indicación); y que antes de producción el resultado no lo pueda registrar la
+sesión del usuario.
+
+**Falta.** El front: alta de clientes, precio en cada renglón del pedido y el
+botón «Emitir factura» en la ficha. Sin eso la función no tiene desde dónde
+llamarse. Y para producción: CUIT real, punto de venta habilitado en ARCA,
+certificado y clave como secretos (AFIP_CERT, AFIP_KEY), y una fila nueva en
+`comercial.configuracion_fiscal`.

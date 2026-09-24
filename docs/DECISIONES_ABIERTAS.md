@@ -423,6 +423,46 @@ que elegir cosas que la planilla no dice. Están marcadas para revisar:
   etiqueta, hasta que se resuelva D-18.
 **Decide.** Dirección Técnica.
 
+### D-30 · Factura a monotributistas: A, no B
+
+**Contexto.** La indicación fue «A a Responsable Inscripto, B a Consumidor
+Final o Monotributista». Probado en homologación de ARCA el 2026-09-24: una
+**Factura B a un monotributista se rechaza** (código 10243, «Condición IVA
+receptor no es válido para la clase de comprobante»), y una Factura A al mismo
+receptor se autoriza. La tabla oficial (FEParamGetCondicionIvaReceptor) lista
+para Monotributo las clases «A/ALEY/C».
+**Implementado.** `comercial.clase_factura()`: A a Responsable Inscripto y a
+Monotributo; B a Consumidor Final, Exento y No Alcanzado.
+**Pregunta.** Que el contador confirme el criterio antes de producción.
+**Decide.** Gerencia, con el estudio contable.
+
+### D-31 · Quién emite facturas
+
+**Contexto.** La matriz §3.3 reserva «Emitir factura y solicitar CAE» a
+Administración y Gerencia. Por indicación del codirector técnico (2026-09-24)
+las emiten Matias Alonso, Nazarena y Diego (sin cuenta todavía). Matias y
+Nazarena tienen rol GERENCIA_PRODUCCION.
+**Implementado.** Pueden emitir ADMINISTRACION, GERENCIA y GERENCIA_PRODUCCION.
+Dirección Técnica, no.
+**Pregunta.** Cuando se emita PG.60.1 v03 (D-06), definir si facturar queda en
+Gerencia de Producción o si Matias y Diego pasan a un rol comercial.
+**Decide.** Gerencia.
+
+### D-32 · El resultado de ARCA lo registra la sesión del usuario
+
+**Contexto.** La Edge Function corre con el token de quien aprieta «Emitir»
+(CLAUDE.md §5), y registra la respuesta de ARCA con esa misma sesión. Un
+usuario con permiso de emitir podría, llamando a la API directamente, registrar
+una respuesta inventada con un CAE falso. La base valida la forma (CAE de 14
+dígitos, vencimiento, número único) y guarda la respuesta completa, pero no
+puede saber si ARCA la emitió.
+**Mitigación hoy.** Homologación: no hay comprobantes fiscales reales.
+**Antes de producción.** Que el registro del resultado lo haga un rol de base
+dedicado, sin BYPASSRLS, que solo la Edge Function puede asumir (CLAUDE.md §5),
+o una verificación diaria que contraste cada factura AUTORIZADA con
+FECompConsultar.
+**Decide.** Dirección Técnica y conducción del proyecto.
+
 ## Resueltas
 
 ### R-01 · Color del rótulo de cuarentena — 2026-09-04
