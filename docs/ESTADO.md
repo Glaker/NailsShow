@@ -995,10 +995,26 @@ Anotados para charlarlos antes de encarar; **no empezar sin esa conversación**.
    el insumo en el catálogo para que deje de ofrecerse. Hay que ver qué
    necesita exactamente: que no aparezca en listas, que no cuente en faltantes,
    o que salga del depósito.
-2. **Pestaña «Tercerizada» con stock aparte.** Producción o stock que está en
-   manos de un tercero (fasón). Definir antes: si es un depósito más
-   (`gmp.depositos`, como Calle 5) o un circuito propio, y si ese stock cuenta
-   como disponible para los pedidos.
+2. **Entorno «Tercerizado»** (especificado por el codirector técnico el
+   2026-09-24). Nail Show hace producción para terceros (p. ej. «Navi»):
+   - **Entorno aparte para Nazarena**, con colores un poco más oscuros, para
+     que se distinga a simple vista de Nail Show.
+   - **Clientes tercerizados en cuadritos.** Al elegir uno se ve, simple, su
+     stock, su producción y sus pedidos.
+   - **Stock aparte** con insumos de nombre genérico («envase cristal 100 cc»),
+     **sin proveedor**: los proveedores son surtidos e imposibles de registrar
+     uno por uno.
+   - **Insumos compartidos** (alcohol, etc.): pueden ser stock del tercerizado
+     o de Nail Show, y Nazarena **elige de cuál** consumir.
+   - **Ingreso de stock = recepción automática**, sin pestaña de recepción: al
+     agregar stock. El control de calidad lo hace la DT igual que con el resto.
+   - **Pedidos**: Matias elige «Nail Show» o «Tercerizados»; en tercerizados,
+     elige el cliente y puede **agregar un cliente nuevo** (que a Nazarena le
+     aparece en los cuadritos).
+   - **Vista constante para Nazarena** de los pedidos de Nail Show y de los
+     tercerizados, lo más gráfica y amigable posible.
+   - **Quitar stock** por roto, discontinuado, etc.
+   - **Reservar insumos** para un cliente, sea Nail Show o un tercerizado.
 
 ---
 
