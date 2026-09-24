@@ -1016,6 +1016,20 @@ Anotados para charlarlos antes de encarar; **no empezar sin esa conversación**.
    - **Quitar stock** por roto, discontinuado, etc.
    - **Reservar insumos** para un cliente, sea Nail Show o un tercerizado.
 
+   Respuestas del codirector técnico (2026-09-24):
+   - **Productos del tercerizado**: pueden ser totalmente nuevos o un producto
+     que Nail Show ya fabrica con otra etiqueta. Las dos opciones.
+   - **De qué stock se consume**: al pasar el pedido a «En producción», el
+     sistema le pregunta a Nazarena, insumo por insumo, si sale del stock de
+     Nail Show o del del tercerizado.
+   - **Colores más oscuros**: solo dentro de la sección Tercerizados.
+   - **Front y back** de todo.
+
+3. **Procedimiento de cada fórmula** (2026-09-24). Al preparar el lote tiene que
+   aparecer el «Procedimiento» de la fórmula de ese SKU, editable por
+   Nazarena, el codirector técnico y Anabella (DT titular). El texto está en
+   los POE de cada producto.
+
 ---
 
 ## Facturación electrónica ARCA (2026-09-24, en homologación)

@@ -1342,3 +1342,49 @@ export function useEliminarComponenteFormula() {
     onError: avisarError,
   });
 }
+
+/* ------------------------------------------------------------------------- *
+ * Procedimiento de la fórmula (PG.60.8), versionado
+ *
+ * Cada edición es una versión nueva (20260924140000): se muestra la última y el
+ * historial queda. Editan Dirección Técnica y Gerencia de Producción.
+ * ------------------------------------------------------------------------- */
+
+export type ProcedimientoVersion = Database['gmp']['Tables']['formula_procedimientos']['Row'];
+
+export function useProcedimientos(formulaId: string | undefined) {
+  return useQuery({
+    queryKey: ['procedimientos', formulaId],
+    enabled: Boolean(formulaId),
+    queryFn: async () => {
+      const { data, error } = await gmp()
+        .from('formula_procedimientos')
+        .select('*')
+        .eq('formula_id', formulaId!)
+        .order('version', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useGuardarProcedimiento() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (p: { formulaId: string; texto: string; motivo: string | null }) => {
+      const { error } = await gmp().from('formula_procedimientos').insert({
+        formula_id: p.formulaId,
+        texto: p.texto,
+        motivo_cambio: p.motivo,
+        // La versión la pone la base (trg_procedimiento_version).
+        version: 0,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      void qc.invalidateQueries({ queryKey: ['procedimientos', v.formulaId] });
+      avisarExito('Procedimiento guardado como versión nueva.');
+    },
+    onError: avisarError,
+  });
+}

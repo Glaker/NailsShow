@@ -4,6 +4,7 @@ import {
   ActionIcon,
   Alert,
   Anchor,
+  Box,
   Button,
   Checkbox,
   Divider,
@@ -39,6 +40,7 @@ import {
 import { numero } from '@/lib/formato';
 import { useTieneRol } from '@/features/auth/sesion';
 import { BadgeEstadoFormula } from './estadoFormula';
+import { PanelProcedimiento } from './PanelProcedimiento';
 
 const esquemaComponente = z
   .object({
@@ -593,6 +595,12 @@ export function PaginaFormula() {
           />
         </Paper>
       ) : null}
+
+      {/* Versionado aparte: se edita aunque la fórmula esté vigente, y cada
+          edición queda como versión nueva. */}
+      <Box mt="md">
+        <PanelProcedimiento formulaId={formulaId} />
+      </Box>
     </>
   );
 }
