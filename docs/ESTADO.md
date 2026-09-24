@@ -981,3 +981,21 @@ había ninguna DT titular marcada, así que la carga de saldo de apertura
 (`20260922200000`, todavía sin aplicar) se corrigió para asentarse a nombre de
 la Dirección Técnica activa: la titular si existe, si no la suplente. Decisión
 del codirector técnico.
+
+---
+
+## Pedidos del codirector técnico en espera (2026-09-24)
+
+Anotados para charlarlos antes de encarar; **no empezar sin esa conversación**.
+
+1. **Dar de baja un lote o el stock de una materia prima que no se usa.**
+   Ojo al hablarlo: por las invariantes 1 y 8 y por RN-54, un lote o un
+   movimiento no se borra. Lo que existe hoy y probablemente cubre el pedido:
+   descarte (`SALIDA_DESCARTE`, con motivo) para sacar el stock, y desactivar
+   el insumo en el catálogo para que deje de ofrecerse. Hay que ver qué
+   necesita exactamente: que no aparezca en listas, que no cuente en faltantes,
+   o que salga del depósito.
+2. **Pestaña «Tercerizada» con stock aparte.** Producción o stock que está en
+   manos de un tercero (fasón). Definir antes: si es un depósito más
+   (`gmp.depositos`, como Calle 5) o un circuito propio, y si ese stock cuenta
+   como disponible para los pedidos.
