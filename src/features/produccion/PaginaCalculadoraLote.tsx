@@ -64,6 +64,15 @@ function densidadParaCalculo(d: DensidadReferenciaRow): Densidad {
   };
 }
 
+function densidadDeComponente(c: FormulaComponenteRow) {
+  const d = c.densidad ?? c.insumo?.densidad_defecto ?? null;
+  return {
+    densidad: d ? densidadParaCalculo(d) : null,
+    densidadNombre: d?.nombre ?? null,
+    densidadOrigen: c.densidad ? ('formula' as const) : d ? ('insumo' as const) : null,
+  };
+}
+
 /** Traduce las filas de la base a la forma que pide `calcularLote`. */
 function formulaParaCalculo(datos: {
   formula: FormulaFabricacionRow;
@@ -81,7 +90,10 @@ function formulaParaCalculo(datos: {
       esCsp: c.es_csp,
       seMideAVolumen: c.se_mide_a_volumen,
       etapa: c.etapa,
-      densidad: c.densidad ? densidadParaCalculo(c.densidad) : null,
+      // La densidad elegida en la fórmula manda; si no hay, la del insumo
+      // (gmp.insumos_catalogo.densidad_referencia_id). Mismo criterio que
+      // gmp.calcular_lote().
+      ...densidadDeComponente(c),
     })),
   };
 }
@@ -380,7 +392,8 @@ export function PaginaCalculadoraLote() {
                     <Table.Th ta="right">% P/P</Table.Th>
                     <Table.Th ta="right">Masa (kg)</Table.Th>
                     <Table.Th ta="right">Volumen (L)</Table.Th>
-                    <Table.Th ta="right">Densidad aplicada</Table.Th>
+                    <Table.Th ta="right">Densidad aplicada (g/mL)</Table.Th>
+                    <Table.Th>Se carga</Table.Th>
                     <Table.Th>Etapa</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
@@ -431,6 +444,17 @@ export function PaginaCalculadoraLote() {
                           {r.densidadAplicada === null
                             ? '—'
                             : numero(r.densidadAplicada, 5)}
+                        </Text>
+                        {r.densidadNombre ? (
+                          <Text size="xs" c="dimmed">
+                            {r.densidadNombre}
+                            {r.densidadOrigen === 'insumo' ? ' · del insumo' : ''}
+                          </Text>
+                        ) : null}
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="sm" c="dimmed">
+                          {r.seMideAVolumen ? 'A volumen' : 'Pesado'}
                         </Text>
                       </Table.Td>
                       <Table.Td>

@@ -337,8 +337,18 @@ export const theme = createTheme({
       defaultProps: { size: 'md' },
       styles: { input: { minHeight: rem(ALTURA_TACTIL_MIN) } },
     },
+    /*
+     * Coma decimal, como se escribe en planta («1,2»). Por defecto Mantine usa
+     * el punto y descarta la coma: «1,2» quedaba en «1» o en «12». Se acepta
+     * también el punto, porque el teclado numérico de la tablet lo trae. Sin
+     * separador de miles: con coma y punto a la vez, «1.200» sería ambiguo.
+     */
     NumberInput: {
-      defaultProps: { size: 'md' },
+      defaultProps: {
+        size: 'md',
+        decimalSeparator: ',',
+        allowedDecimalSeparators: [',', '.'],
+      },
       styles: { input: { minHeight: rem(ALTURA_TACTIL_MIN) } },
     },
     Textarea: {

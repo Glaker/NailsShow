@@ -1821,6 +1821,7 @@ export type Database = {
           activo: boolean
           codigo_interno: string
           creado_en: string
+          densidad_referencia_id: string | null
           deposito_aprobado_id: string | null
           deposito_cuarentena_id: string | null
           es_inflamable: boolean
@@ -1835,6 +1836,7 @@ export type Database = {
           activo?: boolean
           codigo_interno: string
           creado_en?: string
+          densidad_referencia_id?: string | null
           deposito_aprobado_id?: string | null
           deposito_cuarentena_id?: string | null
           es_inflamable?: boolean
@@ -1849,6 +1851,7 @@ export type Database = {
           activo?: boolean
           codigo_interno?: string
           creado_en?: string
+          densidad_referencia_id?: string | null
           deposito_aprobado_id?: string | null
           deposito_cuarentena_id?: string | null
           es_inflamable?: boolean
@@ -1860,6 +1863,13 @@ export type Database = {
           unidad_medida?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "insumos_catalogo_densidad_referencia_id_fkey"
+            columns: ["densidad_referencia_id"]
+            isOneToOne: false
+            referencedRelation: "densidades_referencia"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "insumos_catalogo_deposito_aprobado_id_fkey"
             columns: ["deposito_aprobado_id"]

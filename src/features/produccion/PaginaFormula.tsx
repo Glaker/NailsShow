@@ -60,7 +60,7 @@ const esquemaComponente = z
     path: ['porcentaje_pp'],
   })
   .refine((v) => !v.se_mide_a_volumen || Boolean(v.densidad_id), {
-    message: 'Elegí la densidad de referencia: sin ella no se puede informar el volumen',
+    message: 'Se carga con probeta: elegí la densidad, sin ella no se puede calcular el volumen',
     path: ['densidad_id'],
   });
 
@@ -114,7 +114,9 @@ function FormularioComponente({
           porcentajePP: v.es_csp ? null : v.porcentaje_pp,
           esCsp: v.es_csp,
           seMideAVolumen: v.se_mide_a_volumen,
-          densidadId: v.se_mide_a_volumen ? v.densidad_id : null,
+          // La densidad se guarda aunque se pese: con ella la calculadora
+          // informa el volumen de cada componente a la temperatura del lote.
+          densidadId: v.densidad_id,
           etapa: v.etapa || null,
         });
         form.reset();
@@ -143,6 +145,13 @@ function FormularioComponente({
               label: `${i.nombre} (${i.codigo_interno})`,
             }))}
             {...form.getInputProps('insumo_id')}
+            onChange={(id) => {
+              form.setFieldValue('insumo_id', id);
+              // Precarga la densidad del insumo (alcohol isopropílico → IPA,
+              // acetato de butilo → acetato de n-butilo). Se puede cambiar.
+              const insumo = (insumos.data ?? []).find((i) => i.id === id);
+              form.setFieldValue('densidad_id', insumo?.densidad_referencia_id ?? null);
+            }}
           />
         ) : (
           <TextInput
@@ -181,12 +190,17 @@ function FormularioComponente({
           {...form.getInputProps('se_mide_a_volumen', { type: 'checkbox' })}
         />
 
-        {form.values.se_mide_a_volumen ? (
+        {/* Siempre visible: la densidad no es solo para lo que se mide con
+            probeta, es la que convierte la masa de cada componente en su
+            volumen a la temperatura del lote. */}
+        {form.values.origen === 'CATALOGO' || form.values.se_mide_a_volumen ? (
           <Select
-            label="Densidad de referencia"
-            withAsterisk
+            label="Densidad del componente"
+            description="Viene la del insumo, si tiene. Con ella la calculadora da el volumen de este componente a la temperatura del lote."
+            withAsterisk={form.values.se_mide_a_volumen}
             searchable
-            placeholder="Elegí la densidad"
+            clearable
+            placeholder="Sin densidad: se informa solo la masa"
             data={(densidades.data ?? []).map((d) => ({
               value: d.id,
               label: `${d.nombre} — ${numero(d.densidad_ref, 5)} g/mL a ${numero(d.temp_ref_c, 1)} °C${d.fuente === 'LITERATURA' ? ' (literatura)' : ''}`,

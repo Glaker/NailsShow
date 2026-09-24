@@ -602,6 +602,50 @@ describe('temperatura de trabajo', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Volumen de cada componente con su propia densidad
+// ---------------------------------------------------------------------------
+
+describe('volumen por componente', () => {
+  /**
+   * Un cleanser: alcohol de cereal e isopropílico, los dos pesados. Antes el
+   * volumen solo salía para lo marcado «a volumen»; ahora cada componente con
+   * densidad se informa en litros con SU densidad a la temperatura del lote.
+   */
+  function cleanser(): Formula {
+    return formulaCon([
+      comp({ orden: 1, componente: 'Alcohol de cereal', porcentajePP: 80, densidad: densidadLineal(0.8074, 1.05e-3) }),
+      comp({ orden: 2, componente: 'Alcohol isopropílico', porcentajePP: 20, densidad: densidadLineal(0.7855, 1.07e-3) }),
+    ]);
+  }
+
+  it('informa el volumen de un componente pesado si tiene densidad', () => {
+    const r = calcularLote(cleanser(), { masaKg: 100 });
+    expect(renglon(r, 1).volumenL).toBeCloseTo(80 / 0.8074, 3);
+    expect(renglon(r, 2).volumenL).toBeCloseTo(20 / 0.7855, 3);
+    expect(renglon(r, 1).seMideAVolumen).toBe(false);
+  });
+
+  it('cada componente usa su densidad, no la del producto terminado', () => {
+    const r = calcularLote(cleanser(), { masaKg: 100 });
+    expect(renglon(r, 1).densidadAplicada).not.toBe(renglon(r, 2).densidadAplicada);
+    expect(renglon(r, 2).densidadAplicada).toBeCloseTo(0.7855, 4);
+  });
+
+  it('la densidad de cada componente se corrige por la temperatura del lote', () => {
+    const frio = calcularLote(cleanser(), { masaKg: 100 }, 10);
+    const calor = calcularLote(cleanser(), { masaKg: 100 }, 35);
+    expect(renglon(calor, 2).masaKg).toBe(renglon(frio, 2).masaKg);
+    expect(renglon(calor, 2).volumenL).toBeGreaterThan(renglon(frio, 2).volumenL ?? 0);
+  });
+
+  it('un componente sin densidad sigue informándose solo en masa y sin aviso', () => {
+    const r = calcularLote(formulaPatron(), { masaKg: 100 });
+    expect(renglon(r, 1).volumenL).toBeNull();
+    expect(r.avisos.some((a) => /no tiene densidad/i.test(a))).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // corregirPorTitulo
 // ---------------------------------------------------------------------------
 

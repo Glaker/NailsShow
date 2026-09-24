@@ -1079,7 +1079,12 @@ export interface FormulaComponenteRow {
   es_csp: boolean;
   se_mide_a_volumen: boolean;
   etapa: string | null;
-  insumo: { nombre: string; codigo_interno: string | null } | null;
+  insumo: {
+    nombre: string;
+    codigo_interno: string | null;
+    /** Densidad por defecto del insumo (20260923160000). */
+    densidad_defecto: DensidadReferenciaRow | null;
+  } | null;
   densidad: DensidadReferenciaRow | null;
 }
 
@@ -1168,7 +1173,9 @@ export function useFormulaCompleta(formulaId: string | undefined) {
         FormulaComponenteRow[]
       >('formula_componentes')
         .select(
-          '*, insumo:insumos_catalogo(nombre, codigo_interno), densidad:densidades_referencia(*)',
+          // Hay dos FK entre insumos y densidades (una en cada sentido): se
+          // nombra la del insumo para que PostgREST no las confunda.
+          '*, insumo:insumos_catalogo(nombre, codigo_interno, densidad_defecto:densidades_referencia!insumos_catalogo_densidad_referencia_id_fkey(*)), densidad:densidades_referencia(*)',
         )
         .eq('formula_id', formulaId!)
         .order('orden');

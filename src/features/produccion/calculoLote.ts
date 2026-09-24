@@ -41,6 +41,10 @@ export interface ComponenteFormula {
   esCsp: boolean;
   seMideAVolumen: boolean;
   densidad?: Densidad | null;
+  /** Nombre del compuesto de la densidad, para mostrar de dónde sale. */
+  densidadNombre?: string | null;
+  /** 'formula' = elegida en la fórmula; 'insumo' = la del insumo por defecto. */
+  densidadOrigen?: 'formula' | 'insumo' | null;
   etapa?: string | null;
 }
 
@@ -61,14 +65,17 @@ export interface RenglonCalculado {
   masaKg: number;
   volumenL: number | null;
   densidadAplicada: number | null;
+  densidadNombre: string | null;
+  densidadOrigen: 'formula' | 'insumo' | null;
   densidadNoVerificada: boolean;
+  seMideAVolumen: boolean;
   etapa?: string | null;
 }
 
 export interface ResultadoLote {
   renglones: RenglonCalculado[];
   masaTotalKg: number;
-  /** Suma de los volúmenes de los componentes medidos a volumen. */
+  /** Suma de los volúmenes de los componentes con densidad conocida. */
   sumaVolumenesL: number;
   /** Lo pedido. Distinto de `sumaVolumenesL`, y está bien que lo sea. */
   volumenObjetivoL: number | null;
@@ -194,17 +201,19 @@ export function calcularLote(
       let volumenL: number | null = null;
       let densidadAplicada: number | null = null;
 
-      if (c.seMideAVolumen) {
-        if (!c.densidad) {
-          avisos.push(
-            `«${c.componente}» está marcado para medir a volumen pero no tiene densidad cargada. ` +
-              'Se informa solo la masa.',
-          );
-        } else {
-          densidadAplicada = densidadA(c.densidad, tempC);
-          volumenL = masaKg / densidadAplicada;
-          sumaVolumenesL += volumenL;
-        }
+      // Todo componente con densidad conocida se informa también en volumen,
+      // con SU densidad a la temperatura de trabajo: el alcohol con la del
+      // alcohol, el acetato con la del acetato. `seMideAVolumen` dice cómo se
+      // carga en planta (probeta o balanza), no si se calcula el volumen.
+      if (c.densidad) {
+        densidadAplicada = densidadA(c.densidad, tempC);
+        volumenL = masaKg / densidadAplicada;
+        sumaVolumenesL += volumenL;
+      } else if (c.seMideAVolumen) {
+        avisos.push(
+          `«${c.componente}» está marcado para medir a volumen pero no tiene densidad cargada. ` +
+            'Se informa solo la masa.',
+        );
       }
 
       return {
@@ -216,7 +225,10 @@ export function calcularLote(
         volumenL: volumenL === null ? null : redondear(volumenL, 4),
         densidadAplicada:
           densidadAplicada === null ? null : redondear(densidadAplicada, 5),
+        densidadNombre: c.densidad ? (c.densidadNombre ?? null) : null,
+        densidadOrigen: c.densidad ? (c.densidadOrigen ?? null) : null,
         densidadNoVerificada: c.densidad?.fuente === 'LITERATURA',
+        seMideAVolumen: c.seMideAVolumen,
         etapa: c.etapa ?? null,
       };
     });
