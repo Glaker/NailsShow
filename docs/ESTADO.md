@@ -1028,7 +1028,20 @@ Anotados para charlarlos antes de encarar; **no empezar sin esa conversación**.
 3. **Procedimiento de cada fórmula** (2026-09-24). Al preparar el lote tiene que
    aparecer el «Procedimiento» de la fórmula de ese SKU, editable por
    Nazarena, el codirector técnico y Anabella (DT titular). El texto está en
-   los POE de cada producto.
+   los POE de cada producto. **Hecho** el 2026-09-24 (20260924140000, versionado).
+
+4. **Stock de seguridad y punto de pedido por SKU** (2026-09-24). Planilla
+   `Stock_Seguridad_ROP_NailShow(1).xlsx` (603 SKU; SS, ROP, demanda mensual
+   y lead time por SKU, metodología en su hoja LEEME). Que Nazarena vea, por
+   SKU, qué tiene que producir o pedir, **desagregado** entre lo que falta
+   para el stock disponible y lo que falta para el stock de seguridad. El SS se
+   cubre de a poco, según pueda: **Nazarena edita cuánto puede producir**
+   (meta propia de SS por SKU), la de la planilla queda como referencia.
+   Decisión: el stock de producto terminado sale de un **depósito de PT en
+   fábrica** (como Calle 5), con stock inicial contado, que suma la producción
+   para stock y descuentan los pedidos entregados.
+
+**Orden acordado:** facturación (front) → Tercerizados → stock de seguridad.
 
 ---
 
