@@ -25,6 +25,7 @@ import { Vacio } from '@/components/Vacio';
 import {
   useFormulaCompleta,
   useFormulasFabricacion,
+  useModeloMezcla,
   type EstadoDocumento,
   type DensidadReferenciaRow,
   type FormulaComponenteRow,
@@ -40,7 +41,19 @@ import {
 } from '@/lib/clima';
 import { BadgeEstadoFormula } from './estadoFormula';
 import { PanelProcedimiento } from './PanelProcedimiento';
-import { calcularLote, type Densidad, type Formula } from './calculoLote';
+import {
+  calcularLote,
+  gradoAlcoholicoAPP,
+  type Densidad,
+  type Formula,
+  type ParVolumenExceso,
+} from './calculoLote';
+
+/** Lo que trae useModeloMezcla(): pares y composición de las mezclas. */
+interface ModeloMezcla {
+  pares: ParVolumenExceso[];
+  composicion: Map<string, { constituyente: DensidadReferenciaRow; fraccion: number }[]>;
+}
 
 type TipoObjetivo = 'volumen' | 'masa';
 
@@ -52,8 +65,19 @@ type TipoObjetivo = 'volumen' | 'masa';
  * modelo lineal. Los nulos del medio se completan con cero, que es lo que vale
  * un término ausente del polinomio.
  */
-function densidadParaCalculo(d: DensidadReferenciaRow): Densidad {
+function densidadParaCalculo(d: DensidadReferenciaRow, modelo?: ModeloMezcla): Densidad {
+  const composicion = modelo?.composicion.get(d.id);
   return {
+    id: d.id,
+    nombre: d.nombre,
+    masaMolar:
+      d.masa_molar === null || d.masa_molar === undefined ? null : Number(d.masa_molar),
+    composicion: composicion
+      ? composicion.map((c) => ({
+          constituyente: densidadParaCalculo(c.constituyente),
+          fraccion: c.fraccion,
+        }))
+      : null,
     densidadRef: d.densidad_ref,
     tempRefC: d.temp_ref_c,
     betaK: d.beta_k,
@@ -65,21 +89,25 @@ function densidadParaCalculo(d: DensidadReferenciaRow): Densidad {
   };
 }
 
-function densidadDeComponente(c: FormulaComponenteRow) {
+function densidadDeComponente(c: FormulaComponenteRow, modelo?: ModeloMezcla) {
   const d = c.densidad ?? c.insumo?.densidad_defecto ?? null;
   return {
-    densidad: d ? densidadParaCalculo(d) : null,
+    densidad: d ? densidadParaCalculo(d, modelo) : null,
     densidadNombre: d?.nombre ?? null,
     densidadOrigen: c.densidad ? ('formula' as const) : d ? ('insumo' as const) : null,
   };
 }
 
 /** Traduce las filas de la base a la forma que pide `calcularLote`. */
-function formulaParaCalculo(datos: {
-  formula: FormulaFabricacionRow;
-  componentes: FormulaComponenteRow[];
-}): Formula {
+function formulaParaCalculo(
+  datos: {
+    formula: FormulaFabricacionRow;
+    componentes: FormulaComponenteRow[];
+  },
+  modelo?: ModeloMezcla,
+): Formula {
   return {
+    pares: modelo?.pares ?? [],
     densidadProducto: datos.formula.densidad_producto,
     densidadTempC: datos.formula.densidad_temp_c ?? 20,
     rendimiento: datos.formula.rendimiento,
@@ -94,7 +122,7 @@ function formulaParaCalculo(datos: {
       // La densidad elegida en la fórmula manda; si no hay, la del insumo
       // (gmp.insumos_catalogo.densidad_referencia_id). Mismo criterio que
       // gmp.calcular_lote().
-      ...densidadDeComponente(c),
+      ...densidadDeComponente(c, modelo),
     })),
   };
 }
@@ -129,6 +157,8 @@ export function PaginaCalculadoraLote() {
   }, [clima.data]);
 
   const formulaCompleta = useFormulaCompleta(formulaId ?? undefined);
+  const modelo = useModeloMezcla();
+  const [gradoGl, setGradoGl] = useState<number | ''>(96);
   const formulaSeleccionada =
     (formulas.data ?? []).find((f) => f.id === formulaId) ?? null;
 
@@ -150,12 +180,12 @@ export function PaginaCalculadoraLote() {
     // nada, porque parece un resultado.
     if (tempC < TEMP_MIN_C || tempC > TEMP_MAX_C) return null;
     try {
-      const formula = formulaParaCalculo(formulaCompleta.data);
+      const formula = formulaParaCalculo(formulaCompleta.data, modelo.data);
       return { ok: true as const, valor: calcularLote(formula, objetivo, tempC) };
     } catch (e) {
       return { ok: false as const, mensaje: e instanceof Error ? e.message : String(e) };
     }
-  }, [formulaCompleta.data, objetivo, tempC]);
+  }, [formulaCompleta.data, modelo.data, objetivo, tempC]);
 
   return (
     <>
@@ -365,6 +395,48 @@ export function PaginaCalculadoraLote() {
             />
           </Group>
 
+          {resultado.valor.mezcla ? (
+            <Paper withBorder p="md" style={{ borderColor: 'var(--superficie-borde)' }}>
+              <Group justify="space-between" mb="xs" wrap="wrap">
+                <Text fw={600}>Mezcla a {resultado.valor.tempC} °C</Text>
+                <Text size="xs" c="dimmed">
+                  Modelo de la planilla de densidades: aditividad más corrección por
+                  contracción de los pares con datos.
+                </Text>
+              </Group>
+              <Group grow wrap="wrap">
+                <TarjetaIndicador
+                  etiqueta="Volumen real de la mezcla"
+                  valor={`${numero(resultado.valor.mezcla.volumenRealL, 2)} L`}
+                  icono={IconFlask}
+                  detalle={`Sumando volúmenes darían ${numero(resultado.valor.mezcla.volumenIdealL, 2)} L`}
+                />
+                <TarjetaIndicador
+                  etiqueta={
+                    resultado.valor.mezcla.cambioVolumenPct < 0
+                      ? 'Se contrae al mezclar'
+                      : 'Se expande al mezclar'
+                  }
+                  valor={`${numero(Math.abs(resultado.valor.mezcla.cambioVolumenPct), 2)} %`}
+                  icono={IconFlask}
+                  detalle={`${numero(Math.abs(resultado.valor.mezcla.volumenRealL - resultado.valor.mezcla.volumenIdealL), 2)} L de diferencia`}
+                />
+                <TarjetaIndicador
+                  etiqueta="Densidad del granel"
+                  valor={`${numero(resultado.valor.mezcla.densidadReal, 4)} g/mL`}
+                  icono={IconCalculator}
+                  detalle={
+                    resultado.valor.densidadProductoEstimada
+                      ? 'Estimada: es la que se usó para el volumen objetivo.'
+                      : resultado.valor.densidadProductoUsada !== null
+                        ? `Estimada. Se usó la medida: ${numero(resultado.valor.densidadProductoUsada, 4)} g/mL.`
+                        : 'Estimada por el modelo.'
+                  }
+                />
+              </Group>
+            </Paper>
+          ) : null}
+
           {resultado.valor.avisos.length > 0 ? (
             <Stack gap="xs">
               {resultado.valor.avisos.map((aviso, i) => (
@@ -482,6 +554,69 @@ export function PaginaCalculadoraLote() {
           ) : null}
         </Stack>
       ) : null}
+
+      <ConversorGrado
+        grado={gradoGl}
+        onGrado={setGradoGl}
+        tabla={modelo.data?.etanolAgua ?? []}
+      />
     </>
+  );
+}
+
+/**
+ * °GL (% v/v a 20 °C) a % P/P de etanol, con la tabla CRC: la fórmula está en
+ * peso y el alcohol se compra por graduación.
+ */
+function ConversorGrado({
+  grado,
+  onGrado,
+  tabla,
+}: {
+  grado: number | '';
+  onGrado: (v: number | '') => void;
+  tabla: { pp: number; vv: number }[];
+}) {
+  let resultado: string | null = null;
+  if (typeof grado === 'number' && tabla.length > 0) {
+    try {
+      resultado = `${numero(gradoAlcoholicoAPP(grado, tabla), 2)} % P/P de etanol`;
+    } catch (e) {
+      resultado = e instanceof Error ? e.message : String(e);
+    }
+  }
+  return (
+    <Paper withBorder p="md" mt="md" style={{ borderColor: 'var(--superficie-borde)' }}>
+      <Group align="flex-end" gap="md" wrap="wrap">
+        <NumberInput
+          label="Graduación del alcohol"
+          description="% v/v a 20 °C (°GL), como figura en el protocolo"
+          min={0}
+          max={100}
+          decimalScale={2}
+          hideControls
+          w={220}
+          rightSection={
+            <Text size="xs" c="dimmed">
+              °GL
+            </Text>
+          }
+          value={grado}
+          onChange={(v) => onGrado(typeof v === 'number' ? v : '')}
+        />
+        <Stack gap={0}>
+          <Text size="xs" c="dimmed">
+            Equivale a
+          </Text>
+          <Text fw={700} fz={20}>
+            {resultado ?? '—'}
+          </Text>
+        </Stack>
+        <Text size="xs" c="dimmed" maw={360}>
+          Tabla CRC etanol-agua. No es una regla de tres con densidades: al mezclar etanol
+          y agua el volumen se contrae.
+        </Text>
+      </Group>
+    </Paper>
   );
 }

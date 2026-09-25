@@ -1096,6 +1096,8 @@ export interface DensidadReferenciaRow {
   cas: string | null;
   categoria: string | null;
   calidad: string | null;
+  /** g/mol (20260922210000). Null en mezclas naturales: quedan fuera del V^E. */
+  masa_molar: number | null;
 }
 
 export interface FormulaComponenteRow {
@@ -1232,6 +1234,62 @@ export function useDensidadesReferencia() {
         .order('nombre');
       if (error) throw error;
       return data ?? [];
+    },
+  });
+}
+
+/**
+ * Datos del modelo de mezcla (20260924160000): pares con volumen de exceso,
+ * composición de las densidades que son mezclas (con la fila completa del
+ * constituyente, para poder evaluar su densidad) y la tabla CRC etanol-agua.
+ * Son tablas chicas de referencia: se leen enteras.
+ */
+export function useModeloMezcla() {
+  return useQuery({
+    queryKey: ['modelo-mezcla'],
+    staleTime: 60 * 60 * 1000,
+    queryFn: async () => {
+      const [pares, composicion, crc] = await Promise.all([
+        gmp()
+          .from('pares_volumen_exceso')
+          .select('compuesto_1_id, compuesto_2_id, a, da_dt, t_ref_c'),
+        gmp()
+          .from('densidad_composicion')
+          .select(
+            'densidad_id, fraccion_masica, constituyente:densidades_referencia!densidad_composicion_constituyente_id_fkey(*)',
+          ),
+        gmp().from('etanol_agua_crc').select('pct_pp, pct_vv_20').order('pct_pp'),
+      ]);
+      if (pares.error) throw pares.error;
+      if (composicion.error) throw composicion.error;
+      if (crc.error) throw crc.error;
+      const porDensidad = new Map<
+        string,
+        { constituyente: DensidadReferenciaRow; fraccion: number }[]
+      >();
+      for (const c of composicion.data ?? []) {
+        if (!c.constituyente) continue;
+        const lista = porDensidad.get(c.densidad_id) ?? [];
+        lista.push({
+          constituyente: c.constituyente,
+          fraccion: Number(c.fraccion_masica),
+        });
+        porDensidad.set(c.densidad_id, lista);
+      }
+      return {
+        pares: (pares.data ?? []).map((p) => ({
+          compuesto1Id: p.compuesto_1_id,
+          compuesto2Id: p.compuesto_2_id,
+          a: p.a,
+          daDt: p.da_dt,
+          tRefC: Number(p.t_ref_c),
+        })),
+        composicion: porDensidad,
+        etanolAgua: (crc.data ?? []).map((r) => ({
+          pp: Number(r.pct_pp),
+          vv: r.pct_vv_20,
+        })),
+      };
     },
   });
 }

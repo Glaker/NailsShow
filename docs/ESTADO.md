@@ -1187,3 +1187,36 @@ las suites anteriores sin regresión.
 - `comercial.pedido_renglones` rechaza DELETE por la auditoría pero el front
   ofrece «quitar producto» en borrador (misma decisión pendiente del grant
   DELETE anotada antes).
+
+---
+
+## Densidad de mezclas en la calculadora de lote (2026-09-24, aplicado y en servicio)
+
+Pedido del codirector técnico: usar la planilla nueva de densidades, que
+agrega pares binarios para calcular cuánto se contrae el volumen al mezclar.
+
+| Pieza | Qué es |
+| --- | --- |
+| `20260924160000_gmp_mezclas_volumen_exceso` | `gmp.pares_volumen_exceso`, `gmp.densidad_composicion`, `gmp.etanol_agua_crc`; `gmp.densidad_mezcla()`, `gmp.densidad_mezcla_formula()`, `gmp.grado_alcoholico_a_pp()`; `calcular_lote()` con densidad estimada (D-33) |
+| `20260924160100_carga_mezclas_volumen_exceso` | generada por `scripts/densidades/generar_mezclas.mjs`: 24 pares, 101 filas CRC, composición de las 5 densidades viejas |
+| `src/features/produccion/calculoLote.ts` | `densidadMezcla()` y `gradoAlcoholicoAPP()`, espejo de la base |
+| `src/features/produccion/mezclas.fixture.json` | generado desde la planilla: compuestos, pares, 12 resultados de referencia, tabla CRC |
+
+**Los 91 compuestos no cambiaron** (verificado contra la base): lo nuevo son
+los pares y la tabla CRC.
+
+**Modelo.** ρ = 1 / [Σ wᵢ/ρᵢ + V^E·Σ wᵢ/Mᵢ], V^E por Redlich-Kister con
+Muggianu para más de dos componentes. Par sin datos = ideal (se avisa);
+componente sin masa molar = suma volumen, fuera del V^E (se avisa).
+«Etanol 96 GL» se descompone en etanol 93,84 % + agua (tabla CRC); «Agua
+desionizada», «Isopropanol», «Etanol absoluto» y «Acetato de butilo» son
+sinónimos de compuestos de la tabla.
+
+**Pantalla.** La calculadora muestra el volumen real de la mezcla contra la
+suma de volúmenes, cuánto se contrae y la densidad estimada del granel; si la
+fórmula no tiene densidad medida, el volumen objetivo usa la estimada y lo
+avisa. Conversor °GL → % P/P al pie (antes estaba sin implementar a propósito
+por falta de tabla).
+
+**Probado.** Base (PGlite) y cliente reproducen los 12 resultados de la hoja
+«Mezclas (teoría)» con error < 2·10⁻⁶ g/cm³; °GL 96 → 93,84 y 70 → 62,39.

@@ -30,6 +30,43 @@ export interface Densidad {
   validoDesdeC: number;
   validoHastaC: number;
   fuente: 'LITERATURA' | 'CERTIFICADO_PROVEEDOR' | 'MEDICION_PROPIA' | 'FARMACOPEA';
+  /** Identidad de la densidad en la base: con ella se buscan los pares. */
+  id?: string;
+  nombre?: string;
+  /** g/mol. Null en mezclas naturales (vaselina, aceites): quedan fuera del V^E. */
+  masaMolar?: number | null;
+  /**
+   * Si la densidad no es un compuesto puro («Etanol 96 GL»), sus
+   * constituyentes con su fracción másica (gmp.densidad_composicion).
+   */
+  composicion?: { constituyente: Densidad; fraccion: number }[] | null;
+}
+
+/** Par binario Redlich-Kister (gmp.pares_volumen_exceso). */
+export interface ParVolumenExceso {
+  compuesto1Id: string;
+  compuesto2Id: string;
+  /** A_0..A_n, cm³/mol. */
+  a: number[];
+  /** dA_k/dT, cm³/mol/°C. */
+  daDt: number[];
+  tRefC: number;
+}
+
+export interface ResultadoMezcla {
+  /** Aditividad de volúmenes: 1 / Σ w_i/ρ_i. */
+  densidadIdeal: number;
+  /** Con la corrección por volumen de exceso de los pares con datos. */
+  densidadReal: number;
+  /** cm³/mol. Negativo = la mezcla se contrae. */
+  volumenExcesoMolar: number;
+  /** (V_real / V_ideal − 1)·100. */
+  cambioVolumenPct: number;
+  paresConDatos: number;
+  /** Pares presentes sin coeficientes: se asumieron ideales. */
+  paresSinDatos: string[];
+  /** Componentes sin masa molar: suman volumen pero no entran al V^E. */
+  sinMasaMolar: string[];
 }
 
 export interface ComponenteFormula {
@@ -50,6 +87,8 @@ export interface ComponenteFormula {
 
 export interface Formula {
   componentes: ComponenteFormula[];
+  /** Pares con datos de volumen de exceso. Sin esto la mezcla se toma ideal. */
+  pares?: ParVolumenExceso[];
   /** Densidad medida del granel terminado, g/mL. No es la suma de nada. */
   densidadProducto: number | null;
   densidadTempC: number;
@@ -79,6 +118,14 @@ export interface ResultadoLote {
   sumaVolumenesL: number;
   /** Lo pedido. Distinto de `sumaVolumenesL`, y está bien que lo sea. */
   volumenObjetivoL: number | null;
+  /**
+   * Densidad y volumen de la mezcla según el modelo (null si algún componente
+   * no tiene densidad): cuánto se contrae al mezclar.
+   */
+  mezcla: (ResultadoMezcla & { volumenRealL: number; volumenIdealL: number }) | null;
+  /** Densidad con la que se pasó el volumen objetivo a masa, y de dónde salió. */
+  densidadProductoUsada: number | null;
+  densidadProductoEstimada: boolean;
   tempC: number;
   avisos: string[];
 }
@@ -150,23 +197,6 @@ export function calcularLote(
   const avisos: string[] = [];
   const volumenObjetivoL = 'volumenL' in objetivo ? objetivo.volumenL : null;
 
-  let masaBase: number;
-  if ('masaKg' in objetivo) {
-    masaBase = objetivo.masaKg;
-  } else {
-    if (formula.densidadProducto === null) {
-      throw new Error(
-        'La fórmula no tiene densidad del producto terminado. Sin ese dato, un volumen ' +
-          'objetivo no se puede convertir a masa: medirla con el densitómetro (I.50.25).',
-      );
-    }
-    masaBase = objetivo.volumenL * formula.densidadProducto;
-  }
-
-  // El rendimiento agranda la carga. Para sacar 2000 L con 97 % de rendimiento
-  // hay que cargar 2000 / 0,97, no 2000 * 0,97.
-  const masaTotalKg = masaBase / formula.rendimiento;
-
   const declarado = formula.componentes
     .filter((c) => !c.esCsp)
     .reduce((a, c) => a + (c.porcentajePP ?? 0), 0);
@@ -188,6 +218,56 @@ export function calcularLote(
       `Los componentes declarados suman ${declarado.toFixed(4)} %, no queda nada para el csp.`,
     );
   }
+
+  // ---- La mezcla según el modelo (gmp.densidad_mezcla_formula) ------------
+  // Solo se estima si todo lo que entra tiene densidad: con un componente sin
+  // densidad el número no representaría al producto.
+  const porcentaje = (c: ComponenteFormula) =>
+    c.esCsp ? 100 - declarado : (c.porcentajePP ?? 0);
+  const presentes = formula.componentes.filter((c) => porcentaje(c) > 0);
+  const sinDensidad = presentes.filter((c) => !c.densidad).map((c) => c.componente);
+  let mezclaModelo: ResultadoMezcla | null = null;
+  if (presentes.length > 0 && sinDensidad.length === 0) {
+    mezclaModelo = densidadMezcla(
+      presentes.map((c) => ({ densidad: c.densidad!, masa: porcentaje(c) })),
+      formula.pares ?? [],
+      tempC,
+    );
+  }
+
+  let masaBase: number;
+  let densidadProductoUsada: number | null = null;
+  let densidadProductoEstimada = false;
+  if ('masaKg' in objetivo) {
+    masaBase = objetivo.masaKg;
+  } else if (formula.densidadProducto !== null) {
+    densidadProductoUsada = formula.densidadProducto;
+    masaBase = objetivo.volumenL * formula.densidadProducto;
+  } else if (mezclaModelo) {
+    // Sin densidad medida, la del modelo de mezcla (D-33). La medida manda
+    // siempre que exista.
+    densidadProductoUsada = mezclaModelo.densidadReal;
+    densidadProductoEstimada = true;
+    masaBase = objetivo.volumenL * mezclaModelo.densidadReal;
+    avisos.push(
+      'La densidad del producto no está medida: se usó la estimada por el modelo de mezcla ' +
+        `(${mezclaModelo.densidadReal.toFixed(4)} g/mL a ${tempC} °C). Antes de fabricar, ` +
+        'medirla con el densitómetro (I.50.25) y cargarla en la fórmula.',
+    );
+  } else {
+    throw new Error(
+      'La fórmula no tiene densidad del producto terminado' +
+        (sinDensidad.length > 0
+          ? ` y no se puede estimar porque faltan densidades de: ${sinDensidad.join(', ')}`
+          : '') +
+        '. Un volumen objetivo no se puede convertir a masa: medirla con el densitómetro ' +
+        '(I.50.25) o indicar el objetivo en masa.',
+    );
+  }
+
+  // El rendimiento agranda la carga. Para sacar 2000 L con 97 % de rendimiento
+  // hay que cargar 2000 / 0,97, no 2000 * 0,97.
+  const masaTotalKg = masaBase / formula.rendimiento;
 
   let sumaVolumenesL = 0;
 
@@ -251,13 +331,142 @@ export function calcularLote(
     }
   }
 
+  if (mezclaModelo) {
+    if (mezclaModelo.paresSinDatos.length > 0) {
+      avisos.push(
+        `Sin datos de contracción para ${mezclaModelo.paresSinDatos.join(', ')}: se ` +
+          'tomaron como mezcla ideal.',
+      );
+    }
+    // Con un solo componente no hay contracción posible: el aviso sería ruido.
+    if (mezclaModelo.sinMasaMolar.length > 0 && presentes.length > 1) {
+      avisos.push(
+        `${mezclaModelo.sinMasaMolar.join(', ')}: sin masa molar (mezcla natural), suma su ` +
+          'volumen pero no entra en la corrección por contracción.',
+      );
+    }
+  }
+
   return {
     renglones,
     masaTotalKg: redondear(masaTotalKg, 4),
     sumaVolumenesL: redondear(sumaVolumenesL, 4),
     volumenObjetivoL,
+    mezcla: mezclaModelo
+      ? {
+          ...mezclaModelo,
+          volumenIdealL: redondear(masaTotalKg / mezclaModelo.densidadIdeal, 4),
+          volumenRealL: redondear(masaTotalKg / mezclaModelo.densidadReal, 4),
+        }
+      : null,
+    densidadProductoUsada,
+    densidadProductoEstimada,
     tempC,
     avisos,
+  };
+}
+
+/**
+ * Densidad de una mezcla, con contracción. Espejo de `gmp.densidad_mezcla()`
+ * (20260924160000), que es la autoridad:
+ *
+ *     rho = 1 / [ Σ w_i/rho_i  +  V^E · Σ (w_i/M_i) ]
+ *     V^E = Σ_pares x_i·x_j·Σ_k A_k(t)·(x_i − x_j)^k     (Redlich-Kister, Muggianu)
+ *
+ * Una densidad con composición («Etanol 96 GL») se reemplaza por sus
+ * constituyentes. Un par sin coeficientes se toma ideal; un componente sin
+ * masa molar suma su volumen y queda fuera del V^E. Las masas pueden venir en
+ * cualquier unidad: solo importan las proporciones.
+ */
+export function densidadMezcla(
+  componentes: { densidad: Densidad; masa: number }[],
+  pares: ParVolumenExceso[],
+  tempC: number,
+): ResultadoMezcla {
+  // Expandir mezclas y agrupar por compuesto.
+  const porClave = new Map<string, { densidad: Densidad; masa: number }>();
+  for (const c of componentes) {
+    if (!(c.masa > 0)) continue;
+    const partes = c.densidad.composicion?.length
+      ? c.densidad.composicion.map((p) => ({
+          densidad: p.constituyente,
+          masa: c.masa * p.fraccion,
+        }))
+      : [{ densidad: c.densidad, masa: c.masa }];
+    for (const p of partes) {
+      const clave = p.densidad.id ?? p.densidad.nombre ?? `#${porClave.size}`;
+      const previo = porClave.get(clave);
+      if (previo) previo.masa += p.masa;
+      else porClave.set(clave, { densidad: p.densidad, masa: p.masa });
+    }
+  }
+  // Por nombre, como la base: los pares sin datos salen en el mismo orden.
+  const lista = [...porClave.entries()]
+    .map(([clave, v]) => ({ clave, ...v }))
+    .sort((a, b) =>
+      (a.densidad.nombre ?? a.clave).localeCompare(b.densidad.nombre ?? b.clave, 'es'),
+    );
+  const total = lista.reduce((a, c) => a + c.masa, 0);
+  if (total <= 0) throw new Error('La mezcla no tiene masa.');
+  const nombre = (i: number) => lista[i]!.densidad.nombre ?? lista[i]!.clave;
+
+  let sumaWRho = 0;
+  let sumaN = 0;
+  const sinMasaMolar: string[] = [];
+  const n = lista.map((c, i) => {
+    sumaWRho += c.masa / total / densidadA(c.densidad, tempC);
+    const mm = c.densidad.masaMolar ?? null;
+    if (mm === null || mm <= 0) {
+      sinMasaMolar.push(nombre(i));
+      return 0;
+    }
+    const ni = c.masa / total / mm;
+    sumaN += ni;
+    return ni;
+  });
+
+  let ve = 0;
+  let paresConDatos = 0;
+  const paresSinDatos: string[] = [];
+  for (let i = 0; i < lista.length; i++) {
+    if (n[i] === 0) continue;
+    for (let j = i + 1; j < lista.length; j++) {
+      if (n[j] === 0) continue;
+      const idI = lista[i]!.densidad.id;
+      const idJ = lista[j]!.densidad.id;
+      const par = pares.find(
+        (p) =>
+          (p.compuesto1Id === idI && p.compuesto2Id === idJ) ||
+          (p.compuesto1Id === idJ && p.compuesto2Id === idI),
+      );
+      if (!par) {
+        paresSinDatos.push(`${nombre(i)} + ${nombre(j)}`);
+        continue;
+      }
+      paresConDatos++;
+      const xi = n[i]! / sumaN;
+      const xj = n[j]! / sumaN;
+      // Invertido el par, los términos impares cambian de signo.
+      const d = (par.compuesto1Id === idI ? 1 : -1) * (xi - xj);
+      let suma = 0;
+      par.a.forEach((ak, k) => {
+        const coef = ak + (par.daDt[k] ?? 0) * (tempC - par.tRefC);
+        suma += coef * (k === 0 ? 1 : d ** k);
+      });
+      ve += xi * xj * suma;
+    }
+  }
+
+  const densidadIdeal = 1 / sumaWRho;
+  const densidadReal = 1 / (sumaWRho + ve * sumaN);
+  return {
+    densidadIdeal,
+    densidadReal,
+    volumenExcesoMolar: ve,
+    cambioVolumenPct: (densidadIdeal / densidadReal - 1) * 100,
+    paresConDatos,
+    paresSinDatos,
+    sinMasaMolar,
   };
 }
 
@@ -310,16 +519,29 @@ export function pesable(
 }
 
 /**
- * NO IMPLEMENTADO A PROPÓSITO: conversión °GL (%v/v) a %P/P.
+ * Conversión °GL (% v/v a 20 °C) a % P/P de etanol en etanol-agua. Espejo de
+ * `gmp.grado_alcoholico_a_pp()`.
  *
- * La graduación Gay-Lussac es volumen/volumen. La conversión a peso/peso para
- * etanol-agua no es una regla de tres con densidades, justamente por la
- * contracción de volumen: hace falta la tabla alcoholométrica (OIML R 22).
+ * No es una regla de tres con densidades, justamente por la contracción: se
+ * interpola en la tabla CRC de 1 % P/P en 1 % P/P (`gmp.etanol_agua_crc`),
+ * donde el error de la interpolación lineal queda por debajo de 0,01 % P/P.
+ * Lo que estaba mal era interpolar entre dos o tres puntos sueltos.
  *
- * Referencias para verificar cualquier implementación futura:
- *   70 %v/v ≈ 62,4 %P/P
- *   96 %v/v ≈ 93,8 %P/P
- *
- * Una función que interpole linealmente entre esos puntos parece razonable y
- * está mal en el medio del rango. Mejor no tenerla que tenerla mal.
+ * Referencias (OIML R 22): 70 % v/v ≈ 62,4 % P/P; 96 % v/v ≈ 93,8 % P/P.
  */
+export function gradoAlcoholicoAPP(
+  pctVv: number,
+  tabla: { pp: number; vv: number }[],
+): number {
+  const t = [...tabla].sort((a, b) => a.pp - b.pp);
+  for (let i = 0; i < t.length - 1; i++) {
+    const a = t[i]!;
+    const b = t[i + 1]!;
+    if (a.vv <= pctVv && pctVv <= b.vv) {
+      return redondear(a.pp + ((pctVv - a.vv) * (b.pp - a.pp)) / (b.vv - a.vv), 4);
+    }
+  }
+  throw new Error(
+    `La graduación tiene que estar entre 0 y 100 % v/v (se pidió ${pctVv}).`,
+  );
+}

@@ -53,16 +53,20 @@ const esquemaComponente = z
     densidad_id: z.string().nullable(),
     etapa: z.string().trim(),
   })
-  .refine((v) => (v.origen === 'CATALOGO' ? Boolean(v.insumo_id) : v.nombre_libre.length > 0), {
-    message: 'Elegí un insumo del catálogo o escribí un nombre',
-    path: ['insumo_id'],
-  })
+  .refine(
+    (v) => (v.origen === 'CATALOGO' ? Boolean(v.insumo_id) : v.nombre_libre.length > 0),
+    {
+      message: 'Elegí un insumo del catálogo o escribí un nombre',
+      path: ['insumo_id'],
+    },
+  )
   .refine((v) => v.es_csp || (v.porcentaje_pp !== null && v.porcentaje_pp > 0), {
     message: 'Falta el % P/P (o marcá que es el csp)',
     path: ['porcentaje_pp'],
   })
   .refine((v) => !v.se_mide_a_volumen || Boolean(v.densidad_id), {
-    message: 'Se carga con probeta: elegí la densidad, sin ella no se puede calcular el volumen',
+    message:
+      'Se carga con probeta: elegí la densidad, sin ella no se puede calcular el volumen',
     path: ['densidad_id'],
   });
 
@@ -126,10 +130,7 @@ function FormularioComponente({
       })}
     >
       <Stack gap="sm">
-        <Radio.Group
-          label="Cómo se identifica"
-          {...form.getInputProps('origen')}
-        >
+        <Radio.Group label="Cómo se identifica" {...form.getInputProps('origen')}>
           <Group gap="lg" mt={4}>
             <Radio value="CATALOGO" label="Insumo del catálogo" />
             <Radio value="LIBRE" label="Nombre libre (todavía sin catalogar)" />
@@ -241,7 +242,12 @@ function ResumenPorcentajes({ componentes }: { componentes: FormulaComponenteRow
   const restante = 100 - suma;
 
   return (
-    <Paper withBorder p="sm" radius="md" style={{ borderColor: 'var(--superficie-borde)' }}>
+    <Paper
+      withBorder
+      p="sm"
+      radius="md"
+      style={{ borderColor: 'var(--superficie-borde)' }}
+    >
       <Group justify="space-between" wrap="wrap" gap="sm">
         <Text size="sm">
           Declarado sin csp: <b>{numero(suma, 4)} %</b>
@@ -259,8 +265,8 @@ function ResumenPorcentajes({ componentes }: { componentes: FormulaComponenteRow
       </Group>
       {csp && restante < 0 ? (
         <Text size="xs" c="estadoRechazado.7" mt={4}>
-          Los demás componentes ya suman más de 100 %: al csp no le queda nada. La base va a
-          rechazar el paso a vigente.
+          Los demás componentes ya suman más de 100 %: al csp no le queda nada. La base va
+          a rechazar el paso a vigente.
         </Text>
       ) : null}
       {!csp && Math.abs(suma - 100) > 1e-4 ? (
@@ -422,18 +428,19 @@ export function PaginaFormula() {
         <Stack gap="sm">
           <Text size="sm">
             {f.producto?.nombre ?? '(producto sin nombre)'}
-            {f.variedad ? ` — ${f.variedad}` : ''} · versión {f.version} va a quedar como la
-            fórmula oficial para pesar lotes.
+            {f.variedad ? ` — ${f.variedad}` : ''} · versión {f.version} va a quedar como
+            la fórmula oficial para pesar lotes.
           </Text>
           <Alert color="estadoEnAnalisis" variant="light" radius="md">
-            Una fórmula vigente no se puede editar: la corrección se hace emitiendo una versión
-            nueva. Esta acción no se puede deshacer.
+            Una fórmula vigente no se puede editar: la corrección se hace emitiendo una
+            versión nueva. Esta acción no se puede deshacer.
           </Alert>
         </Stack>
       ),
       labels: { confirm: 'Marcar como vigente', cancel: 'Cancelar' },
       confirmProps: { color: 'estadoAprobado' },
-      onConfirm: () => actualizar.mutate({ id: formulaId, cambios: { estado: 'VIGENTE' } }),
+      onConfirm: () =>
+        actualizar.mutate({ id: formulaId, cambios: { estado: 'VIGENTE' } }),
     });
   };
 
@@ -480,12 +487,13 @@ export function PaginaFormula() {
 
       {!puedeEditar ? (
         <Alert color="violeta" variant="light" radius="md" mb="md">
-          Estás viendo esta fórmula en modo lectura: solo Dirección Técnica la edita (§3.3).
+          Estás viendo esta fórmula en modo lectura: solo Dirección Técnica la edita
+          (§3.3).
         </Alert>
       ) : f.estado !== 'BORRADOR' ? (
         <Alert color="estadoEnAnalisis" variant="light" radius="md" mb="md">
-          Esta fórmula está {f.estado === 'VIGENTE' ? 'vigente' : 'dada de baja'} y no se edita.
-          Para corregirla, emitir una versión nueva desde «Nueva fórmula».
+          Esta fórmula está {f.estado === 'VIGENTE' ? 'vigente' : 'dada de baja'} y no se
+          edita. Para corregirla, emitir una versión nueva desde «Nueva fórmula».
         </Alert>
       ) : null}
 
@@ -582,7 +590,12 @@ export function PaginaFormula() {
       </Paper>
 
       {editableBorrador ? (
-        <Paper withBorder p="md" mt="md" style={{ borderColor: 'var(--superficie-borde)' }}>
+        <Paper
+          withBorder
+          p="md"
+          mt="md"
+          style={{ borderColor: 'var(--superficie-borde)' }}
+        >
           <Title order={3} mb="sm">
             Agregar componente
           </Title>

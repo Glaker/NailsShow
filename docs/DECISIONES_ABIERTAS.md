@@ -463,6 +463,26 @@ o una verificación diaria que contraste cada factura AUTORIZADA con
 FECompConsultar.
 **Decide.** Dirección Técnica y conducción del proyecto.
 
+### D-33 · Densidad del producto estimada por el modelo de mezcla
+
+**Contexto.** Hasta el 2026-09-24 un volumen objetivo («2000 L de
+sanitizante») exigía la densidad del granel medida con densitómetro
+(I.50.25). Con la planilla de mezclas (pares Redlich-Kister) la base puede
+estimarla: `gmp.calcular_lote()` y la calculadora usan la estimada cuando no
+hay medida y todos los componentes tienen densidad. La medida manda siempre
+que exista, y la pantalla dice cuál se usó.
+**Riesgo.** El modelo reproduce la planilla, pero la planilla es literatura:
+pares sin datos se toman ideales y las mezclas naturales (vaselina, aceites)
+quedan fuera de la corrección. Para 70 % de alcohol 96 en agua la contracción
+es de 3,1 %: ignorarla eran 62 L en 2000 L, pero un error del modelo de 0,1 %
+son 2 L.
+**Propuesta.** Aceptar la estimada para planificar y para la vista previa, y
+exigir la medida antes de emitir una hoja de pesada real (cuando exista).
+**Decide.** Dirección Técnica.
+**Nota.** La fórmula 377 v1 tiene cargada densidad de producto 1,00000, que
+parece un valor de relleno (el modelo da 0,8099): mientras esté, manda sobre la
+estimada.
+
 ## Resueltas
 
 ### R-01 · Color del rótulo de cuarentena — 2026-09-04

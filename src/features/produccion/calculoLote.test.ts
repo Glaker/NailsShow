@@ -613,8 +613,18 @@ describe('volumen por componente', () => {
    */
   function cleanser(): Formula {
     return formulaCon([
-      comp({ orden: 1, componente: 'Alcohol de cereal', porcentajePP: 80, densidad: densidadLineal(0.8074, 1.05e-3) }),
-      comp({ orden: 2, componente: 'Alcohol isopropílico', porcentajePP: 20, densidad: densidadLineal(0.7855, 1.07e-3) }),
+      comp({
+        orden: 1,
+        componente: 'Alcohol de cereal',
+        porcentajePP: 80,
+        densidad: densidadLineal(0.8074, 1.05e-3),
+      }),
+      comp({
+        orden: 2,
+        componente: 'Alcohol isopropílico',
+        porcentajePP: 20,
+        densidad: densidadLineal(0.7855, 1.07e-3),
+      }),
     ]);
   }
 

@@ -164,7 +164,11 @@ export function PaginaFormulas() {
             descripcion="Dirección Técnica carga acá la fórmula maestra de cada producto: el punto de partida de la calculadora de lote."
             accion={
               puedeEditar ? (
-                <Button variant="light" leftSection={<IconPlus size={16} />} onClick={modal.open}>
+                <Button
+                  variant="light"
+                  leftSection={<IconPlus size={16} />}
+                  onClick={modal.open}
+                >
                   Nueva fórmula
                 </Button>
               ) : null
@@ -196,7 +200,12 @@ export function PaginaFormulas() {
                     {g.filas.map((f) => (
                       <Table.Tr key={f.id}>
                         <Table.Td>
-                          <Anchor component={Link} to={`/formulas/${f.id}`} size="sm" fw={600}>
+                          <Anchor
+                            component={Link}
+                            to={`/formulas/${f.id}`}
+                            size="sm"
+                            fw={600}
+                          >
                             {f.variedad ?? '(sin variedad)'}
                           </Anchor>
                         </Table.Td>
@@ -223,7 +232,11 @@ export function PaginaFormulas() {
         </Stack>
       )}
 
-      <Modal opened={abierto} onClose={modal.close} title={<Text fw={700}>Nueva fórmula</Text>}>
+      <Modal
+        opened={abierto}
+        onClose={modal.close}
+        title={<Text fw={700}>Nueva fórmula</Text>}
+      >
         <FormularioNuevaFormula onListo={alCrear} />
       </Modal>
     </>

@@ -2026,6 +2026,48 @@ export type Database = {
         }
         Relationships: []
       }
+      densidad_composicion: {
+        Row: {
+          constituyente_id: string
+          creado_en: string
+          densidad_id: string
+          fraccion_masica: number
+          fuente: string
+          id: string
+        }
+        Insert: {
+          constituyente_id: string
+          creado_en?: string
+          densidad_id: string
+          fraccion_masica: number
+          fuente: string
+          id?: string
+        }
+        Update: {
+          constituyente_id?: string
+          creado_en?: string
+          densidad_id?: string
+          fraccion_masica?: number
+          fuente?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "densidad_composicion_constituyente_id_fkey"
+            columns: ["constituyente_id"]
+            isOneToOne: false
+            referencedRelation: "densidades_referencia"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "densidad_composicion_densidad_id_fkey"
+            columns: ["densidad_id"]
+            isOneToOne: false
+            referencedRelation: "densidades_referencia"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       densidades_referencia: {
         Row: {
           a0: number | null
@@ -2190,6 +2232,36 @@ export type Database = {
           tipo_contenido?:
             | Database["gmp"]["Enums"]["tipo_contenido_enum"]
             | null
+        }
+        Relationships: []
+      }
+      etanol_agua_crc: {
+        Row: {
+          contraccion_20_pct: number
+          pct_pp: number
+          pct_vv_20: number
+          rho_10: number
+          rho_20: number
+          rho_25: number
+          rho_30: number
+        }
+        Insert: {
+          contraccion_20_pct: number
+          pct_pp: number
+          pct_vv_20: number
+          rho_10: number
+          rho_20: number
+          rho_25: number
+          rho_30: number
+        }
+        Update: {
+          contraccion_20_pct?: number
+          pct_pp?: number
+          pct_vv_20?: number
+          rho_10?: number
+          rho_20?: number
+          rho_25?: number
+          rho_30?: number
         }
         Relationships: []
       }
@@ -2765,6 +2837,63 @@ export type Database = {
         }
         Relationships: []
       }
+      pares_volumen_exceso: {
+        Row: {
+          a: number[]
+          calidad: string | null
+          compuesto_1_id: string
+          compuesto_2_id: string
+          creado_en: string
+          da_dt: number[]
+          fuente: string
+          id: string
+          notas: string | null
+          rango_datos: string | null
+          t_ref_c: number
+        }
+        Insert: {
+          a: number[]
+          calidad?: string | null
+          compuesto_1_id: string
+          compuesto_2_id: string
+          creado_en?: string
+          da_dt: number[]
+          fuente: string
+          id?: string
+          notas?: string | null
+          rango_datos?: string | null
+          t_ref_c?: number
+        }
+        Update: {
+          a?: number[]
+          calidad?: string | null
+          compuesto_1_id?: string
+          compuesto_2_id?: string
+          creado_en?: string
+          da_dt?: number[]
+          fuente?: string
+          id?: string
+          notas?: string | null
+          rango_datos?: string | null
+          t_ref_c?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pares_volumen_exceso_compuesto_1_id_fkey"
+            columns: ["compuesto_1_id"]
+            isOneToOne: false
+            referencedRelation: "densidades_referencia"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pares_volumen_exceso_compuesto_2_id_fkey"
+            columns: ["compuesto_2_id"]
+            isOneToOne: false
+            referencedRelation: "densidades_referencia"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       productos: {
         Row: {
           activo: boolean
@@ -3328,6 +3457,31 @@ export type Database = {
         Args: { p_densidad_id: string; p_temp_c: number }
         Returns: number
       }
+      densidad_mezcla: {
+        Args: { p_componentes: Json; p_temp_c?: number }
+        Returns: {
+          cambio_volumen_pct: number
+          densidad_ideal: number
+          densidad_real: number
+          pares_con_datos: number
+          pares_sin_datos: string[]
+          sin_masa_molar: string[]
+          volumen_exceso_molar: number
+        }[]
+      }
+      densidad_mezcla_formula: {
+        Args: { p_formula_id: string; p_temp_c?: number }
+        Returns: {
+          cambio_volumen_pct: number
+          densidad_ideal: number
+          densidad_real: number
+          pares_con_datos: number
+          pares_sin_datos: string[]
+          sin_densidad: string[]
+          sin_masa_molar: string[]
+          volumen_exceso_molar: number
+        }[]
+      }
       destino_sobrante_sugerido: {
         Args: {
           p_categoria: Database["gmp"]["Enums"]["categoria_muestreo_enum"]
@@ -3360,6 +3514,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      grado_alcoholico_a_pp: { Args: { p_pct_vv: number }; Returns: number }
       impedimento_consumo: { Args: { p_lote_id: string }; Returns: string }
       impedimento_despacho: { Args: { p_lote_id: string }; Returns: string }
       ingresar_insumo_tercero: {
