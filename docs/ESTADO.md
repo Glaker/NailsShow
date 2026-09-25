@@ -1184,9 +1184,8 @@ las suites anteriores sin regresión.
 - La calculadora de lote no usa todavía la fórmula del producto base para un
   producto tercerizado con otra etiqueta: hoy hay que elegir el producto de
   Nail Show.
-- `comercial.pedido_renglones` rechaza DELETE por la auditoría pero el front
-  ofrece «quitar producto» en borrador (misma decisión pendiente del grant
-  DELETE anotada antes).
+- ~~«Quitar producto» fallaba por el DELETE~~: resuelto en 20260924170000
+  (renglón anulado).
 
 ---
 
@@ -1220,3 +1219,26 @@ por falta de tabla).
 
 **Probado.** Base (PGlite) y cliente reproducen los 12 resultados de la hoja
 «Mezclas (teoría)» con error < 2·10⁻⁶ g/cm³; °GL 96 → 93,84 y 70 → 62,39.
+
+---
+
+## Borrar pedido, quitar producto y densidad estándar (2026-09-24, aplicado y en servicio)
+
+Respuestas del codirector técnico a las cuatro preguntas del día.
+
+| Pieza | Qué es |
+| --- | --- |
+| `20260924170000_comercial_borrar_pedido_y_quitar_producto` | `comercial.eliminar_pedido()` y renglón `anulado`; necesidad, factura, transición, «Terminado» y la regla del tercero ignoran los anulados |
+| `20260924170100_gmp_densidad_producto_estimada` | vigente = densidad medida o estimable; una vigente solo admite cambiar la densidad medida; 377 v1 corregida (R-07) |
+
+**Borrar pedido.** No es un DELETE (la auditoría los rechaza en toda tabla de
+negocio): el pedido queda CANCELADO con `eliminado_en/por` y motivo, sale de
+todas las bandejas, libera sus reservas y descarta sus avisos de compra. No se
+borra un pedido terminado ni uno con factura autorizada o en curso.
+**Quitar producto** (borrador): el renglón queda anulado y deja de contar; el
+mismo producto se puede volver a agregar.
+
+**Productos tercerizados con otra etiqueta**: se confirmó que tomen la fórmula
+de Nail Show (se elige el producto base en la calculadora).
+
+Probado: 16 pruebas nuevas en la base local y todas las suites anteriores.

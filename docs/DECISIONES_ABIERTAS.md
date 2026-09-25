@@ -463,26 +463,6 @@ o una verificación diaria que contraste cada factura AUTORIZADA con
 FECompConsultar.
 **Decide.** Dirección Técnica y conducción del proyecto.
 
-### D-33 · Densidad del producto estimada por el modelo de mezcla
-
-**Contexto.** Hasta el 2026-09-24 un volumen objetivo («2000 L de
-sanitizante») exigía la densidad del granel medida con densitómetro
-(I.50.25). Con la planilla de mezclas (pares Redlich-Kister) la base puede
-estimarla: `gmp.calcular_lote()` y la calculadora usan la estimada cuando no
-hay medida y todos los componentes tienen densidad. La medida manda siempre
-que exista, y la pantalla dice cuál se usó.
-**Riesgo.** El modelo reproduce la planilla, pero la planilla es literatura:
-pares sin datos se toman ideales y las mezclas naturales (vaselina, aceites)
-quedan fuera de la corrección. Para 70 % de alcohol 96 en agua la contracción
-es de 3,1 %: ignorarla eran 62 L en 2000 L, pero un error del modelo de 0,1 %
-son 2 L.
-**Propuesta.** Aceptar la estimada para planificar y para la vista previa, y
-exigir la medida antes de emitir una hoja de pesada real (cuando exista).
-**Decide.** Dirección Técnica.
-**Nota.** La fórmula 377 v1 tiene cargada densidad de producto 1,00000, que
-parece un valor de relleno (el modelo da 0,8099): mientras esté, manda sobre la
-estimada.
-
 ## Resueltas
 
 ### R-01 · Color del rótulo de cuarentena — 2026-09-04
@@ -554,6 +534,15 @@ análisis y rechazado tampoco. Para despachar (RN-51) sigue valiendo solo lo
 aprobado.
 **Dónde está.** `gmp.impedimento_consumo()`, en
 `20260923120000_gmp_lote_consumible_en_produccion.sql`.
+
+### R-07 · Densidad del producto: la del modelo, salvo que se mida — 2026-09-24
+
+**Decisión del codirector técnico** (era D-33): la densidad del producto
+estimada por el modelo de mezcla es la estándar; si se mide con densitómetro,
+se carga en la fórmula y pasa a usarse la medida. Una fórmula vigente admite
+cargar o corregir esa medida (y nada más: 20260924170100). La fórmula 377 v1
+tenía 1,00000 mal cargado: quedó sin medida y rige la estimada (0,8099 g/mL a
+20 °C).
 
 ### R-06 · De qué lote sale el consumo de un pedido — 2026-09-23, provisorio
 

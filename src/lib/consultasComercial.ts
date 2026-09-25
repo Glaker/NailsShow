@@ -35,6 +35,10 @@ export interface PedidoRow {
   cliente_id: string | null;
   /** Cliente tercerizado (20260924150200). Nulo = pedido de Nail Show. */
   tercero_id: string | null;
+  /** Borrado por el usuario (20260924170000): CANCELADO y fuera de las bandejas. */
+  eliminado_en: string | null;
+  eliminado_por: string | null;
+  motivo_eliminacion: string | null;
   creado_por: string;
   creado_en: string;
 }
@@ -51,6 +55,8 @@ export interface PedidoRenglonRow {
   /** Precio unitario NETO de IVA (20260924130000). Null = sin precio todavía. */
   precio_unitario: number | null;
   alicuota_iva: number;
+  /** Quitado del pedido en borrador: la fila queda, no cuenta (20260924170000). */
+  anulado: boolean;
 }
 
 export type EstadoAviso = 'PENDIENTE' | 'EN_COMPRA' | 'RESUELTO' | 'DESCARTADO';
@@ -217,14 +223,20 @@ function rpcComercial<T>(fn: string, args: Record<string, unknown>) {
 export function usePedidos() {
   return useQuery({
     queryKey: ['pedidos'],
-    queryFn: async () => {
-      // `renglones(count)` resuelve dentro del mismo esquema: es un agregado de
-      // PostgREST, no una consulta por fila.
-      const { data, error } = await tablaComercial<PedidoConConteoRow[]>('pedidos')
-        .select('*, renglones:pedido_renglones(count)')
+    queryFn: async (): Promise<PedidoConConteoRow[]> => {
+      // Los borrados no aparecen en ninguna bandeja. Los productos se cuentan
+      // acá y no con `count` de PostgREST porque los quitados no cuentan.
+      const { data, error } = await tablaComercial<
+        (PedidoRow & { renglones: { anulado: boolean }[] })[]
+      >('pedidos')
+        .select('*, renglones:pedido_renglones(anulado)')
+        .is('eliminado_en', null)
         .order('fecha', { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).map((p): PedidoConConteoRow => ({
+        ...p,
+        renglones: [{ count: p.renglones.filter((r) => !r.anulado).length }],
+      }));
     },
   });
 }
@@ -258,7 +270,8 @@ export function useRenglonesPedido(pedidoId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await tablaComercial<PedidoRenglonRow[]>('pedido_renglones')
         .select('*')
-        .eq('pedido_id', pedidoId!);
+        .eq('pedido_id', pedidoId!)
+        .eq('anulado', false);
       if (error) throw error;
       return data ?? [];
     },
@@ -522,8 +535,9 @@ export function useQuitarRenglon() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (r: { id: string; pedidoId: string }) => {
+      // No se borra: se anula (la auditoría rechaza todo DELETE).
       const { data, error } = await tablaComercial<{ id: string }[]>('pedido_renglones')
-        .delete()
+        .update({ anulado: true })
         .eq('id', r.id)
         .select('id');
       if (error) throw error;
@@ -532,6 +546,31 @@ export function useQuitarRenglon() {
     onSuccess: (_d, v) => {
       invalidarPedido(qc, v.pedidoId);
       avisarExito('Producto quitado del pedido.');
+    },
+    onError: avisarError,
+  });
+}
+
+/**
+ * «Borrar pedido» (comercial.eliminar_pedido): lo cancela y lo saca de todas
+ * las bandejas, libera sus reservas y descarta sus avisos de compra. La fila
+ * queda, con quién y por qué, para la trazabilidad.
+ */
+export function useEliminarPedido() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (p: { id: string; motivo: string | null }) => {
+      const { error } = await rpcComercial<null>('eliminar_pedido', {
+        p_pedido_id: p.id,
+        p_motivo: p.motivo,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      invalidarPedido(qc, v.id);
+      void qc.invalidateQueries({ queryKey: ['avisos-compra'] });
+      void qc.invalidateQueries({ queryKey: ['tercerizados'] });
+      avisarExito('Pedido borrado.');
     },
     onError: avisarError,
   });

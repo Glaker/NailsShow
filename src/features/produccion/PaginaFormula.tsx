@@ -30,6 +30,7 @@ import { IconArrowLeft, IconPlus, IconTrash } from '@tabler/icons-react';
 import {
   useActualizarFormula,
   useCrearComponenteFormula,
+  useDensidadEstimadaFormula,
   useDensidadesReferencia,
   useEliminarComponenteFormula,
   useFormulaCompleta,
@@ -293,6 +294,10 @@ function PanelDensidadProducto({
   editable: boolean;
 }) {
   const actualizar = useActualizarFormula();
+  const estimada = useDensidadEstimadaFormula(
+    formula.id,
+    Number(formula.densidad_temp_c ?? 20),
+  );
   const [densidadProducto, setDensidadProducto] = useState<number | ''>(
     formula.densidad_producto ?? '',
   );
@@ -309,16 +314,35 @@ function PanelDensidadProducto({
       <Title order={3} mb="sm">
         Densidad del producto terminado
       </Title>
-      <Text size="sm" c="dimmed" mb="sm">
-        Es el único dato que convierte un volumen objetivo del lote en una masa (I.50.25).
-        Obligatorio antes de poder marcar la fórmula como vigente.
+      <Text size="sm" c="dimmed" mb="xs">
+        Convierte un volumen objetivo del lote en una masa. Por defecto se usa la estimada
+        por el modelo de mezcla; si la medís con el densitómetro (I.50.25), cargala acá y
+        pasa a usarse esa. En una fórmula vigente es lo único que se puede cambiar.
+      </Text>
+      <Text size="sm" mb="sm">
+        Estimada por el modelo:{' '}
+        <b>
+          {estimada.isLoading
+            ? '…'
+            : estimada.data?.densidad_real != null &&
+                (estimada.data.sin_densidad ?? []).length === 0
+              ? `${numero(estimada.data.densidad_real, 4)} g/mL a ${numero(formula.densidad_temp_c ?? 20, 1)} °C`
+              : `no se puede estimar${
+                  (estimada.data?.sin_densidad ?? []).length > 0
+                    ? ` (faltan densidades de ${(estimada.data?.sin_densidad ?? []).join(', ')})`
+                    : ''
+                }`}
+        </b>
+        {formula.densidad_producto !== null
+          ? ' · se está usando la medida'
+          : ' · es la que se usa'}
       </Text>
       <Grid gutter="sm" align="flex-end">
         <Grid.Col span={{ base: 12, sm: 4 }}>
           {editable ? (
             <NumberInput
-              label="Densidad (g/mL)"
-              withAsterisk
+              label="Densidad medida (g/mL)"
+              placeholder="Sin medir"
               min={0}
               decimalScale={5}
               hideControls
@@ -332,7 +356,7 @@ function PanelDensidadProducto({
               </Text>
               <Text size="sm" fw={600}>
                 {formula.densidad_producto === null
-                  ? '— sin cargar'
+                  ? '— sin medir'
                   : numero(formula.densidad_producto, 5)}
               </Text>
             </Stack>
@@ -419,7 +443,9 @@ export function PaginaFormula() {
   const proximoOrden =
     componentes.length === 0 ? 1 : Math.max(...componentes.map((c) => c.orden)) + 1;
   const hayCsp = componentes.some((c) => c.es_csp);
-  const puedeMarcarVigente = editableBorrador && f.densidad_producto !== null;
+  // Sin densidad medida alcanza con que sea estimable: lo controla la base
+  // (gmp.fn_formula_densidad_vigente).
+  const puedeMarcarVigente = editableBorrador;
 
   const confirmarVigente = () => {
     modals.openConfirmModal({
@@ -497,7 +523,11 @@ export function PaginaFormula() {
         </Alert>
       ) : null}
 
-      <PanelDensidadProducto key={f.id} formula={f} editable={editableBorrador} />
+      <PanelDensidadProducto
+        key={f.id}
+        formula={f}
+        editable={puedeEditar && (f.estado === 'BORRADOR' || f.estado === 'VIGENTE')}
+      />
 
       <ResumenPorcentajes componentes={componentes} />
 

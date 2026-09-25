@@ -1130,6 +1130,7 @@ export interface ConsultaTabla<T> extends PromiseLike<RespuestaTabla<T>> {
   delete(): ConsultaTabla<T>;
   eq(columna: string, valor: string | number | boolean): ConsultaTabla<T>;
   in(columna: string, valores: readonly (string | number)[]): ConsultaTabla<T>;
+  is(columna: string, valor: null | boolean): ConsultaTabla<T>;
   order(columna: string, opciones?: { ascending?: boolean }): ConsultaTabla<T>;
   single(): PromiseLike<RespuestaTabla<T>>;
 }
@@ -1290,6 +1291,26 @@ export function useModeloMezcla() {
           vv: r.pct_vv_20,
         })),
       };
+    },
+  });
+}
+
+/**
+ * Densidad del producto estimada por el modelo de mezcla
+ * (gmp.densidad_mezcla_formula). Es la que se usa por defecto cuando la
+ * fórmula no tiene densidad medida (R-07).
+ */
+export function useDensidadEstimadaFormula(formulaId: string | undefined, tempC = 20) {
+  return useQuery({
+    queryKey: ['densidad-estimada', formulaId, tempC],
+    enabled: Boolean(formulaId),
+    queryFn: async () => {
+      const { data, error } = await gmp().rpc('densidad_mezcla_formula', {
+        p_formula_id: formulaId!,
+        p_temp_c: tempC,
+      });
+      if (error) throw error;
+      return data?.[0] ?? null;
     },
   });
 }

@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ActionIcon,
   Alert,
@@ -16,6 +16,7 @@ import {
   Stack,
   Table,
   Text,
+  TextInput,
   Tooltip,
 } from '@mantine/core';
 import { modals } from '@mantine/modals';
@@ -48,6 +49,7 @@ import {
   useAvisosCompra,
   useCambiarCantidadRenglon,
   useCambiarEstadoPedido,
+  useEliminarPedido,
   useFaltantesPedido,
   useNomina,
   usePedido,
@@ -184,6 +186,10 @@ export function PaginaPedido() {
   const puedeTerminar = useTieneRol(...ROLES_TERMINAN_PEDIDOS);
   const [terminando, setTerminando] = useState(false);
   const [pasando, setPasando] = useState(false);
+  const [borrando, setBorrando] = useState(false);
+  const [motivoBorrado, setMotivoBorrado] = useState('');
+  const eliminar = useEliminarPedido();
+  const navigate = useNavigate();
   const terceros = useTerceros();
 
   const lista = renglones.data ?? [];
@@ -204,7 +210,9 @@ export function PaginaPedido() {
   }
 
   const p = pedido.data;
+  const borrado = p.eliminado_en !== null;
   const cerrado = p.estado === 'CUMPLIDO' || p.estado === 'CANCELADO';
+  const sePuedeBorrar = puedeEditar && !borrado && p.estado !== 'CUMPLIDO';
   const editable = puedeEditar && p.estado === 'BORRADOR';
   const sinRenglones = lista.length === 0;
   const sinLista = conLista.data
@@ -253,7 +261,24 @@ export function PaginaPedido() {
                 Tercerizado · {tercero.nombre}
               </Badge>
             ) : null}
-            <BadgeEstadoPedido estado={p.estado} />
+            {borrado ? (
+              <Badge color="gray" variant="filled" size="lg" radius="sm">
+                Borrado
+              </Badge>
+            ) : (
+              <BadgeEstadoPedido estado={p.estado} />
+            )}
+            {sePuedeBorrar ? (
+              <Button
+                size="md"
+                variant="subtle"
+                color="red"
+                leftSection={<IconTrash size={18} />}
+                onClick={() => setBorrando(true)}
+              >
+                Borrar pedido
+              </Button>
+            ) : null}
             {puedeTerminar &&
             (p.estado === 'CONFIRMADO' || p.estado === 'EN_PRODUCCION') ? (
               <Button
@@ -304,6 +329,16 @@ export function PaginaPedido() {
       />
 
       <Stack gap="lg">
+        {borrado ? (
+          <Alert color="gray" variant="light" radius="md" icon={<IconTrash size={18} />}>
+            Este pedido se borró el {fechaHora(p.eliminado_en)}
+            {p.eliminado_por && nomina.data?.get(p.eliminado_por)
+              ? ` (${nomina.data.get(p.eliminado_por)})`
+              : ''}
+            {p.motivo_eliminacion ? `: ${p.motivo_eliminacion}` : ''}. No figura en
+            ninguna bandeja; queda registrado para la trazabilidad.
+          </Alert>
+        ) : null}
         <Paper withBorder p="md" style={{ borderColor: 'var(--superficie-borde)' }}>
           <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
             <Dato etiqueta="Entrega comprometida">
@@ -449,6 +484,51 @@ export function PaginaPedido() {
           </Stack>
         )}
       </Stack>
+
+      <Modal
+        opened={borrando}
+        onClose={() => setBorrando(false)}
+        title={`Borrar el pedido ${p.numero}`}
+        centered
+        radius="md"
+      >
+        <Stack gap="md">
+          <Text size="sm">
+            El pedido sale de todas las bandejas y del tablero. Lo que tenía reservado se
+            libera y sus compras pendientes se descartan. Queda registrado quién lo borró
+            y por qué.
+          </Text>
+          <TextInput
+            label="Motivo"
+            placeholder="Por ejemplo: cargado dos veces"
+            value={motivoBorrado}
+            onChange={(e) => setMotivoBorrado(e.currentTarget.value)}
+          />
+          <Group justify="flex-end">
+            <Button variant="subtle" color="gray" onClick={() => setBorrando(false)}>
+              Volver
+            </Button>
+            <Button
+              color="red"
+              leftSection={<IconTrash size={16} />}
+              loading={eliminar.isPending}
+              onClick={() =>
+                eliminar.mutate(
+                  { id: p.id, motivo: motivoBorrado.trim() || null },
+                  {
+                    onSuccess: () => {
+                      setBorrando(false);
+                      void navigate('/pedidos');
+                    },
+                  },
+                )
+              }
+            >
+              Borrar pedido
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
 
       <Modal
         opened={pasando}

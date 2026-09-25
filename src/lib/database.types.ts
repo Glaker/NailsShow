@@ -717,6 +717,9 @@ export type Database = {
       pedido_renglones: {
         Row: {
           alicuota_iva: number
+          anulado: boolean
+          anulado_en: string | null
+          anulado_por: string | null
           cantidad: number
           id: string
           pedido_id: string
@@ -725,6 +728,9 @@ export type Database = {
         }
         Insert: {
           alicuota_iva?: number
+          anulado?: boolean
+          anulado_en?: string | null
+          anulado_por?: string | null
           cantidad: number
           id?: string
           pedido_id: string
@@ -733,6 +739,9 @@ export type Database = {
         }
         Update: {
           alicuota_iva?: number
+          anulado?: boolean
+          anulado_en?: string | null
+          anulado_por?: string | null
           cantidad?: number
           id?: string
           pedido_id?: string
@@ -755,10 +764,13 @@ export type Database = {
           cliente_id: string | null
           creado_en: string
           creado_por: string
+          eliminado_en: string | null
+          eliminado_por: string | null
           estado: Database["comercial"]["Enums"]["estado_pedido_enum"]
           fecha: string
           fecha_entrega: string | null
           id: string
+          motivo_eliminacion: string | null
           numero: string
           observaciones: string | null
           tercero_id: string | null
@@ -768,10 +780,13 @@ export type Database = {
           cliente_id?: string | null
           creado_en?: string
           creado_por?: string
+          eliminado_en?: string | null
+          eliminado_por?: string | null
           estado?: Database["comercial"]["Enums"]["estado_pedido_enum"]
           fecha?: string
           fecha_entrega?: string | null
           id?: string
+          motivo_eliminacion?: string | null
           numero: string
           observaciones?: string | null
           tercero_id?: string | null
@@ -781,10 +796,13 @@ export type Database = {
           cliente_id?: string | null
           creado_en?: string
           creado_por?: string
+          eliminado_en?: string | null
+          eliminado_por?: string | null
           estado?: Database["comercial"]["Enums"]["estado_pedido_enum"]
           fecha?: string
           fecha_entrega?: string | null
           id?: string
+          motivo_eliminacion?: string | null
           numero?: string
           observaciones?: string | null
           tercero_id?: string | null
@@ -1480,6 +1498,10 @@ export type Database = {
       disponible_para: {
         Args: { p_insumo_id: string; p_para: string; p_titular: string }
         Returns: number
+      }
+      eliminar_pedido: {
+        Args: { p_motivo?: string; p_pedido_id: string }
+        Returns: undefined
       }
       explotar_pedido: {
         Args: { p_pedido_id: string }

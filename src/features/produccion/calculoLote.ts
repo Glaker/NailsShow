@@ -250,9 +250,9 @@ export function calcularLote(
     densidadProductoEstimada = true;
     masaBase = objetivo.volumenL * mezclaModelo.densidadReal;
     avisos.push(
-      'La densidad del producto no está medida: se usó la estimada por el modelo de mezcla ' +
-        `(${mezclaModelo.densidadReal.toFixed(4)} g/mL a ${tempC} °C). Antes de fabricar, ` +
-        'medirla con el densitómetro (I.50.25) y cargarla en la fórmula.',
+      'Densidad del producto estimada por el modelo de mezcla ' +
+        `(${mezclaModelo.densidadReal.toFixed(4)} g/mL a ${tempC} °C), que es la que rige ` +
+        'mientras no se cargue una medida con densitómetro (I.50.25).',
     );
   } else {
     throw new Error(
