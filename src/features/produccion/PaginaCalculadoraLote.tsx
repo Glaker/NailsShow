@@ -11,7 +11,6 @@ import {
   Stack,
   Table,
   Text,
-  Tooltip,
 } from '@mantine/core';
 import {
   IconAlertTriangle,
@@ -43,7 +42,6 @@ import { BadgeEstadoFormula } from './estadoFormula';
 import { PanelProcedimiento } from './PanelProcedimiento';
 import {
   calcularLote,
-  gradoAlcoholicoAPP,
   type Densidad,
   type Formula,
   type ParVolumenExceso,
@@ -128,13 +126,33 @@ function formulaParaCalculo(
 }
 
 /**
- * Calculadora de lote: vista previa de `calculoLote.ts`.
- *
- * La autoridad sigue siendo `gmp.calcular_lote()` en la base, la que emite la
- * hoja de pesada real. Esta pantalla corre la misma aritmética del lado del
- * cliente para responder mientras el usuario mueve la temperatura o el
- * volumen objetivo, sin ida y vuelta al servidor por cada cambio.
+ * Calculadora de lote: vista previa de `calculoLote.ts`, la misma aritmética
+ * que `gmp.calcular_lote()` en la base.
  */
+/**
+ * Avisos que no cambian lo que se pesa o se mide: la pantalla es para
+ * Producción, que necesita la cantidad de cada cosa y nada más (codirector
+ * técnico, 2026-09-25). `calcularLote` los sigue devolviendo para quien los
+ * necesite.
+ */
+const AVISO_NO_OPERATIVO = /no son aditivos|contracción|masa molar|modelo de mezcla/i;
+
+/** Masa o volumen en la unidad que se lee en una balanza o una probeta. */
+function cantidadLegible(r: {
+  masaKg: number;
+  volumenL: number | null;
+  seMideAVolumen: boolean;
+}) {
+  if (r.seMideAVolumen && r.volumenL !== null) {
+    return r.volumenL < 1
+      ? { verbo: 'Medir', valor: `${numero(r.volumenL * 1000, 0)} mL` }
+      : { verbo: 'Medir', valor: `${numero(r.volumenL, 3)} L` };
+  }
+  return r.masaKg < 1
+    ? { verbo: 'Pesar', valor: `${numero(r.masaKg * 1000, 1)} g` }
+    : { verbo: 'Pesar', valor: `${numero(r.masaKg, 3)} kg` };
+}
+
 export function PaginaCalculadoraLote() {
   const formulas = useFormulasFabricacion();
   const [formulaId, setFormulaId] = useState<string | null>(null);
@@ -142,6 +160,8 @@ export function PaginaCalculadoraLote() {
   const [volumenL, setVolumenL] = useState<number | ''>('');
   const [masaKg, setMasaKg] = useState<number | ''>('');
   const [tempC, setTempC] = useState<number | ''>(20);
+  /** Densidad del granel escrita a mano. Null = la de por defecto. */
+  const [densidadEditada, setDensidadEditada] = useState<number | '' | null>(null);
 
   /**
    * La sugerencia meteorológica se aplica una sola vez, al llegar. Después el
@@ -158,7 +178,6 @@ export function PaginaCalculadoraLote() {
 
   const formulaCompleta = useFormulaCompleta(formulaId ?? undefined);
   const modelo = useModeloMezcla();
-  const [gradoGl, setGradoGl] = useState<number | ''>(96);
   const formulaSeleccionada =
     (formulas.data ?? []).find((f) => f.id === formulaId) ?? null;
 
@@ -172,26 +191,58 @@ export function PaginaCalculadoraLote() {
     return typeof masaKg === 'number' && masaKg > 0 ? { masaKg } : null;
   }, [tipoObjetivo, volumenL, masaKg]);
 
+  const formula = useMemo(
+    () =>
+      formulaCompleta.data ? formulaParaCalculo(formulaCompleta.data, modelo.data) : null,
+    [formulaCompleta.data, modelo.data],
+  );
+
+  // Densidad del granel por defecto: la medida si se cargó en la fórmula; si
+  // no, la del modelo de mezcla a la temperatura de trabajo (R-07).
+  const densidadModelo = useMemo(() => {
+    if (!formula || typeof tempC !== 'number' || tempFueraDeRango) return null;
+    try {
+      return (
+        calcularLote({ ...formula, densidadProducto: null }, { masaKg: 1 }, tempC).mezcla
+          ?.densidadReal ?? null
+      );
+    } catch {
+      return null;
+    }
+  }, [formula, tempC, tempFueraDeRango]);
+  const densidadMedida = formula?.densidadProducto ?? null;
+  const densidadDefecto = densidadMedida ?? densidadModelo;
+  const densidadUsada =
+    densidadEditada === null
+      ? densidadDefecto
+      : densidadEditada === ''
+        ? null
+        : densidadEditada;
+
   const resultado = useMemo(() => {
-    if (!formulaCompleta.data || !objetivo || typeof tempC !== 'number') return null;
-    // Fuera del rango operativo no se calcula. La corrección de densidad es una
-    // linealización de primer orden (ver `densidadA`): devolver una tabla con
-    // cinco decimales para una temperatura imposible es peor que no devolver
-    // nada, porque parece un resultado.
+    if (!formula || !objetivo || typeof tempC !== 'number') return null;
+    // Fuera del rango operativo no se calcula: devolver una tabla con cinco
+    // decimales para una temperatura imposible es peor que no devolver nada.
     if (tempC < TEMP_MIN_C || tempC > TEMP_MAX_C) return null;
     try {
-      const formula = formulaParaCalculo(formulaCompleta.data, modelo.data);
-      return { ok: true as const, valor: calcularLote(formula, objetivo, tempC) };
+      return {
+        ok: true as const,
+        valor: calcularLote(
+          { ...formula, densidadProducto: densidadUsada },
+          objetivo,
+          tempC,
+        ),
+      };
     } catch (e) {
       return { ok: false as const, mensaje: e instanceof Error ? e.message : String(e) };
     }
-  }, [formulaCompleta.data, modelo.data, objetivo, tempC]);
+  }, [formula, objetivo, tempC, densidadUsada]);
 
   return (
     <>
       <EncabezadoPagina
         titulo="Calculadora de lote"
-        descripcion="Explota una fórmula de fabricación en masa y volumen por componente. Vista previa: la hoja de pesada la emite la base (PG.60.8)."
+        descripcion="Cuánto pesar o medir de cada componente para el lote."
       />
 
       <Paper withBorder p="md" mb="md" style={{ borderColor: 'var(--superficie-borde)' }}>
@@ -226,7 +277,10 @@ export function PaginaCalculadoraLote() {
               );
             }}
             value={formulaId}
-            onChange={setFormulaId}
+            onChange={(v) => {
+              setFormulaId(v);
+              setDensidadEditada(null);
+            }}
           />
 
           {formulas.isLoading ? null : (formulas.data ?? []).length === 0 ? (
@@ -236,7 +290,7 @@ export function PaginaCalculadoraLote() {
             </Text>
           ) : null}
 
-          <Group grow align="flex-end" wrap="wrap">
+          <Group grow align="flex-start" wrap="wrap">
             <Stack gap={4}>
               <Text size="sm" fw={500}>
                 Objetivo del lote
@@ -287,13 +341,40 @@ export function PaginaCalculadoraLote() {
               value={tempC}
               onChange={(v) => setTempC(typeof v === 'number' ? v : '')}
             />
+
+            {tipoObjetivo === 'volumen' && formula ? (
+              <NumberInput
+                label="Densidad del granel (g/mL)"
+                min={0}
+                decimalScale={4}
+                hideControls
+                description={
+                  densidadEditada !== null ? (
+                    <Anchor
+                      component="button"
+                      type="button"
+                      size="xs"
+                      onClick={() => setDensidadEditada(null)}
+                    >
+                      Volver a la {densidadMedida !== null ? 'medida' : 'del modelo'}
+                    </Anchor>
+                  ) : densidadMedida !== null ? (
+                    'Medida (cargada en la fórmula)'
+                  ) : densidadModelo !== null ? (
+                    'Del modelo de mezcla'
+                  ) : (
+                    'Sin estimar: cargala'
+                  )
+                }
+                value={densidadUsada ?? ''}
+                onChange={(v) => setDensidadEditada(typeof v === 'number' ? v : '')}
+              />
+            ) : null}
           </Group>
 
           {/*
-            De dónde salió el número. La sugerencia es una estimación —dato de
-            una estación que no está en la planta, más un offset que nadie
-            calibró—, así que la pantalla lo dice en vez de presentarla como
-            una medición. Para fabricar, la temperatura se mide.
+            De dónde salió la temperatura. La sugerencia es una estimación, así
+            que la pantalla lo dice en vez de presentarla como una medición.
           */}
           <Group gap={6} wrap="nowrap" align="flex-start">
             <IconTemperature
@@ -314,8 +395,7 @@ export function PaginaCalculadoraLote() {
                   })}
                   ) más {OFFSET_INTERIOR_C} °C de interior.{' '}
                   {clima.data.acotada ? 'Acotado al rango operativo. ' : ''}
-                  Es una estimación: para emitir una hoja de pesada, la temperatura se
-                  mide con el instrumento calibrado.
+                  Para fabricar, la temperatura se mide.
                 </>
               ) : (
                 <>
@@ -339,7 +419,7 @@ export function PaginaCalculadoraLote() {
           <Vacio
             icono={IconFlask}
             titulo="Elegí una fórmula"
-            descripcion="La calculadora explota la fórmula de fabricación vigente o en desarrollo en masa y volumen por componente."
+            descripcion="La calculadora dice cuánto pesar o medir de cada componente."
           />
         </Paper>
       ) : formulaCompleta.isLoading ? (
@@ -349,7 +429,7 @@ export function PaginaCalculadoraLote() {
           <Vacio
             icono={IconCalculator}
             titulo="Indicá el objetivo del lote"
-            descripcion="Cargá el volumen o la masa que se quiere producir para ver el desglose por componente."
+            descripcion="Cargá el volumen o la masa que se quiere producir."
           />
         </Paper>
       ) : tempFueraDeRango ? (
@@ -360,8 +440,6 @@ export function PaginaCalculadoraLote() {
           icon={<IconAlertTriangle size={18} />}
         >
           La temperatura de trabajo tiene que estar entre {TEMP_MIN_C} y {TEMP_MAX_C} °C.
-          La corrección de densidad es una linealización válida cerca de la temperatura de
-          referencia; fuera de ese rango el número dejaría de significar algo.
         </Alert>
       ) : resultado && !resultado.ok ? (
         <Alert
@@ -376,167 +454,75 @@ export function PaginaCalculadoraLote() {
         <Stack gap="md">
           <Group grow wrap="wrap">
             <TarjetaIndicador
-              etiqueta="Masa total"
+              etiqueta="Masa total del lote"
               valor={`${numero(resultado.valor.masaTotalKg, 3)} kg`}
               icono={IconCalculator}
             />
             {resultado.valor.volumenObjetivoL !== null ? (
               <TarjetaIndicador
-                etiqueta="Volumen objetivo"
+                etiqueta="Volumen del lote"
                 valor={`${numero(resultado.valor.volumenObjetivoL, 1)} L`}
                 icono={IconFlask}
               />
             ) : null}
-            <TarjetaIndicador
-              etiqueta="Suma de volúmenes medidos"
-              valor={`${numero(resultado.valor.sumaVolumenesL, 3)} L`}
-              icono={IconFlask}
-              detalle="Informativo: los volúmenes no son aditivos, la masa sí."
-            />
           </Group>
 
-          {resultado.valor.mezcla ? (
-            <Paper withBorder p="md" style={{ borderColor: 'var(--superficie-borde)' }}>
-              <Group justify="space-between" mb="xs" wrap="wrap">
-                <Text fw={600}>Mezcla a {resultado.valor.tempC} °C</Text>
-                <Text size="xs" c="dimmed">
-                  Modelo de la planilla de densidades: aditividad más corrección por
-                  contracción de los pares con datos.
-                </Text>
-              </Group>
-              <Group grow wrap="wrap">
-                <TarjetaIndicador
-                  etiqueta="Volumen real de la mezcla"
-                  valor={`${numero(resultado.valor.mezcla.volumenRealL, 2)} L`}
-                  icono={IconFlask}
-                  detalle={`Sumando volúmenes darían ${numero(resultado.valor.mezcla.volumenIdealL, 2)} L`}
-                />
-                <TarjetaIndicador
-                  etiqueta={
-                    resultado.valor.mezcla.cambioVolumenPct < 0
-                      ? 'Se contrae al mezclar'
-                      : 'Se expande al mezclar'
-                  }
-                  valor={`${numero(Math.abs(resultado.valor.mezcla.cambioVolumenPct), 2)} %`}
-                  icono={IconFlask}
-                  detalle={`${numero(Math.abs(resultado.valor.mezcla.volumenRealL - resultado.valor.mezcla.volumenIdealL), 2)} L de diferencia`}
-                />
-                <TarjetaIndicador
-                  etiqueta="Densidad del granel"
-                  valor={`${numero(resultado.valor.mezcla.densidadReal, 4)} g/mL`}
-                  icono={IconCalculator}
-                  detalle={
-                    resultado.valor.densidadProductoEstimada
-                      ? 'Estimada: es la que se usó para el volumen objetivo.'
-                      : resultado.valor.densidadProductoUsada !== null
-                        ? `Estimada. Se usó la medida: ${numero(resultado.valor.densidadProductoUsada, 4)} g/mL.`
-                        : 'Estimada por el modelo.'
-                  }
-                />
-              </Group>
-            </Paper>
-          ) : null}
-
-          {resultado.valor.avisos.length > 0 ? (
-            <Stack gap="xs">
-              {resultado.valor.avisos.map((aviso, i) => (
-                <Alert
-                  key={i}
-                  color="estadoEnAnalisis"
-                  variant="light"
-                  radius="md"
-                  icon={<IconAlertTriangle size={18} />}
-                >
-                  {aviso}
-                </Alert>
-              ))}
-            </Stack>
-          ) : null}
+          {resultado.valor.avisos
+            .filter((a) => !AVISO_NO_OPERATIVO.test(a))
+            .map((aviso, i) => (
+              <Alert
+                key={i}
+                color="estadoEnAnalisis"
+                variant="light"
+                radius="md"
+                icon={<IconAlertTriangle size={18} />}
+              >
+                {aviso}
+              </Alert>
+            ))}
 
           <Paper
             withBorder
             style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}
           >
-            <Table.ScrollContainer minWidth={760}>
-              <Table verticalSpacing="sm" highlightOnHover>
+            <Table.ScrollContainer minWidth={520}>
+              <Table verticalSpacing="md" highlightOnHover>
                 <Table.Thead>
                   <Table.Tr>
                     <Table.Th>Componente</Table.Th>
                     <Table.Th ta="right">% P/P</Table.Th>
-                    <Table.Th ta="right">Masa (kg)</Table.Th>
-                    <Table.Th ta="right">Volumen (L)</Table.Th>
-                    <Table.Th ta="right">Densidad aplicada (g/mL)</Table.Th>
-                    <Table.Th>Se carga</Table.Th>
-                    <Table.Th>Etapa</Table.Th>
+                    <Table.Th ta="right">Cantidad</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
-                  {resultado.valor.renglones.map((r) => (
-                    <Table.Tr key={r.orden}>
-                      <Table.Td>
-                        <Group gap={6} wrap="nowrap">
-                          <Text size="sm" fw={600}>
+                  {resultado.valor.renglones.map((r) => {
+                    const c = cantidadLegible(r);
+                    return (
+                      <Table.Tr key={r.orden}>
+                        <Table.Td>
+                          <Text size="md" fw={600}>
                             {r.componente}
                           </Text>
-                          {r.densidadNoVerificada ? (
-                            <Tooltip
-                              label="Densidad de literatura, no verificada. Para fabricar, reemplazarla por la del certificado o por una medición propia."
-                              multiline
-                              w={280}
-                            >
-                              <IconAlertTriangle
-                                size={15}
-                                color="var(--mantine-color-estadoEnAnalisis-7)"
-                              />
-                            </Tooltip>
-                          ) : null}
-                        </Group>
-                        {r.codigoInterno ? (
                           <Text size="xs" c="dimmed">
-                            {r.codigoInterno}
+                            {[r.codigoInterno, r.etapa].filter(Boolean).join(' · ')}
                           </Text>
-                        ) : null}
-                      </Table.Td>
-                      <Table.Td ta="right">
-                        <Text size="sm" ff="monospace">
-                          {numero(r.porcentajePP, 4)}
-                        </Text>
-                      </Table.Td>
-                      <Table.Td ta="right">
-                        <Text size="sm" ff="monospace" fw={600}>
-                          {numero(r.masaKg, 4)}
-                        </Text>
-                      </Table.Td>
-                      <Table.Td ta="right">
-                        <Text size="sm" ff="monospace">
-                          {r.volumenL === null ? '—' : numero(r.volumenL, 4)}
-                        </Text>
-                      </Table.Td>
-                      <Table.Td ta="right">
-                        <Text size="sm" ff="monospace" c="dimmed">
-                          {r.densidadAplicada === null
-                            ? '—'
-                            : numero(r.densidadAplicada, 5)}
-                        </Text>
-                        {r.densidadNombre ? (
-                          <Text size="xs" c="dimmed">
-                            {r.densidadNombre}
-                            {r.densidadOrigen === 'insumo' ? ' · del insumo' : ''}
+                        </Table.Td>
+                        <Table.Td ta="right">
+                          <Text size="sm" ff="monospace" c="dimmed">
+                            {numero(r.porcentajePP, 2)} %
                           </Text>
-                        ) : null}
-                      </Table.Td>
-                      <Table.Td>
-                        <Text size="sm" c="dimmed">
-                          {r.seMideAVolumen ? 'A volumen' : 'Pesado'}
-                        </Text>
-                      </Table.Td>
-                      <Table.Td>
-                        <Text size="sm" c="dimmed">
-                          {r.etapa ?? '—'}
-                        </Text>
-                      </Table.Td>
-                    </Table.Tr>
-                  ))}
+                        </Table.Td>
+                        <Table.Td ta="right">
+                          <Text size="xs" c="dimmed" fw={600}>
+                            {c.verbo}
+                          </Text>
+                          <Text fz={22} ff="monospace" fw={800} lh={1.1}>
+                            {c.valor}
+                          </Text>
+                        </Table.Td>
+                      </Table.Tr>
+                    );
+                  })}
                 </Table.Tbody>
               </Table>
             </Table.ScrollContainer>
@@ -554,69 +540,6 @@ export function PaginaCalculadoraLote() {
           ) : null}
         </Stack>
       ) : null}
-
-      <ConversorGrado
-        grado={gradoGl}
-        onGrado={setGradoGl}
-        tabla={modelo.data?.etanolAgua ?? []}
-      />
     </>
-  );
-}
-
-/**
- * °GL (% v/v a 20 °C) a % P/P de etanol, con la tabla CRC: la fórmula está en
- * peso y el alcohol se compra por graduación.
- */
-function ConversorGrado({
-  grado,
-  onGrado,
-  tabla,
-}: {
-  grado: number | '';
-  onGrado: (v: number | '') => void;
-  tabla: { pp: number; vv: number }[];
-}) {
-  let resultado: string | null = null;
-  if (typeof grado === 'number' && tabla.length > 0) {
-    try {
-      resultado = `${numero(gradoAlcoholicoAPP(grado, tabla), 2)} % P/P de etanol`;
-    } catch (e) {
-      resultado = e instanceof Error ? e.message : String(e);
-    }
-  }
-  return (
-    <Paper withBorder p="md" mt="md" style={{ borderColor: 'var(--superficie-borde)' }}>
-      <Group align="flex-end" gap="md" wrap="wrap">
-        <NumberInput
-          label="Graduación del alcohol"
-          description="% v/v a 20 °C (°GL), como figura en el protocolo"
-          min={0}
-          max={100}
-          decimalScale={2}
-          hideControls
-          w={220}
-          rightSection={
-            <Text size="xs" c="dimmed">
-              °GL
-            </Text>
-          }
-          value={grado}
-          onChange={(v) => onGrado(typeof v === 'number' ? v : '')}
-        />
-        <Stack gap={0}>
-          <Text size="xs" c="dimmed">
-            Equivale a
-          </Text>
-          <Text fw={700} fz={20}>
-            {resultado ?? '—'}
-          </Text>
-        </Stack>
-        <Text size="xs" c="dimmed" maw={360}>
-          Tabla CRC etanol-agua. No es una regla de tres con densidades: al mezclar etanol
-          y agua el volumen se contrae.
-        </Text>
-      </Group>
-    </Paper>
   );
 }
