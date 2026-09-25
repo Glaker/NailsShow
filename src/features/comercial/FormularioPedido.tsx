@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from '@mantine/form';
 import { zod4Resolver } from 'mantine-form-zod-resolver';
@@ -9,6 +9,7 @@ import {
   Autocomplete,
   Button,
   Group,
+  Modal,
   NumberInput,
   Paper,
   Select,
@@ -20,6 +21,13 @@ import {
 import { DateInput } from '@mantine/dates';
 import { IconInfoCircle, IconPlus, IconSend, IconTrash } from '@tabler/icons-react';
 import { useProductos } from '@/lib/consultas';
+import {
+  ALICUOTAS,
+  TEXTO_CONDICION,
+  claseFactura,
+  useClientes,
+} from '@/lib/consultasFacturacion';
+import { FormularioCliente } from './FormularioCliente';
 import {
   useProductosConListaCargada,
   useRegistrarPedido,
@@ -35,6 +43,8 @@ import {
 const esquema = z.object({
   numero: z.string().trim().min(1, 'Poné el número del pedido.'),
   cliente: z.string().trim().min(1, 'Poné el cliente.'),
+  // Del padrón: hace falta para facturar, no para producir.
+  clienteId: z.string().nullable(),
   fechaEntrega: z.string().nullable(),
   observaciones: z.string(),
   renglones: z
@@ -44,6 +54,9 @@ const esquema = z.object({
         cantidad: z
           .number({ message: 'Indicá la cantidad.' })
           .positive('Tiene que ser mayor que cero.'),
+        // Neto de IVA. Opcional para producir; obligatorio para facturar.
+        precioUnitario: z.number().nonnegative('No puede ser negativo.').nullable(),
+        alicuotaIva: z.number(),
       }),
     )
     .min(1, 'Agregá al menos un producto.')
@@ -96,14 +109,17 @@ export function FormularioPedido({ pedidos, onCerrar }: Props) {
   const productos = useProductos();
   const registrar = useRegistrarPedido();
   const conLista = useProductosConListaCargada();
+  const padron = useClientes();
+  const [altaCliente, setAltaCliente] = useState(false);
 
   const form = useForm<Valores>({
     initialValues: {
       numero: numeroSiguiente(pedidos),
       cliente: '',
+      clienteId: null,
       fechaEntrega: null,
       observaciones: '',
-      renglones: [{ productoId: '', cantidad: 0 }],
+      renglones: [{ productoId: '', cantidad: 0, precioUnitario: null, alicuotaIva: 21 }],
     },
     validate: zod4Resolver(esquema),
   });
@@ -140,6 +156,7 @@ export function FormularioPedido({ pedidos, onCerrar }: Props) {
       {
         numero: v.numero.trim(),
         cliente: v.cliente.trim(),
+        clienteId: v.clienteId,
         fechaEntrega: v.fechaEntrega,
         observaciones: v.observaciones.trim() || null,
         renglones: v.renglones,
@@ -173,6 +190,52 @@ export function FormularioPedido({ pedidos, onCerrar }: Props) {
             {...form.getInputProps('cliente')}
           />
         </Group>
+
+        <Group align="flex-end" gap="sm" wrap="nowrap">
+          <Select
+            label="Cliente del padrón"
+            description="Para poder facturarle. Elegirlo completa el nombre de arriba."
+            placeholder="Buscá por nombre"
+            searchable
+            clearable
+            nothingFoundMessage="No está: dalo de alta"
+            style={{ flex: 1 }}
+            data={(padron.data ?? [])
+              .filter((c) => c.activo)
+              .map((c) => ({
+                value: c.id,
+                label: `${c.razon_social} · ${TEXTO_CONDICION[c.condicion_iva]} · Factura ${claseFactura(c.condicion_iva)}`,
+              }))}
+            value={form.values.clienteId}
+            onChange={(id) => {
+              form.setFieldValue('clienteId', id);
+              const c = (padron.data ?? []).find((x) => x.id === id);
+              if (c) form.setFieldValue('cliente', c.razon_social);
+            }}
+          />
+          <Button variant="default" leftSection={<IconPlus size={16} />} onClick={() => setAltaCliente(true)}>
+            Nuevo cliente
+          </Button>
+        </Group>
+
+        <Modal
+          opened={altaCliente}
+          onClose={() => setAltaCliente(false)}
+          title="Nuevo cliente"
+          centered
+          radius="md"
+        >
+          {altaCliente ? (
+            <FormularioCliente
+              cliente={null}
+              onListo={(c) => {
+                setAltaCliente(false);
+                form.setFieldValue('clienteId', c.id);
+                form.setFieldValue('cliente', c.razon_social);
+              }}
+            />
+          ) : null}
+        </Modal>
 
         <DateInput
           label="Entrega comprometida"
@@ -216,8 +279,34 @@ export function FormularioPedido({ pedidos, onCerrar }: Props) {
                   min={1}
                   allowDecimal={false}
                   hideControls
-                  w={100}
+                  w={90}
                   {...form.getInputProps(`renglones.${i}.cantidad`)}
+                />
+                <NumberInput
+                  aria-label={`Precio unitario neto ${i + 1}`}
+                  placeholder="Precio neto"
+                  prefix="$ "
+                  min={0}
+                  decimalScale={2}
+                  hideControls
+                  w={130}
+                  value={form.values.renglones[i]?.precioUnitario ?? ''}
+                  onChange={(v) =>
+                    form.setFieldValue(
+                      `renglones.${i}.precioUnitario`,
+                      typeof v === 'number' ? v : null,
+                    )
+                  }
+                />
+                <Select
+                  aria-label={`IVA ${i + 1}`}
+                  w={92}
+                  allowDeselect={false}
+                  data={ALICUOTAS}
+                  value={String(form.values.renglones[i]?.alicuotaIva ?? 21)}
+                  onChange={(v) =>
+                    form.setFieldValue(`renglones.${i}.alicuotaIva`, Number(v ?? 21))
+                  }
                 />
                 <ActionIcon
                   variant="subtle"
@@ -241,7 +330,12 @@ export function FormularioPedido({ pedidos, onCerrar }: Props) {
             variant="light"
             leftSection={<IconPlus size={16} />}
             onClick={() =>
-              form.insertListItem('renglones', { productoId: '', cantidad: 0 })
+              form.insertListItem('renglones', {
+                productoId: '',
+                cantidad: 0,
+                precioUnitario: null,
+                alicuotaIva: 21,
+              })
             }
             style={{ alignSelf: 'flex-start' }}
           >

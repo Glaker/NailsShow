@@ -37,7 +37,8 @@ export function PanelProcedimiento({
 }) {
   const versiones = useProcedimientos(formulaId);
   const nomina = useNomina();
-  const puedeEditar = useTieneRol('DIRECCION_TECNICA', 'GERENCIA_PRODUCCION') && !soloLectura;
+  const puedeEditar =
+    useTieneRol('DIRECCION_TECNICA', 'GERENCIA_PRODUCCION') && !soloLectura;
   const [editando, setEditando] = useState(false);
   const [historial, setHistorial] = useState(false);
 
@@ -106,7 +107,11 @@ export function PanelProcedimiento({
       <Modal
         opened={editando}
         onClose={() => setEditando(false)}
-        title={vigente ? `Editar procedimiento (será la versión ${vigente.version + 1})` : 'Cargar procedimiento'}
+        title={
+          vigente
+            ? `Editar procedimiento (será la versión ${vigente.version + 1})`
+            : 'Cargar procedimiento'
+        }
         size="xl"
         centered
         radius="md"
@@ -166,7 +171,8 @@ function EditorProcedimiento({
   const [texto, setTexto] = useState(textoActual);
   const [motivo, setMotivo] = useState('');
   const cambio = texto.trim() !== textoActual.trim();
-  const valido = texto.trim().length > 0 && cambio && (esPrimera || motivo.trim().length >= 3);
+  const valido =
+    texto.trim().length > 0 && cambio && (esPrimera || motivo.trim().length >= 3);
 
   return (
     <Stack gap="md">
@@ -199,7 +205,11 @@ function EditorProcedimiento({
           loading={guardar.isPending}
           onClick={() =>
             guardar.mutate(
-              { formulaId, texto: texto.trim(), motivo: esPrimera ? null : motivo.trim() },
+              {
+                formulaId,
+                texto: texto.trim(),
+                motivo: esPrimera ? null : motivo.trim(),
+              },
               { onSuccess: onListo },
             )
           }

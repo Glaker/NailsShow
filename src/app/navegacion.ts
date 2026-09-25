@@ -15,6 +15,8 @@ import {
   IconBuildingStore,
   IconListCheck,
   IconClipboardCheck,
+  IconFileInvoice,
+  IconUsersGroup,
   type Icon,
 } from '@tabler/icons-react';
 import type { Rol } from '@/features/auth/sesion';
@@ -101,6 +103,18 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiqueta: 'Compras pendientes',
     etiquetaCorta: 'Compras',
     icono: IconListCheck,
+  },
+  {
+    ruta: '/clientes',
+    etiqueta: 'Clientes',
+    etiquetaCorta: 'Clientes',
+    icono: IconUsersGroup,
+  },
+  {
+    ruta: '/facturas',
+    etiqueta: 'Facturas',
+    etiquetaCorta: 'Facturas',
+    icono: IconFileInvoice,
   },
   {
     ruta: '/lista-materiales',

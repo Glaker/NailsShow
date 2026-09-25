@@ -31,6 +31,8 @@ export interface PedidoRow {
   fecha_entrega: string | null;
   estado: EstadoPedido;
   observaciones: string | null;
+  /** Cliente del padrón (20260924130000). Obligatorio para facturar. */
+  cliente_id: string | null;
   creado_por: string;
   creado_en: string;
 }
@@ -44,6 +46,9 @@ export interface PedidoRenglonRow {
   pedido_id: string;
   producto_id: string;
   cantidad: number;
+  /** Precio unitario NETO de IVA (20260924130000). Null = sin precio todavía. */
+  precio_unitario: number | null;
+  alicuota_iva: number;
 }
 
 export type EstadoAviso = 'PENDIENTE' | 'EN_COMPRA' | 'RESUELTO' | 'DESCARTADO';
@@ -324,15 +329,22 @@ export function useRegistrarPedido() {
     mutationFn: async (p: {
       numero: string;
       cliente: string;
+      clienteId: string | null;
       fechaEntrega: string | null;
       observaciones: string | null;
-      renglones: { productoId: string; cantidad: number }[];
+      renglones: {
+        productoId: string;
+        cantidad: number;
+        precioUnitario: number | null;
+        alicuotaIva: number;
+      }[];
       confirmar: boolean;
     }): Promise<{ pedido: PedidoRow; falla: string | null }> => {
       const { data, error } = await tablaComercial<PedidoRow>('pedidos')
         .insert({
           numero: p.numero,
           cliente: p.cliente,
+          cliente_id: p.clienteId,
           fecha_entrega: p.fechaEntrega,
           observaciones: p.observaciones,
         })
@@ -349,6 +361,8 @@ export function useRegistrarPedido() {
             pedido_id: pedido.id,
             producto_id: r.productoId,
             cantidad: r.cantidad,
+            precio_unitario: r.precioUnitario,
+            alicuota_iva: r.alicuotaIva,
           })),
         );
         if (errRenglones) {
@@ -447,6 +461,54 @@ export function useCambiarCantidadRenglon() {
     onSuccess: (_d, v) => {
       invalidarPedido(qc, v.pedidoId);
       avisarExito('Cantidad actualizada.');
+    },
+    onError: avisarError,
+  });
+}
+
+/** Precio y alícuota de un renglón. La base solo lo deja en borrador. */
+export function useCambiarPrecioRenglon() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (r: {
+      id: string;
+      pedidoId: string;
+      precioUnitario: number | null;
+      alicuotaIva: number;
+    }) => {
+      const { data, error } = await tablaComercial<{ id: string }[]>('pedido_renglones')
+        .update({ precio_unitario: r.precioUnitario, alicuota_iva: r.alicuotaIva })
+        .eq('id', r.id)
+        .select('id');
+      if (error) throw error;
+      exigirFila(data, 'cambiar el precio');
+    },
+    onSuccess: (_d, v) => {
+      invalidarPedido(qc, v.pedidoId);
+      avisarExito('Precio actualizado.');
+    },
+    onError: avisarError,
+  });
+}
+
+/**
+ * Cliente del padrón del pedido. La base lo deja asignar aunque el pedido esté
+ * cerrado, pero una sola vez: completa el dato que la factura necesita.
+ */
+export function useAsignarClientePedido() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: { pedidoId: string; clienteId: string }) => {
+      const { data, error } = await tablaComercial<{ id: string }[]>('pedidos')
+        .update({ cliente_id: a.clienteId })
+        .eq('id', a.pedidoId)
+        .select('id');
+      if (error) throw error;
+      exigirFila(data, 'asignar el cliente');
+    },
+    onSuccess: (_d, v) => {
+      invalidarPedido(qc, v.pedidoId);
+      avisarExito('Cliente asignado al pedido.');
     },
     onError: avisarError,
   });

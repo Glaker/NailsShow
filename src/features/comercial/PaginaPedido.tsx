@@ -62,6 +62,12 @@ import {
 } from '@/lib/consultasComercial';
 import { BadgeEntrega, BadgeEstadoAviso, BadgeEstadoPedido } from './estadoPedido';
 import { TerminarPedido } from './TerminarPedido';
+import {
+  CeldasPrecio,
+  ClienteDelPedido,
+  SeccionFactura,
+  TotalesPedido,
+} from './FacturacionPedido';
 
 /* ------------------------------------------------------------------------- *
  * Circuito del pedido
@@ -275,7 +281,7 @@ export function PaginaPedido() {
 
       <Stack gap="lg">
         <Paper withBorder p="md" style={{ borderColor: 'var(--superficie-borde)' }}>
-          <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+          <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
             <Dato etiqueta="Entrega comprometida">
               <BadgeEntrega fechaEntrega={p.fecha_entrega} abierto={!cerrado} />
             </Dato>
@@ -286,6 +292,9 @@ export function PaginaPedido() {
                   ? ` · ${nomina.data.get(p.creado_por)}`
                   : ''}
               </Text>
+            </Dato>
+            <Dato etiqueta="Cliente para facturar">
+              <ClienteDelPedido pedido={p} />
             </Dato>
             <Dato etiqueta="Observaciones">
               <Text size="sm" c={p.observaciones ? 'inherit' : 'dimmed'}>
@@ -318,12 +327,15 @@ export function PaginaPedido() {
                 {editable ? ' Agregá el primero para ver qué hace falta.' : ''}
               </Text>
             ) : (
-              <Table.ScrollContainer minWidth={520}>
+              <Table.ScrollContainer minWidth={820}>
                 <Table verticalSpacing="xs">
                   <Table.Thead>
                     <Table.Tr>
                       <Table.Th>Producto</Table.Th>
                       <Table.Th ta="right">Cantidad</Table.Th>
+                      <Table.Th ta="right">Precio neto</Table.Th>
+                      <Table.Th ta="right">IVA</Table.Th>
+                      <Table.Th ta="right">Subtotal</Table.Th>
                       {editable ? <Table.Th w={60} /> : null}
                     </Table.Tr>
                   </Table.Thead>
@@ -342,6 +354,8 @@ export function PaginaPedido() {
               </Table.ScrollContainer>
             )}
 
+            {sinRenglones ? null : <TotalesPedido renglones={lista} />}
+
             {editable ? (
               <AgregarRenglon
                 pedidoId={p.id}
@@ -350,6 +364,8 @@ export function PaginaPedido() {
             ) : null}
           </Stack>
         </Paper>
+
+        <SeccionFactura pedido={p} renglones={lista} />
 
         {/* ---------------- ¿Se puede fabricar? ---------------- */}
         {p.estado === 'CUMPLIDO' ? (
@@ -509,6 +525,7 @@ function FilaRenglon({
           </Text>
         )}
       </Table.Td>
+      <CeldasPrecio renglon={renglon} editable={editable} />
       {editable ? (
         <Table.Td>
           <ActionIcon

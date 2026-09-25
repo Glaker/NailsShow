@@ -11,6 +11,8 @@ import { PaginaFormula } from '@/features/produccion/PaginaFormula';
 import { PaginaPedidos } from '@/features/comercial/PaginaPedidos';
 import { PaginaPedido } from '@/features/comercial/PaginaPedido';
 import { PaginaComprasPendientes } from '@/features/comercial/PaginaComprasPendientes';
+import { PaginaClientes } from '@/features/comercial/PaginaClientes';
+import { PaginaFacturas } from '@/features/comercial/PaginaFacturas';
 import { PaginaListaMateriales } from '@/features/comercial/PaginaListaMateriales';
 import { PaginaPuntoVenta } from '@/features/comercial/PaginaPuntoVenta';
 import { PaginaInsumos } from '@/features/maestros/PaginaInsumos';
@@ -43,6 +45,8 @@ export function AppRoutes() {
       <Route path="/pedidos" element={<PaginaPedidos />} />
       <Route path="/pedidos/:id" element={<PaginaPedido />} />
       <Route path="/compras" element={<PaginaComprasPendientes />} />
+      <Route path="/clientes" element={<PaginaClientes />} />
+      <Route path="/facturas" element={<PaginaFacturas />} />
       <Route path="/lista-materiales" element={<PaginaListaMateriales />} />
       <Route path="/punto-venta" element={<PaginaPuntoVenta />} />
       <Route path="/insumos" element={<PaginaInsumos />} />
