@@ -1041,7 +1041,51 @@ Anotados para charlarlos antes de encarar; **no empezar sin esa conversación**.
    fábrica** (como Calle 5), con stock inicial contado, que suma la producción
    para stock y descuentan los pedidos entregados.
 
-**Orden acordado:** facturación (front) → Tercerizados → stock de seguridad.
+5. **Batch record en PDF, generado por lote** (2026-09-24). Para la DT
+   (codirector técnico y Anabella): descargar el batch record de cada lote,
+   que es la suma de todos los registros del proceso. Se **genera al
+   descargarlo** desde los datos guardados en cada paso, no se va acumulando.
+   Tiene que ser **idéntico a los modelos** de `C:UsersSikulOneDriveDocumentosNailShowPOE´S`
+   (controles de calidad y especificaciones de cada proceso hasta la puesta
+   en venta). La DT solo marca «aprobado» y ya se puede vender; la firma
+   física del batch record queda pendiente aparte.
+6. **Procedimientos y especificaciones faltantes.** Nazarena, el codirector
+   técnico y Anabella escriben procedimientos (ya está, punto 3) y
+   **especificaciones**; para Nazarena la especificación es opcional y la
+   completa la DT. Todo entra en el batch record.
+7. **Precios y descuentos** (hoja «UTILIDAD» de la planilla de inventario):
+   cargar los precios de todos los productos; Matias pone un **descuento por
+   cliente**, general o por producto, y puede **cambiar los precios** en
+   forma definitiva desde una pantalla.
+8. **Rol «Ventas» para Matias**, distinto del de Nazarena.
+9. **Stock y Recepción unificados** para Nazarena: una sola pestaña Stock,
+   desde donde carga la recepción.
+10. **Inicio de Nazarena**: saludo, pedidos pendientes y un calendario con las
+    fechas.
+11. **Planificación**: calendario de pedidos donde Nazarena elige el día de
+    producción y cuántos días se extiende, y un **diagrama de Gantt** con lo
+    que se produce, por cuántos días, en paralelo, para estirar o recortar.
+12. **Trazabilidad completa del lote producido** (qué caja, qué proveedor…).
+    Choca con D-04: no hay lote de producto terminado mientras falte el POE
+    de numeración.
+13. **Diego, administración contable**: pestañas Stock, Facturas y Ventas;
+    inicio con gráficos de ventas y facturación (barras y torta); Ventas con
+    todos los movimientos de dinero (efectivo, transferencia, cheque…).
+14. **Destino del producto aprobado**: «Mayorista», «Depósito Calle 5»,
+    «CABA» u «Otro». Calle 5 se actualiza solo (solo productos Nail Show).
+    Silveira, «Encargada de stock final» (rol ENCARGADA_STOCK, ya existe),
+    corrige ese stock si falta o sobra.
+15. **Cantidad producida en «Terminado»**: si se produjo menos, el pedido
+    queda incompleto y pendiente para Nazarena; si se produjo de más, el
+    sistema pregunta adónde va el sobrante (stock de seguridad en Nail Show,
+    Calle 5, u otro).
+16. **Ventas sin factura: NO se construye.** Se pidió poder vender «en negro»
+    (sin factura, descontando stock). Una función para que una venta no
+    llegue a ARCA facilita evasión fiscal y no va en este sistema. Lo que sí
+    rige: toda salida de mercadería descuenta stock con su registro.
+
+**Orden acordado:** facturación (front) → Tercerizados → stock de seguridad →
+el resto de la cola. Todo front y back, commiteado y en servicio.
 
 ---
 
