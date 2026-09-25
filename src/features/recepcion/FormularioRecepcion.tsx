@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActionIcon,
   Alert,
@@ -38,7 +38,8 @@ import {
   useProveedores,
   type Insumo,
 } from '@/lib/consultas';
-import { fechaISO } from '@/lib/formato';
+import { fechaISO, numero } from '@/lib/formato';
+import { useAvisosCompra, useVincularCompras } from '@/lib/consultasComercial';
 
 /*
  * Esquema derivado de las restricciones reales de la base. La aplicación
@@ -98,6 +99,10 @@ export function FormularioRecepcion({ onListo }: Props) {
   const proveedores = useProveedores();
   const insumos = useInsumos();
   const crear = useCrearRecepcion();
+  const avisos = useAvisosCompra();
+  const vincular = useVincularCompras();
+  /** Compras pendientes que llegaron con esta recepción: id → llegó completa. */
+  const [compras, setCompras] = useState<Record<string, boolean>>({});
 
   const form = useForm<ValoresRecepcion>({
     mode: 'controlled',
@@ -181,7 +186,7 @@ export function FormularioRecepcion({ onListo }: Props) {
     });
     if (hayError) return;
 
-    await crear.mutateAsync({
+    const { recepcion, lotes } = await crear.mutateAsync({
       proveedor_id: valores.proveedor_id,
       proveedor_nuevo: valores.proveedor_nuevo,
       numero_remito: valores.numero_remito.trim(),
@@ -204,6 +209,16 @@ export function FormularioRecepcion({ onListo }: Props) {
         contenedores_limpiados: l.contenedores_limpiados,
       })),
     });
+
+    // Cada compra elegida se vincula con el primer lote de su insumo.
+    const vinculos = Object.entries(compras).flatMap(([avisoId, completa]) => {
+      const aviso = (avisos.data ?? []).find((a) => a.id === avisoId);
+      const lote = aviso ? lotes.find((l) => l.insumo_id === aviso.insumo_id) : undefined;
+      return lote ? [{ aviso_id: avisoId, lote_insumo_id: lote.id, completa }] : [];
+    });
+    if (vinculos.length > 0) {
+      await vincular.mutateAsync({ recepcionId: recepcion.id, vinculos }).catch(() => {});
+    }
 
     onListo();
   });
@@ -503,6 +518,18 @@ export function FormularioRecepcion({ onListo }: Props) {
 
       <Divider my="md" />
 
+      <ComprasDeLaRecepcion
+        avisos={(avisos.data ?? []).filter(
+          (a) =>
+            (a.estado === 'PENDIENTE' || a.estado === 'EN_COMPRA') &&
+            form.values.lotes.some((l) => l.insumo_id === a.insumo_id),
+        )}
+        proveedorId={form.values.proveedor_id}
+        nombreInsumo={(id) => porId.get(id)?.nombre ?? '(insumo)'}
+        elegidas={compras}
+        onCambiar={setCompras}
+      />
+
       <Stack gap="md">
         <Switch
           label="Emitir rótulo de cuarentena al guardar"
@@ -520,7 +547,7 @@ export function FormularioRecepcion({ onListo }: Props) {
           </Button>
           <Button
             type="submit"
-            loading={crear.isPending}
+            loading={crear.isPending || vincular.isPending}
             variant="gradient"
             gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
           >
@@ -529,5 +556,77 @@ export function FormularioRecepcion({ onListo }: Props) {
         </Group>
       </Stack>
     </form>
+  );
+}
+
+/**
+ * «¿Es de alguna compra pendiente?»: las compras anotadas en «Compras
+ * pendientes» de los insumos que se están recibiendo. Elegir una la vincula
+ * con el lote al guardar; si llegó todo, queda resuelta.
+ */
+function ComprasDeLaRecepcion({
+  avisos,
+  proveedorId,
+  nombreInsumo,
+  elegidas,
+  onCambiar,
+}: {
+  avisos: NonNullable<ReturnType<typeof useAvisosCompra>['data']>;
+  proveedorId: string;
+  nombreInsumo: (id: string) => string;
+  elegidas: Record<string, boolean>;
+  onCambiar: (v: Record<string, boolean>) => void;
+}) {
+  if (avisos.length === 0) return null;
+  return (
+    <Paper withBorder p="md" mb="md" style={{ borderColor: 'var(--superficie-borde)' }}>
+      <Text fw={600} mb={4}>
+        ¿Es de alguna compra pendiente?
+      </Text>
+      <Text size="xs" c="dimmed" mb="sm">
+        Estas compras se anotaron para los insumos que estás recibiendo. Marcá las que
+        llegaron con este remito: quedan vinculadas al lote.
+      </Text>
+      <Stack gap="xs">
+        {avisos.map((a) => {
+          const elegida = a.id in elegidas;
+          return (
+            <Group key={a.id} justify="space-between" wrap="nowrap" gap="sm">
+              <Checkbox
+                checked={elegida}
+                onChange={(e) => {
+                  const nuevo = { ...elegidas };
+                  if (e.currentTarget.checked) nuevo[a.id] = true;
+                  else delete nuevo[a.id];
+                  onCambiar(nuevo);
+                }}
+                label={
+                  <span>
+                    <b>{nombreInsumo(a.insumo_id)}</b> · {numero(Number(a.cantidad), 2)}{' '}
+                    {a.unidad === 'UNIDAD' ? 'u' : a.unidad}
+                    {a.pedido
+                      ? ` · para el pedido ${a.pedido.numero} (${a.pedido.cliente})`
+                      : ''}
+                    {a.proveedor_id && a.proveedor_id === proveedorId
+                      ? ' · mismo proveedor'
+                      : ''}
+                  </span>
+                }
+              />
+              {elegida ? (
+                <Switch
+                  size="sm"
+                  label="Llegó todo"
+                  checked={elegidas[a.id]}
+                  onChange={(e) =>
+                    onCambiar({ ...elegidas, [a.id]: e.currentTarget.checked })
+                  }
+                />
+              ) : null}
+            </Group>
+          );
+        })}
+      </Stack>
+    </Paper>
   );
 }

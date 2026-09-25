@@ -90,9 +90,11 @@ export type Database = {
           fecha_limite: string | null
           id: string
           insumo_id: string
+          lote_insumo_id: string | null
           nota: string | null
           pedido_id: string | null
           proveedor_id: string | null
+          recepcion_id: string | null
           resuelto_en: string | null
           resuelto_por: string | null
           unidad: string
@@ -104,9 +106,11 @@ export type Database = {
           fecha_limite?: string | null
           id?: string
           insumo_id: string
+          lote_insumo_id?: string | null
           nota?: string | null
           pedido_id?: string | null
           proveedor_id?: string | null
+          recepcion_id?: string | null
           resuelto_en?: string | null
           resuelto_por?: string | null
           unidad: string
@@ -118,9 +122,11 @@ export type Database = {
           fecha_limite?: string | null
           id?: string
           insumo_id?: string
+          lote_insumo_id?: string | null
           nota?: string | null
           pedido_id?: string | null
           proveedor_id?: string | null
+          recepcion_id?: string | null
           resuelto_en?: string | null
           resuelto_por?: string | null
           unidad?: string
@@ -1815,6 +1821,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      vincular_recepcion_compras: {
+        Args: { p_recepcion_id: string; p_vinculos: Json }
+        Returns: number
       }
     }
     Enums: {

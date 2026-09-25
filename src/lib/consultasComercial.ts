@@ -771,6 +771,36 @@ export function useAvisosCompra() {
   });
 }
 
+/**
+ * Al recibir: qué compras pendientes llegaron con qué lote
+ * (comercial.vincular_recepcion_compras). Completa = queda resuelta.
+ */
+export function useVincularCompras() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: {
+      recepcionId: string;
+      vinculos: { aviso_id: string; lote_insumo_id: string; completa: boolean }[];
+    }) => {
+      const { error } = await rpcComercial<number>('vincular_recepcion_compras', {
+        p_recepcion_id: v.recepcionId,
+        p_vinculos: v.vinculos,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      void qc.invalidateQueries({ queryKey: ['avisos-compra'] });
+      void qc.invalidateQueries({ queryKey: ['faltantes-en-curso'] });
+      avisarExito(
+        v.vinculos.length === 1
+          ? 'La compra quedó vinculada a la recepción.'
+          : `${v.vinculos.length} compras quedaron vinculadas a la recepción.`,
+      );
+    },
+    onError: avisarError,
+  });
+}
+
 export function useAnotarCompras() {
   const qc = useQueryClient();
   return useMutation({
