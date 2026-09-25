@@ -33,6 +33,8 @@ export interface PedidoRow {
   observaciones: string | null;
   /** Cliente del padrón (20260924130000). Obligatorio para facturar. */
   cliente_id: string | null;
+  /** Cliente tercerizado (20260924150200). Nulo = pedido de Nail Show. */
+  tercero_id: string | null;
   creado_por: string;
   creado_en: string;
 }
@@ -330,6 +332,7 @@ export function useRegistrarPedido() {
       numero: string;
       cliente: string;
       clienteId: string | null;
+      terceroId: string | null;
       fechaEntrega: string | null;
       observaciones: string | null;
       renglones: {
@@ -345,6 +348,7 @@ export function useRegistrarPedido() {
           numero: p.numero,
           cliente: p.cliente,
           cliente_id: p.clienteId,
+          tercero_id: p.terceroId,
           fecha_entrega: p.fechaEntrega,
           observaciones: p.observaciones,
         })
@@ -645,7 +649,13 @@ export function useTerminarPedido() {
   return useMutation({
     mutationFn: async (t: {
       pedidoId: string;
-      correcciones: { insumoId: string; cantidad: number; motivo: string | null }[];
+      correcciones: {
+        insumoId: string;
+        cantidad: number;
+        motivo: string | null;
+        /** Solo en pedidos tercerizados, si salió de otro stock que el elegido. */
+        origen?: 'NAILSHOW' | 'TERCERO';
+      }[];
     }) => {
       const { error } = await rpcComercial<null>('terminar_pedido', {
         p_pedido_id: t.pedidoId,
@@ -653,6 +663,7 @@ export function useTerminarPedido() {
           insumo_id: c.insumoId,
           cantidad: c.cantidad,
           motivo: c.motivo,
+          ...(c.origen ? { origen: c.origen } : {}),
         })),
       });
       if (error) throw error;

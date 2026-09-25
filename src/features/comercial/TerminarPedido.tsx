@@ -5,6 +5,7 @@ import {
   Button,
   Group,
   NumberInput,
+  SegmentedControl,
   Select,
   Skeleton,
   Stack,
@@ -21,6 +22,9 @@ import {
   useTerminarPedido,
   type PedidoRow,
 } from '@/lib/consultasComercial';
+import { useInsumosPedido, useTerceros } from '@/lib/consultasTercerizados';
+
+type Origen = 'NAILSHOW' | 'TERCERO';
 
 interface Renglon {
   insumoId: string;
@@ -28,6 +32,10 @@ interface Renglon {
   usada: number | string;
   motivo: string;
   agregado: boolean;
+  /** Pedido tercerizado: de qué stock sale, y lo elegido al pasar a producción. */
+  origen: Origen;
+  origenInicial: Origen;
+  propioTercero: boolean;
 }
 
 const aNumero = (v: number | string) => (typeof v === 'number' ? v : Number(v));
@@ -53,6 +61,12 @@ export function TerminarPedido({
   const faltantes = useFaltantesPedido(pedido.id);
   const insumos = useInsumos();
   const terminar = useTerminarPedido();
+  const esTercero = Boolean(pedido.tercero_id);
+  const origenes = useInsumosPedido(pedido.id, esTercero);
+  const terceros = useTerceros();
+  const nombreTercero =
+    (terceros.data ?? []).find((t) => t.id === pedido.tercero_id)?.nombre ?? 'Cliente';
+  const origenDe = new Map((origenes.data ?? []).map((o) => [o.insumo_id, o]));
 
   const insumoPorId = useMemo(
     () => new Map((insumos.data ?? []).map((i) => [i.id, i])),
@@ -65,13 +79,20 @@ export function TerminarPedido({
   // Arranca de la receta la primera vez que llega; después es del usuario.
   const lista: Renglon[] =
     renglones ??
-    (necesidad.data ?? []).map((n) => ({
-      insumoId: n.insumo_id,
-      teorica: Number(n.necesario),
-      usada: Number(n.necesario),
-      motivo: '',
-      agregado: false,
-    }));
+    (necesidad.data ?? []).map((n) => {
+      const o = origenDe.get(n.insumo_id);
+      const origen: Origen = o?.origen === 'TERCERO' ? 'TERCERO' : 'NAILSHOW';
+      return {
+        insumoId: n.insumo_id,
+        teorica: Number(n.necesario),
+        usada: Number(n.necesario),
+        motivo: '',
+        agregado: false,
+        origen,
+        origenInicial: origen,
+        propioTercero: Boolean(o?.propio_tercero),
+      };
+    });
 
   function cambiar(i: number, cambios: Partial<Renglon>) {
     setRenglones(lista.map((r, j) => (j === i ? { ...r, ...cambios } : r)));
@@ -91,18 +112,20 @@ export function TerminarPedido({
       {
         pedidoId: pedido.id,
         correcciones: lista
-          .filter((r) => difiere(r) || r.agregado)
+          .filter((r) => difiere(r) || r.agregado || r.origen !== r.origenInicial)
           .map((r) => ({
             insumoId: r.insumoId,
             cantidad: aNumero(r.usada),
             motivo: r.motivo.trim() || null,
+            ...(esTercero ? { origen: r.origen } : {}),
           })),
       },
       { onSuccess: onListo },
     );
   }
 
-  if (necesidad.isLoading || insumos.isLoading) return <Skeleton h={240} />;
+  if (necesidad.isLoading || insumos.isLoading || (esTercero && origenes.isLoading))
+    return <Skeleton h={240} />;
 
   const opcionesAgregar = (insumos.data ?? [])
     .filter((i) => i.activo && !lista.some((r) => r.insumoId === i.id))
@@ -151,6 +174,7 @@ export function TerminarPedido({
                 <Table.Th>Insumo</Table.Th>
                 <Table.Th ta="right">Receta</Table.Th>
                 <Table.Th ta="right">Se usó</Table.Th>
+                {esTercero ? <Table.Th>Sale de</Table.Th> : null}
                 <Table.Th>Motivo de la diferencia</Table.Th>
                 <Table.Th w={50} />
               </Table.Tr>
@@ -193,6 +217,25 @@ export function TerminarPedido({
                         onChange={(v) => cambiar(i, { usada: v })}
                       />
                     </Table.Td>
+                    {esTercero ? (
+                      <Table.Td>
+                        {r.propioTercero ? (
+                          <Text size="xs" c="dimmed">
+                            {nombreTercero} (propio)
+                          </Text>
+                        ) : (
+                          <SegmentedControl
+                            size="xs"
+                            value={r.origen}
+                            onChange={(v) => cambiar(i, { origen: v as Origen })}
+                            data={[
+                              { value: 'NAILSHOW', label: 'Nail Show' },
+                              { value: 'TERCERO', label: nombreTercero },
+                            ]}
+                          />
+                        )}
+                      </Table.Td>
+                    ) : null}
                     <Table.Td>
                       {difiere(r) || r.agregado ? (
                         <TextInput
@@ -255,6 +298,9 @@ export function TerminarPedido({
                 usada: '',
                 motivo: '',
                 agregado: true,
+                origen: 'NAILSHOW',
+                origenInicial: 'NAILSHOW',
+                propioTercero: false,
               },
             ]);
             setNuevoInsumo(null);

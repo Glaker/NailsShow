@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   ActionIcon,
   Alert,
@@ -39,7 +40,9 @@ import {
 export function PaginaListaMateriales() {
   const productos = useProductos();
   const insumos = useInsumos();
-  const [productoId, setProductoId] = useState<string | null>(null);
+  // ?producto=<id>: se llega desde la ficha de un producto tercerizado.
+  const [params] = useSearchParams();
+  const [productoId, setProductoId] = useState<string | null>(params.get('producto'));
   const materiales = useMaterialesDeProducto(productoId ?? undefined);
   const agregar = useAgregarMaterial();
   const quitar = useQuitarMaterial();

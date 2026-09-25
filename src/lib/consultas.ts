@@ -691,6 +691,27 @@ export type MovimientoKardex = Database['comercial']['Views']['v_kardex']['Row']
 export type TipoMovimiento = Database['comercial']['Enums']['tipo_movimiento_enum'];
 export type BloqueoLote = Database['gmp']['Views']['v_bloqueos_lote']['Row'];
 export type MotivoBloqueo = Database['gmp']['Enums']['motivo_bloqueo_enum'];
+export type MotivoAjuste = Database['comercial']['Enums']['motivo_ajuste_enum'];
+
+/** Tipos que la base obliga a clasificar (movimientos_motivo_tipo_en_manuales). */
+export const TIPOS_CON_MOTIVO_TIPIFICADO: readonly TipoMovimiento[] = [
+  'ENTRADA_AJUSTE',
+  'SALIDA_AJUSTE',
+  'SALIDA_DESCARTE',
+];
+
+export const TEXTO_MOTIVO_AJUSTE: Record<MotivoAjuste, string> = {
+  ROTURA: 'Rotura',
+  DERRAME: 'Derrame',
+  VENCIMIENTO: 'Vencimiento',
+  DISCONTINUADO: 'Discontinuado',
+  MERMA_DE_PROCESO: 'Merma de proceso',
+  DIFERENCIA_DE_INVENTARIO: 'Diferencia de inventario',
+  ERROR_DE_REGISTRO: 'Error de registro',
+  ROBO_O_EXTRAVIO: 'Robo o extravío',
+  MUESTRA_DE_ARCHIVO: 'Muestra de archivo',
+  DEVOLUCION_A_PROVEEDOR: 'Devolución a proveedor',
+};
 
 /** Los tipos que hoy tienen circuito. El resto los rechaza la base por fase. */
 export const TIPOS_MOVIMIENTO_MANUAL = [
@@ -713,6 +734,7 @@ export const TEXTO_TIPO_MOVIMIENTO: Record<TipoMovimiento, string> = {
   SALIDA_RETIRO_MERCADO: 'Retiro de mercado',
   TRANSFERENCIA_ENTRE_DEPOSITOS: 'Transferencia',
   ENTRADA_SALDO_APERTURA: 'Saldo de apertura',
+  ENTRADA_PROVISTO_TERCERO: 'Entrada de material del cliente',
 };
 
 export const TEXTO_MOTIVO_BLOQUEO: Record<MotivoBloqueo, string> = {
@@ -749,7 +771,8 @@ export function useExistenciasPorLote(articuloId?: string) {
   return useQuery({
     queryKey: ['stock-existencias', articuloId ?? 'todas'],
     queryFn: async () => {
-      let consulta = comercial().from('v_existencias').select('*');
+      // Solo lo de Nail Show: el material de los tercerizados tiene su pantalla.
+      let consulta = comercial().from('v_existencias').select('*').is('tercero_id', null);
       if (articuloId) consulta = consulta.eq('articulo_id', articuloId);
       const { data, error } = await consulta
         .order('insumo_nombre')
@@ -813,7 +836,7 @@ export function useKardex(limite = 200) {
 /* Toda mutación de stock invalida lo mismo: el saldo por artículo, el desglose
    por lote, el kardex y el tablero. Centralizado para que agregar una
    operación nueva no se olvide de refrescar una pantalla. */
-function invalidarStock(qc: ReturnType<typeof useQueryClient>) {
+export function invalidarStock(qc: ReturnType<typeof useQueryClient>) {
   void qc.invalidateQueries({ queryKey: ['stock-articulos'] });
   void qc.invalidateQueries({ queryKey: ['stock-existencias'] });
   void qc.invalidateQueries({ queryKey: ['stock-lote'] });
@@ -821,6 +844,8 @@ function invalidarStock(qc: ReturnType<typeof useQueryClient>) {
   void qc.invalidateQueries({ queryKey: ['kardex-general'] });
   void qc.invalidateQueries({ queryKey: ['recepciones'] });
   void qc.invalidateQueries({ queryKey: ['tablero'] });
+  // Stock de los tercerizados y reservas: las mismas posiciones, otra pantalla.
+  void qc.invalidateQueries({ queryKey: ['tercerizados'] });
 }
 
 /**
@@ -861,6 +886,8 @@ export function useRegistrarMovimiento() {
       /** Siempre positiva: el signo lo pone el tipo, como en la base. */
       cantidad: number;
       motivo: string;
+      /** Obligatorio en ajustes y descarte: lo exige la base (PG.60.18). */
+      motivoTipo?: MotivoAjuste | null;
     }) => {
       const entra = m.tipo.startsWith('ENTRADA');
       const { data, error } = await comercial()
@@ -872,6 +899,7 @@ export function useRegistrarMovimiento() {
           tipo: m.tipo,
           cantidad: entra ? Math.abs(m.cantidad) : -Math.abs(m.cantidad),
           motivo: m.motivo,
+          motivo_tipo: m.motivoTipo ?? null,
         })
         .select()
         .single();
@@ -1350,7 +1378,8 @@ export function useEliminarComponenteFormula() {
  * historial queda. Editan Dirección Técnica y Gerencia de Producción.
  * ------------------------------------------------------------------------- */
 
-export type ProcedimientoVersion = Database['gmp']['Tables']['formula_procedimientos']['Row'];
+export type ProcedimientoVersion =
+  Database['gmp']['Tables']['formula_procedimientos']['Row'];
 
 export function useProcedimientos(formulaId: string | undefined) {
   return useQuery({
@@ -1371,7 +1400,11 @@ export function useProcedimientos(formulaId: string | undefined) {
 export function useGuardarProcedimiento() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (p: { formulaId: string; texto: string; motivo: string | null }) => {
+    mutationFn: async (p: {
+      formulaId: string;
+      texto: string;
+      motivo: string | null;
+    }) => {
       const { error } = await gmp().from('formula_procedimientos').insert({
         formula_id: p.formulaId,
         texto: p.texto,

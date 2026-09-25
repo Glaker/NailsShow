@@ -62,6 +62,8 @@ import {
 } from '@/lib/consultasComercial';
 import { BadgeEntrega, BadgeEstadoAviso, BadgeEstadoPedido } from './estadoPedido';
 import { TerminarPedido } from './TerminarPedido';
+import { PasarAProduccion } from '@/features/tercerizados/PasarAProduccion';
+import { colorTercero, useTerceros } from '@/lib/consultasTercerizados';
 import {
   CeldasPrecio,
   ClienteDelPedido,
@@ -181,6 +183,8 @@ export function PaginaPedido() {
   const puedeEditar = useTieneRol(...ROLES_ESCRIBEN_PEDIDOS);
   const puedeTerminar = useTieneRol(...ROLES_TERMINAN_PEDIDOS);
   const [terminando, setTerminando] = useState(false);
+  const [pasando, setPasando] = useState(false);
+  const terceros = useTerceros();
 
   const lista = renglones.data ?? [];
   const conLista = useProductosConLista(lista.map((r) => r.producto_id));
@@ -207,7 +211,14 @@ export function PaginaPedido() {
     ? lista.filter((r) => !conLista.data.has(r.producto_id))
     : [];
 
+  const tercero = (terceros.data ?? []).find((t) => t.id === p.tercero_id) ?? null;
+
   function avanzar(paso: Paso) {
+    // Tercerizado: antes de producir se elige de qué stock sale cada insumo.
+    if (paso.destino === 'EN_PRODUCCION' && tercero) {
+      setPasando(true);
+      return;
+    }
     const ejecutar = () => cambiarEstado.mutate({ id: p.id, estado: paso.destino });
     if (!paso.confirmar) {
       ejecutar();
@@ -229,6 +240,19 @@ export function PaginaPedido() {
         descripcion={p.cliente}
         acciones={
           <Group gap="sm">
+            {tercero ? (
+              <Badge
+                component={Link}
+                to={`/tercerizados/${tercero.id}`}
+                size="lg"
+                radius="sm"
+                variant="filled"
+                color={colorTercero(tercero)}
+                style={{ cursor: 'pointer' }}
+              >
+                Tercerizado · {tercero.nombre}
+              </Badge>
+            ) : null}
             <BadgeEstadoPedido estado={p.estado} />
             {puedeTerminar &&
             (p.estado === 'CONFIRMADO' || p.estado === 'EN_PRODUCCION') ? (
@@ -425,6 +449,23 @@ export function PaginaPedido() {
           </Stack>
         )}
       </Stack>
+
+      <Modal
+        opened={pasando}
+        onClose={() => setPasando(false)}
+        title={`Pasar a producción el pedido ${p.numero}`}
+        size="xl"
+        centered
+        radius="md"
+      >
+        {pasando && tercero ? (
+          <PasarAProduccion
+            pedido={p}
+            tercero={tercero}
+            onListo={() => setPasando(false)}
+          />
+        ) : null}
+      </Modal>
 
       <Modal
         opened={terminando}

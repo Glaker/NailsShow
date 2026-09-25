@@ -17,6 +17,7 @@ import {
   IconClipboardCheck,
   IconFileInvoice,
   IconUsersGroup,
+  IconBuildingFactory2,
   type Icon,
 } from '@tabler/icons-react';
 import type { Rol } from '@/features/auth/sesion';
@@ -97,6 +98,12 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiquetaCorta: 'Pedidos',
     icono: IconShoppingCart,
     principal: true,
+  },
+  {
+    ruta: '/tercerizados',
+    etiqueta: 'Tercerizados',
+    etiquetaCorta: 'Tercer.',
+    icono: IconBuildingFactory2,
   },
   {
     ruta: '/compras',

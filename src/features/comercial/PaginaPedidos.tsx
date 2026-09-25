@@ -29,10 +29,13 @@ import {
 import { BadgeEntrega, BadgeEstadoPedido } from './estadoPedido';
 import { FormularioPedido } from './FormularioPedido';
 import { FaltantesConsolidados } from './FaltantesConsolidados';
+import { TableroPedidos, BadgePara } from './TableroPedidos';
+import { useTerceros } from '@/lib/consultasTercerizados';
 
-type Vista = 'revisar' | 'produccion' | 'borradores' | 'cerrados';
+type Vista = 'tablero' | 'revisar' | 'produccion' | 'borradores' | 'cerrados';
 
 const ESTADOS_DE_VISTA: Record<Vista, EstadoPedido[]> = {
+  tablero: ['CONFIRMADO', 'EN_PRODUCCION', 'CUMPLIDO'],
   revisar: ['CONFIRMADO'],
   produccion: ['EN_PRODUCCION'],
   borradores: ['BORRADOR'],
@@ -40,6 +43,8 @@ const ESTADOS_DE_VISTA: Record<Vista, EstadoPedido[]> = {
 };
 
 const DESCRIPCION_VISTA: Record<Vista, string> = {
+  tablero:
+    'Todo lo que está en curso, de Nail Show y de los tercerizados, de un vistazo. Tocá una tarjeta para abrir el pedido.',
   revisar:
     'Enviados a producción y todavía sin tomar. Abrí cada uno para ver si alcanza el material o hay que comprar.',
   produccion: 'Pedidos que Producción ya tomó y está fabricando.',
@@ -48,7 +53,13 @@ const DESCRIPCION_VISTA: Record<Vista, string> = {
 };
 
 function esVista(v: string | null): v is Vista {
-  return v === 'revisar' || v === 'produccion' || v === 'borradores' || v === 'cerrados';
+  return (
+    v === 'tablero' ||
+    v === 'revisar' ||
+    v === 'produccion' ||
+    v === 'borradores' ||
+    v === 'cerrados'
+  );
 }
 
 /** Lo más urgente arriba: por entrega, y los sin fecha al final. */
@@ -82,13 +93,15 @@ export function PaginaPedidos() {
   const [params, setParams] = useSearchParams();
   const [abierto, setAbierto] = useState(false);
   const angosta = useMediaQuery('(max-width: 36em)');
+  const terceros = useTerceros();
+  const terceroPorId = new Map((terceros.data ?? []).map((t) => [t.id, t]));
 
   const vistaUrl = params.get('vista');
   const vista: Vista = esVista(vistaUrl)
     ? vistaUrl
     : !esProduccion && puedeCargar
       ? 'borradores'
-      : 'revisar';
+      : 'tablero';
 
   const todos = pedidos.data ?? [];
   const cuenta = (v: Vista) =>
@@ -164,6 +177,7 @@ export function PaginaPedidos() {
             value={vista}
             onChange={(v) => setParams({ vista: v }, { replace: true })}
             data={[
+              { value: 'tablero', label: 'Tablero' },
               { value: 'revisar', label: etiqueta('Para revisar', cuenta('revisar')) },
               {
                 value: 'produccion',
@@ -180,7 +194,9 @@ export function PaginaPedidos() {
             {DESCRIPCION_VISTA[vista]}
           </Text>
 
-          {filas.length === 0 ? (
+          {vista === 'tablero' ? (
+            <TableroPedidos pedidos={todos} terceros={terceroPorId} />
+          ) : filas.length === 0 ? (
             <Paper withBorder style={{ borderColor: 'var(--superficie-borde)' }}>
               <Vacio icono={IconClipboardList} titulo="Nada en esta bandeja" />
             </Paper>
@@ -224,7 +240,14 @@ export function PaginaPedidos() {
                             </Text>
                           </Table.Td>
                           <Table.Td>
-                            <Text size="sm">{p.cliente}</Text>
+                            <Group gap={6} wrap="nowrap">
+                              <BadgePara
+                                tercero={
+                                  p.tercero_id ? terceroPorId.get(p.tercero_id) : null
+                                }
+                              />
+                              <Text size="sm">{p.cliente}</Text>
+                            </Group>
                             {p.observaciones ? (
                               <Text size="xs" c="dimmed" lineClamp={1} maw={280}>
                                 {p.observaciones}

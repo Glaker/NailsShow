@@ -21,6 +21,8 @@ import { PaginaProveedores } from '@/features/maestros/PaginaProveedores';
 import { PaginaDepositos } from '@/features/maestros/PaginaDepositos';
 import { PaginaUsuarios } from '@/features/usuarios/PaginaUsuarios';
 import { PaginaAuditoria } from '@/features/auditoria/PaginaAuditoria';
+import { PaginaTercerizados } from '@/features/tercerizados/PaginaTercerizados';
+import { PaginaTercero } from '@/features/tercerizados/PaginaTercero';
 
 /**
  * Rutas de la aplicación.
@@ -47,6 +49,8 @@ export function AppRoutes() {
       <Route path="/compras" element={<PaginaComprasPendientes />} />
       <Route path="/clientes" element={<PaginaClientes />} />
       <Route path="/facturas" element={<PaginaFacturas />} />
+      <Route path="/tercerizados" element={<PaginaTercerizados />} />
+      <Route path="/tercerizados/:id" element={<PaginaTercero />} />
       <Route path="/lista-materiales" element={<PaginaListaMateriales />} />
       <Route path="/punto-venta" element={<PaginaPuntoVenta />} />
       <Route path="/insumos" element={<PaginaInsumos />} />

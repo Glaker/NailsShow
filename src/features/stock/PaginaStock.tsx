@@ -1,6 +1,7 @@
 import { Fragment, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  Box,
   Anchor,
   Badge,
   Chip,
@@ -30,6 +31,7 @@ import { TarjetaIndicador } from '@/components/TarjetaIndicador';
 import { Vacio } from '@/components/Vacio';
 import { useExistenciasPorLote, useStockPorArticulo } from '@/lib/consultas';
 import { fecha, numero } from '@/lib/formato';
+import { PanelReservas } from '@/features/tercerizados/PanelReservas';
 
 type Filtro = 'todos' | 'con-saldo' | 'bajo-minimo' | 'no-despachable';
 
@@ -282,6 +284,10 @@ export function PaginaStock() {
           </Table.ScrollContainer>
         )}
       </Paper>
+
+      <Box mt="lg">
+        <PanelReservas titular={null} />
+      </Box>
     </>
   );
 }

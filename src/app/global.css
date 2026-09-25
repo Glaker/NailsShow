@@ -189,3 +189,55 @@ body {
   cursor: pointer;
   transition: background-color var(--transicion);
 }
+
+/* --------------------------------------------------------------------- *
+ * Entorno Tercerizados
+ *
+ * Pedido del codirector técnico (2026-09-24): que la sección de clientes
+ * tercerizados se distinga a simple vista de Nail Show, con colores un poco
+ * más oscuros, solo dentro de la sección. Las tarjetas siguen claras para que
+ * los colores de estado de I.20.2 se lean igual que en el resto.
+ * --------------------------------------------------------------------- */
+.entorno-tercerizados {
+  --superficie-borde: #cfd4de;
+  background: #e3e6ed;
+  border-radius: 18px;
+  padding: 0 0 20px;
+  overflow: hidden;
+}
+
+.entorno-tercerizados .entorno-cabecera {
+  background: linear-gradient(135deg, #1f2533 0%, #2c3447 100%);
+  color: #fff;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+}
+
+.entorno-tercerizados .entorno-cuerpo {
+  padding: 0 20px;
+}
+
+.entorno-tercerizados .mantine-Paper-root {
+  background: #f5f6f9;
+}
+
+@media (max-width: 48em) {
+  .entorno-tercerizados .entorno-cabecera {
+    padding: 14px;
+  }
+  .entorno-tercerizados .entorno-cuerpo {
+    padding: 0 12px;
+  }
+}
+
+/* Cuadrito de cliente tercerizado. */
+.cuadrito-tercero {
+  cursor: pointer;
+  transition:
+    transform var(--transicion),
+    box-shadow var(--transicion);
+}
+
+.cuadrito-tercero:hover {
+  box-shadow: 0 6px 18px rgba(20, 26, 40, 0.18);
+}

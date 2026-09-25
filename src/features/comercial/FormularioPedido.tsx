@@ -12,6 +12,7 @@ import {
   Modal,
   NumberInput,
   Paper,
+  SegmentedControl,
   Select,
   Stack,
   Text,
@@ -28,6 +29,8 @@ import {
   useClientes,
 } from '@/lib/consultasFacturacion';
 import { FormularioCliente } from './FormularioCliente';
+import { FormularioTercero } from '@/features/tercerizados/FormularioTercero';
+import { useTerceros } from '@/lib/consultasTercerizados';
 import {
   useProductosConListaCargada,
   useRegistrarPedido,
@@ -40,42 +43,55 @@ import {
  * - `pedido_renglones.cantidad` CHECK > 0 y UNIQUE (pedido_id, producto_id):
  *   el mismo producto dos veces se rechaza, así que se avisa antes.
  */
-const esquema = z.object({
-  numero: z.string().trim().min(1, 'Poné el número del pedido.'),
-  cliente: z.string().trim().min(1, 'Poné el cliente.'),
-  // Del padrón: hace falta para facturar, no para producir.
-  clienteId: z.string().nullable(),
-  fechaEntrega: z.string().nullable(),
-  observaciones: z.string(),
-  renglones: z
-    .array(
-      z.object({
-        productoId: z.string().uuid('Elegí el producto.'),
-        cantidad: z
-          .number({ message: 'Indicá la cantidad.' })
-          .positive('Tiene que ser mayor que cero.'),
-        // Neto de IVA. Opcional para producir; obligatorio para facturar.
-        precioUnitario: z.number().nonnegative('No puede ser negativo.').nullable(),
-        alicuotaIva: z.number(),
+const esquema = z
+  .object({
+    numero: z.string().trim().min(1, 'Poné el número del pedido.'),
+    cliente: z.string().trim().min(1, 'Poné el cliente.'),
+    // Del padrón: hace falta para facturar, no para producir.
+    clienteId: z.string().nullable(),
+    // Nail Show o un cliente tercerizado (20260924150200).
+    para: z.enum(['NAILSHOW', 'TERCERO']),
+    terceroId: z.string().nullable(),
+    fechaEntrega: z.string().nullable(),
+    observaciones: z.string(),
+    renglones: z
+      .array(
+        z.object({
+          productoId: z.string().uuid('Elegí el producto.'),
+          cantidad: z
+            .number({ message: 'Indicá la cantidad.' })
+            .positive('Tiene que ser mayor que cero.'),
+          // Neto de IVA. Opcional para producir; obligatorio para facturar.
+          precioUnitario: z.number().nonnegative('No puede ser negativo.').nullable(),
+          alicuotaIva: z.number(),
+        }),
+      )
+      .min(1, 'Agregá al menos un producto.')
+      .superRefine((renglones, ctx) => {
+        const vistos = new Set<string>();
+        renglones.forEach((r, i) => {
+          if (!r.productoId) return;
+          if (vistos.has(r.productoId)) {
+            ctx.addIssue({
+              code: 'custom',
+              path: [i, 'productoId'],
+              message:
+                'Este producto ya está en el pedido: sumá la cantidad en una sola fila.',
+            });
+          }
+          vistos.add(r.productoId);
+        });
       }),
-    )
-    .min(1, 'Agregá al menos un producto.')
-    .superRefine((renglones, ctx) => {
-      const vistos = new Set<string>();
-      renglones.forEach((r, i) => {
-        if (!r.productoId) return;
-        if (vistos.has(r.productoId)) {
-          ctx.addIssue({
-            code: 'custom',
-            path: [i, 'productoId'],
-            message:
-              'Este producto ya está en el pedido: sumá la cantidad en una sola fila.',
-          });
-        }
-        vistos.add(r.productoId);
+  })
+  .superRefine((v, ctx) => {
+    if (v.para === 'TERCERO' && !v.terceroId) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['terceroId'],
+        message: 'Elegí el cliente tercerizado.',
       });
-    }),
-});
+    }
+  });
 
 type Valores = z.infer<typeof esquema>;
 
@@ -83,6 +99,8 @@ interface Props {
   /** Pedidos existentes: sugieren el número siguiente y los clientes ya cargados. */
   pedidos: PedidoRow[];
   onCerrar: () => void;
+  /** Abierto desde la ficha de un tercerizado: arranca con ese cliente. */
+  terceroInicial?: string | null;
 }
 
 /**
@@ -104,19 +122,24 @@ function numeroSiguiente(pedidos: PedidoRow[]): string {
  * completarlo después— o enviarlo a producción, que es cuando Gerencia de
  * Producción lo ve en su bandeja como «para revisar».
  */
-export function FormularioPedido({ pedidos, onCerrar }: Props) {
+export function FormularioPedido({ pedidos, onCerrar, terceroInicial = null }: Props) {
   const navigate = useNavigate();
   const productos = useProductos();
   const registrar = useRegistrarPedido();
   const conLista = useProductosConListaCargada();
   const padron = useClientes();
+  const terceros = useTerceros();
   const [altaCliente, setAltaCliente] = useState(false);
+  const [altaTercero, setAltaTercero] = useState(false);
+  const terceroPreset = (terceros.data ?? []).find((t) => t.id === terceroInicial);
 
   const form = useForm<Valores>({
     initialValues: {
       numero: numeroSiguiente(pedidos),
-      cliente: '',
+      cliente: terceroPreset?.nombre ?? '',
       clienteId: null,
+      para: terceroInicial ? 'TERCERO' : 'NAILSHOW',
+      terceroId: terceroInicial,
       fechaEntrega: null,
       observaciones: '',
       renglones: [{ productoId: '', cantidad: 0, precioUnitario: null, alicuotaIva: 21 }],
@@ -135,19 +158,38 @@ export function FormularioPedido({ pedidos, onCerrar }: Props) {
   // Primero los productos con lista de materiales: son los que el sistema puede
   // chequear contra el stock. Los demás se pueden pedir igual, pero Producción
   // no va a ver qué les falta.
+  const terceroId = form.values.para === 'TERCERO' ? form.values.terceroId : null;
   const opcionesProducto = useMemo(() => {
-    const activos = (productos.data ?? []).filter((p) => p.activo);
+    const todos = (productos.data ?? []).filter((p) => p.activo);
+    // Los productos de un tercero solo van en sus pedidos (lo controla la base).
+    const propios = terceroId ? todos.filter((p) => p.tercero_id === terceroId) : [];
+    const activos = todos.filter((p) => p.tercero_id === null);
     const opcion = (p: (typeof activos)[number]) => ({
       value: p.id,
       label: `${p.codigo_interno} · ${p.nombre}`,
     });
     const con = activos.filter((p) => conLista.data?.has(p.id)).map(opcion);
     const sin = activos.filter((p) => !conLista.data?.has(p.id)).map(opcion);
+    const nombreTercero = (terceros.data ?? []).find((t) => t.id === terceroId)?.nombre;
     return [
+      {
+        group: `Productos de ${nombreTercero ?? 'el cliente'}`,
+        items: propios.map(opcion),
+      },
       { group: 'Con receta cargada', items: con },
       { group: 'Sin receta: no se puede chequear el stock', items: sin },
     ].filter((g) => g.items.length > 0);
-  }, [productos.data, conLista.data]);
+  }, [productos.data, conLista.data, terceroId, terceros.data]);
+
+  function elegirTercero(id: string | null) {
+    form.setFieldValue('terceroId', id);
+    const t = (terceros.data ?? []).find((x) => x.id === id);
+    if (!t) return;
+    form.setFieldValue('cliente', t.nombre);
+    // Si ya tiene datos fiscales cargados, quedan elegidos para facturar.
+    const fiscal = (padron.data ?? []).find((c) => c.tercero_id === t.id && c.activo);
+    if (fiscal) form.setFieldValue('clienteId', fiscal.id);
+  }
 
   const errorLista = form.errors.renglones;
 
@@ -157,6 +199,7 @@ export function FormularioPedido({ pedidos, onCerrar }: Props) {
         numero: v.numero.trim(),
         cliente: v.cliente.trim(),
         clienteId: v.clienteId,
+        terceroId: v.para === 'TERCERO' ? v.terceroId : null,
         fechaEntrega: v.fechaEntrega,
         observaciones: v.observaciones.trim() || null,
         renglones: v.renglones,
@@ -174,6 +217,65 @@ export function FormularioPedido({ pedidos, onCerrar }: Props) {
   return (
     <form onSubmit={form.onSubmit((v) => enviar(v, false))}>
       <Stack gap="md">
+        <SegmentedControl
+          fullWidth
+          size="md"
+          value={form.values.para}
+          onChange={(v) => {
+            form.setFieldValue('para', v as Valores['para']);
+            if (v === 'NAILSHOW') form.setFieldValue('terceroId', null);
+          }}
+          data={[
+            { value: 'NAILSHOW', label: 'Para Nail Show' },
+            { value: 'TERCERO', label: 'Tercerizado' },
+          ]}
+        />
+
+        {form.values.para === 'TERCERO' ? (
+          <Group align="flex-end" gap="sm" wrap="nowrap">
+            <Select
+              label="Cliente tercerizado"
+              withAsterisk
+              placeholder="Elegí el cliente"
+              searchable
+              nothingFoundMessage="No está: dalo de alta"
+              style={{ flex: 1 }}
+              data={(terceros.data ?? [])
+                .filter((t) => t.activo)
+                .map((t) => ({ value: t.id, label: t.nombre }))}
+              value={form.values.terceroId}
+              error={form.errors.terceroId}
+              onChange={elegirTercero}
+            />
+            <Button
+              variant="default"
+              leftSection={<IconPlus size={16} />}
+              onClick={() => setAltaTercero(true)}
+            >
+              Nuevo
+            </Button>
+          </Group>
+        ) : null}
+
+        <Modal
+          opened={altaTercero}
+          onClose={() => setAltaTercero(false)}
+          title="Nuevo cliente tercerizado"
+          centered
+          radius="md"
+        >
+          {altaTercero ? (
+            <FormularioTercero
+              tercero={null}
+              onListo={(t) => {
+                setAltaTercero(false);
+                form.setFieldValue('terceroId', t.id);
+                form.setFieldValue('cliente', t.nombre);
+              }}
+            />
+          ) : null}
+        </Modal>
+
         <Group grow align="flex-start" wrap="wrap">
           <TextInput
             label="Número"
@@ -213,7 +315,11 @@ export function FormularioPedido({ pedidos, onCerrar }: Props) {
               if (c) form.setFieldValue('cliente', c.razon_social);
             }}
           />
-          <Button variant="default" leftSection={<IconPlus size={16} />} onClick={() => setAltaCliente(true)}>
+          <Button
+            variant="default"
+            leftSection={<IconPlus size={16} />}
+            onClick={() => setAltaCliente(true)}
+          >
             Nuevo cliente
           </Button>
         </Group>

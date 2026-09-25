@@ -1025,6 +1025,9 @@ Anotados para charlarlos antes de encarar; **no empezar sin esa conversación**.
    - **Colores más oscuros**: solo dentro de la sección Tercerizados.
    - **Front y back** de todo.
 
+   **Hecho** el 2026-09-24 (20260924150000 a 150300, aplicadas). Ver la sección
+   «Tercerizados» más abajo.
+
 3. **Procedimiento de cada fórmula** (2026-09-24). Al preparar el lote tiene que
    aparecer el «Procedimiento» de la fórmula de ese SKU, editable por
    Nazarena, el codirector técnico y Anabella (DT titular). El texto está en
@@ -1118,8 +1121,69 @@ rechaza B); quién emite (GERENCIA_PRODUCCION agregado a la matriz por
 indicación); y que antes de producción el resultado no lo pueda registrar la
 sesión del usuario.
 
-**Falta.** El front: alta de clientes, precio en cada renglón del pedido y el
-botón «Emitir factura» en la ficha. Sin eso la función no tiene desde dónde
-llamarse. Y para producción: CUIT real, punto de venta habilitado en ARCA,
+**Front hecho y en servicio** (2026-09-24): clientes, precio por renglón,
+«Emitir factura» en la ficha del pedido y listado de facturas.
+
+**Ojo con homologación.** El CUIT de demostración es compartido por todos los
+usuarios de Afip SDK. Si otro emite una Factura B con fecha posterior a hoy,
+ARCA rechaza la nuestra con 10016 (número o fecha) hasta que pase esa fecha:
+pasó el 2026-09-24 con una B de otro usuario fechada el 25/09. No ocurre con
+el CUIT propio en producción.
+
+**Falta para producción:** CUIT real, punto de venta habilitado en ARCA,
 certificado y clave como secretos (AFIP_CERT, AFIP_KEY), y una fila nueva en
 `comercial.configuracion_fiscal`.
+
+
+---
+
+## Tercerizados (2026-09-24, aplicado y en servicio)
+
+Producción para terceros («Navi» y otros), según la especificación del
+codirector técnico (ítem 2 de la cola).
+
+| Pieza | Qué es |
+| --- | --- |
+| `20260924150000_comercial_enum_tercerizados` | `ENTRADA_PROVISTO_TERCERO` y motivo `DISCONTINUADO` |
+| `20260924150100_gmp_tercerizados` | `gmp.terceros`; titular del lote (`lotes_insumo.tercero_id`, inmutable); insumos genéricos (`T-nnnnn`); productos del tercero (`TP-nnnnn`, nuevos o con `producto_base_id` y lista copiada); depósito `TER`; `gmp.ingresar_insumo_tercero()` |
+| `20260924150200_comercial_tercerizados` | pedidos de tercero; `pedido_origen_insumos` y `pasar_a_produccion()`; disponible y faltantes por titular; reservas con titular y beneficiario; `ingresar_stock_tercero()`; «Terminado» consumiendo del titular |
+| `20260924150300_gmp_terceros_paleta` | el color del cuadrito no puede ser uno de los de rótulo |
+
+**Decisiones de diseño.**
+- El titular es un dato del lote, no un stock aparte: kardex, calidad,
+  bloqueos y vencimiento funcionan igual para los dos.
+- «Sin proveedor» = proveedor genérico «Provisto por <cliente>», creado solo y
+  PENDIENTE. La recepción existe (con número) aunque Nazarena no la cargue a
+  mano; el material entra en CUARENTENA con rótulo y lo aprueba Calidad.
+- RN-01, RN-03 y RN-48 siguen rigiendo para el material del tercero.
+- El stock de Nail Show (`v_stock_por_articulo`, `v_disponible_por_insumo`,
+  faltantes, compras) ya no cuenta lotes de terceros.
+- Reserva: aparta stock de un titular para un beneficiario. Para los pedidos
+  del beneficiario está disponible; para los demás no. «Terminado» descuenta
+  lo usado de la reserva. El stock de un tercero solo se reserva para él.
+- Pedido tercerizado: no pasa a producción sin elegir el origen de cada
+  insumo; lo propio del cliente sale siempre de su stock. En «Terminado» se
+  puede corregir el origen.
+
+**Front.** Sección `/tercerizados` con fondo y cabecera más oscuros:
+cuadritos por cliente, ficha con pestañas Pedidos, Stock (agregar, quitar por
+lote, reservas), Productos y Producción. En pedidos: «Para Nail Show /
+Tercerizado» con alta de cliente en el momento, insignia de color en la
+bandeja, **tablero** por columnas (vista inicial de Producción), selección de
+origen al pasar a producción. Reservas también en el Stock de Nail Show.
+
+**Probado.** 33 pruebas en la base local (recepción automática, RN-01/48,
+segregación de stock, reservas, origen, «Terminado», permisos, invariantes) y
+las suites anteriores sin regresión.
+
+**Defecto previo corregido de paso.** El formulario de movimiento manual
+(ajuste y descarte) no mandaba `motivo_tipo`, que la base exige desde
+20260917100000: fallaba siempre. Ahora pide «Por qué» (incluye Discontinuado).
+
+**Queda abierto.**
+- La calculadora de lote no usa todavía la fórmula del producto base para un
+  producto tercerizado con otra etiqueta: hoy hay que elegir el producto de
+  Nail Show.
+- `comercial.pedido_renglones` rechaza DELETE por la auditoría pero el front
+  ofrece «quitar producto» en borrador (misma decisión pendiente del grant
+  DELETE anotada antes).

@@ -13,10 +13,13 @@ import {
 } from '@mantine/core';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import {
+  TEXTO_MOTIVO_AJUSTE,
   TEXTO_TIPO_MOVIMIENTO,
+  TIPOS_CON_MOTIVO_TIPIFICADO,
   TIPOS_MOVIMIENTO_MANUAL,
   useRegistrarMovimiento,
   type ExistenciaLote,
+  type MotivoAjuste,
 } from '@/lib/consultas';
 import { numero } from '@/lib/formato';
 
@@ -31,30 +34,52 @@ import { numero } from '@/lib/formato';
  * en la base: pedirle a alguien que escriba «-5» en una pantalla de depósito
  * es pedirle que se equivoque.
  */
-const esquema = z.object({
-  tipo: z.enum(TIPOS_MOVIMIENTO_MANUAL),
-  cantidad: z
-    .number({ message: 'Indicá la cantidad.' })
-    .positive('La cantidad tiene que ser mayor que cero.'),
-  motivo: z
-    .string()
-    .trim()
-    .min(10, 'Escribí el motivo: un movimiento sin explicación no se puede auditar.'),
-});
+const MOTIVOS = Object.keys(TEXTO_MOTIVO_AJUSTE) as [MotivoAjuste, ...MotivoAjuste[]];
+
+/*
+ * Derivado de movimientos_motivo_tipo_en_manuales (20260917100000): ajustes y
+ * descarte llevan además la clasificación del motivo, para poder contar
+ * cuánto se pierde por rotura, por vencimiento o por discontinuado.
+ */
+const esquema = z
+  .object({
+    tipo: z.enum(TIPOS_MOVIMIENTO_MANUAL),
+    cantidad: z
+      .number({ message: 'Indicá la cantidad.' })
+      .positive('La cantidad tiene que ser mayor que cero.'),
+    motivoTipo: z.enum(MOTIVOS).nullable(),
+    motivo: z
+      .string()
+      .trim()
+      .min(10, 'Escribí el motivo: un movimiento sin explicación no se puede auditar.'),
+  })
+  .superRefine((v, ctx) => {
+    if (TIPOS_CON_MOTIVO_TIPIFICADO.includes(v.tipo) && !v.motivoTipo) {
+      ctx.addIssue({ code: 'custom', path: ['motivoTipo'], message: 'Elegí el motivo.' });
+    }
+  });
 
 type Valores = z.infer<typeof esquema>;
 
 interface Props {
   posicion: ExistenciaLote;
   onListo: () => void;
+  /** «Quitar stock» abre directo en descarte. */
+  tipoInicial?: (typeof TIPOS_MOVIMIENTO_MANUAL)[number];
 }
 
-export function FormularioMovimiento({ posicion, onListo }: Props) {
+export function FormularioMovimiento({ posicion, onListo, tipoInicial }: Props) {
   const registrar = useRegistrarMovimiento();
   const form = useForm<Valores>({
-    initialValues: { tipo: 'SALIDA_AJUSTE', cantidad: 0, motivo: '' },
+    initialValues: {
+      tipo: tipoInicial ?? 'SALIDA_AJUSTE',
+      cantidad: 0,
+      motivoTipo: null,
+      motivo: '',
+    },
     validate: zod4Resolver(esquema),
   });
+  const pideMotivoTipo = TIPOS_CON_MOTIVO_TIPIFICADO.includes(form.values.tipo);
 
   const saldo = Number(posicion.saldo ?? 0);
   const sale = form.values.tipo.startsWith('SALIDA');
@@ -76,6 +101,9 @@ export function FormularioMovimiento({ posicion, onListo }: Props) {
             tipo: v.tipo,
             cantidad: v.cantidad,
             motivo: v.motivo,
+            motivoTipo: TIPOS_CON_MOTIVO_TIPIFICADO.includes(v.tipo)
+              ? v.motivoTipo
+              : null,
           },
           { onSuccess: onListo },
         );
@@ -112,8 +140,18 @@ export function FormularioMovimiento({ posicion, onListo }: Props) {
           {...form.getInputProps('cantidad')}
         />
 
+        {pideMotivoTipo ? (
+          <Select
+            label="Por qué"
+            withAsterisk
+            placeholder="Elegí el motivo"
+            data={MOTIVOS.map((m) => ({ value: m, label: TEXTO_MOTIVO_AJUSTE[m] }))}
+            {...form.getInputProps('motivoTipo')}
+          />
+        ) : null}
+
         <Textarea
-          label="Motivo"
+          label={pideMotivoTipo ? 'Detalle' : 'Motivo'}
           withAsterisk
           autosize
           minRows={2}
