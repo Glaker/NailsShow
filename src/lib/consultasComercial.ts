@@ -39,6 +39,11 @@ export interface PedidoRow {
   eliminado_en: string | null;
   eliminado_por: string | null;
   motivo_eliminacion: string | null;
+  /** Producción para reponer stock en fábrica (20260925100000). */
+  para_stock: boolean;
+  /** Entregado al cliente: salió del depósito PTF. */
+  entregado_en: string | null;
+  entregado_por: string | null;
   creado_por: string;
   creado_en: string;
 }

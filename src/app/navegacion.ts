@@ -18,6 +18,8 @@ import {
   IconFileInvoice,
   IconUsersGroup,
   IconBuildingFactory2,
+  IconShieldCheck,
+  IconBox,
   type Icon,
 } from '@tabler/icons-react';
 import type { Rol } from '@/features/auth/sesion';
@@ -65,6 +67,18 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiqueta: 'Stock',
     etiquetaCorta: 'Stock',
     icono: IconScale,
+  },
+  {
+    ruta: '/stock-seguridad',
+    etiqueta: 'Stock de seguridad',
+    etiquetaCorta: 'Seguridad',
+    icono: IconShieldCheck,
+  },
+  {
+    ruta: '/producto-terminado',
+    etiqueta: 'Stock en fábrica',
+    etiquetaCorta: 'Fábrica',
+    icono: IconBox,
   },
   {
     ruta: '/conteo',

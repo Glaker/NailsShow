@@ -16,7 +16,20 @@ import { colorTercero, type Tercero } from '@/lib/consultasTercerizados';
 import { BadgeEntrega } from './estadoPedido';
 
 /** «Nail Show» o el nombre del tercerizado, con su color. */
-export function BadgePara({ tercero }: { tercero: Tercero | null | undefined }) {
+export function BadgePara({
+  tercero,
+  paraStock = false,
+}: {
+  tercero: Tercero | null | undefined;
+  paraStock?: boolean | undefined;
+}) {
+  if (paraStock) {
+    return (
+      <Badge size="sm" radius="sm" variant="light" color="indigo">
+        Stock
+      </Badge>
+    );
+  }
   return tercero ? (
     <Badge size="sm" radius="sm" variant="filled" color={colorTercero(tercero)}>
       {tercero.nombre}
@@ -128,7 +141,7 @@ export function TableroPedidos({
                             <Text fw={800} fz={17}>
                               {p.numero}
                             </Text>
-                            <BadgePara tercero={t} />
+                            <BadgePara tercero={t} paraStock={p.para_stock} />
                           </Group>
                           <Text size="sm" truncate>
                             {p.cliente}

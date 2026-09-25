@@ -14,7 +14,11 @@ import { PaginaComprasPendientes } from '@/features/comercial/PaginaComprasPendi
 import { PaginaClientes } from '@/features/comercial/PaginaClientes';
 import { PaginaFacturas } from '@/features/comercial/PaginaFacturas';
 import { PaginaListaMateriales } from '@/features/comercial/PaginaListaMateriales';
-import { PaginaPuntoVenta } from '@/features/comercial/PaginaPuntoVenta';
+import {
+  PaginaPuntoVenta,
+  PaginaStockFabrica,
+} from '@/features/comercial/PaginaPuntoVenta';
+import { PaginaStockSeguridad } from '@/features/stock/PaginaStockSeguridad';
 import { PaginaInsumos } from '@/features/maestros/PaginaInsumos';
 import { PaginaProductos } from '@/features/maestros/PaginaProductos';
 import { PaginaProveedores } from '@/features/maestros/PaginaProveedores';
@@ -41,6 +45,8 @@ export function AppRoutes() {
       <Route path="/lotes/:id" element={<PaginaLote />} />
       <Route path="/stock" element={<PaginaStock />} />
       <Route path="/conteo" element={<PaginaConteo />} />
+      <Route path="/stock-seguridad" element={<PaginaStockSeguridad />} />
+      <Route path="/producto-terminado" element={<PaginaStockFabrica />} />
       <Route path="/calculadora-lote" element={<PaginaCalculadoraLote />} />
       <Route path="/formulas" element={<PaginaFormulas />} />
       <Route path="/formulas/:id" element={<PaginaFormula />} />

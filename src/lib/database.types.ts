@@ -412,6 +412,51 @@ export type Database = {
           },
         ]
       }
+      metas_stock_seguridad: {
+        Row: {
+          creado_en: string
+          creado_por: string
+          id: string
+          motivo: string | null
+          orden: number
+          sku_id: string
+          ss_meta: number
+        }
+        Insert: {
+          creado_en?: string
+          creado_por?: string
+          id?: string
+          motivo?: string | null
+          orden?: never
+          sku_id: string
+          ss_meta: number
+        }
+        Update: {
+          creado_en?: string
+          creado_por?: string
+          id?: string
+          motivo?: string | null
+          orden?: never
+          sku_id?: string
+          ss_meta?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metas_stock_seguridad_sku_id_fkey"
+            columns: ["sku_id"]
+            isOneToOne: false
+            referencedRelation: "stock_seguridad_sku"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metas_stock_seguridad_sku_id_fkey"
+            columns: ["sku_id"]
+            isOneToOne: false
+            referencedRelation: "v_stock_seguridad"
+            referencedColumns: ["sku_id"]
+          },
+        ]
+      }
       movimientos_pt: {
         Row: {
           anula_a_movimiento_id: string | null
@@ -766,6 +811,8 @@ export type Database = {
           creado_por: string
           eliminado_en: string | null
           eliminado_por: string | null
+          entregado_en: string | null
+          entregado_por: string | null
           estado: Database["comercial"]["Enums"]["estado_pedido_enum"]
           fecha: string
           fecha_entrega: string | null
@@ -773,6 +820,7 @@ export type Database = {
           motivo_eliminacion: string | null
           numero: string
           observaciones: string | null
+          para_stock: boolean
           tercero_id: string | null
         }
         Insert: {
@@ -782,6 +830,8 @@ export type Database = {
           creado_por?: string
           eliminado_en?: string | null
           eliminado_por?: string | null
+          entregado_en?: string | null
+          entregado_por?: string | null
           estado?: Database["comercial"]["Enums"]["estado_pedido_enum"]
           fecha?: string
           fecha_entrega?: string | null
@@ -789,6 +839,7 @@ export type Database = {
           motivo_eliminacion?: string | null
           numero: string
           observaciones?: string | null
+          para_stock?: boolean
           tercero_id?: string | null
         }
         Update: {
@@ -798,6 +849,8 @@ export type Database = {
           creado_por?: string
           eliminado_en?: string | null
           eliminado_por?: string | null
+          entregado_en?: string | null
+          entregado_por?: string | null
           estado?: Database["comercial"]["Enums"]["estado_pedido_enum"]
           fecha?: string
           fecha_entrega?: string | null
@@ -805,6 +858,7 @@ export type Database = {
           motivo_eliminacion?: string | null
           numero?: string
           observaciones?: string | null
+          para_stock?: boolean
           tercero_id?: string | null
         }
         Relationships: [
@@ -906,6 +960,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      stock_seguridad_sku: {
+        Row: {
+          aplica_stock: boolean
+          clase_demanda: string | null
+          cobertura_ss_dh: number | null
+          creado_en: string
+          demanda_lead_time: number
+          descripcion: string
+          estado_demanda: string | null
+          id: string
+          incluye_produccion: boolean
+          lead_time_dh: number | null
+          mu_mensual: number | null
+          origen: string | null
+          producto_id: string | null
+          rop_planilla: number
+          sigma_mensual: number | null
+          sku_cod: string
+          ss_planilla: number
+        }
+        Insert: {
+          aplica_stock: boolean
+          clase_demanda?: string | null
+          cobertura_ss_dh?: number | null
+          creado_en?: string
+          demanda_lead_time?: number
+          descripcion: string
+          estado_demanda?: string | null
+          id?: string
+          incluye_produccion: boolean
+          lead_time_dh?: number | null
+          mu_mensual?: number | null
+          origen?: string | null
+          producto_id?: string | null
+          rop_planilla?: number
+          sigma_mensual?: number | null
+          sku_cod: string
+          ss_planilla?: number
+        }
+        Update: {
+          aplica_stock?: boolean
+          clase_demanda?: string | null
+          cobertura_ss_dh?: number | null
+          creado_en?: string
+          demanda_lead_time?: number
+          descripcion?: string
+          estado_demanda?: string | null
+          id?: string
+          incluye_produccion?: boolean
+          lead_time_dh?: number | null
+          mu_mensual?: number | null
+          origen?: string | null
+          producto_id?: string | null
+          rop_planilla?: number
+          sigma_mensual?: number | null
+          sku_cod?: string
+          ss_planilla?: number
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -1259,6 +1373,40 @@ export type Database = {
         }
         Relationships: []
       }
+      v_stock_seguridad: {
+        Row: {
+          accion: string | null
+          aplica_stock: boolean | null
+          bajo_punto_de_pedido: boolean | null
+          clase_demanda: string | null
+          comprometido: number | null
+          demanda_lt: number | null
+          descripcion: string | null
+          disponible: number | null
+          en_calle5: number | null
+          en_fabrica: number | null
+          en_produccion: number | null
+          estado_demanda: string | null
+          falta_disponible: number | null
+          falta_ss: number | null
+          lead_time_dh: number | null
+          meta_desde: string | null
+          meta_propia: boolean | null
+          mu_mensual: number | null
+          origen: string | null
+          pedidos_clientes: number | null
+          posicion: number | null
+          producto_id: string | null
+          producto_nombre: string | null
+          rop_meta: number | null
+          rop_planilla: number | null
+          sku_cod: string | null
+          sku_id: string | null
+          ss_meta: number | null
+          ss_planilla: number | null
+        }
+        Relationships: []
+      }
       v_stock_tercero: {
         Row: {
           codigo_interno: string | null
@@ -1352,6 +1500,7 @@ export type Database = {
     }
     Functions: {
       alicuota_iva_arca: { Args: { p_alicuota: number }; Returns: number }
+      alta_producto_de_sku: { Args: { p_sku_id: string }; Returns: string }
       anular_movimiento: {
         Args: { p_motivo: string; p_movimiento_id: string }
         Returns: {
@@ -1503,6 +1652,7 @@ export type Database = {
         Args: { p_motivo?: string; p_pedido_id: string }
         Returns: undefined
       }
+      entregar_pedido: { Args: { p_pedido_id: string }; Returns: undefined }
       explotar_pedido: {
         Args: { p_pedido_id: string }
         Returns: Database["comercial"]["CompositeTypes"]["renglon_faltante"][]
@@ -1599,6 +1749,15 @@ export type Database = {
           p_insumo_id: string
           p_observacion?: string
           p_provisorio?: boolean
+        }
+        Returns: number
+      }
+      registrar_conteo_pt: {
+        Args: {
+          p_cantidad: number
+          p_deposito_numero?: string
+          p_observacion?: string
+          p_producto_id: string
         }
         Returns: number
       }

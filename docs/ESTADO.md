@@ -1043,6 +1043,8 @@ Anotados para charlarlos antes de encarar; **no empezar sin esa conversación**.
    Decisión: el stock de producto terminado sale de un **depósito de PT en
    fábrica** (como Calle 5), con stock inicial contado, que suma la producción
    para stock y descuentan los pedidos entregados.
+   **Hecho** el 2026-09-25 (20260925100000/100100). Ver la sección «Stock de
+   seguridad» más abajo.
 
 5. **Batch record en PDF, generado por lote** (2026-09-24). Para la DT
    (codirector técnico y Anabella): descargar el batch record de cada lote,
@@ -1242,3 +1244,37 @@ mismo producto se puede volver a agregar.
 de Nail Show (se elige el producto base en la calculadora).
 
 Probado: 16 pruebas nuevas en la base local y todas las suites anteriores.
+
+---
+
+## Stock de seguridad y depósito de PT en fábrica (2026-09-25, aplicado y en servicio)
+
+| Pieza | Qué es |
+| --- | --- |
+| `20260925100000_comercial_stock_seguridad` | depósito PTF; `ENTRADA_PRODUCCION` en `movimientos_pt` (solo de un pedido terminado, hasta lo pedido); pedidos `para_stock` y entrega (`entregar_pedido()`, también desde stock sin producir); `registrar_conteo_pt()`; `stock_seguridad_sku`, `metas_stock_seguridad` (append-only), `alta_producto_de_sku()`, vista `v_stock_seguridad`; «Terminado» suma a PTF |
+| `20260925100100_carga_stock_seguridad` | generada por `scripts/stock_seguridad/generar_migracion.mjs`: 603 SKU, 458 vinculados con producto |
+
+**Cuenta** (por SKU): posición = en fábrica − comprometido con clientes
+(producidos y no entregados) + en producción para stock. Falta para el
+disponible = demanda del lead time − posición; falta para el SS = meta de SS −
+lo que sobra de la posición. La suma es el punto de pedido con la meta propia
+menos la posición. Los pedidos de clientes sin producir no cuentan: se producen
+con su propia cantidad.
+
+**Circuito.** «Terminado» de un pedido de Nail Show suma su cantidad a PTF (los
+tercerizados no: el producto es del cliente). «Entregar» lo saca de PTF; un
+pedido enviado se puede entregar directo del stock, sin producir. «Producir
+para stock» (desde la pantalla de stock de seguridad) arma un pedido para
+stock enviado a producción.
+
+**Pantallas.** `/stock-seguridad` (qué producir o comprar, meta de SS editable
+con la de la planilla como referencia, alta del producto de un SKU que no está
+en el catálogo) y `/producto-terminado` (stock en fábrica, con «Contar» para
+el conteo inicial; misma pantalla que Calle 5, que ahora también cuenta).
+
+**Pendiente para usarlo.** Contar el stock inicial en fábrica: hasta entonces
+todo SKU figura sin stock. 145 SKU de la planilla no están en el catálogo (67
+activos: esmaltes tradicionales, packs, tips): se dan de alta desde la
+pantalla, uno por uno, a propósito (que alguien confirme que es un producto).
+
+Probado: 17 pruebas en la base local y las suites anteriores sin regresión.

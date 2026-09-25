@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
   Alert,
   Badge,
@@ -20,6 +20,7 @@ import {
   IconArrowDown,
   IconArrowUp,
   IconBuildingStore,
+  IconClipboardCheck,
   IconInfoCircle,
   IconPackage,
 } from '@tabler/icons-react';
@@ -35,9 +36,42 @@ import {
   useRegistrarMovimientoPt,
   useStockPuntoVenta,
 } from '@/lib/consultasComercial';
+import { useRegistrarConteoPt } from '@/lib/consultasStockSeguridad';
 
-/** Código del depósito del punto de venta, tal como lo creó 20260922230000. */
-const NUMERO_DEPOSITO = 'C5';
+/**
+ * Qué depósito de producto terminado muestra la pantalla. La de Calle 5 es la
+ * original (20260922230000); el stock en fábrica (PTF, 20260925100000) usa la
+ * misma pantalla y el mismo libro.
+ */
+interface ConfigDeposito {
+  numero: string;
+  titulo: string;
+  descripcion: string;
+  unidadesEn: string;
+  vacioTitulo: string;
+  vacioDescripcion: string;
+}
+
+const CALLE5: ConfigDeposito = {
+  numero: 'C5',
+  titulo: 'Calle 5 — punto de venta',
+  descripcion:
+    'Stock de producto terminado del local. Entra lo que manda la planta, sale lo que se vende.',
+  unidadesEn: 'Unidades en el local',
+  vacioTitulo: 'El local todavía no tiene stock',
+  vacioDescripcion: 'Registrá la primera entrada cuando llegue mercadería desde planta.',
+};
+
+const FABRICA: ConfigDeposito = {
+  numero: 'PTF',
+  titulo: 'Stock en fábrica',
+  descripcion:
+    'Producto terminado en el depósito de fábrica: entra lo que se termina, sale lo que se entrega. Es el stock del que parte el stock de seguridad.',
+  unidadesEn: 'Unidades en fábrica',
+  vacioTitulo: 'Todavía no hay stock contado en fábrica',
+  vacioDescripcion:
+    'Empezá por el conteo inicial: «Contar» deja cada producto en lo que hay de verdad.',
+};
 
 /**
  * Punto de venta de Calle 5.
@@ -46,14 +80,28 @@ const NUMERO_DEPOSITO = 'C5';
  * algo— y el saldo siempre a la vista. El signo del movimiento lo resuelve el
  * hook según el tipo; acá nadie escribe números negativos.
  */
-export function PaginaPuntoVenta() {
+/** Stock de producto terminado en fábrica (PTF): misma pantalla, otro depósito. */
+export function PaginaStockFabrica() {
+  return <PaginaPuntoVenta config={FABRICA} />;
+}
+
+export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito }) {
   const depositos = useDepositos();
-  const stock = useStockPuntoVenta();
+  const stockTodos = useStockPuntoVenta();
   const productos = useProductos();
   const registrar = useRegistrarMovimientoPt();
+  const contar = useRegistrarConteoPt();
+  const [contando, setContando] = useState(false);
+  const [conteoProducto, setConteoProducto] = useState<string | null>(null);
+  const [conteoCantidad, setConteoCantidad] = useState<number | ''>('');
+  const [conteoObs, setConteoObs] = useState('');
 
-  const deposito =
-    (depositos.data ?? []).find((d) => d.numero === NUMERO_DEPOSITO) ?? null;
+  const deposito = (depositos.data ?? []).find((d) => d.numero === config.numero) ?? null;
+  // La vista trae todos los depósitos comerciales: acá solo el de la pantalla.
+  const stock = {
+    isLoading: stockTodos.isLoading,
+    data: (stockTodos.data ?? []).filter((f) => f.deposito_id === deposito?.id),
+  };
   const movimientos = useMovimientosPuntoVenta(deposito?.id);
 
   const [abierto, setAbierto] = useState(false);
@@ -71,14 +119,10 @@ export function PaginaPuntoVenta() {
 
   // `stock.data ?? []` crea un arreglo nuevo en cada render, así que el memo
   // se calcula sobre `stock.data` y el fallback queda adentro.
-  const totalUnidades = useMemo(
-    () => (stock.data ?? []).reduce((a, f) => a + Number(f.saldo), 0),
-    [stock.data],
-  );
-  const conStock = useMemo(
-    () => (stock.data ?? []).filter((f) => Number(f.saldo) > 0),
-    [stock.data],
-  );
+  const totalUnidades = stock.data.reduce((a, f) => a + Number(f.saldo), 0);
+  const conStock = stock.data.filter((f) => Number(f.saldo) > 0);
+  const saldoDe = (id: string | null) =>
+    Number(stock.data.find((f) => f.producto_id === id)?.saldo ?? 0);
 
   function abrir(s: 'entra' | 'sale') {
     setSentido(s);
@@ -114,16 +158,15 @@ export function PaginaPuntoVenta() {
   if (!deposito) {
     return (
       <>
-        <EncabezadoPagina titulo="Calle 5" />
+        <EncabezadoPagina titulo={config.titulo} />
         <Alert
           color="estadoEnAnalisis"
           variant="light"
           radius="md"
           title="Falta el depósito"
         >
-          No existe el depósito <b>{NUMERO_DEPOSITO}</b>. La migración
-          <code> 20260922230000_comercial_deposito_calle5 </code> lo crea; probablemente
-          todavía no se aplicó con <code>supabase db push</code>.
+          No existe el depósito <b>{config.numero}</b>: probablemente falta aplicar la
+          migración que lo crea con <code>supabase db push</code>.
         </Alert>
       </>
     );
@@ -132,10 +175,18 @@ export function PaginaPuntoVenta() {
   return (
     <>
       <EncabezadoPagina
-        titulo="Calle 5 — punto de venta"
-        descripcion="Stock de producto terminado del local. Entra lo que manda la planta, sale lo que se vende."
+        titulo={config.titulo}
+        descripcion={config.descripcion}
         acciones={
           <Group gap="sm">
+            <Button
+              size="md"
+              variant="default"
+              leftSection={<IconClipboardCheck size={18} />}
+              onClick={() => setContando(true)}
+            >
+              Contar
+            </Button>
             <Button
               size="md"
               variant="light"
@@ -160,7 +211,7 @@ export function PaginaPuntoVenta() {
       <Stack gap="lg">
         <Group grow wrap="wrap">
           <TarjetaIndicador
-            etiqueta="Unidades en el local"
+            etiqueta={config.unidadesEn}
             valor={numero(totalUnidades, 0)}
             icono={IconBuildingStore}
           />
@@ -188,9 +239,9 @@ export function PaginaPuntoVenta() {
           <Paper withBorder style={{ borderColor: 'var(--superficie-borde)' }}>
             <Vacio
               icono={IconBuildingStore}
-              titulo="El local todavía no tiene stock"
-              descripcion="Registrá la primera entrada cuando llegue mercadería desde planta."
-              accion={<Button onClick={() => abrir('entra')}>Registrar entrada</Button>}
+              titulo={config.vacioTitulo}
+              descripcion={config.vacioDescripcion}
+              accion={<Button onClick={() => setContando(true)}>Contar</Button>}
             />
           </Paper>
         ) : (
@@ -240,6 +291,79 @@ export function PaginaPuntoVenta() {
           cargando={movimientos.isLoading}
         />
       </Stack>
+
+      <Modal
+        opened={contando}
+        onClose={() => setContando(false)}
+        title={`Conteo · ${config.titulo}`}
+        centered
+        radius="md"
+      >
+        <Stack gap="md">
+          <Text size="sm">
+            Poné lo que hay contado de un producto. El sistema registra el ajuste por la
+            diferencia, con lo que había antes, y el saldo queda en lo contado.
+          </Text>
+          <Select
+            label="Producto"
+            searchable
+            limit={60}
+            nothingFoundMessage="Sin coincidencias"
+            data={(productos.data ?? [])
+              .filter((x) => x.activo && x.tercero_id === null)
+              .map((x) => ({ value: x.id, label: `${x.codigo_interno} · ${x.nombre}` }))}
+            value={conteoProducto}
+            onChange={setConteoProducto}
+          />
+          {conteoProducto ? (
+            <Text size="sm" c="dimmed">
+              Registrado hoy: <b>{numero(saldoDe(conteoProducto), 0)}</b> unidades.
+            </Text>
+          ) : null}
+          <NumberInput
+            label="Unidades contadas"
+            min={0}
+            allowDecimal={false}
+            hideControls
+            value={conteoCantidad}
+            onChange={(v) => setConteoCantidad(typeof v === 'number' ? v : '')}
+          />
+          <TextInput
+            label="Observación"
+            placeholder="Por ejemplo: conteo inicial"
+            value={conteoObs}
+            onChange={(e) => setConteoObs(e.currentTarget.value)}
+          />
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setContando(false)}>
+              Cerrar
+            </Button>
+            <Button
+              loading={contar.isPending}
+              disabled={!conteoProducto || conteoCantidad === ''}
+              onClick={() =>
+                contar.mutate(
+                  {
+                    productoId: conteoProducto!,
+                    cantidad: Number(conteoCantidad),
+                    observacion: conteoObs.trim() || null,
+                    deposito: config.numero,
+                  },
+                  {
+                    // Queda abierto para seguir contando el siguiente producto.
+                    onSuccess: () => {
+                      setConteoProducto(null);
+                      setConteoCantidad('');
+                    },
+                  },
+                )
+              }
+            >
+              Registrar conteo
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
 
       <Modal
         opened={abierto}

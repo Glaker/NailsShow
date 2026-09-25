@@ -245,6 +245,7 @@ export function PaginaPedidos() {
                                 tercero={
                                   p.tercero_id ? terceroPorId.get(p.tercero_id) : null
                                 }
+                                paraStock={p.para_stock}
                               />
                               <Text size="sm">{p.cliente}</Text>
                             </Group>

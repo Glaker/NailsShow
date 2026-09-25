@@ -66,6 +66,7 @@ import { BadgeEntrega, BadgeEstadoAviso, BadgeEstadoPedido } from './estadoPedid
 import { TerminarPedido } from './TerminarPedido';
 import { PasarAProduccion } from '@/features/tercerizados/PasarAProduccion';
 import { colorTercero, useTerceros } from '@/lib/consultasTercerizados';
+import { ROLES_STOCK_PT, useEntregarPedido } from '@/lib/consultasStockSeguridad';
 import {
   CeldasPrecio,
   ClienteDelPedido,
@@ -189,6 +190,8 @@ export function PaginaPedido() {
   const [borrando, setBorrando] = useState(false);
   const [motivoBorrado, setMotivoBorrado] = useState('');
   const eliminar = useEliminarPedido();
+  const entregar = useEntregarPedido();
+  const puedeEntregar = useTieneRol(...ROLES_STOCK_PT);
   const navigate = useNavigate();
   const terceros = useTerceros();
 
@@ -213,6 +216,15 @@ export function PaginaPedido() {
   const borrado = p.eliminado_en !== null;
   const cerrado = p.estado === 'CUMPLIDO' || p.estado === 'CANCELADO';
   const sePuedeBorrar = puedeEditar && !borrado && p.estado !== 'CUMPLIDO';
+  // Entrega al cliente desde el stock en fábrica: pedidos de Nail Show, ya
+  // terminados o enviados (sale directo del stock, sin producir).
+  const sePuedeEntregar =
+    puedeEntregar &&
+    !borrado &&
+    !p.para_stock &&
+    p.tercero_id === null &&
+    p.entregado_en === null &&
+    (p.estado === 'CUMPLIDO' || p.estado === 'CONFIRMADO');
   const editable = puedeEditar && p.estado === 'BORRADOR';
   const sinRenglones = lista.length === 0;
   const sinLista = conLista.data
@@ -268,6 +280,40 @@ export function PaginaPedido() {
             ) : (
               <BadgeEstadoPedido estado={p.estado} />
             )}
+            {p.para_stock ? (
+              <Badge color="indigo" variant="light" size="lg" radius="sm">
+                Para stock
+              </Badge>
+            ) : null}
+            {p.entregado_en ? (
+              <Badge color="estadoAprobado" variant="light" size="lg" radius="sm">
+                Entregado {fechaHora(p.entregado_en)}
+              </Badge>
+            ) : null}
+            {sePuedeEntregar ? (
+              <Button
+                size="md"
+                variant={p.estado === 'CUMPLIDO' ? 'filled' : 'default'}
+                leftSection={<IconPackage size={18} />}
+                loading={entregar.isPending}
+                onClick={() =>
+                  modals.openConfirmModal({
+                    title: `Entregar el pedido ${p.numero}`,
+                    children: (
+                      <Text size="sm">
+                        {p.estado === 'CUMPLIDO'
+                          ? 'Lo producido sale del stock en fábrica hacia el cliente.'
+                          : 'Se entrega directo del stock en fábrica, sin producirlo: el pedido queda terminado.'}
+                      </Text>
+                    ),
+                    labels: { confirm: 'Entregar', cancel: 'Volver' },
+                    onConfirm: () => entregar.mutate(p.id),
+                  })
+                }
+              >
+                {p.estado === 'CUMPLIDO' ? 'Entregar' : 'Entregar desde stock'}
+              </Button>
+            ) : null}
             {sePuedeBorrar ? (
               <Button
                 size="md"
