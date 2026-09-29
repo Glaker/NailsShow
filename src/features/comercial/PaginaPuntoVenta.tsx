@@ -37,6 +37,8 @@ import {
   useStockPuntoVenta,
 } from '@/lib/consultasComercial';
 import { useRegistrarConteoPt } from '@/lib/consultasStockSeguridad';
+import { useTransferirPt } from '@/lib/consultasCalle5';
+import { PanelCalle5 } from './Calle5';
 
 /**
  * Qué depósito de producto terminado muestra la pantalla. La de Calle 5 es la
@@ -95,6 +97,11 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
   const [conteoProducto, setConteoProducto] = useState<string | null>(null);
   const [conteoCantidad, setConteoCantidad] = useState<number | ''>('');
   const [conteoObs, setConteoObs] = useState('');
+  const esCalle5 = config.numero === 'C5';
+  const transferir = useTransferirPt();
+  const [enviando, setEnviando] = useState(false);
+  const [envioProducto, setEnvioProducto] = useState<string | null>(null);
+  const [envioCantidad, setEnvioCantidad] = useState<number | ''>('');
 
   const deposito = (depositos.data ?? []).find((d) => d.numero === config.numero) ?? null;
   // La vista trae todos los depósitos comerciales: acá solo el de la pantalla.
@@ -196,13 +203,26 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
             >
               Entró
             </Button>
+            {esCalle5 ? null : (
+              <Button
+                size="md"
+                variant="light"
+                leftSection={<IconBuildingStore size={18} />}
+                onClick={() => setEnviando(true)}
+              >
+                Enviar a Calle 5
+              </Button>
+            )}
             <Button
               size="md"
               color="violeta"
+              variant={esCalle5 ? 'default' : 'filled'}
               leftSection={<IconArrowUp size={18} />}
               onClick={() => abrir('sale')}
             >
-              Salió
+              {/* En Calle 5 los pedidos se despachan enteros (ítem 21); esto queda para
+                  lo que sale sin pedido: mostrador, ajuste, descarte (D-35). */}
+              {esCalle5 ? 'Salida sin pedido' : 'Salió'}
             </Button>
           </Group>
         }
@@ -286,6 +306,8 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
           </Paper>
         )}
 
+        {esCalle5 ? <PanelCalle5 /> : null}
+
         <UltimosMovimientos
           filas={movimientos.data ?? []}
           cargando={movimientos.isLoading}
@@ -360,6 +382,76 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
               }
             >
               Registrar conteo
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Modal
+        opened={enviando}
+        onClose={() => setEnviando(false)}
+        title="Enviar de fábrica a Calle 5"
+        centered
+        radius="md"
+      >
+        <Stack gap="md">
+          <Text size="sm">
+            Pasa producto terminado del stock de fábrica al local. Sale del stock de
+            seguridad y queda libre en Calle 5.
+          </Text>
+          <Select
+            label="Producto"
+            searchable
+            nothingFoundMessage="Sin stock en fábrica"
+            data={conStock.map((f) => ({
+              value: f.producto_id,
+              label: `${f.producto} · ${numero(Number(f.saldo), 0)} en fábrica`,
+            }))}
+            value={envioProducto}
+            onChange={setEnvioProducto}
+          />
+          <NumberInput
+            label="Unidades"
+            min={1}
+            max={saldoDe(envioProducto)}
+            allowDecimal={false}
+            hideControls
+            value={envioCantidad}
+            onChange={(v) => setEnvioCantidad(typeof v === 'number' ? v : '')}
+          />
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setEnviando(false)}>
+              Cancelar
+            </Button>
+            <Button
+              loading={transferir.isPending}
+              disabled={
+                !envioProducto ||
+                typeof envioCantidad !== 'number' ||
+                envioCantidad <= 0 ||
+                envioCantidad > saldoDe(envioProducto)
+              }
+              onClick={() =>
+                envioProducto &&
+                typeof envioCantidad === 'number' &&
+                transferir.mutate(
+                  {
+                    productoId: envioProducto,
+                    cantidad: envioCantidad,
+                    origen: 'PTF',
+                    destino: 'C5',
+                  },
+                  {
+                    onSuccess: () => {
+                      setEnviando(false);
+                      setEnvioProducto(null);
+                      setEnvioCantidad('');
+                    },
+                  },
+                )
+              }
+            >
+              Enviar
             </Button>
           </Group>
         </Stack>

@@ -76,7 +76,9 @@ export const ETIQUETA_COMPROBANTE: Record<TipoComprobanteProveedor, string> = {
 export const discriminaIva = (t: TipoComprobanteProveedor) => t.endsWith('_A');
 
 /** «0003-00001234», o «solo remito». */
-export function numeroComprobante(c: Pick<ComprobanteProveedorRow, 'punto_venta' | 'numero'>) {
+export function numeroComprobante(
+  c: Pick<ComprobanteProveedorRow, 'punto_venta' | 'numero'>,
+) {
   if (c.punto_venta === null || c.numero === null) return 'solo remito';
   return `${String(c.punto_venta).padStart(4, '0')}-${String(c.numero).padStart(8, '0')}`;
 }

@@ -80,12 +80,20 @@ const esquemaComprobante = z
   .superRefine((c, ctx) => {
     if (c.tipo === 'SIN_FACTURA') return;
     if (c.punto_venta === null)
-      ctx.addIssue({ code: 'custom', path: ['punto_venta'], message: 'Falta el punto de venta' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['punto_venta'],
+        message: 'Falta el punto de venta',
+      });
     if (c.numero === null)
       ctx.addIssue({ code: 'custom', path: ['numero'], message: 'Falta el número' });
     if (c.tipo === 'FACTURA_A') {
       if (c.neto === null)
-        ctx.addIssue({ code: 'custom', path: ['neto'], message: 'Falta el neto gravado' });
+        ctx.addIssue({
+          code: 'custom',
+          path: ['neto'],
+          message: 'Falta el neto gravado',
+        });
       if (c.iva === null)
         ctx.addIssue({ code: 'custom', path: ['iva'], message: 'Falta el IVA' });
     } else if (!c.total) {
@@ -614,7 +622,9 @@ export function FormularioRecepcion({ onListo }: Props) {
           </Button>
           <Button
             type="submit"
-            loading={crear.isPending || vincular.isPending || registrarComprobante.isPending}
+            loading={
+              crear.isPending || vincular.isPending || registrarComprobante.isPending
+            }
             variant="gradient"
             gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
           >
@@ -737,8 +747,8 @@ function ComprobanteDelProveedor({
           </Grid.Col>
           <Grid.Col span={12}>
             <Text size="sm" c="dimmed">
-              Llegó solo con remito. Queda registrado así, visible para Administración, y no
-              suma crédito fiscal. Si la factura llega después, se carga aparte.
+              Llegó solo con remito. Queda registrado así, visible para Administración, y
+              no suma crédito fiscal. Si la factura llega después, se carga aparte.
             </Text>
           </Grid.Col>
         </Grid>
@@ -779,7 +789,11 @@ function ComprobanteDelProveedor({
                 />
               </Grid.Col>
               <Grid.Col span={{ base: 6, sm: 3 }}>
-                <NumberInput label="IVA" {...MONEDA} {...form.getInputProps('comprobante.iva')} />
+                <NumberInput
+                  label="IVA"
+                  {...MONEDA}
+                  {...form.getInputProps('comprobante.iva')}
+                />
               </Grid.Col>
               <Grid.Col span={{ base: 6, sm: 3 }}>
                 <NumberInput

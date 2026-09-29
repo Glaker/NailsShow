@@ -20,7 +20,10 @@ export const ROLES_METAS_SS = [
   'GERENCIA',
 ] as const;
 
-/** Quién registra entregas y conteos de producto terminado (movimientos_pt). */
+/**
+ * Quién registra despachos, reservas y conteos de producto terminado
+ * (movimientos_pt, despachar_pedido, reservas_pt).
+ */
 export const ROLES_STOCK_PT = [
   'GERENCIA_PRODUCCION',
   'ADMINISTRACION',
@@ -177,25 +180,6 @@ export function useRegistrarConteoPt() {
           ? 'Conteo registrado: coincide con lo que había.'
           : `Conteo registrado: ajuste de ${dif > 0 ? '+' : ''}${dif}.`,
       );
-    },
-    onError: avisarError,
-  });
-}
-
-/** Entrega al cliente: sale del depósito PTF (comercial.entregar_pedido). */
-export function useEntregarPedido() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (pedidoId: string) => {
-      const { error } = await comercial().rpc('entregar_pedido', {
-        p_pedido_id: pedidoId,
-      });
-      if (error) throw error;
-    },
-    onSuccess: (_d, id) => {
-      invalidar(qc);
-      void qc.invalidateQueries({ queryKey: ['pedido', id] });
-      avisarExito('Pedido entregado: salió del stock en fábrica.');
     },
     onError: avisarError,
   });

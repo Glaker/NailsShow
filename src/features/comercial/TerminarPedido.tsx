@@ -14,17 +14,26 @@ import {
   TextInput,
 } from '@mantine/core';
 import { IconAlertTriangle, IconChecks, IconPlus, IconTrash } from '@tabler/icons-react';
-import { useInsumos } from '@/lib/consultas';
+import { useDepositos, useInsumos, useProductos } from '@/lib/consultas';
 import { numero } from '@/lib/formato';
 import {
   useFaltantesPedido,
   useNecesidadPedido,
+  useRenglonesPedido,
   useTerminarPedido,
   type PedidoRow,
 } from '@/lib/consultasComercial';
 import { useInsumosPedido, useTerceros } from '@/lib/consultasTercerizados';
 
 type Origen = 'NAILSHOW' | 'TERCERO';
+type Destino = 'PTF' | 'C5';
+
+/** Lo producido de un producto: cuánto, adónde va, y adónde el sobrante. */
+interface Produccion {
+  cantidad: number | string;
+  destino: Destino;
+  sobrante: Destino;
+}
 
 interface Renglon {
   insumoId: string;
@@ -73,6 +82,35 @@ export function TerminarPedido({
     [insumos.data],
   );
 
+  const renglonesPedido = useRenglonesPedido(pedido.id);
+  const productos = useProductos();
+  const depositos = useDepositos();
+  const c5Id = (depositos.data ?? []).find((d) => d.numero === 'C5')?.id;
+  const destinoInicial: Destino =
+    pedido.destino_deposito_id && pedido.destino_deposito_id === c5Id ? 'C5' : 'PTF';
+  /** Lo pedido por producto (los renglones quitados ya no vienen). */
+  const pedidoPorProducto = new Map<string, number>();
+  for (const rr of renglonesPedido.data ?? [])
+    pedidoPorProducto.set(
+      rr.producto_id,
+      (pedidoPorProducto.get(rr.producto_id) ?? 0) + Number(rr.cantidad),
+    );
+  const [produccion, setProduccion] = useState<Record<string, Produccion> | null>(null);
+  const prod: Record<string, Produccion> =
+    produccion ??
+    Object.fromEntries(
+      [...pedidoPorProducto].map(([id, cant]) => [
+        id,
+        { cantidad: cant, destino: destinoInicial, sobrante: 'PTF' },
+      ]),
+    );
+  const nombreProducto = (id: string) =>
+    (productos.data ?? []).find((x) => x.id === id)?.nombre ?? '(producto)';
+  const produccionInvalida = [...pedidoPorProducto.keys()].some((id) => {
+    const n = aNumero(prod[id]?.cantidad ?? 0);
+    return !Number.isFinite(n) || n < 0;
+  });
+
   const [renglones, setRenglones] = useState<Renglon[] | null>(null);
   const [nuevoInsumo, setNuevoInsumo] = useState<string | null>(null);
 
@@ -119,12 +157,37 @@ export function TerminarPedido({
             motivo: r.motivo.trim() || null,
             ...(esTercero ? { origen: r.origen } : {}),
           })),
+        // Tercerizado: lo producido es del cliente y no entra al stock de Nail Show.
+        ...(esTercero
+          ? {}
+          : {
+              produccion: [...pedidoPorProducto].flatMap(([id, pedida]) => {
+                const x = prod[id];
+                if (!x) return [];
+                const hecho = aNumero(x.cantidad);
+                const base = Math.min(hecho, pedida);
+                const extra = hecho - base;
+                return [
+                  ...(base > 0
+                    ? [{ productoId: id, cantidad: base, deposito: x.destino }]
+                    : []),
+                  ...(extra > 0
+                    ? [{ productoId: id, cantidad: extra, deposito: x.sobrante }]
+                    : []),
+                ];
+              }),
+            }),
       },
       { onSuccess: onListo },
     );
   }
 
-  if (necesidad.isLoading || insumos.isLoading || (esTercero && origenes.isLoading))
+  if (
+    necesidad.isLoading ||
+    insumos.isLoading ||
+    renglonesPedido.isLoading ||
+    (esTercero && origenes.isLoading)
+  )
     return <Skeleton h={240} />;
 
   const opcionesAgregar = (insumos.data ?? [])
@@ -310,6 +373,99 @@ export function TerminarPedido({
         </Button>
       </Group>
 
+      {esTercero || pedidoPorProducto.size === 0 ? null : (
+        <Stack gap="xs">
+          <Text fw={600} size="sm">
+            Cuánto se produjo y adónde va
+          </Text>
+          <Text size="xs" c="dimmed">
+            Si salió menos, lo que falta queda pendiente para despachar y vuelve a
+            aparecer en lo que falta producir. Si salió más, elegí adónde va el sobrante.
+          </Text>
+          <Table.ScrollContainer minWidth={640}>
+            <Table verticalSpacing="xs">
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Producto</Table.Th>
+                  <Table.Th ta="right">Pedido</Table.Th>
+                  <Table.Th ta="right">Se produjo</Table.Th>
+                  <Table.Th>Va a</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {[...pedidoPorProducto].map(([id, pedida]) => {
+                  const x = prod[id] ?? {
+                    cantidad: pedida,
+                    destino: destinoInicial,
+                    sobrante: 'PTF',
+                  };
+                  const hecho = aNumero(x.cantidad);
+                  const cambiarProd = (c: Partial<Produccion>) =>
+                    setProduccion({ ...prod, [id]: { ...x, ...c } });
+                  const opciones = [
+                    {
+                      value: 'PTF',
+                      label: pedido.para_stock ? 'Fábrica (seguridad)' : 'Fábrica',
+                    },
+                    { value: 'C5', label: 'Calle 5' },
+                  ];
+                  return (
+                    <Table.Tr key={id}>
+                      <Table.Td>
+                        <Text size="sm" fw={600}>
+                          {nombreProducto(id)}
+                        </Text>
+                        {hecho < pedida ? (
+                          <Text size="xs" c="estadoCuarentena.8">
+                            Faltan {numero(pedida - hecho, 0)}: quedan pendientes
+                          </Text>
+                        ) : null}
+                      </Table.Td>
+                      <Table.Td ta="right">{numero(pedida, 0)}</Table.Td>
+                      <Table.Td ta="right">
+                        <NumberInput
+                          aria-label={`Cantidad producida de ${nombreProducto(id)}`}
+                          w={110}
+                          ml="auto"
+                          min={0}
+                          allowDecimal={false}
+                          hideControls
+                          value={x.cantidad}
+                          onChange={(v) => cambiarProd({ cantidad: v })}
+                        />
+                      </Table.Td>
+                      <Table.Td>
+                        <Stack gap={4}>
+                          <SegmentedControl
+                            size="xs"
+                            value={x.destino}
+                            onChange={(v) => cambiarProd({ destino: v as Destino })}
+                            data={opciones}
+                          />
+                          {hecho > pedida ? (
+                            <Group gap={6} wrap="nowrap">
+                              <Text size="xs" c="dimmed">
+                                Sobran {numero(hecho - pedida, 0)}:
+                              </Text>
+                              <SegmentedControl
+                                size="xs"
+                                value={x.sobrante}
+                                onChange={(v) => cambiarProd({ sobrante: v as Destino })}
+                                data={opciones}
+                              />
+                            </Group>
+                          ) : null}
+                        </Stack>
+                      </Table.Td>
+                    </Table.Tr>
+                  );
+                })}
+              </Table.Tbody>
+            </Table>
+          </Table.ScrollContainer>
+        </Stack>
+      )}
+
       <Group justify="flex-end" gap="sm">
         <Button variant="subtle" color="gray" onClick={onListo}>
           Volver
@@ -318,7 +474,7 @@ export function TerminarPedido({
           size="md"
           leftSection={<IconChecks size={18} />}
           loading={terminar.isPending}
-          disabled={invalidos.length > 0}
+          disabled={invalidos.length > 0 || produccionInvalida}
           onClick={confirmar}
         >
           Terminado: descontar stock

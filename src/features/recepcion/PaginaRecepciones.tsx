@@ -44,7 +44,10 @@ export function PaginaRecepciones() {
   const comprobantesDe = new Map<string, NonNullable<typeof comprobantes.data>>();
   for (const c of comprobantes.data ?? []) {
     if (!c.recepcion_id || c.anulado_en) continue;
-    comprobantesDe.set(c.recepcion_id, [...(comprobantesDe.get(c.recepcion_id) ?? []), c]);
+    comprobantesDe.set(c.recepcion_id, [
+      ...(comprobantesDe.get(c.recepcion_id) ?? []),
+      c,
+    ]);
   }
   const [abierto, modal] = useDisclosure(false);
   /* §3.3 no tiene fila para la entrada por compra. Toma el conjunto de
@@ -188,7 +191,9 @@ export function PaginaRecepciones() {
                               size="sm"
                               variant="light"
                               radius="sm"
-                              color={c.tipo === 'SIN_FACTURA' ? 'estadoCuarentena' : 'violeta'}
+                              color={
+                                c.tipo === 'SIN_FACTURA' ? 'estadoCuarentena' : 'violeta'
+                              }
                             >
                               {ETIQUETA_COMPROBANTE[c.tipo]}
                             </Badge>

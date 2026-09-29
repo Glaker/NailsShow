@@ -30,7 +30,11 @@ export function RedirigirAStock({ vista }: { vista: VistaStock }) {
  */
 export function PaginaStockUnificada() {
   const [params, setParams] = useSearchParams();
-  const puedeContar = useTieneRol('DIRECCION_TECNICA', 'ADMINISTRACION', 'GERENCIA_PRODUCCION');
+  const puedeContar = useTieneRol(
+    'DIRECCION_TECNICA',
+    'ADMINISTRACION',
+    'GERENCIA_PRODUCCION',
+  );
   const pedida = params.get('vista') as VistaStock | null;
   const vista: VistaStock =
     pedida && VISTAS.includes(pedida) && (pedida !== 'conteo' || puedeContar)

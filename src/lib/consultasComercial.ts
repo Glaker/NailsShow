@@ -41,6 +41,8 @@ export interface PedidoRow {
   motivo_eliminacion: string | null;
   /** Producción para reponer stock en fábrica (20260925100000). */
   para_stock: boolean;
+  /** Destino sugerido de lo producido (20260929110000). Nulo = fábrica. */
+  destino_deposito_id: string | null;
   /** Entregado al cliente: salió del depósito PTF. */
   entregado_en: string | null;
   entregado_por: string | null;
@@ -700,6 +702,8 @@ export function useTerminarPedido() {
         /** Solo en pedidos tercerizados, si salió de otro stock que el elegido. */
         origen?: 'NAILSHOW' | 'TERCERO';
       }[];
+      /** Cuánto se produjo y adónde va (20260929110000). Sin esto, lo pedido a la fábrica. */
+      produccion?: { productoId: string; cantidad: number; deposito: 'PTF' | 'C5' }[];
     }) => {
       const { error } = await rpcComercial<null>('terminar_pedido', {
         p_pedido_id: t.pedidoId,
@@ -709,6 +713,15 @@ export function useTerminarPedido() {
           motivo: c.motivo,
           ...(c.origen ? { origen: c.origen } : {}),
         })),
+        ...(t.produccion
+          ? {
+              p_produccion: t.produccion.map((x) => ({
+                producto_id: x.productoId,
+                cantidad: x.cantidad,
+                deposito: x.deposito,
+              })),
+            }
+          : {}),
       });
       if (error) throw error;
     },
@@ -722,6 +735,12 @@ export function useTerminarPedido() {
         'stock-lote',
         'kardex',
         'kardex-general',
+        'stock-punto-venta',
+        'movimientos-pt',
+        'stock-seguridad',
+        'calle5',
+        'pendientes-despacho',
+        'reservas-pt',
       ])
         void qc.invalidateQueries({ queryKey: [k] });
       avisarExito('Pedido terminado. El stock se descontó.');

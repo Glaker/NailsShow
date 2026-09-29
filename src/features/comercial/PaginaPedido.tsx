@@ -66,7 +66,9 @@ import { BadgeEntrega, BadgeEstadoAviso, BadgeEstadoPedido } from './estadoPedid
 import { TerminarPedido } from './TerminarPedido';
 import { PasarAProduccion } from '@/features/tercerizados/PasarAProduccion';
 import { colorTercero, useTerceros } from '@/lib/consultasTercerizados';
-import { ROLES_STOCK_PT, useEntregarPedido } from '@/lib/consultasStockSeguridad';
+import { ROLES_STOCK_PT } from '@/lib/consultasStockSeguridad';
+import { agruparPorPedido, usePendientesDespacho } from '@/lib/consultasCalle5';
+import { CoberturaCalle5, ModalDespacho } from './Calle5';
 import {
   CeldasPrecio,
   ClienteDelPedido,
@@ -190,8 +192,9 @@ export function PaginaPedido() {
   const [borrando, setBorrando] = useState(false);
   const [motivoBorrado, setMotivoBorrado] = useState('');
   const eliminar = useEliminarPedido();
-  const entregar = useEntregarPedido();
   const puedeEntregar = useTieneRol(...ROLES_STOCK_PT);
+  const pendientesDespacho = usePendientesDespacho(id);
+  const [despachando, setDespachando] = useState(false);
   const navigate = useNavigate();
   const terceros = useTerceros();
 
@@ -216,15 +219,19 @@ export function PaginaPedido() {
   const borrado = p.eliminado_en !== null;
   const cerrado = p.estado === 'CUMPLIDO' || p.estado === 'CANCELADO';
   const sePuedeBorrar = puedeEditar && !borrado && p.estado !== 'CUMPLIDO';
-  // Entrega al cliente desde el stock en fábrica: pedidos de Nail Show, ya
-  // terminados o enviados (sale directo del stock, sin producir).
+  // Despacho al cliente (ítem 21): pedidos de Nail Show enviados, en
+  // producción o terminados, desde Calle 5 o fábrica, completo o con faltantes.
+  const aDespachar = agruparPorPedido(pendientesDespacho.data ?? [])[0] ?? null;
+  const yaSalioAlgo = (pendientesDespacho.data ?? []).some(
+    (r) => Number(r.despachado) > 0,
+  );
   const sePuedeEntregar =
     puedeEntregar &&
     !borrado &&
     !p.para_stock &&
     p.tercero_id === null &&
     p.entregado_en === null &&
-    (p.estado === 'CUMPLIDO' || p.estado === 'CONFIRMADO');
+    aDespachar !== null;
   const editable = puedeEditar && p.estado === 'BORRADOR';
   const sinRenglones = lista.length === 0;
   const sinLista = conLista.data
@@ -290,28 +297,19 @@ export function PaginaPedido() {
                 Entregado {fechaHora(p.entregado_en)}
               </Badge>
             ) : null}
+            {yaSalioAlgo && p.entregado_en === null ? (
+              <Badge color="estadoCuarentena" variant="light" size="lg" radius="sm">
+                Despachado con faltantes
+              </Badge>
+            ) : null}
             {sePuedeEntregar ? (
               <Button
                 size="md"
                 variant={p.estado === 'CUMPLIDO' ? 'filled' : 'default'}
                 leftSection={<IconPackage size={18} />}
-                loading={entregar.isPending}
-                onClick={() =>
-                  modals.openConfirmModal({
-                    title: `Entregar el pedido ${p.numero}`,
-                    children: (
-                      <Text size="sm">
-                        {p.estado === 'CUMPLIDO'
-                          ? 'Lo producido sale del stock en fábrica hacia el cliente.'
-                          : 'Se entrega directo del stock en fábrica, sin producirlo: el pedido queda terminado.'}
-                      </Text>
-                    ),
-                    labels: { confirm: 'Entregar', cancel: 'Volver' },
-                    onConfirm: () => entregar.mutate(p.id),
-                  })
-                }
+                onClick={() => setDespachando(true)}
               >
-                {p.estado === 'CUMPLIDO' ? 'Entregar' : 'Entregar desde stock'}
+                Despachar
               </Button>
             ) : null}
             {sePuedeBorrar ? (
@@ -470,6 +468,10 @@ export function PaginaPedido() {
           </Stack>
         </Paper>
 
+        {aDespachar && !p.para_stock && p.tercero_id === null && !borrado ? (
+          <CoberturaCalle5 pedido={aDespachar} />
+        ) : null}
+
         <SeccionFactura pedido={p} renglones={lista} />
 
         {/* ---------------- ¿Se puede fabricar? ---------------- */}
@@ -592,6 +594,11 @@ export function PaginaPedido() {
           />
         ) : null}
       </Modal>
+
+      <ModalDespacho
+        pedido={despachando ? aDespachar : null}
+        onCerrar={() => setDespachando(false)}
+      />
 
       <Modal
         opened={terminando}
