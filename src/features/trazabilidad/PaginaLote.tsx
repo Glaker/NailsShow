@@ -295,7 +295,7 @@ export function PaginaLote() {
                 </Grid.Col>
                 <Grid.Col span={{ base: 6, sm: 4 }}>
                   <Dato etiqueta="Recepción">
-                    <Anchor component={Link} to="/recepciones" size="sm">
+                    <Anchor component={Link} to="/stock?vista=recepciones" size="sm">
                       {l.recepcion_numero}
                     </Anchor>
                   </Dato>

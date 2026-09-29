@@ -1,10 +1,11 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { PaginaTablero } from '@/features/tablero/PaginaTablero';
-import { PaginaRecepciones } from '@/features/recepcion/PaginaRecepciones';
 import { PaginaLotes } from '@/features/trazabilidad/PaginaLotes';
 import { PaginaLote } from '@/features/trazabilidad/PaginaLote';
-import { PaginaStock } from '@/features/stock/PaginaStock';
-import { PaginaConteo } from '@/features/stock/PaginaConteo';
+import {
+  PaginaStockUnificada,
+  RedirigirAStock,
+} from '@/features/stock/PaginaStockUnificada';
 import { PaginaCalculadoraLote } from '@/features/produccion/PaginaCalculadoraLote';
 import { PaginaFormulas } from '@/features/produccion/PaginaFormulas';
 import { PaginaFormula } from '@/features/produccion/PaginaFormula';
@@ -14,11 +15,7 @@ import { PaginaComprasPendientes } from '@/features/comercial/PaginaComprasPendi
 import { PaginaClientes } from '@/features/comercial/PaginaClientes';
 import { PaginaFacturas } from '@/features/comercial/PaginaFacturas';
 import { PaginaListaMateriales } from '@/features/comercial/PaginaListaMateriales';
-import {
-  PaginaPuntoVenta,
-  PaginaStockFabrica,
-} from '@/features/comercial/PaginaPuntoVenta';
-import { PaginaStockSeguridad } from '@/features/stock/PaginaStockSeguridad';
+import { PaginaPuntoVenta } from '@/features/comercial/PaginaPuntoVenta';
 import { PaginaInsumos } from '@/features/maestros/PaginaInsumos';
 import { PaginaProductos } from '@/features/maestros/PaginaProductos';
 import { PaginaProveedores } from '@/features/maestros/PaginaProveedores';
@@ -40,13 +37,14 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<PaginaTablero />} />
-      <Route path="/recepciones" element={<PaginaRecepciones />} />
       <Route path="/lotes" element={<PaginaLotes />} />
       <Route path="/lotes/:id" element={<PaginaLote />} />
-      <Route path="/stock" element={<PaginaStock />} />
-      <Route path="/conteo" element={<PaginaConteo />} />
-      <Route path="/stock-seguridad" element={<PaginaStockSeguridad />} />
-      <Route path="/producto-terminado" element={<PaginaStockFabrica />} />
+      <Route path="/stock" element={<PaginaStockUnificada />} />
+      {/* Rutas viejas: llevan a su pestaña de Stock. */}
+      <Route path="/recepciones" element={<RedirigirAStock vista="recepciones" />} />
+      <Route path="/conteo" element={<RedirigirAStock vista="conteo" />} />
+      <Route path="/stock-seguridad" element={<RedirigirAStock vista="seguridad" />} />
+      <Route path="/producto-terminado" element={<RedirigirAStock vista="fabrica" />} />
       <Route path="/calculadora-lote" element={<PaginaCalculadoraLote />} />
       <Route path="/formulas" element={<PaginaFormulas />} />
       <Route path="/formulas/:id" element={<PaginaFormula />} />

@@ -1278,3 +1278,95 @@ activos: esmaltes tradicionales, packs, tips): se dan de alta desde la
 pantalla, uno por uno, a propósito (que alguien confirme que es un producto).
 
 Probado: 17 pruebas en la base local y las suites anteriores sin regresión.
+
+---
+
+## Cola de pendientes, segunda tanda (2026-09-29)
+
+Pedidos de la conducción del proyecto del 2026-09-29, más el documento
+`Requerimientos_App_Administracion_Nail_Show.docx` (carpeta `App/`, fuera del
+repo). Siguen la numeración de la cola del 2026-09-24.
+
+### Revisión del stock tal como está hoy
+
+- **Siete entradas de menú** tocan stock: Recepciones, Lotes de insumo, Stock,
+  Stock de seguridad, Stock en fábrica, Conteo y Calle 5.
+- **Dos libros**: `comercial.movimientos_stock` (insumos, siempre con lote) y
+  `comercial.movimientos_pt` (producto terminado, en PTF y C5, lote como texto).
+  Se separaron a propósito (cabecera de `20260922230000`): no se unifican.
+- **Calle 5 no participa del circuito de pedidos.** «Terminado» suma siempre a
+  PTF y `entregar_pedido()` saca siempre de PTF. Calle 5 solo se mueve a mano,
+  producto por producto, con «Entra / Sale» en `/punto-venta`.
+- **Las reservas son solo de insumos** (`comercial.reservas`, titular y
+  beneficiario). No hay reserva de producto terminado.
+
+### Los pedidos
+
+17. **Una sola página «Stock»** que absorbe Recepciones, Stock y Stock de
+    seguridad, con pestañas y las rutas viejas redirigiendo a su pestaña. Amplía
+    el ítem 9. Solo front. Lotes de insumo queda aparte (es el circuito de
+    calidad); Stock en fábrica y Conteo, como pestañas si entran sin apretar.
+18. **Comprobante del proveedor en «Nueva recepción»**: Factura A, B, C o
+    **sin factura (solo remito)**. Por RN-65 la recepción física (`gmp`) y la
+    fiscal (`comercial`) son registros separados y vinculados: el comprobante
+    vive en `comercial` y apunta a `gmp.recepciones`, no es una columna de la
+    recepción (invariante 7). Con factura: número, fecha, neto e IVA, que es la
+    semilla de la cuenta corriente del proveedor y de IVA Compras (ítem 24).
+    **Límite:** «sin factura» se registra como tal, visible para Administración
+    y auditoría, y no computa crédito fiscal. No se arma un circuito paralelo
+    ni se oculta: mismo criterio que el ítem 16.
+19. **Pedido de Nail Show contra Calle 5.** Al enviarlo se compara con el
+    disponible de Calle 5 (saldo − reservado). Lo que falta se manda a producir
+    a Nazarena. La falta se calcula **sumando todos los pedidos en curso antes
+    de comparar**, como con los insumos; qué pedido recibe lo que hay lo decide
+    una persona (ítem 21).
+20. **Destino al terminar la producción**: Calle 5 o queda en fábrica como
+    stock de seguridad (PTF). Hoy va siempre a PTF. Absorbe los ítems 14 y 15:
+    es la misma pregunta en el mismo momento. Ir a Calle 5 es una transferencia
+    PTF → C5 en `movimientos_pt`.
+21. **Despacho de Calle 5 por pedido entero**, no producto por producto.
+    Silveira (ENCARGADA_STOCK) ve el pedido con lo pedido y lo disponible por
+    renglón, marca **completo** o **con faltantes** (cuánto sale de cada uno),
+    y todo sale en una transacción con el pedido como documento. Lo que no
+    salió queda pendiente en el pedido.
+    **Asignación manual:** con 100 monómeros y 1000 pedidos entre 6 clientes, el
+    sistema no reparte ni prioriza. Silveira y Mati eligen a quién va cada
+    unidad.
+22. **Reservar stock de Calle 5 para un cliente.** Aparta cantidad de un
+    producto para un cliente (con pedido opcional). Para los demás, el
+    disponible es saldo − reservado. Se libera o se consume, no se borra. Es el
+    mecanismo de la asignación del ítem 21.
+
+### Módulo de Administración (documento de requerimientos)
+
+El documento pide que la app sea el centro de control administrativo:
+capturar, centralizar, relacionar, controlar y reportar, con **un dato
+cargado una sola vez**. Una parte ya está en el alcance (§2.4 y §4.12:
+stock valorizado, comprobantes, cuentas corrientes, contabilidad, RN-51 a
+RN-66); otra es nueva (RRHH, tesorería, COMEX, monotributos, estudio
+contable). Lo nuevo no está en el documento de alcance: ver D-34.
+
+23. **Inicio de Administración orientado a pendientes** (§6 del documento):
+    pagos próximos y vencidos, comprobantes sin asociar, diferencias de cuenta
+    corriente, saldos de caja y banco, IVA del mes, cobranzas sin relacionar,
+    stock valorizado. Absorbe el inicio de Diego (ítem 13).
+24. **Etapa 1**: proveedores con cuenta corriente (facturas, NC, pagos,
+    vencimientos, saldo, conciliación contra el saldo del proveedor); compras
+    productivas enlazadas a factura, pago e ingreso (sobre `avisos_compra` y el
+    ítem 18); solicitudes de pago de todas las áreas con estado; cajas y bancos
+    con movimientos, conciliación y cuentas de terceros identificadas; tablero
+    IVA Compras vs. IVA Ventas; importación Excel/CSV desde el ERP y Holistor.
+25. **Etapa 2**: cuenta corriente de clientes (facturación, cobranzas, NC,
+    antigüedad de saldos) y cobros relacionados con facturas; stock valorizado
+    (§4.12.2); cash flow real y proyectado; reportes de ventas, estadísticas,
+    estado de resultado mensual e información para balance, con filtros.
+26. **Etapa 3**: RRHH y liquidación (legajo, novedades, ausencias, horas,
+    historial, costo laboral); comisiones sobre ventas; COMEX y courier;
+    control de monotributos con alertas; envíos al estudio contable con estado
+    (pendiente / preparado / enviado / observado).
+27. **Perfiles del documento**: Administración, Producción, Ventas (ítem 8),
+    Depósito y Dirección. La auditoría que pide ya la cubre RN-50.
+
+**Orden propuesto:** 17 → 18 → 22 → 21 → 19 → 20 → 23/24 → 25 → 26.
+Decisiones abiertas nuevas: D-34 (alcance del módulo de Administración) y
+D-35 (qué stock mira el pedido y qué pasa con lo que no sale).

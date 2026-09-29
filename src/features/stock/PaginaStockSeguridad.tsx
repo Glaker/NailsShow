@@ -122,7 +122,7 @@ export function PaginaStockSeguridad() {
           <Group gap="sm">
             <Button
               component={Link}
-              to="/producto-terminado"
+              to="/stock?vista=fabrica"
               variant="default"
               leftSection={<IconBuildingWarehouse size={16} />}
             >
@@ -184,7 +184,7 @@ export function PaginaStockSeguridad() {
               no se cuente el stock inicial en{' '}
               <Text
                 component={Link}
-                to="/producto-terminado"
+                to="/stock?vista=fabrica"
                 c="violeta"
                 fw={600}
                 size="sm"

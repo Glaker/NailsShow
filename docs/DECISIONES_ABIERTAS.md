@@ -463,6 +463,36 @@ o una verificación diaria que contraste cada factura AUTORIZADA con
 FECompConsultar.
 **Decide.** Dirección Técnica y conducción del proyecto.
 
+### D-34 · El módulo de Administración no está en el documento de alcance
+
+**Contexto.** `Requerimientos_App_Administracion_Nail_Show.docx` (2026-09-29)
+pide RRHH y sueldos, comisiones, tesorería (cajas, bancos, cuentas de
+terceros), COMEX y courier, monotributos y envíos al estudio contable. Nada de
+eso está en el alcance v02, que sí cubre stock valorizado, comprobantes,
+cuentas corrientes y contabilidad (§4.12).
+**Tensión.** El alcance planea contabilidad propia en partida doble (RN-60 a
+RN-62); el documento nuevo dice que no hace falta reemplazar al ERP ni al
+sistema contable, sino integrarlos (Holistor).
+**Pregunta.** ¿Se incorpora el documento como §4.14 del alcance, con reglas
+numeradas? ¿Contabilidad propia o importación desde Holistor? ¿Qué conceptos
+de liquidación y qué reglas de comisión?
+**Implementado mientras tanto.** Solo lo que ya está en el alcance (ítems 24 y
+25 de la cola, en lo que cubre §4.12). RRHH, comisiones y COMEX esperan.
+**Decide.** Gerencia, con el estudio contable.
+
+### D-35 · Qué stock mira el pedido de Nail Show y qué pasa con lo que no sale
+
+**Contexto.** Pedido del 2026-09-29: el pedido se compara con Calle 5 y lo que
+falta se produce; Silveira despacha completo o con faltantes.
+**Preguntas.**
+- ¿Solo Calle 5, o también lo que está en fábrica (PTF)?
+- Lo que no salió en un despacho con faltantes, ¿sigue en el mismo pedido o
+  genera uno nuevo por la diferencia?
+- El «Sale» suelto de Calle 5, ¿queda para venta de mostrador o se quita?
+**Supuesto adoptado.** Solo Calle 5; el faltante queda pendiente en el mismo
+pedido; el «Sale» suelto queda para mostrador.
+**Decide.** Gerencia.
+
 ## Resueltas
 
 ### R-01 · Color del rótulo de cuarentena — 2026-09-04

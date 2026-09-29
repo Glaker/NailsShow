@@ -1,6 +1,5 @@
 import {
   IconLayoutDashboard,
-  IconTruckDelivery,
   IconPackages,
   IconScale,
   IconFlask,
@@ -14,12 +13,9 @@ import {
   IconShoppingCart,
   IconBuildingStore,
   IconListCheck,
-  IconClipboardCheck,
   IconFileInvoice,
   IconUsersGroup,
   IconBuildingFactory2,
-  IconShieldCheck,
-  IconBox,
   type Icon,
 } from '@tabler/icons-react';
 import type { Rol } from '@/features/auth/sesion';
@@ -49,10 +45,11 @@ export const NAVEGACION: ItemNavegacion[] = [
     principal: true,
   },
   {
-    ruta: '/recepciones',
-    etiqueta: 'Recepciones',
-    etiquetaCorta: 'Recepción',
-    icono: IconTruckDelivery,
+    // Recepciones, stock de seguridad, stock en fábrica y conteo son pestañas.
+    ruta: '/stock',
+    etiqueta: 'Stock y recepciones',
+    etiquetaCorta: 'Stock',
+    icono: IconScale,
     principal: true,
   },
   {
@@ -61,31 +58,6 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiquetaCorta: 'Lotes',
     icono: IconPackages,
     principal: true,
-  },
-  {
-    ruta: '/stock',
-    etiqueta: 'Stock',
-    etiquetaCorta: 'Stock',
-    icono: IconScale,
-  },
-  {
-    ruta: '/stock-seguridad',
-    etiqueta: 'Stock de seguridad',
-    etiquetaCorta: 'Seguridad',
-    icono: IconShieldCheck,
-  },
-  {
-    ruta: '/producto-terminado',
-    etiqueta: 'Stock en fábrica',
-    etiquetaCorta: 'Fábrica',
-    icono: IconBox,
-  },
-  {
-    ruta: '/conteo',
-    etiqueta: 'Conteo de inventario',
-    etiquetaCorta: 'Conteo',
-    icono: IconClipboardCheck,
-    roles: ['DIRECCION_TECNICA', 'ADMINISTRACION', 'GERENCIA_PRODUCCION'],
   },
   {
     ruta: '/insumos',

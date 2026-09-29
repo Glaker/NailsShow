@@ -142,7 +142,7 @@ export function PaginaTablero() {
                 valor={numero(t?.recepciones_del_mes ?? 0)}
                 icono={IconTruckDelivery}
                 detalle={`${numero(t?.recepciones_sin_cargar ?? 0)} sin carga administrativa`}
-                a="/recepciones"
+                a="/stock?vista=recepciones"
               />
               <TarjetaIndicador
                 etiqueta="Sin rotular"
