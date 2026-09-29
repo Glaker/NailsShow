@@ -178,7 +178,7 @@ export const TIPOS_PT_CON_MOTIVO = ['ENTRADA_AJUSTE', 'SALIDA_AJUSTE', 'SALIDA_D
  * Acceso a tablas que los tipos generados todavía no describen
  * ------------------------------------------------------------------------- */
 
-function tablaComercial<T>(nombre: string): ConsultaTabla<T> {
+export function tablaComercial<T>(nombre: string): ConsultaTabla<T> {
   const cliente = comercial();
   const desde = cliente.from.bind(cliente) as unknown as (tabla: string) => unknown;
   return desde(nombre) as ConsultaTabla<T>;
@@ -216,7 +216,7 @@ export const ROLES_TERMINAN_PEDIDOS = [
   'DIRECCION_TECNICA',
 ] as const;
 
-function rpcComercial<T>(fn: string, args: Record<string, unknown>) {
+export function rpcComercial<T>(fn: string, args: Record<string, unknown>) {
   const cliente = comercial();
   const rpc = cliente.rpc.bind(cliente) as unknown as (
     fn: string,

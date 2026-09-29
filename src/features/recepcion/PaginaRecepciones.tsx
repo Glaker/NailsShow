@@ -23,6 +23,11 @@ import { modals } from '@mantine/modals';
 import { useCargarRecepcionAStock, useRecepciones } from '@/lib/consultas';
 import { fechaHora, numero } from '@/lib/formato';
 import { useTieneRol } from '@/features/auth/sesion';
+import {
+  ETIQUETA_COMPROBANTE,
+  numeroComprobante,
+  useComprobantesProveedor,
+} from '@/lib/consultasCompras';
 
 /**
  * Recepciones (I.20.1).
@@ -34,6 +39,13 @@ import { useTieneRol } from '@/features/auth/sesion';
 export function PaginaRecepciones() {
   const recepciones = useRecepciones();
   const cargar = useCargarRecepcionAStock();
+  const comprobantes = useComprobantesProveedor();
+  /* Comprobantes vigentes por recepción (RN-65: registro aparte, vinculado). */
+  const comprobantesDe = new Map<string, NonNullable<typeof comprobantes.data>>();
+  for (const c of comprobantes.data ?? []) {
+    if (!c.recepcion_id || c.anulado_en) continue;
+    comprobantesDe.set(c.recepcion_id, [...(comprobantesDe.get(c.recepcion_id) ?? []), c]);
+  }
   const [abierto, modal] = useDisclosure(false);
   /* §3.3 no tiene fila para la entrada por compra. Toma el conjunto de
      «Ajustar stock por diferencia de inventario», que es el mismo que ya puede
@@ -118,7 +130,7 @@ export function PaginaRecepciones() {
             }
           />
         ) : (
-          <Table.ScrollContainer minWidth={760}>
+          <Table.ScrollContainer minWidth={900}>
             <Table verticalSpacing="sm" highlightOnHover>
               <Table.Thead>
                 <Table.Tr>
@@ -126,6 +138,7 @@ export function PaginaRecepciones() {
                   <Table.Th>Fecha y hora</Table.Th>
                   <Table.Th>Proveedor</Table.Th>
                   <Table.Th>Remito</Table.Th>
+                  <Table.Th>Comprobante</Table.Th>
                   <Table.Th>Lotes</Table.Th>
                   <Table.Th>Estado administrativo</Table.Th>
                   {puedeCargarStock ? <Table.Th /> : null}
@@ -167,6 +180,30 @@ export function PaginaRecepciones() {
                             </Tooltip>
                           ) : null}
                         </Group>
+                      </Table.Td>
+                      <Table.Td>
+                        {(comprobantesDe.get(r.id) ?? []).map((c) => (
+                          <Group key={c.id} gap={6} wrap="nowrap">
+                            <Badge
+                              size="sm"
+                              variant="light"
+                              radius="sm"
+                              color={c.tipo === 'SIN_FACTURA' ? 'estadoCuarentena' : 'violeta'}
+                            >
+                              {ETIQUETA_COMPROBANTE[c.tipo]}
+                            </Badge>
+                            {c.tipo === 'SIN_FACTURA' ? null : (
+                              <Text size="xs" ff="monospace">
+                                {numeroComprobante(c)}
+                              </Text>
+                            )}
+                          </Group>
+                        ))}
+                        {comprobantesDe.has(r.id) ? null : (
+                          <Text size="xs" c="dimmed">
+                            sin cargar
+                          </Text>
+                        )}
                       </Table.Td>
                       <Table.Td>
                         <Text size="sm">{numero(lotes.length)}</Text>

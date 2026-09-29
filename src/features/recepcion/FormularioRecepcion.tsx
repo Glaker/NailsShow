@@ -21,7 +21,7 @@ import {
   Tooltip,
 } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
-import { useForm } from '@mantine/form';
+import { useForm, type UseFormReturnType } from '@mantine/form';
 import { zod4Resolver } from 'mantine-form-zod-resolver';
 import { z } from 'zod';
 import {
@@ -40,6 +40,7 @@ import {
 } from '@/lib/consultas';
 import { fechaISO, numero } from '@/lib/formato';
 import { useAvisosCompra, useVincularCompras } from '@/lib/consultasComercial';
+import { discriminaIva, useRegistrarComprobanteProveedor } from '@/lib/consultasCompras';
 
 /*
  * Esquema derivado de las restricciones reales de la base. La aplicación
@@ -63,8 +64,38 @@ const esquemaLote = z.object({
   contenedores_limpiados: z.boolean(),
 });
 
+/* Comprobante del proveedor (RN-65, 20260929100000). Mismas reglas que los
+   CHECK de comercial.comprobantes_proveedor. */
+const esquemaComprobante = z
+  .object({
+    tipo: z.enum(['FACTURA_A', 'FACTURA_B', 'FACTURA_C', 'SIN_FACTURA']),
+    punto_venta: z.number().int().min(1).max(99999).nullable(),
+    numero: z.number().int().min(1).max(99999999).nullable(),
+    fecha: z.date().nullable(),
+    neto: z.number().nonnegative().nullable(),
+    iva: z.number().nonnegative().nullable(),
+    otros: z.number().nonnegative().nullable(),
+    total: z.number().nonnegative().nullable(),
+  })
+  .superRefine((c, ctx) => {
+    if (c.tipo === 'SIN_FACTURA') return;
+    if (c.punto_venta === null)
+      ctx.addIssue({ code: 'custom', path: ['punto_venta'], message: 'Falta el punto de venta' });
+    if (c.numero === null)
+      ctx.addIssue({ code: 'custom', path: ['numero'], message: 'Falta el número' });
+    if (c.tipo === 'FACTURA_A') {
+      if (c.neto === null)
+        ctx.addIssue({ code: 'custom', path: ['neto'], message: 'Falta el neto gravado' });
+      if (c.iva === null)
+        ctx.addIssue({ code: 'custom', path: ['iva'], message: 'Falta el IVA' });
+    } else if (!c.total) {
+      ctx.addIssue({ code: 'custom', path: ['total'], message: 'Falta el total' });
+    }
+  });
+
 const esquemaRecepcion = z.object({
   proveedor_id: z.string().min(1, 'Elegí el proveedor'),
+  comprobante: esquemaComprobante,
   proveedor_nuevo: z.boolean(),
   numero_remito: z.string().trim().min(1, 'Falta el número de remito'),
   coincide_con_pedido: z.boolean(),
@@ -101,6 +132,7 @@ export function FormularioRecepcion({ onListo }: Props) {
   const crear = useCrearRecepcion();
   const avisos = useAvisosCompra();
   const vincular = useVincularCompras();
+  const registrarComprobante = useRegistrarComprobanteProveedor();
   /** Compras pendientes que llegaron con esta recepción: id → llegó completa. */
   const [compras, setCompras] = useState<Record<string, boolean>>({});
 
@@ -109,6 +141,16 @@ export function FormularioRecepcion({ onListo }: Props) {
     initialValues: {
       proveedor_id: '',
       proveedor_nuevo: false,
+      comprobante: {
+        tipo: 'FACTURA_A',
+        punto_venta: null,
+        numero: null,
+        fecha: new Date(),
+        neto: null,
+        iva: null,
+        otros: null,
+        total: null,
+      },
       numero_remito: '',
       coincide_con_pedido: true,
       observaciones: '',
@@ -210,6 +252,27 @@ export function FormularioRecepcion({ onListo }: Props) {
       })),
     });
 
+    // La recepción física ya quedó; el comprobante es un registro aparte
+    // (RN-65). Si falla, se avisa y se puede cargar después.
+    const c = valores.comprobante;
+    const sinFactura = c.tipo === 'SIN_FACTURA';
+    const conIva = discriminaIva(c.tipo);
+    const fechaFactura = sinFactura ? null : fechaISO(c.fecha);
+    await registrarComprobante
+      .mutateAsync({
+        proveedor_id: valores.proveedor_id,
+        recepcion_id: recepcion.id,
+        tipo: c.tipo,
+        punto_venta: sinFactura ? null : c.punto_venta,
+        numero: sinFactura ? null : c.numero,
+        ...(fechaFactura ? { fecha: fechaFactura } : {}),
+        importe_neto: conIva ? c.neto : null,
+        importe_iva: conIva ? c.iva : null,
+        importe_otros: conIva ? c.otros : null,
+        importe_total: conIva ? (c.neto ?? 0) + (c.iva ?? 0) + (c.otros ?? 0) : c.total,
+      })
+      .catch(() => {});
+
     // Cada compra elegida se vincula con el primer lote de su insumo.
     const vinculos = Object.entries(compras).flatMap(([avisoId, completa]) => {
       const aviso = (avisos.data ?? []).find((a) => a.id === avisoId);
@@ -282,6 +345,10 @@ export function FormularioRecepcion({ onListo }: Props) {
               {...form.getInputProps('observaciones')}
             />
           </Stack>
+
+          <Divider />
+
+          <ComprobanteDelProveedor form={form} />
 
           <Divider />
 
@@ -547,7 +614,7 @@ export function FormularioRecepcion({ onListo }: Props) {
           </Button>
           <Button
             type="submit"
-            loading={crear.isPending || vincular.isPending}
+            loading={crear.isPending || vincular.isPending || registrarComprobante.isPending}
             variant="gradient"
             gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
           >
@@ -628,5 +695,121 @@ function ComprasDeLaRecepcion({
         })}
       </Stack>
     </Paper>
+  );
+}
+
+const MONEDA = { min: 0, decimalScale: 2, thousandSeparator: '.', decimalSeparator: ',' };
+
+/**
+ * «¿Vino con factura?»: el comprobante que trajo el proveedor. Sin factura se
+ * registra como tal —queda visible y no computa crédito fiscal—; no es un
+ * circuito aparte (cabecera de 20260929100000).
+ */
+function ComprobanteDelProveedor({
+  form,
+}: {
+  form: UseFormReturnType<ValoresRecepcion>;
+}) {
+  const c = form.values.comprobante;
+  const conIva = discriminaIva(c.tipo);
+  return (
+    <Stack gap="md">
+      <Title order={4}>Comprobante del proveedor</Title>
+      <SegmentedControl
+        fullWidth
+        data={[
+          { label: 'Factura A', value: 'FACTURA_A' },
+          { label: 'Factura B', value: 'FACTURA_B' },
+          { label: 'Factura C', value: 'FACTURA_C' },
+          { label: 'Sin factura', value: 'SIN_FACTURA' },
+        ]}
+        {...form.getInputProps('comprobante.tipo')}
+      />
+      {c.tipo === 'SIN_FACTURA' ? (
+        <Grid gutter="sm">
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            <NumberInput
+              label="Importe (opcional)"
+              description="Lo acordado con el proveedor, si se sabe"
+              {...MONEDA}
+              {...form.getInputProps('comprobante.total')}
+            />
+          </Grid.Col>
+          <Grid.Col span={12}>
+            <Text size="sm" c="dimmed">
+              Llegó solo con remito. Queda registrado así, visible para Administración, y no
+              suma crédito fiscal. Si la factura llega después, se carga aparte.
+            </Text>
+          </Grid.Col>
+        </Grid>
+      ) : (
+        <Grid gutter="sm">
+          <Grid.Col span={{ base: 4, sm: 2 }}>
+            <NumberInput
+              label="Punto de venta"
+              min={1}
+              max={99999}
+              allowDecimal={false}
+              {...form.getInputProps('comprobante.punto_venta')}
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 8, sm: 4 }}>
+            <NumberInput
+              label="Número"
+              min={1}
+              max={99999999}
+              allowDecimal={false}
+              {...form.getInputProps('comprobante.numero')}
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            <DateInput
+              label="Fecha de la factura"
+              valueFormat="DD/MM/YYYY"
+              {...form.getInputProps('comprobante.fecha')}
+            />
+          </Grid.Col>
+          {conIva ? (
+            <>
+              <Grid.Col span={{ base: 6, sm: 3 }}>
+                <NumberInput
+                  label="Neto gravado"
+                  {...MONEDA}
+                  {...form.getInputProps('comprobante.neto')}
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 6, sm: 3 }}>
+                <NumberInput label="IVA" {...MONEDA} {...form.getInputProps('comprobante.iva')} />
+              </Grid.Col>
+              <Grid.Col span={{ base: 6, sm: 3 }}>
+                <NumberInput
+                  label="Otros"
+                  description="No gravado, percepciones"
+                  {...MONEDA}
+                  {...form.getInputProps('comprobante.otros')}
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 6, sm: 3 }}>
+                <Text size="sm" fw={500} mb={6}>
+                  Total
+                </Text>
+                <Text size="lg" fw={700} ff="monospace">
+                  $ {numero((c.neto ?? 0) + (c.iva ?? 0) + (c.otros ?? 0), 2)}
+                </Text>
+              </Grid.Col>
+            </>
+          ) : (
+            <Grid.Col span={{ base: 12, sm: 6 }}>
+              <NumberInput
+                label="Total"
+                description="B y C no discriminan IVA"
+                {...MONEDA}
+                {...form.getInputProps('comprobante.total')}
+              />
+            </Grid.Col>
+          )}
+        </Grid>
+      )}
+    </Stack>
   );
 }
