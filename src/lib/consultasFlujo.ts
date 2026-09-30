@@ -2,22 +2,17 @@
  * Flujo de caja y volúmenes por contraparte para el inicio de Administración
  * (20260930180000/180100).
  *
- * PUENTE DE TIPOS: las funciones no están en `database.types.ts` hasta aplicar
- * la migración y correr `npm run db:types`. Después, tipar desde
- * `Database['comercial']['Functions']` y borrar las interfaces de fila.
+ * Tipado desde los tipos generados (CLAUDE.md §6). `flujo_caja_dia` devuelve
+ * `Json`: su forma se describe a mano en `DetalleDia`.
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { rpcComercial } from './consultasComercial';
+import type { Database } from './database.types';
+import { comercial } from './supabase';
 
-export interface DiaFlujo {
-  fecha: string;
-  ingresos: number;
-  egresos: number;
-  neto: number;
-  saldo_bancos: number;
-  saldo_efectivo: number;
-}
+type Funciones = Database['comercial']['Functions'];
+
+export type DiaFlujo = Funciones['flujo_caja_diario']['Returns'][number];
 
 export interface ProductoVendido {
   producto: string;
@@ -81,15 +76,17 @@ export interface DetalleDia {
   cuentas: CuentaDia[];
 }
 
-export interface Volumen {
+/** `lado` y `ambiente` salen `text`; la función devuelve solo estos valores. */
+export type Volumen = Omit<
+  Funciones['volumenes_por_contraparte']['Returns'][number],
+  'lado' | 'ambiente'
+> & {
   lado: 'VENTA' | 'COMPRA';
-  contraparte: string;
   ambiente: 'PRODUCCION' | 'HOMOLOGACION';
-  total: number;
-}
+};
 
-async function rpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
-  const { data, error } = await rpcComercial<T>(fn, args);
+async function datos<T>(p: PromiseLike<{ data: T | null; error: Error | null }>) {
+  const { data, error } = await p;
   if (error) throw error;
   return data as T;
 }
@@ -99,7 +96,9 @@ export function useFlujoDiario(desde: string, hasta: string) {
     queryKey: ['flujo-diario', desde, hasta],
     queryFn: async () =>
       (
-        await rpc<DiaFlujo[]>('flujo_caja_diario', { p_desde: desde, p_hasta: hasta })
+        await datos(
+          comercial().rpc('flujo_caja_diario', { p_desde: desde, p_hasta: hasta }),
+        )
       ).map((d) => ({
         ...d,
         ingresos: Number(d.ingresos),
@@ -115,7 +114,10 @@ export function useDetalleDia(fecha: string | null) {
   return useQuery({
     queryKey: ['flujo-dia', fecha],
     enabled: Boolean(fecha),
-    queryFn: () => rpc<DetalleDia>('flujo_caja_dia', { p_fecha: fecha }),
+    queryFn: async () =>
+      (await datos(
+        comercial().rpc('flujo_caja_dia', { p_fecha: fecha! }),
+      )) as unknown as DetalleDia,
   });
 }
 
@@ -124,10 +126,12 @@ export function useVolumenes(desde: string, hasta: string) {
     queryKey: ['volumenes', desde, hasta],
     queryFn: async () =>
       (
-        await rpc<Volumen[]>('volumenes_por_contraparte', {
-          p_desde: desde,
-          p_hasta: hasta,
-        })
-      ).map((v) => ({ ...v, total: Number(v.total) })),
+        await datos(
+          comercial().rpc('volumenes_por_contraparte', {
+            p_desde: desde,
+            p_hasta: hasta,
+          }),
+        )
+      ).map((v) => ({ ...v, total: Number(v.total) }) as Volumen),
   });
 }

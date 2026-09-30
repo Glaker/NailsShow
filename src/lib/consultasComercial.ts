@@ -1152,7 +1152,7 @@ export function useDescartarArticulo() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (d: { articuloId: string; motivo: string }) => {
-      const { data, error } = await rpcComercial<number>('descartar_articulo', {
+      const { data, error } = await comercial().rpc('descartar_articulo', {
         p_articulo_id: d.articuloId,
         p_motivo: d.motivo,
       });

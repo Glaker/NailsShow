@@ -18,19 +18,14 @@ import { avisarError, avisarExito } from './consultas';
 export type Cliente = Database['comercial']['Tables']['clientes']['Row'];
 export type CondicionIva = Database['comercial']['Enums']['condicion_iva_enum'];
 export type TipoDocumento = Database['comercial']['Enums']['tipo_documento_enum'];
-/**
- * PUENTE DE TIPOS: las columnas de 20260930150000 (nota de crédito y emisor)
- * hasta aplicarla y correr `npm run db:types`. Después, borrar los `&`.
- */
-export type Factura = Database['comercial']['Tables']['facturas']['Row'] & {
+/** `comprobante` sale `text` en los tipos; el CHECK de la base fija estos dos. */
+export type Factura = Omit<
+  Database['comercial']['Tables']['facturas']['Row'],
+  'comprobante'
+> & {
   comprobante: 'FACTURA' | 'NOTA_CREDITO';
-  factura_asociada_id: string | null;
-  motivo: string | null;
 };
-export type Emisor = Database['comercial']['Tables']['configuracion_fiscal']['Row'] & {
-  razon_social: string | null;
-  condicion_iva: CondicionIva;
-};
+export type Emisor = Database['comercial']['Tables']['configuracion_fiscal']['Row'];
 export type EstadoFactura = Database['comercial']['Enums']['estado_factura_enum'];
 
 /** Quién emite (D-31): el mismo criterio que `preparar_factura()` y la política. */
@@ -182,7 +177,7 @@ export function useEmisores() {
         .eq('vigente', true)
         .order('creado_en');
       if (error) throw error;
-      return (data ?? []) as Emisor[];
+      return data ?? [];
     },
   });
 }

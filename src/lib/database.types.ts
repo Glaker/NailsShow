@@ -509,29 +509,35 @@ export type Database = {
       configuracion_fiscal: {
         Row: {
           ambiente: Database["comercial"]["Enums"]["ambiente_fiscal_enum"]
+          condicion_iva: Database["comercial"]["Enums"]["condicion_iva_enum"]
           creado_en: string
           cuit_emisor: string
           id: string
           observacion: string | null
           punto_venta: number
+          razon_social: string | null
           vigente: boolean
         }
         Insert: {
           ambiente: Database["comercial"]["Enums"]["ambiente_fiscal_enum"]
+          condicion_iva: Database["comercial"]["Enums"]["condicion_iva_enum"]
           creado_en?: string
           cuit_emisor: string
           id?: string
           observacion?: string | null
           punto_venta: number
+          razon_social?: string | null
           vigente?: boolean
         }
         Update: {
           ambiente?: Database["comercial"]["Enums"]["ambiente_fiscal_enum"]
+          condicion_iva?: Database["comercial"]["Enums"]["condicion_iva_enum"]
           creado_en?: string
           cuit_emisor?: string
           id?: string
           observacion?: string | null
           punto_venta?: number
+          razon_social?: string | null
           vigente?: boolean
         }
         Relationships: []
@@ -747,15 +753,18 @@ export type Database = {
           cae_vencimiento: string | null
           cliente_id: string
           codigo_arca: number
+          comprobante: string
           creado_en: string
           cuit_emisor: string
           emitida_por: string
           estado: Database["comercial"]["Enums"]["estado_factura_enum"]
+          factura_asociada_id: string | null
           fecha: string
           id: string
           importe_iva: number
           importe_neto: number
           importe_total: number
+          motivo: string | null
           motivo_rechazo: string | null
           numero: number | null
           pedido_id: string
@@ -775,15 +784,18 @@ export type Database = {
           cae_vencimiento?: string | null
           cliente_id: string
           codigo_arca: number
+          comprobante?: string
           creado_en?: string
           cuit_emisor: string
           emitida_por?: string
           estado?: Database["comercial"]["Enums"]["estado_factura_enum"]
+          factura_asociada_id?: string | null
           fecha?: string
           id?: string
           importe_iva: number
           importe_neto: number
           importe_total: number
+          motivo?: string | null
           motivo_rechazo?: string | null
           numero?: number | null
           pedido_id: string
@@ -803,15 +815,18 @@ export type Database = {
           cae_vencimiento?: string | null
           cliente_id?: string
           codigo_arca?: number
+          comprobante?: string
           creado_en?: string
           cuit_emisor?: string
           emitida_por?: string
           estado?: Database["comercial"]["Enums"]["estado_factura_enum"]
+          factura_asociada_id?: string | null
           fecha?: string
           id?: string
           importe_iva?: number
           importe_neto?: number
           importe_total?: number
+          motivo?: string | null
           motivo_rechazo?: string | null
           numero?: number | null
           pedido_id?: string
@@ -838,6 +853,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_saldos_clientes"
             referencedColumns: ["cliente_id"]
+          },
+          {
+            foreignKeyName: "facturas_factura_asociada_id_fkey"
+            columns: ["factura_asociada_id"]
+            isOneToOne: false
+            referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_factura_asociada_id_fkey"
+            columns: ["factura_asociada_id"]
+            isOneToOne: false
+            referencedRelation: "v_facturas_pendientes_cobro"
+            referencedColumns: ["factura_id"]
           },
           {
             foreignKeyName: "facturas_pedido_id_fkey"
@@ -1111,6 +1140,7 @@ export type Database = {
           motivo: string | null
           ocurrido_en: string
           orden: number
+          orden_id: string | null
           producto_id: string
           registrado_por: string
           tipo: Database["comercial"]["Enums"]["tipo_movimiento_enum"]
@@ -1127,6 +1157,7 @@ export type Database = {
           motivo?: string | null
           ocurrido_en?: string
           orden?: never
+          orden_id?: string | null
           producto_id: string
           registrado_por?: string
           tipo: Database["comercial"]["Enums"]["tipo_movimiento_enum"]
@@ -1143,6 +1174,7 @@ export type Database = {
           motivo?: string | null
           ocurrido_en?: string
           orden?: never
+          orden_id?: string | null
           producto_id?: string
           registrado_por?: string
           tipo?: Database["comercial"]["Enums"]["tipo_movimiento_enum"]
@@ -2308,6 +2340,7 @@ export type Database = {
       }
       v_facturas_pendientes_cobro: {
         Row: {
+          acreditado: number | null
           ambiente:
             | Database["comercial"]["Enums"]["ambiente_fiscal_enum"]
             | null
@@ -2754,8 +2787,28 @@ export type Database = {
           deposito_id: string | null
           producto: string | null
           producto_id: string | null
+          retenido: number | null
           saldo: number | null
           ultimo_movimiento: string | null
+        }
+        Relationships: []
+      }
+      v_stock_pt_lotes: {
+        Row: {
+          codigo_interno: string | null
+          deposito: string | null
+          deposito_id: string | null
+          deposito_numero: string | null
+          estado_lote: string | null
+          impedimento: string | null
+          numero_lote: string | null
+          orden_id: string | null
+          orden_numero: string | null
+          producto: string | null
+          producto_id: string | null
+          saldo: number | null
+          vencimiento: string | null
+          vencimiento_texto: string | null
         }
         Relationships: []
       }
@@ -2982,6 +3035,18 @@ export type Database = {
       }
       aplicar_precios_pedido: { Args: { p_pedido_id: string }; Returns: number }
       articulo_de_insumo: { Args: { p_insumo_id: string }; Returns: string }
+      asignar_lotes_pt: {
+        Args: {
+          p_cantidad: number
+          p_deposito_id: string
+          p_producto_id: string
+          p_solo_despachable: boolean
+        }
+        Returns: {
+          cantidad: number
+          orden_id: string
+        }[]
+      }
       cargar_apertura_a_stock: {
         Args: { p_migracion_id: string }
         Returns: {
@@ -3046,13 +3111,23 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      clase_factura: {
-        Args: {
-          p_condicion: Database["comercial"]["Enums"]["condicion_iva_enum"]
-        }
-        Returns: string
-      }
-      codigo_comprobante_arca: { Args: { p_clase: string }; Returns: number }
+      clase_factura:
+        | {
+            Args: {
+              p_condicion: Database["comercial"]["Enums"]["condicion_iva_enum"]
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_emisor: Database["comercial"]["Enums"]["condicion_iva_enum"]
+              p_receptor: Database["comercial"]["Enums"]["condicion_iva_enum"]
+            }
+            Returns: string
+          }
+      codigo_comprobante_arca:
+        | { Args: { p_clase: string }; Returns: number }
+        | { Args: { p_clase: string; p_comprobante: string }; Returns: number }
       condicion_iva_arca: {
         Args: {
           p_condicion: Database["comercial"]["Enums"]["condicion_iva_enum"]
@@ -3060,6 +3135,10 @@ export type Database = {
         Returns: number
       }
       cuit_valido: { Args: { p: string }; Returns: boolean }
+      descartar_articulo: {
+        Args: { p_articulo_id: string; p_motivo: string }
+        Returns: number
+      }
       deshacer_apertura: {
         Args: { p_migracion_id: string; p_motivo: string }
         Returns: {
@@ -3159,6 +3238,18 @@ export type Database = {
         Args: { p_factura_id: string; p_numero: number }
         Returns: undefined
       }
+      flujo_caja_dia: { Args: { p_fecha: string }; Returns: Json }
+      flujo_caja_diario: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: {
+          egresos: number
+          fecha: string
+          ingresos: number
+          neto: number
+          saldo_bancos: number
+          saldo_efectivo: number
+        }[]
+      }
       fn_factura_para_arca: { Args: { p_factura_id: string }; Returns: Json }
       ingresar_stock_tercero: {
         Args: {
@@ -3222,7 +3313,14 @@ export type Database = {
           precio_neto: number
         }[]
       }
-      preparar_factura: { Args: { p_pedido_id: string }; Returns: Json }
+      preparar_factura: {
+        Args: { p_emisor_id?: string; p_pedido_id: string }
+        Returns: Json
+      }
+      preparar_nota_credito: {
+        Args: { p_factura_id: string; p_motivo: string }
+        Returns: Json
+      }
       registrar_cobro_cliente: {
         Args: {
           p_cliente_id: string
@@ -3354,6 +3452,15 @@ export type Database = {
       vincular_recepcion_compras: {
         Args: { p_recepcion_id: string; p_vinculos: Json }
         Returns: number
+      }
+      volumenes_por_contraparte: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: {
+          ambiente: string
+          contraparte: string
+          lado: string
+          total: number
+        }[]
       }
     }
     Enums: {
@@ -4296,6 +4403,9 @@ export type Database = {
       }
       formula_componentes: {
         Row: {
+          anulado: boolean
+          anulado_en: string | null
+          anulado_por: string | null
           densidad_id: string | null
           es_csp: boolean
           etapa: string | null
@@ -4309,6 +4419,9 @@ export type Database = {
           se_mide_a_volumen: boolean
         }
         Insert: {
+          anulado?: boolean
+          anulado_en?: string | null
+          anulado_por?: string | null
           densidad_id?: string | null
           es_csp?: boolean
           etapa?: string | null
@@ -4322,6 +4435,9 @@ export type Database = {
           se_mide_a_volumen?: boolean
         }
         Update: {
+          anulado?: boolean
+          anulado_en?: string | null
+          anulado_por?: string | null
           densidad_id?: string | null
           es_csp?: boolean
           etapa?: string | null
@@ -5725,6 +5841,10 @@ export type Database = {
       grado_alcoholico_a_pp: { Args: { p_pct_vv: number }; Returns: number }
       impedimento_consumo: { Args: { p_lote_id: string }; Returns: string }
       impedimento_despacho: { Args: { p_lote_id: string }; Returns: string }
+      impedimento_despacho_orden: {
+        Args: { p_orden_id: string }
+        Returns: string
+      }
       ingresar_insumo_tercero: {
         Args: {
           p_contenedores_limpiados?: boolean

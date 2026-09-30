@@ -1518,7 +1518,7 @@ RPC con parámetros opcionales los omiten en vez de mandar `null` (todos tienen
 
 ---
 
-## «Quitar» sin DELETE (2026-09-30, commiteada en `prueba`, SIN APLICAR)
+## «Quitar» sin DELETE (2026-09-30, commiteada en `prueba`, APLICADA el 2026-09-30)
 
 `20260930130000_quitar_sin_delete.sql`. Cierra el rojo de «1, 8 y 9» de
 `core.verificar_invariantes()`:
@@ -1540,7 +1540,7 @@ RPC con parámetros opcionales los omiten en vez de mandar `null` (todos tienen
 **Para aplicarla:** `npx supabase db push` y `npm run db:types`. Es
 compatible con `main`: sus dos botones ya fallaban.
 
-### Ítem 1 de la cola del 24/09: conversado y hecho (2026-09-30, SIN APLICAR)
+### Ítem 1 de la cola del 24/09: conversado y hecho (2026-09-30, APLICADA el 2026-09-30)
 
 Respuesta del usuario: «dar de baja» una materia prima que no se usa es
 **sacar el stock que quedó**. No se pidió que deje de contar en faltantes ni
@@ -1557,7 +1557,7 @@ tercerizados. `probar_descarte.mjs`: 5 en verde.
 **Para aplicar las dos:** `npx supabase db push` (130000 y 140000), después
 `npm run db:types` y quitar el cast de `rpcComercial('descartar_articulo')`.
 
-### Notas de crédito y varios emisores (2026-09-30, commiteada en `prueba`, SIN APLICAR)
+### Notas de crédito y varios emisores (2026-09-30, commiteada en `prueba`, APLICADA el 2026-09-30)
 
 `20260930150000_comercial_notas_credito_y_emisores.sql` más la Edge Function
 `emitir-factura` y el front de la ficha del pedido:
@@ -1586,7 +1586,7 @@ tercerizados. `probar_descarte.mjs`: 5 en verde.
 `npm run db:types`, `npx supabase functions deploy emitir-factura`, y probar
 en homologación una factura B y su nota de crédito.
 
-### Lote en el producto terminado (2026-09-30, commiteada en `prueba`, SIN APLICAR)
+### Lote en el producto terminado (2026-09-30, commiteada en `prueba`, APLICADA el 2026-09-30)
 
 `20260930160000` y su corrección `160100` (R-09). El stock de PT pasa a
 llevarse por lote (la orden de producción; vacío = «sin lote»):
@@ -1607,7 +1607,7 @@ llevarse por lote (la orden de producción; vacío = «sin lote»):
 150000, 160000, 160100), `npm run db:types`, `npx supabase functions deploy
 emitir-factura`.
 
-### Manual de fórmulas v10 (2026-09-30, commiteada en `prueba`, SIN APLICAR)
+### Manual de fórmulas v10 (2026-09-30, commiteada en `prueba`, APLICADA el 2026-09-30)
 
 `20260930170000_carga_manual_formulas.sql`, generada por
 `scripts/manual_formulas/generar_migracion.mjs` desde
@@ -1622,7 +1622,7 @@ cargas. **Lo que tiene que mirar la DT antes de aprobar está en
 vigente dice 70/30 p/p; el manual es 70/30 en volumen = 67,55/32,45 en masa).
 `probar_manual_formulas.mjs` 10 en verde; 15 suites PGlite en verde.
 
-### Gráficos del inicio de Administración (2026-09-30, commiteado en `prueba`, SIN APLICAR, SIN VER EN PANTALLA)
+### Gráficos del inicio de Administración (2026-09-30, commiteado en `prueba`, APLICADA el 2026-09-30, SIN VER EN PANTALLA)
 
 `20260930180000` y su corrección `180100` (la primera fallaba en cada
 llamada a `flujo_caja_diario`): tres funciones de solo lectura.
@@ -1657,3 +1657,27 @@ dependencias:
 
 **Para aplicar todo lo de hoy:** `npx supabase db push` (130000 a 180100),
 `npm run db:types`, `npx supabase functions deploy emitir-factura`.
+
+### Aplicación de la tanda del 2026-09-30
+
+`supabase db push` de las 8 migraciones (`20260930130000` a `180100`) contra
+`yxpzsxkefqfuhyvslkfw`, sin errores. `npm run db:types` regenerado y
+`emitir-factura` redesplegada. Verificado en la base:
+
+- `core.verificar_invariantes()` **todo en verde**, incluido «1, 8 y 9», que
+  estaba en rojo desde antes (sesión como la cuenta de verificación: los
+  claims llevan `usuario_id`, `rol` y el arreglo `roles`, que es lo que lee
+  `core.es_rol`).
+- 46 fórmulas en BORRADOR (las 44 del manual más las que había) y 1 vigente.
+- `flujo_caja_diario` y `volumenes_por_contraparte` responden; hoy dan cero y
+  vacío porque no hay movimientos de fondos ni facturas cargadas. **Los
+  gráficos con datos reales se ven recién cuando Administración cargue
+  cobros y pagos.**
+
+Tipos puente borrados: `consultasFlujo.ts` y `consultasFacturacion.ts` tipan
+desde `Database` (quedan angostados `comprobante`, `lado` y `ambiente`, que
+salen `text` pero tienen valores fijos, y `DetalleDia`, que la función
+devuelve como `Json`); `descartar_articulo` usa el cliente tipado.
+
+**Falta:** probar en homologación una factura B y su nota de crédito, y el
+merge de `prueba` a `main` cuando el usuario lo apruebe.
