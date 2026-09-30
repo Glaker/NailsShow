@@ -22,6 +22,7 @@ import {
   IconReceipt,
   IconReportAnalytics,
   IconUsers as IconClientes,
+  IconTag,
   type Icon,
 } from '@tabler/icons-react';
 import type { Rol } from '@/features/auth/sesion';
@@ -108,6 +109,12 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiqueta: 'Clientes',
     etiquetaCorta: 'Clientes',
     icono: IconUsersGroup,
+  },
+  {
+    ruta: '/precios',
+    etiqueta: 'Precios y descuentos',
+    etiquetaCorta: 'Precios',
+    icono: IconTag,
   },
   {
     ruta: '/facturas',

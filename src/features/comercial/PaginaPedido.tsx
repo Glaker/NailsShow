@@ -69,6 +69,7 @@ import { colorTercero, useTerceros } from '@/lib/consultasTercerizados';
 import { ROLES_STOCK_PT } from '@/lib/consultasStockSeguridad';
 import { agruparPorPedido, usePendientesDespacho } from '@/lib/consultasCalle5';
 import { CoberturaCalle5, ModalDespacho } from './Calle5';
+import { useAplicarPreciosPedido } from '@/lib/consultasPrecios';
 import {
   CeldasPrecio,
   ClienteDelPedido,
@@ -195,6 +196,7 @@ export function PaginaPedido() {
   const puedeEntregar = useTieneRol(...ROLES_STOCK_PT);
   const pendientesDespacho = usePendientesDespacho(id);
   const [despachando, setDespachando] = useState(false);
+  const aplicarPrecios = useAplicarPreciosPedido();
   const navigate = useNavigate();
   const terceros = useTerceros();
 
@@ -415,6 +417,16 @@ export function PaginaPedido() {
           <Stack gap="md">
             <Group justify="space-between">
               <Text fw={600}>Productos del pedido</Text>
+              {editable && !sinRenglones ? (
+                <Button
+                  size="compact-md"
+                  variant="light"
+                  loading={aplicarPrecios.isPending}
+                  onClick={() => aplicarPrecios.mutate(p.id)}
+                >
+                  Aplicar precios de lista
+                </Button>
+              ) : null}
               {!editable && puedeEditar && p.estado === 'CONFIRMADO' ? (
                 <Text size="xs" c="dimmed">
                   Para corregir productos, devolvelo a borrador.
