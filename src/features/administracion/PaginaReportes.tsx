@@ -12,7 +12,6 @@ import {
   useIvaMensual,
   useResultadoMensual,
   useVentasMensuales,
-  type CompraTrazada,
 } from '@/lib/consultasAdministracion';
 
 /**
@@ -130,7 +129,7 @@ function Iva() {
       >
         {filas.map((f) => (
           <Table.Tr key={f.periodo}>
-            <Table.Td tt="capitalize">{mes(f.periodo)}</Table.Td>
+            <Table.Td tt="capitalize">{mes(f.periodo ?? '')}</Table.Td>
             <Num v={f.debito_fiscal} />
             <Num v={f.credito_fiscal} />
             <Table.Td ta="right">
@@ -158,8 +157,8 @@ function Ventas() {
   const filas = (ventas.data ?? []).filter((v) => v.ambiente === 'PRODUCCION');
   const porMes = new Map<string, { neto: number; facturas: number; clientes: number }>();
   for (const v of filas) {
-    const m = porMes.get(v.periodo) ?? { neto: 0, facturas: 0, clientes: 0 };
-    porMes.set(v.periodo, {
+    const m = porMes.get(v.periodo ?? '') ?? { neto: 0, facturas: 0, clientes: 0 };
+    porMes.set(v.periodo ?? '', {
       neto: m.neto + Number(v.neto),
       facturas: m.facturas + Number(v.facturas),
       clientes: m.clientes + 1,
@@ -189,7 +188,7 @@ function Ventas() {
           <Table.Tr key={`${v.periodo}-${v.cliente_id}`}>
             <Table.Td>
               <Text size="sm" tt="capitalize">
-                {mes(v.periodo)}
+                {mes(v.periodo ?? '')}
               </Text>
               <Text size="xs" c="dimmed">
                 {v.cliente}
@@ -218,7 +217,7 @@ function Resultado() {
       <Tabla cabeza={['Mes', 'Ventas netas', 'Compras', 'Otros egresos', 'Resultado']}>
         {(r.data ?? []).map((f) => (
           <Table.Tr key={f.periodo}>
-            <Table.Td tt="capitalize">{mes(f.periodo)}</Table.Td>
+            <Table.Td tt="capitalize">{mes(f.periodo ?? '')}</Table.Td>
             <Num v={f.ventas_netas} />
             <Num v={f.compras} />
             <Num v={f.otros_egresos} />
@@ -251,7 +250,7 @@ function CashReal() {
           <Table.Tr key={`${f.periodo}-${f.cuenta_id}`}>
             <Table.Td>
               <Text size="sm" tt="capitalize">
-                {mes(f.periodo)}
+                {mes(f.periodo ?? '')}
               </Text>
               <Text size="xs" c="dimmed">
                 {f.cuenta}
@@ -274,7 +273,7 @@ function CashProyectado() {
   const filas = r.data ?? [];
   const conFecha = filas.filter((f) => f.fecha);
   const sinFecha = filas.filter((f) => !f.fecha);
-  const tipo = {
+  const tipo: Record<string, string> = {
     PAGO_PROVEEDOR: 'Pago a proveedor',
     SOLICITUD_PAGO: 'Solicitud de pago',
     COBRANZA: 'Cobranza',
@@ -292,7 +291,7 @@ function CashProyectado() {
             <Table.Td>
               <Text size="sm">{fecha(f.fecha)}</Text>
               <Text size="xs" c="dimmed">
-                {tipo[f.tipo]} · {f.detalle}
+                {f.tipo && tipo[f.tipo]} · {f.detalle}
               </Text>
             </Table.Td>
             <Num v={f.importe} />
@@ -315,7 +314,7 @@ function CashProyectado() {
             {sinFecha.map((f) => (
               <Table.Tr key={`${f.tipo}-${f.origen_id}`}>
                 <Table.Td>
-                  {tipo[f.tipo]} · {f.detalle}
+                  {f.tipo && tipo[f.tipo]} · {f.detalle}
                 </Table.Td>
                 <Num v={f.importe} />
               </Table.Tr>
@@ -327,7 +326,7 @@ function CashProyectado() {
   );
 }
 
-const SITUACION: Record<CompraTrazada['situacion'], { texto: string; color: string }> = {
+const SITUACION: Record<string, { texto: string; color: string }> = {
   SIN_RECIBIR: { texto: 'Sin recibir', color: 'gray' },
   SIN_COMPROBANTE: { texto: 'Recibida sin factura cargada', color: 'estadoCuarentena' },
   IMPAGA: { texto: 'Impaga', color: 'red' },
@@ -376,8 +375,11 @@ function Compras() {
               {f.pendiente ? pesos(f.pendiente) : '—'}
             </Table.Td>
             <Table.Td ta="right">
-              <Badge color={SITUACION[f.situacion].color} variant="light">
-                {SITUACION[f.situacion].texto}
+              <Badge
+                color={SITUACION[f.situacion ?? '']?.color ?? 'gray'}
+                variant="light"
+              >
+                {SITUACION[f.situacion ?? '']?.texto ?? f.situacion}
               </Badge>
             </Table.Td>
           </Table.Tr>

@@ -52,7 +52,7 @@ export function SelectCuenta({
       data={(cuentas.data ?? [])
         .filter((c) => c.activo)
         .map((c) => ({
-          value: c.cuenta_id,
+          value: c.cuenta_id ?? '',
           label: `${c.nombre}${c.de_tercero ? ` (de ${c.titular ?? 'tercero'})` : ''} · ${pesos(c.saldo)}`,
         }))}
       value={value}
@@ -105,7 +105,7 @@ export function ModalPagoProveedor({
   const total = aNumero(importe);
   const imputado = Object.values(valores).reduce<number>((a, v) => a + aNumero(v), 0);
   const excedido = filas.some(
-    (f) => aNumero(valores[f.comprobante_id] ?? 0) > Number(f.pendiente),
+    (f) => aNumero(valores[f.comprobante_id ?? ''] ?? 0) > Number(f.pendiente),
   );
 
   function cerrar() {
@@ -159,7 +159,8 @@ export function ModalPagoProveedor({
                   <Table.Tr key={f.comprobante_id}>
                     <Table.Td>
                       <Text size="sm">
-                        {f.tipo.replace(/_/g, ' ').toLowerCase()} {numeroComprobante(f)}
+                        {(f.tipo ?? '').replace(/_/g, ' ').toLowerCase()}{' '}
+                        {numeroComprobante(f)}
                       </Text>
                       <Text size="xs" c="dimmed">
                         {fecha(f.fecha)}
@@ -174,9 +175,9 @@ export function ModalPagoProveedor({
                         aria-label="Importe imputado"
                         {...MONEDA}
                         max={Number(f.pendiente)}
-                        value={valores[f.comprobante_id] ?? ''}
+                        value={valores[f.comprobante_id ?? ''] ?? ''}
                         onChange={(v) =>
-                          setImputar({ ...valores, [f.comprobante_id]: v })
+                          setImputar({ ...valores, [f.comprobante_id ?? '']: v })
                         }
                       />
                     </Table.Td>

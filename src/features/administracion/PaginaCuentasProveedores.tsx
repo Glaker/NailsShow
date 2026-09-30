@@ -217,7 +217,7 @@ function FichaProveedor({
                   <Table.Td>{fecha(m.fecha)}</Table.Td>
                   <Table.Td>
                     <Text size="sm">
-                      {m.detalle_tipo.replace(/_/g, ' ').toLowerCase()}
+                      {(m.detalle_tipo ?? '').replace(/_/g, ' ').toLowerCase()}
                     </Text>
                     <Text size="xs" c="dimmed" ff="monospace">
                       {m.referencia}

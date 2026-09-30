@@ -1510,10 +1510,12 @@ el login del llavero, que es de la cuenta que solo ve el proyecto pausado
 en `.claude/settings.local.json` se quitó a pedido del usuario; la de
 `vercel --prod` sigue.
 
-**Falta:** revisar en local (`npm run dev`), reemplazar los tipos puente de
-`consultasCompras`, `consultasCalle5`, `consultasAdministracion`,
-`consultasPrecios`, `consultasVisibilidad` y `consultasOrdenes` por los
-generados, y el merge a `main` cuando el usuario lo apruebe.
+**Falta:** revisar en local (`npm run dev`) y el merge a `main` cuando el
+usuario lo apruebe. Los tipos puente de esos seis módulos se reemplazaron por
+los generados el 2026-09-30: las vistas salen todas `| null` en los tipos de
+PostgREST, así que el front ahora cubre esos nulos (`?? ''`, `?? 0`), y los
+RPC con parámetros opcionales los omiten en vez de mandar `null` (todos tienen
+`DEFAULT NULL` en la base, verificado).
 
 ---
 

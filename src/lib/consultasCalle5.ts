@@ -6,65 +6,22 @@
  * reservas y despachos. La base impide sacar lo que no hay o lo reservado para
  * otro.
  *
- * PUENTE DE TIPOS: las migraciones no están aplicadas en el proyecto alojado,
- * así que `database.types.ts` no conoce estas vistas ni tablas. Los tipos de
- * fila de acá se borran al correr `npm run db:types` después del `db push`.
+ * Tipado desde los tipos generados (CLAUDE.md §6).
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { Database } from './database.types';
 import { avisarError, avisarExito } from './consultas';
-import { rpcComercial, tablaComercial } from './consultasComercial';
+import { comercial } from './supabase';
 
 /** Una fila de `comercial.v_calle5`: por producto. */
-export interface FilaCalle5 {
-  producto_id: string;
-  codigo_interno: string;
-  producto: string;
-  en_calle5: number;
-  reservado: number;
-  libre: number;
-  en_fabrica: number;
-  /** Lo pedido y no despachado, sumando todos los pedidos abiertos. */
-  pendiente: number;
-  pedidos: number;
-  comprometido_fabrica: number;
-  en_produccion: number;
-  falta_producir: number;
-}
+export type FilaCalle5 = Database['comercial']['Views']['v_calle5']['Row'];
 
 /** Una fila de `comercial.v_pendientes_despacho`: por pedido y producto. */
-export interface PendienteDespacho {
-  pedido_id: string;
-  numero: string;
-  cliente: string;
-  cliente_id: string | null;
-  fecha_entrega: string | null;
-  estado: string;
-  producto_id: string;
-  codigo_interno: string;
-  producto: string;
-  cantidad: number;
-  despachado: number;
-  pendiente: number;
-  en_fabrica_para_pedido: number;
-  reservado_para_pedido: number;
-}
+export type PendienteDespacho =
+  Database['comercial']['Views']['v_pendientes_despacho']['Row'];
 
-export interface ReservaPtRow {
-  id: string;
-  producto_id: string;
-  deposito_id: string;
-  cliente_id: string | null;
-  pedido_id: string | null;
-  cantidad: number;
-  consumido: number;
-  observacion: string | null;
-  liberada: boolean;
-  liberada_en: string | null;
-  motivo_liberacion: string | null;
-  creado_por: string;
-  creado_en: string;
-}
+export type ReservaPtRow = Database['comercial']['Tables']['reservas_pt']['Row'];
 
 export type DepositoPt = 'C5' | 'PTF';
 
@@ -75,7 +32,7 @@ export interface PedidoADespachar {
   cliente: string;
   cliente_id: string | null;
   fecha_entrega: string | null;
-  estado: string;
+  estado: string | null;
   renglones: PendienteDespacho[];
   pendiente: number;
 }
@@ -83,10 +40,11 @@ export interface PedidoADespachar {
 export function agruparPorPedido(filas: PendienteDespacho[]): PedidoADespachar[] {
   const porPedido = new Map<string, PedidoADespachar>();
   for (const f of filas) {
-    const p = porPedido.get(f.pedido_id) ?? {
-      pedido_id: f.pedido_id,
-      numero: f.numero,
-      cliente: f.cliente,
+    const idPedido = f.pedido_id ?? '';
+    const p = porPedido.get(idPedido) ?? {
+      pedido_id: idPedido,
+      numero: f.numero ?? '',
+      cliente: f.cliente ?? '',
       cliente_id: f.cliente_id,
       fecha_entrega: f.fecha_entrega,
       estado: f.estado,
@@ -95,7 +53,7 @@ export function agruparPorPedido(filas: PendienteDespacho[]): PedidoADespachar[]
     };
     p.renglones.push(f);
     p.pendiente += Number(f.pendiente);
-    porPedido.set(f.pedido_id, p);
+    porPedido.set(idPedido, p);
   }
   return [...porPedido.values()]
     .filter((p) => p.pendiente > 0)
@@ -144,7 +102,8 @@ export function useCalle5() {
   return useQuery({
     queryKey: ['calle5'],
     queryFn: async () => {
-      const { data, error } = await tablaComercial<FilaCalle5[]>('v_calle5')
+      const { data, error } = await comercial()
+        .from('v_calle5')
         .select('*')
         .order('producto');
       if (error) throw error;
@@ -157,7 +116,7 @@ export function usePendientesDespacho(pedidoId?: string) {
   return useQuery({
     queryKey: ['pendientes-despacho', pedidoId ?? null],
     queryFn: async () => {
-      let c = tablaComercial<PendienteDespacho[]>('v_pendientes_despacho').select('*');
+      let c = comercial().from('v_pendientes_despacho').select('*');
       if (pedidoId) c = c.eq('pedido_id', pedidoId);
       const { data, error } = await c;
       if (error) throw error;
@@ -170,7 +129,8 @@ export function useReservasPt() {
   return useQuery({
     queryKey: ['reservas-pt'],
     queryFn: async () => {
-      const { data, error } = await tablaComercial<ReservaPtRow[]>('reservas_pt')
+      const { data, error } = await comercial()
+        .from('reservas_pt')
         .select('*')
         .eq('liberada', false)
         .order('creado_en', { ascending: false });
@@ -191,7 +151,7 @@ export function useReservarPt() {
       pedidoId: string | null;
       observacion: string | null;
     }) => {
-      const { error } = await tablaComercial('reservas_pt').insert({
+      const { error } = await comercial().from('reservas_pt').insert({
         producto_id: r.productoId,
         deposito_id: r.depositoId,
         cantidad: r.cantidad,
@@ -213,7 +173,7 @@ export function useLiberarReservaPt() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (r: { id: string; motivo: string }) => {
-      const { error } = await rpcComercial('liberar_reserva_pt', {
+      const { error } = await comercial().rpc('liberar_reserva_pt', {
         p_id: r.id,
         p_motivo: r.motivo,
       });
@@ -237,7 +197,7 @@ export function useDespacharPedido() {
       conFaltantes: boolean;
       observacion: string | null;
     }) => {
-      const { error } = await rpcComercial('despachar_pedido', {
+      const { error } = await comercial().rpc('despachar_pedido', {
         p_pedido_id: d.pedidoId,
         p_renglones: d.renglones.map((r) => ({
           producto_id: r.productoId,
@@ -245,7 +205,7 @@ export function useDespacharPedido() {
         })),
         p_deposito: d.deposito,
         p_con_faltantes: d.conFaltantes,
-        p_observacion: d.observacion,
+        ...(d.observacion === null ? {} : { p_observacion: d.observacion }),
       });
       if (error) throw error;
     },
@@ -271,7 +231,7 @@ export function useTransferirPt() {
       origen: DepositoPt;
       destino: DepositoPt;
     }) => {
-      const { error } = await rpcComercial('transferir_pt', {
+      const { error } = await comercial().rpc('transferir_pt', {
         p_producto_id: t.productoId,
         p_cantidad: t.cantidad,
         p_origen: t.origen,
@@ -300,19 +260,16 @@ export function useProducirParaCalle5() {
       observaciones: string | null;
     }) => {
       // Número siguiente con el formato S-0001, contando también los borrados.
-      const previos =
-        await tablaComercial<{ numero: string }[]>('pedidos').select('numero');
+      const previos = await comercial().from('pedidos').select('numero');
       if (previos.error) throw previos.error;
-      const max = (previos.data ?? []).reduce((m: number, r: { numero: string }) => {
+      const max = (previos.data ?? []).reduce((m, r) => {
         const x = /^S-(\d+)$/.exec(r.numero);
         return x ? Math.max(m, Number(x[1])) : m;
       }, 0);
       const numero = `S-${String(max + 1).padStart(4, '0')}`;
 
-      const { data: pedido, error } = await tablaComercial<{
-        id: string;
-        numero: string;
-      }>('pedidos')
+      const { data: pedido, error } = await comercial()
+        .from('pedidos')
         .insert({
           numero,
           cliente: 'Para Calle 5',
@@ -325,16 +282,19 @@ export function useProducirParaCalle5() {
       if (error) throw error;
       if (!pedido) throw new Error('No se pudo crear el pedido.');
 
-      const { error: errR } = await tablaComercial('pedido_renglones').insert(
-        p.renglones.map((r) => ({
-          pedido_id: pedido.id,
-          producto_id: r.productoId,
-          cantidad: r.cantidad,
-        })),
-      );
+      const { error: errR } = await comercial()
+        .from('pedido_renglones')
+        .insert(
+          p.renglones.map((r) => ({
+            pedido_id: pedido.id,
+            producto_id: r.productoId,
+            cantidad: r.cantidad,
+          })),
+        );
       if (errR) throw errR;
 
-      const { data: act, error: errE } = await tablaComercial<{ id: string }[]>('pedidos')
+      const { data: act, error: errE } = await comercial()
+        .from('pedidos')
         .update({ estado: 'CONFIRMADO' })
         .eq('id', pedido.id)
         .select('id');

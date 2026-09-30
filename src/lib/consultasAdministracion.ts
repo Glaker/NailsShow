@@ -3,18 +3,20 @@
  * corrientes de proveedores y clientes, pagos, cobros, solicitudes de pago,
  * IVA y reportes.
  *
- * PUENTE DE TIPOS: las migraciones no están aplicadas en el proyecto alojado.
- * Los tipos de fila de acá se borran al correr `npm run db:types` después del
- * `db push`.
+ * Tipado desde los tipos generados (CLAUDE.md §6).
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { Database } from './database.types';
 import { avisarError, avisarExito } from './consultas';
-import { rpcComercial, tablaComercial } from './consultasComercial';
+import { comercial } from './supabase';
+
+type Vistas = Database['comercial']['Views'];
+type Tablas = Database['comercial']['Tables'];
 
 export const ROLES_ADMINISTRACION = ['ADMINISTRACION', 'GERENCIA'] as const;
 
-export type MedioPago = 'EFECTIVO' | 'TRANSFERENCIA' | 'CHEQUE' | 'TARJETA' | 'OTRO';
+export type MedioPago = Database['comercial']['Enums']['medio_pago_enum'];
 export const MEDIOS_PAGO: { value: MedioPago; label: string }[] = [
   { value: 'TRANSFERENCIA', label: 'Transferencia' },
   { value: 'EFECTIVO', label: 'Efectivo' },
@@ -23,202 +25,43 @@ export const MEDIOS_PAGO: { value: MedioPago; label: string }[] = [
   { value: 'OTRO', label: 'Otro' },
 ];
 
-export type TipoCuentaFondos = 'CAJA' | 'BANCO' | 'BILLETERA';
+export type TipoCuentaFondos = Database['comercial']['Enums']['tipo_cuenta_fondos_enum'];
 
-export interface SaldoFondos {
-  cuenta_id: string;
-  nombre: string;
-  tipo: TipoCuentaFondos;
-  banco: string | null;
-  numero: string | null;
-  de_tercero: boolean;
-  titular: string | null;
-  moneda: string;
-  activo: boolean;
-  saldo: number;
-  ultimo_movimiento: string | null;
-  ultima_conciliacion: string | null;
-}
+export type SaldoFondos = Vistas['v_saldos_fondos']['Row'];
 
-export interface MovimientoFondos {
-  id: string;
-  cuenta_id: string;
-  fecha: string;
-  tipo: 'INGRESO' | 'EGRESO' | 'TRANSFERENCIA' | 'AJUSTE';
-  importe: number;
-  concepto: string;
-  comprobante: string | null;
-  contraparte: string | null;
-  pago_id: string | null;
-  cobro_id: string | null;
-  solicitud_id: string | null;
-  anula_a_id: string | null;
-  registrado_en: string;
-}
+export type MovimientoFondos = Tablas['movimientos_fondos']['Row'];
 
-export interface SaldoProveedor {
-  proveedor_id: string;
-  razon_social: string;
-  cuit: string | null;
-  debe: number;
-  haber: number;
-  saldo: number;
-  vencido: number;
-  proximo_vencimiento: string | null;
-  conciliado_al: string | null;
-  saldo_informado: number | null;
-  diferencia_conciliacion: number | null;
-}
+export type SaldoProveedor = Vistas['v_saldos_proveedores']['Row'];
 
-export interface MovimientoCuentaCorriente {
-  fecha: string;
-  momento: string;
-  movimiento: string;
-  detalle_tipo: string;
-  referencia: string;
-  debe: number;
-  haber: number;
-  comprobante_id?: string | null;
-  pago_id?: string | null;
-  factura_id?: string | null;
-  cobro_id?: string | null;
-  vencimiento_pago?: string | null;
-  ambiente?: string | null;
-}
+export type MovimientoCuentaCorrienteProveedor =
+  Vistas['v_cuenta_corriente_proveedores']['Row'];
+export type MovimientoCuentaCorrienteCliente =
+  Vistas['v_cuenta_corriente_clientes']['Row'];
+export type MovimientoCuentaCorriente =
+  MovimientoCuentaCorrienteProveedor | MovimientoCuentaCorrienteCliente;
 
-export interface ComprobantePendiente {
-  comprobante_id: string;
-  proveedor_id: string;
-  tipo: string;
-  punto_venta: number | null;
-  numero: number | null;
-  fecha: string;
-  vencimiento_pago: string | null;
-  importe_total: number;
-  pendiente: number;
-}
+export type ComprobantePendiente = Vistas['v_comprobantes_proveedor_pendientes']['Row'];
 
-export interface SaldoCliente {
-  cliente_id: string;
-  razon_social: string;
-  facturado: number;
-  cobrado: number;
-  saldo: number;
-  facturas_pendientes: number;
-  cobrado_sin_imputar: number;
-  a_30: number;
-  a_60: number;
-  a_90: number;
-  mas_90: number;
-  pendiente_homologacion: number;
-}
+export type SaldoCliente = Vistas['v_saldos_clientes']['Row'];
 
-export interface FacturaPendiente {
-  factura_id: string;
-  cliente_id: string;
-  ambiente: string;
-  tipo: string;
-  punto_venta: number;
-  numero: number | null;
-  fecha: string;
-  importe_total: number;
-  cobrado: number;
-  pendiente: number;
-  dias: number;
-}
+export type FacturaPendiente = Vistas['v_facturas_pendientes_cobro']['Row'];
 
 export type EstadoSolicitud =
-  'PENDIENTE' | 'APROBADA' | 'PAGADA' | 'RECHAZADA' | 'ANULADA';
+  Database['comercial']['Enums']['estado_solicitud_pago_enum'];
 
-export interface SolicitudPago {
-  id: string;
-  solicitante: string;
-  area: string;
-  concepto: string;
-  destinatario: string;
-  proveedor_id: string | null;
-  comprobante_id: string | null;
-  importe: number;
-  vencimiento: string | null;
-  medio_pago: MedioPago | null;
-  estado: EstadoSolicitud;
-  resuelto_por: string | null;
-  resuelto_en: string | null;
-  motivo: string | null;
-  creado_en: string;
-}
+export type SolicitudPago = Tablas['solicitudes_pago']['Row'];
 
-export interface IvaMensual {
-  periodo: string;
-  debito_fiscal: number;
-  credito_fiscal: number;
-  posicion: number;
-  neto_ventas: number;
-  neto_compras_a: number;
-  compras_sin_iva_discriminado: number;
-  compras_sin_factura: number;
-  debito_homologacion: number;
-}
+export type IvaMensual = Vistas['v_iva_mensual']['Row'];
 
-export interface CashFlowReal {
-  periodo: string;
-  cuenta_id: string;
-  cuenta: string;
-  de_tercero: boolean;
-  ingresos: number | null;
-  egresos: number | null;
-  neto: number | null;
-}
+export type CashFlowReal = Vistas['v_cash_flow_real']['Row'];
 
-export interface CashFlowProyectado {
-  fecha: string | null;
-  tipo: 'PAGO_PROVEEDOR' | 'SOLICITUD_PAGO' | 'COBRANZA';
-  detalle: string;
-  importe: number;
-  origen_id: string;
-}
+export type CashFlowProyectado = Vistas['v_cash_flow_proyectado']['Row'];
 
-export interface VentaMensual {
-  periodo: string;
-  cliente_id: string;
-  cliente: string;
-  ambiente: string;
-  facturas: number;
-  neto: number;
-  iva: number;
-  total: number;
-}
+export type VentaMensual = Vistas['v_ventas_mensuales']['Row'];
 
-export interface ResultadoMensual {
-  periodo: string;
-  ventas_netas: number;
-  compras: number;
-  otros_egresos: number;
-  resultado: number;
-}
+export type ResultadoMensual = Vistas['v_resultado_mensual']['Row'];
 
-export interface CompraTrazada {
-  aviso_id: string | null;
-  estado: string | null;
-  codigo_interno: string | null;
-  insumo: string | null;
-  cantidad: number | null;
-  unidad: string | null;
-  pedida_en: string | null;
-  proveedor: string | null;
-  recepcion_numero: string | null;
-  recibida_en: string | null;
-  comprobante_tipo: string | null;
-  importe_total: number | null;
-  pendiente: number | null;
-  situacion:
-    | 'DESCARTADA'
-    | 'SIN_RECIBIR'
-    | 'SIN_COMPROBANTE'
-    | 'IMPAGA'
-    | 'CERRADA'
-    | 'SIN_COMPRA';
-}
+export type CompraTrazada = Vistas['v_compras_trazadas']['Row'];
 
 /** Pesos argentinos, sin centavos si son cero. */
 export const pesos = (v: number | string | null | undefined) =>
@@ -233,15 +76,12 @@ export const mes = (periodo: string) =>
 
 function lista<T>(
   clave: unknown[],
-  tabla: string,
-  orden?: { col: string; asc?: boolean },
+  consulta: () => PromiseLike<{ data: T[] | null; error: Error | null }>,
 ) {
   return {
     queryKey: clave,
     queryFn: async () => {
-      let c = tablaComercial<T[]>(tabla).select('*');
-      if (orden) c = c.order(orden.col, { ascending: orden.asc ?? false });
-      const { data, error } = await c;
+      const { data, error } = await consulta();
       if (error) throw error;
       return data ?? [];
     },
@@ -285,13 +125,8 @@ function useMutacion<V>(
   });
 }
 
-async function rpc(fn: string, args: Record<string, unknown>) {
-  const { error } = await rpcComercial(fn, args);
-  if (error) throw error;
-}
-
-async function insertar(tabla: string, fila: Record<string, unknown>) {
-  const { error } = await tablaComercial(tabla).insert(fila);
+async function avisarSiFalla(pendiente: PromiseLike<{ error: Error | null }>) {
+  const { error } = await pendiente;
   if (error) throw error;
 }
 
@@ -299,10 +134,12 @@ async function insertar(tabla: string, fila: Record<string, unknown>) {
 
 export const useSaldosFondos = () =>
   useQuery(
-    lista<SaldoFondos>(['saldos-fondos'], 'v_saldos_fondos', {
-      col: 'nombre',
-      asc: true,
-    }),
+    lista(['saldos-fondos'], () =>
+      comercial()
+        .from('v_saldos_fondos')
+        .select('*')
+        .order('nombre', { ascending: true }),
+    ),
   );
 
 export function useMovimientosFondos(cuentaId: string | null) {
@@ -310,9 +147,8 @@ export function useMovimientosFondos(cuentaId: string | null) {
     queryKey: ['movimientos-fondos', cuentaId],
     enabled: Boolean(cuentaId),
     queryFn: async () => {
-      const { data, error } = await tablaComercial<MovimientoFondos[]>(
-        'movimientos_fondos',
-      )
+      const { data, error } = await comercial()
+        .from('movimientos_fondos')
         .select('*')
         .eq('cuenta_id', cuentaId!)
         .order('fecha', { ascending: false });
@@ -331,7 +167,7 @@ export const useCrearCuentaFondos = () =>
       numero: string | null;
       de_tercero: boolean;
       titular: string | null;
-    }) => insertar('cuentas_fondos', c),
+    }) => avisarSiFalla(comercial().from('cuentas_fondos').insert(c)),
     'Cuenta creada.',
   );
 
@@ -346,35 +182,43 @@ export const useRegistrarMovimientoFondos = () =>
       contraparte: string | null;
       fecha: string | null;
     }) =>
-      insertar('movimientos_fondos', {
-        cuenta_id: m.cuenta_id,
-        tipo: m.tipo,
-        // El signo lo pone el tipo: acá nadie escribe negativos.
-        importe: m.tipo === 'EGRESO' ? -Math.abs(m.importe) : m.importe,
-        concepto: m.concepto,
-        comprobante: m.comprobante,
-        contraparte: m.contraparte,
-        ...(m.fecha ? { fecha: m.fecha } : {}),
-      }),
+      avisarSiFalla(
+        comercial()
+          .from('movimientos_fondos')
+          .insert({
+            cuenta_id: m.cuenta_id,
+            tipo: m.tipo,
+            // El signo lo pone el tipo: acá nadie escribe negativos.
+            importe: m.tipo === 'EGRESO' ? -Math.abs(m.importe) : m.importe,
+            concepto: m.concepto,
+            comprobante: m.comprobante,
+            contraparte: m.contraparte,
+            ...(m.fecha ? { fecha: m.fecha } : {}),
+          }),
+      ),
     'Movimiento registrado.',
   );
 
 export const useTransferirFondos = () =>
   useMutacion(
     (t: { origen: string; destino: string; importe: number; concepto: string }) =>
-      rpc('transferir_fondos', {
-        p_origen: t.origen,
-        p_destino: t.destino,
-        p_importe: t.importe,
-        p_concepto: t.concepto,
-      }),
+      avisarSiFalla(
+        comercial().rpc('transferir_fondos', {
+          p_origen: t.origen,
+          p_destino: t.destino,
+          p_importe: t.importe,
+          p_concepto: t.concepto,
+        }),
+      ),
     'Transferencia registrada.',
   );
 
 export const useAnularMovimientoFondos = () =>
   useMutacion(
     (a: { id: string; motivo: string }) =>
-      rpc('anular_movimiento_fondos', { p_id: a.id, p_motivo: a.motivo }),
+      avisarSiFalla(
+        comercial().rpc('anular_movimiento_fondos', { p_id: a.id, p_motivo: a.motivo }),
+      ),
     'Movimiento anulado con su inverso.',
   );
 
@@ -387,7 +231,11 @@ export const useConciliarFondos = () =>
       observacion: string | null;
     }) =>
       // saldo_sistema lo pone la base (trigger); el 0 solo cumple el NOT NULL.
-      insertar('conciliaciones_fondos', { ...c, saldo_sistema: 0 }),
+      avisarSiFalla(
+        comercial()
+          .from('conciliaciones_fondos')
+          .insert({ ...c, saldo_sistema: 0 }),
+      ),
     'Conciliación registrada.',
   );
 
@@ -395,9 +243,12 @@ export const useConciliarFondos = () =>
 
 export const useSaldosProveedores = () =>
   useQuery(
-    lista<SaldoProveedor>(['saldos-proveedores'], 'v_saldos_proveedores', {
-      col: 'saldo',
-    }),
+    lista(['saldos-proveedores'], () =>
+      comercial()
+        .from('v_saldos_proveedores')
+        .select('*')
+        .order('saldo', { ascending: false }),
+    ),
   );
 
 export function useCuentaCorrienteProveedor(proveedorId: string | null) {
@@ -405,9 +256,8 @@ export function useCuentaCorrienteProveedor(proveedorId: string | null) {
     queryKey: ['cc-proveedor', proveedorId],
     enabled: Boolean(proveedorId),
     queryFn: async () => {
-      const { data, error } = await tablaComercial<MovimientoCuentaCorriente[]>(
-        'v_cuenta_corriente_proveedores',
-      )
+      const { data, error } = await comercial()
+        .from('v_cuenta_corriente_proveedores')
         .select('*')
         .eq('proveedor_id', proveedorId!)
         .order('fecha', { ascending: true });
@@ -422,9 +272,8 @@ export function useComprobantesPendientes(proveedorId: string | null) {
     queryKey: ['comprobantes-pendientes', proveedorId],
     enabled: Boolean(proveedorId),
     queryFn: async () => {
-      const { data, error } = await tablaComercial<ComprobantePendiente[]>(
-        'v_comprobantes_proveedor_pendientes',
-      )
+      const { data, error } = await comercial()
+        .from('v_comprobantes_proveedor_pendientes')
         .select('*')
         .eq('proveedor_id', proveedorId!)
         .order('fecha', { ascending: true });
@@ -445,18 +294,20 @@ export const useRegistrarPagoProveedor = () =>
       referencia: string | null;
       solicitudId: string | null;
     }) =>
-      rpc('registrar_pago_proveedor', {
-        p_proveedor_id: p.proveedorId,
-        p_cuenta_id: p.cuentaId,
-        p_importe: p.importe,
-        p_medio: p.medio,
-        p_imputaciones: p.imputaciones.map((i) => ({
-          comprobante_id: i.comprobanteId,
-          importe: i.importe,
-        })),
-        p_referencia: p.referencia,
-        p_solicitud_id: p.solicitudId,
-      }),
+      avisarSiFalla(
+        comercial().rpc('registrar_pago_proveedor', {
+          p_proveedor_id: p.proveedorId,
+          p_cuenta_id: p.cuentaId,
+          p_importe: p.importe,
+          p_medio: p.medio,
+          p_imputaciones: p.imputaciones.map((i) => ({
+            comprobante_id: i.comprobanteId,
+            importe: i.importe,
+          })),
+          ...(p.referencia === null ? {} : { p_referencia: p.referencia }),
+          ...(p.solicitudId === null ? {} : { p_solicitud_id: p.solicitudId }),
+        }),
+      ),
     'Pago registrado. El egreso quedó en la cuenta elegida.',
   );
 
@@ -467,7 +318,12 @@ export const useConciliarProveedor = () =>
       fecha: string;
       saldo_informado: number;
       observacion: string | null;
-    }) => insertar('conciliaciones_proveedor', { ...c, saldo_sistema: 0 }),
+    }) =>
+      avisarSiFalla(
+        comercial()
+          .from('conciliaciones_proveedor')
+          .insert({ ...c, saldo_sistema: 0 }),
+      ),
     'Conciliación registrada.',
   );
 
@@ -475,7 +331,12 @@ export const useConciliarProveedor = () =>
 
 export const useSaldosClientes = () =>
   useQuery(
-    lista<SaldoCliente>(['saldos-clientes'], 'v_saldos_clientes', { col: 'saldo' }),
+    lista(['saldos-clientes'], () =>
+      comercial()
+        .from('v_saldos_clientes')
+        .select('*')
+        .order('saldo', { ascending: false }),
+    ),
   );
 
 export function useFacturasPendientes(clienteId: string | null) {
@@ -483,9 +344,8 @@ export function useFacturasPendientes(clienteId: string | null) {
     queryKey: ['facturas-pendientes', clienteId],
     enabled: Boolean(clienteId),
     queryFn: async () => {
-      const { data, error } = await tablaComercial<FacturaPendiente[]>(
-        'v_facturas_pendientes_cobro',
-      )
+      const { data, error } = await comercial()
+        .from('v_facturas_pendientes_cobro')
         .select('*')
         .eq('cliente_id', clienteId!)
         .order('fecha', { ascending: true });
@@ -500,9 +360,8 @@ export function useCuentaCorrienteCliente(clienteId: string | null) {
     queryKey: ['cc-cliente', clienteId],
     enabled: Boolean(clienteId),
     queryFn: async () => {
-      const { data, error } = await tablaComercial<MovimientoCuentaCorriente[]>(
-        'v_cuenta_corriente_clientes',
-      )
+      const { data, error } = await comercial()
+        .from('v_cuenta_corriente_clientes')
         .select('*')
         .eq('cliente_id', clienteId!)
         .order('fecha', { ascending: true });
@@ -522,17 +381,19 @@ export const useRegistrarCobro = () =>
       imputaciones: { facturaId: string; importe: number }[];
       referencia: string | null;
     }) =>
-      rpc('registrar_cobro_cliente', {
-        p_cliente_id: c.clienteId,
-        p_cuenta_id: c.cuentaId,
-        p_importe: c.importe,
-        p_medio: c.medio,
-        p_imputaciones: c.imputaciones.map((i) => ({
-          factura_id: i.facturaId,
-          importe: i.importe,
-        })),
-        p_referencia: c.referencia,
-      }),
+      avisarSiFalla(
+        comercial().rpc('registrar_cobro_cliente', {
+          p_cliente_id: c.clienteId,
+          p_cuenta_id: c.cuentaId,
+          p_importe: c.importe,
+          p_medio: c.medio,
+          p_imputaciones: c.imputaciones.map((i) => ({
+            factura_id: i.facturaId,
+            importe: i.importe,
+          })),
+          ...(c.referencia === null ? {} : { p_referencia: c.referencia }),
+        }),
+      ),
     'Cobro registrado. El ingreso quedó en la cuenta elegida.',
   );
 
@@ -540,20 +401,25 @@ export const useRegistrarCobro = () =>
 
 export const useSolicitudesPago = () =>
   useQuery(
-    lista<SolicitudPago>(['solicitudes-pago'], 'solicitudes_pago', { col: 'creado_en' }),
+    lista(['solicitudes-pago'], () =>
+      comercial()
+        .from('solicitudes_pago')
+        .select('*')
+        .order('creado_en', { ascending: false }),
+    ),
   );
 
 export const useCrearSolicitudPago = () =>
   useMutacion(
     (s: {
-      area: string;
+      area: SolicitudPago['area'];
       concepto: string;
       destinatario: string;
       proveedor_id: string | null;
       importe: number;
       vencimiento: string | null;
       medio_pago: MedioPago | null;
-    }) => insertar('solicitudes_pago', s),
+    }) => avisarSiFalla(comercial().from('solicitudes_pago').insert(s)),
     'Solicitud enviada a Administración.',
   );
 
@@ -564,7 +430,8 @@ export const useResolverSolicitud = () =>
       estado: 'APROBADA' | 'RECHAZADA' | 'ANULADA';
       motivo: string | null;
     }) => {
-      const { data, error } = await tablaComercial<{ id: string }[]>('solicitudes_pago')
+      const { data, error } = await comercial()
+        .from('solicitudes_pago')
         .update({ estado: r.estado, motivo: r.motivo })
         .eq('id', r.id)
         .select('id');
@@ -583,48 +450,77 @@ export const useResolverSolicitud = () =>
 export const usePagarSolicitudConEgreso = () =>
   useMutacion(
     (p: { solicitudId: string; cuentaId: string; comprobante: string | null }) =>
-      rpc('pagar_solicitud_con_egreso', {
-        p_solicitud_id: p.solicitudId,
-        p_cuenta_id: p.cuentaId,
-        p_comprobante: p.comprobante,
-      }),
+      avisarSiFalla(
+        comercial().rpc('pagar_solicitud_con_egreso', {
+          p_solicitud_id: p.solicitudId,
+          p_cuenta_id: p.cuentaId,
+          ...(p.comprobante === null ? {} : { p_comprobante: p.comprobante }),
+        }),
+      ),
     'Solicitud pagada. El egreso quedó en la cuenta elegida.',
   );
 
 /* ------------------------------- Reportes ------------------------------- */
 
 export const useIvaMensual = () =>
-  useQuery(lista<IvaMensual>(['iva-mensual'], 'v_iva_mensual', { col: 'periodo' }));
+  useQuery(
+    lista(['iva-mensual'], () =>
+      comercial()
+        .from('v_iva_mensual')
+        .select('*')
+        .order('periodo', { ascending: false }),
+    ),
+  );
 export const useCashFlowReal = () =>
   useQuery(
-    lista<CashFlowReal>(['cash-flow', 'real'], 'v_cash_flow_real', { col: 'periodo' }),
+    lista(['cash-flow', 'real'], () =>
+      comercial()
+        .from('v_cash_flow_real')
+        .select('*')
+        .order('periodo', { ascending: false }),
+    ),
   );
 export const useCashFlowProyectado = () =>
   useQuery(
-    lista<CashFlowProyectado>(['cash-flow', 'proyectado'], 'v_cash_flow_proyectado', {
-      col: 'fecha',
-      asc: true,
-    }),
+    lista(['cash-flow', 'proyectado'], () =>
+      comercial()
+        .from('v_cash_flow_proyectado')
+        .select('*')
+        .order('fecha', { ascending: true }),
+    ),
   );
 export const useVentasMensuales = () =>
   useQuery(
-    lista<VentaMensual>(['ventas-mensuales'], 'v_ventas_mensuales', { col: 'periodo' }),
+    lista(['ventas-mensuales'], () =>
+      comercial()
+        .from('v_ventas_mensuales')
+        .select('*')
+        .order('periodo', { ascending: false }),
+    ),
   );
 export const useResultadoMensual = () =>
   useQuery(
-    lista<ResultadoMensual>(['resultado-mensual'], 'v_resultado_mensual', {
-      col: 'periodo',
-    }),
+    lista(['resultado-mensual'], () =>
+      comercial()
+        .from('v_resultado_mensual')
+        .select('*')
+        .order('periodo', { ascending: false }),
+    ),
   );
 export const useComprasTrazadas = () =>
   useQuery(
-    lista<CompraTrazada>(['compras-trazadas'], 'v_compras_trazadas', {
-      col: 'pedida_en',
-    }),
+    lista(['compras-trazadas'], () =>
+      comercial()
+        .from('v_compras_trazadas')
+        .select('*')
+        .order('pedida_en', { ascending: false }),
+    ),
   );
 
 /** Cuenta corriente con el saldo acumulado renglón por renglón. */
-export function saldoCorrido<T extends { debe: number; haber: number }>(movs: T[]) {
+export function saldoCorrido<T extends { debe: number | null; haber: number | null }>(
+  movs: T[],
+) {
   return movs.reduce<(T & { saldo: number })[]>((acc, m) => {
     const previo = acc.at(-1)?.saldo ?? 0;
     acc.push({ ...m, saldo: previo + Number(m.debe) - Number(m.haber) });

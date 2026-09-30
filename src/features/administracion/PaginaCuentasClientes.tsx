@@ -193,7 +193,7 @@ function FichaCliente({ clienteId, nombre }: { clienteId: string; nombre: string
                     <Text size="sm">
                       {m.movimiento === 'FACTURA'
                         ? `Factura ${m.detalle_tipo}`
-                        : `Cobro · ${m.detalle_tipo.toLowerCase()}`}
+                        : `Cobro · ${(m.detalle_tipo ?? '').toLowerCase()}`}
                     </Text>
                     <Text size="xs" c="dimmed" ff="monospace">
                       {m.referencia}
@@ -246,7 +246,7 @@ function ModalCobro({
   const total = aNumero(importe);
   const imputado = Object.values(imputar).reduce<number>((a, v) => a + aNumero(v), 0);
   const excedido = filas.some(
-    (f) => aNumero(imputar[f.factura_id] ?? 0) > Number(f.pendiente),
+    (f) => aNumero(imputar[f.factura_id ?? ''] ?? 0) > Number(f.pendiente),
   );
 
   return (
@@ -304,8 +304,10 @@ function ModalCobro({
                         aria-label="Importe imputado"
                         {...MONEDA}
                         max={Number(f.pendiente)}
-                        value={imputar[f.factura_id] ?? ''}
-                        onChange={(v) => setImputar({ ...imputar, [f.factura_id]: v })}
+                        value={imputar[f.factura_id ?? ''] ?? ''}
+                        onChange={(v) =>
+                          setImputar({ ...imputar, [f.factura_id ?? '']: v })
+                        }
                       />
                     </Table.Td>
                   </Table.Tr>

@@ -1,45 +1,19 @@
 /**
  * Comprobantes de proveedor: la recepción fiscal (RN-65, 20260929100000).
  *
- * PUENTE DE TIPOS. La migración no está aplicada en el proyecto alojado
- * todavía, así que `database.types.ts` no conoce la tabla. El tipo de fila de
- * acá se borra al correr `npm run db:types` después del `db push`.
+ * Tipado desde los tipos generados (CLAUDE.md §6).
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { Database } from './database.types';
 import { avisarError, avisarExito } from './consultas';
-import { rpcComercial, tablaComercial } from './consultasComercial';
+import { comercial } from './supabase';
 
 export type TipoComprobanteProveedor =
-  | 'FACTURA_A'
-  | 'FACTURA_B'
-  | 'FACTURA_C'
-  | 'NOTA_CREDITO_A'
-  | 'NOTA_CREDITO_B'
-  | 'NOTA_CREDITO_C'
-  | 'SIN_FACTURA';
+  Database['comercial']['Enums']['tipo_comprobante_proveedor_enum'];
 
-export interface ComprobanteProveedorRow {
-  id: string;
-  proveedor_id: string;
-  recepcion_id: string | null;
-  tipo: TipoComprobanteProveedor;
-  punto_venta: number | null;
-  numero: number | null;
-  fecha: string;
-  vencimiento_pago: string | null;
-  importe_neto: number | null;
-  importe_iva: number | null;
-  importe_otros: number | null;
-  importe_total: number | null;
-  comprobante_asociado_id: string | null;
-  observacion: string | null;
-  registrado_por: string;
-  registrado_en: string;
-  anulado_en: string | null;
-  anulado_por: string | null;
-  motivo_anulacion: string | null;
-}
+export type ComprobanteProveedorRow =
+  Database['comercial']['Tables']['comprobantes_proveedor']['Row'];
 
 export type NuevoComprobanteProveedor = Pick<
   ComprobanteProveedorRow,
@@ -104,7 +78,8 @@ export function useComprobantesProveedor(filtro: { proveedorId?: string } = {}) 
   return useQuery({
     queryKey: ['comprobantes-proveedor', filtro.proveedorId ?? null],
     queryFn: async () => {
-      let consulta = tablaComercial<ComprobanteProveedorRow[]>('comprobantes_proveedor')
+      let consulta = comercial()
+        .from('comprobantes_proveedor')
         .select('*')
         .order('fecha', { ascending: false });
       if (filtro.proveedorId) consulta = consulta.eq('proveedor_id', filtro.proveedorId);
@@ -119,7 +94,7 @@ export function useRegistrarComprobanteProveedor() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (c: NuevoComprobanteProveedor) => {
-      const { error } = await tablaComercial('comprobantes_proveedor').insert(c);
+      const { error } = await comercial().from('comprobantes_proveedor').insert(c);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -133,7 +108,7 @@ export function useAnularComprobanteProveedor() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (a: { id: string; motivo: string }) => {
-      const { error } = await rpcComercial('anular_comprobante_proveedor', {
+      const { error } = await comercial().rpc('anular_comprobante_proveedor', {
         p_id: a.id,
         p_motivo: a.motivo,
       });

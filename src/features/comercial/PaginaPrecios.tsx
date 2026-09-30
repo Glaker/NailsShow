@@ -145,7 +145,7 @@ function Precios() {
                     </Table.Td>
                     <Table.Td ta="right" ff="monospace" fw={700}>
                       {pr ? (
-                        pesos(pr.precio_lista)
+                        pesos(pr.precio_lista ?? 0)
                       ) : (
                         <Badge color="gray" variant="light">
                           sin precio
@@ -153,7 +153,7 @@ function Precios() {
                       )}
                     </Table.Td>
                     <Table.Td ta="right" ff="monospace" c="dimmed">
-                      {pr ? pesos(pr.precio_neto) : '—'}
+                      {pr ? pesos(pr.precio_neto ?? 0) : '—'}
                     </Table.Td>
                     <Table.Td>
                       <Text size="sm">{pr ? fecha(pr.vigente_desde) : '—'}</Text>
@@ -214,7 +214,7 @@ function ModalPrecio({
       <Stack gap="md">
         {editando?.actual ? (
           <Text size="sm">
-            Hoy: <b>{pesos(editando.actual.precio_lista)}</b> desde{' '}
+            Hoy: <b>{pesos(editando.actual.precio_lista ?? 0)}</b> desde{' '}
             {fecha(editando.actual.vigente_desde)}. Los pedidos ya cargados conservan su
             precio.
           </Text>

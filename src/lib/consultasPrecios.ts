@@ -1,44 +1,28 @@
 /**
  * Precios de lista y descuentos por cliente (20260929150000).
  *
- * PUENTE DE TIPOS hasta aplicar la migración y correr `npm run db:types`.
+ * Tipado desde los tipos generados (CLAUDE.md §6).
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { Database } from './database.types';
 import { avisarError, avisarExito } from './consultas';
-import { rpcComercial, tablaComercial } from './consultasComercial';
+import { comercial } from './supabase';
 
 /** Quién cambia precios y descuentos: las políticas de insert. */
 export const ROLES_PRECIOS = ['VENTAS', 'ADMINISTRACION', 'GERENCIA'] as const;
 
-export interface PrecioVigente {
-  producto_id: string;
-  codigo_interno: string;
-  producto: string;
-  precio_lista: number;
-  alicuota_iva: number;
-  precio_neto: number;
-  vigente_desde: string;
-  origen: string | null;
-  motivo: string | null;
-}
+export type PrecioVigente = Database['comercial']['Views']['v_precios_vigentes']['Row'];
 
-export interface DescuentoVigente {
-  cliente_id: string;
-  cliente: string;
-  producto_id: string | null;
-  codigo_interno: string | null;
-  producto: string | null;
-  porcentaje: number;
-  motivo: string | null;
-  vigente_desde: string;
-}
+export type DescuentoVigente =
+  Database['comercial']['Views']['v_descuentos_vigentes']['Row'];
 
 export function usePreciosVigentes() {
   return useQuery({
     queryKey: ['precios-vigentes'],
     queryFn: async () => {
-      const { data, error } = await tablaComercial<PrecioVigente[]>('v_precios_vigentes')
+      const { data, error } = await comercial()
+        .from('v_precios_vigentes')
         .select('*')
         .order('producto', { ascending: true });
       if (error) throw error;
@@ -51,9 +35,8 @@ export function useDescuentosVigentes() {
   return useQuery({
     queryKey: ['descuentos-vigentes'],
     queryFn: async () => {
-      const { data, error } = await tablaComercial<DescuentoVigente[]>(
-        'v_descuentos_vigentes',
-      )
+      const { data, error } = await comercial()
+        .from('v_descuentos_vigentes')
         .select('*')
         .order('cliente', { ascending: true });
       if (error) throw error;
@@ -70,7 +53,7 @@ export function useCambiarPrecio() {
       precioLista: number;
       motivo: string | null;
     }) => {
-      const { error } = await tablaComercial('precios_producto').insert({
+      const { error } = await comercial().from('precios_producto').insert({
         producto_id: p.productoId,
         precio_lista: p.precioLista,
         motivo: p.motivo,
@@ -94,7 +77,7 @@ export function useCargarDescuento() {
       porcentaje: number;
       motivo: string | null;
     }) => {
-      const { error } = await tablaComercial('descuentos_cliente').insert({
+      const { error } = await comercial().from('descuentos_cliente').insert({
         cliente_id: d.clienteId,
         producto_id: d.productoId,
         porcentaje: d.porcentaje,
@@ -115,7 +98,7 @@ export function useAplicarPreciosPedido() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (pedidoId: string) => {
-      const { data, error } = await rpcComercial<number>('aplicar_precios_pedido', {
+      const { data, error } = await comercial().rpc('aplicar_precios_pedido', {
         p_pedido_id: pedidoId,
       });
       if (error) throw error;

@@ -240,10 +240,10 @@ function FormularioDespacho({
     cantidades ??
     Object.fromEntries(
       renglones.map((r) => [
-        r.producto_id,
+        r.producto_id ?? '',
         Math.min(
           Number(r.pendiente),
-          Math.max(puedeSalir(r.producto_id, Number(r.en_fabrica_para_pedido)), 0),
+          Math.max(puedeSalir(r.producto_id ?? '', Number(r.en_fabrica_para_pedido)), 0),
         ),
       ]),
     );
@@ -252,13 +252,14 @@ function FormularioDespacho({
     const v = valores[id];
     return typeof v === 'number' ? v : Number(v || 0);
   };
-  const sale = renglones.reduce((a, r) => a + cant(r.producto_id), 0);
+  const sale = renglones.reduce((a, r) => a + cant(r.producto_id ?? ''), 0);
   const queda = renglones.reduce(
-    (a, r) => a + Number(r.pendiente) - cant(r.producto_id),
+    (a, r) => a + Number(r.pendiente) - cant(r.producto_id ?? ''),
     0,
   );
   const excedidos = renglones.filter(
-    (r) => cant(r.producto_id) > Number(r.pendiente) || cant(r.producto_id) < 0,
+    (r) =>
+      cant(r.producto_id ?? '') > Number(r.pendiente) || cant(r.producto_id ?? '') < 0,
   );
 
   if (calle5.isLoading || reservas.isLoading) return <Skeleton h={200} />;
@@ -290,7 +291,10 @@ function FormularioDespacho({
           </Table.Thead>
           <Table.Tbody>
             {renglones.map((r) => {
-              const hay = puedeSalir(r.producto_id, Number(r.en_fabrica_para_pedido));
+              const hay = puedeSalir(
+                r.producto_id ?? '',
+                Number(r.en_fabrica_para_pedido),
+              );
               const falta = Number(r.pendiente) > hay;
               return (
                 <Table.Tr key={r.producto_id}>
@@ -325,8 +329,10 @@ function FormularioDespacho({
                       max={Number(r.pendiente)}
                       allowDecimal={false}
                       hideControls
-                      value={valores[r.producto_id] ?? 0}
-                      onChange={(v) => setCantidades({ ...valores, [r.producto_id]: v })}
+                      value={valores[r.producto_id ?? ''] ?? 0}
+                      onChange={(v) =>
+                        setCantidades({ ...valores, [r.producto_id ?? '']: v })
+                      }
                     />
                   </Table.Td>
                 </Table.Tr>
@@ -376,8 +382,8 @@ function FormularioDespacho({
                 pedidoId: pedido.pedido_id,
                 renglones: renglones
                   .map((r) => ({
-                    productoId: r.producto_id,
-                    cantidad: cant(r.producto_id),
+                    productoId: r.producto_id ?? '',
+                    cantidad: cant(r.producto_id ?? ''),
                   }))
                   .filter((r) => r.cantidad > 0),
                 deposito,
@@ -487,7 +493,7 @@ function PorProducto() {
                   )}
                   puedeReservar={puede}
                   onReservar={(pedidoId) =>
-                    setReservando({ productoId: f.producto_id, pedidoId })
+                    setReservando({ productoId: f.producto_id ?? '', pedidoId })
                   }
                 />
               ))}
@@ -750,11 +756,11 @@ function ModalProducir({
   const c5 = (depositos.data ?? []).find((d) => d.numero === 'C5');
   const valores =
     cantidades ??
-    Object.fromEntries(filas.map((f) => [f.producto_id, Number(f.falta_producir)]));
+    Object.fromEntries(filas.map((f) => [f.producto_id ?? '', Number(f.falta_producir)]));
   const renglones = filas
     .map((f) => ({
-      productoId: f.producto_id,
-      cantidad: Number(valores[f.producto_id] || 0),
+      productoId: f.producto_id ?? '',
+      cantidad: Number(valores[f.producto_id ?? ''] || 0),
     }))
     .filter((r) => r.cantidad > 0);
 
@@ -793,8 +799,10 @@ function ModalProducir({
                     min={0}
                     allowDecimal={false}
                     hideControls
-                    value={valores[f.producto_id] ?? 0}
-                    onChange={(v) => setCantidades({ ...valores, [f.producto_id]: v })}
+                    value={valores[f.producto_id ?? ''] ?? 0}
+                    onChange={(v) =>
+                      setCantidades({ ...valores, [f.producto_id ?? '']: v })
+                    }
                   />
                 </Table.Td>
               </Table.Tr>
@@ -984,7 +992,7 @@ export function CoberturaCalle5({ pedido }: { pedido: PedidoADespachar }) {
   const filas = pedido.renglones.filter((r) => Number(r.pendiente) > 0);
   const conDisponible = filas.map((r) => {
     const hay = disponiblePara(
-      r.producto_id,
+      r.producto_id ?? '',
       pedido.pedido_id,
       pedido.cliente_id,
       calle5.data ?? [],

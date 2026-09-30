@@ -172,7 +172,7 @@ function TarjetaCuenta({
             variant="light"
             color={c.de_tercero ? 'estadoCuarentena' : 'gray'}
           >
-            {c.de_tercero ? `de ${c.titular}` : c.tipo.toLowerCase()}
+            {c.de_tercero ? `de ${c.titular}` : (c.tipo ?? '').toLowerCase()}
           </Badge>
         </Group>
         <Text
@@ -534,8 +534,8 @@ function ModalTransferencia({
   const [importe, setImporte] = useState<number | string>('');
   const [concepto, setConcepto] = useState('');
   const opciones = (cuentas.data ?? []).map((c) => ({
-    value: c.cuenta_id,
-    label: c.nombre,
+    value: c.cuenta_id ?? '',
+    label: c.nombre ?? '',
   }));
   return (
     <Modal opened={abierto} onClose={onCerrar} title="Transferir entre cuentas" centered>
@@ -655,7 +655,7 @@ function ModalConciliar({
               dia &&
               conciliar.mutate(
                 {
-                  cuenta_id: cuenta.cuenta_id,
+                  cuenta_id: cuenta.cuenta_id ?? '',
                   fecha: fechaISO(dia)!,
                   saldo_real: aNumero(real),
                   observacion: obs.trim() || null,

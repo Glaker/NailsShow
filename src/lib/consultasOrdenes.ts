@@ -2,101 +2,35 @@
  * Especificaciones (20260930100000), equipos y órdenes de producción con su
  * registro de lote (20260930110000).
  *
- * PUENTE DE TIPOS hasta aplicar las migraciones y correr `npm run db:types`.
+ * Tipado desde los tipos generados (CLAUDE.md §6).
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { avisarError, avisarExito, type ConsultaTabla } from './consultas';
-import { tablaComercial } from './consultasComercial';
-import { gmp } from './supabase';
+import type { Database } from './database.types';
+import { avisarError, avisarExito } from './consultas';
+import { comercial, gmp } from './supabase';
 
-function tablaGmp<T>(nombre: string): ConsultaTabla<T> {
-  const cliente = gmp();
-  const desde = cliente.from.bind(cliente) as unknown as (tabla: string) => unknown;
-  return desde(nombre) as ConsultaTabla<T>;
-}
-
-async function rpcGmp<T>(fn: string, args: Record<string, unknown>): Promise<T> {
-  const cliente = gmp();
-  const rpc = cliente.rpc.bind(cliente) as unknown as (
-    fn: string,
-    args: Record<string, unknown>,
-  ) => PromiseLike<{ data: T | null; error: Error | null }>;
-  const { data, error } = await rpc(fn, args);
-  if (error) throw error;
-  return data as T;
-}
+type TablasGmp = Database['gmp']['Tables'];
+type Enums = Database['gmp']['Enums'];
+type Json = Database['gmp']['Tables']['op_etapas']['Row']['datos'];
 
 /* ---------------------------- Especificaciones --------------------------- */
 
-export type EstadoDocumento =
-  | 'EN_DESARROLLO'
-  | 'BORRADOR'
-  | 'LISTO_PARA_EMITIR'
-  | 'VIGENTE'
-  | 'EN_REVISION'
-  | 'DADO_DE_BAJA';
-export type GrupoParametro =
-  'FISICOQUIMICO' | 'FUNCIONAL' | 'ORGANOLEPTICO' | 'MICROBIOLOGICO';
-export type TipoCriterio =
-  | 'RANGO'
-  | 'MINIMO'
-  | 'MAXIMO'
-  | 'VALOR_TEXTO'
-  | 'CONTRA_PATRON'
-  | 'REFERENCIA_EXTERNA'
-  | 'BINARIO';
+export type EstadoDocumento = Enums['estado_documento_enum'];
+export type GrupoParametro = Enums['grupo_parametro_enum'];
+export type TipoCriterio = Enums['tipo_criterio_enum'];
 
-export interface Especificacion {
-  id: string;
-  codigo_poe: string;
-  version: string;
-  variedad: string | null;
-  producto_id: string | null;
+/** `tipo_producto` es text en la base, con un CHECK que fija estos tres valores. */
+export type Especificacion = Omit<
+  TablasGmp['especificaciones']['Row'],
+  'tipo_producto'
+> & {
   tipo_producto: 'SEMIELABORADO' | 'GRANEL' | 'TERMINADO';
-  denominacion: string;
-  composicion_inci: string | null;
-  condiciones_almacenamiento: string | null;
-  instrucciones_muestreo: string | null;
-  periodo_reanalisis_meses: number | null;
-  vida_util_meses: number;
-  estado: EstadoDocumento;
-  vigencia_desde: string | null;
-  motivo_cambio: string | null;
-  emitida_por: string;
-  creado_en: string;
-  aprobada_por: string | null;
-  aprobada_en: string | null;
-}
+};
 
-export interface EspecFormula {
-  id: string;
-  especificacion_id: string;
-  orden: number;
-  componente: string;
-  porcentaje_min: number | null;
-  porcentaje_max: number | null;
-  es_csp: boolean;
-  quitado: boolean;
-}
+export type EspecFormula = TablasGmp['espec_formula']['Row'];
 
-export interface EspecParametro {
-  id: string;
-  especificacion_id: string;
-  orden: number;
-  nombre: string;
-  grupo: GrupoParametro;
-  tipo_criterio: TipoCriterio;
-  valor_min: number | null;
-  valor_max: number | null;
-  valor_texto: string | null;
-  unidad: string | null;
-  metodo_ensayo: string | null;
-  condicion_ensayo: string | null;
-  referencia_norma: string | null;
-  obligatorio: boolean;
-  quitado: boolean;
-}
+export type EspecParametro = TablasGmp['espec_parametros']['Row'];
 
 export const TEXTO_GRUPO: Record<GrupoParametro, string> = {
   FISICOQUIMICO: 'Fisicoquímicas',
@@ -139,7 +73,8 @@ export function useEspecificaciones() {
   return useQuery({
     queryKey: ['especificaciones'],
     queryFn: async () => {
-      const { data, error } = await tablaGmp<Especificacion[]>('especificaciones')
+      const { data, error } = await gmp()
+        .from('especificaciones')
         .select('*')
         .order('codigo_poe', { ascending: true });
       if (error) throw error;
@@ -154,12 +89,14 @@ export function useEspecificacionCompleta(id: string | null | undefined) {
     enabled: Boolean(id),
     queryFn: async () => {
       const [e, f, p] = await Promise.all([
-        tablaGmp<Especificacion>('especificaciones').select('*').eq('id', id!).single(),
-        tablaGmp<EspecFormula[]>('espec_formula')
+        gmp().from('especificaciones').select('*').eq('id', id!).single(),
+        gmp()
+          .from('espec_formula')
           .select('*')
           .eq('especificacion_id', id!)
           .order('orden'),
-        tablaGmp<EspecParametro[]>('espec_parametros')
+        gmp()
+          .from('espec_parametros')
           .select('*')
           .eq('especificacion_id', id!)
           .order('orden'),
@@ -188,16 +125,21 @@ export function useGuardarEspecificacion() {
     mutationFn: async (e: Partial<Especificacion> & { id?: string }) => {
       if (e.id) {
         const { id, ...cambios } = e;
-        const { error } = await tablaGmp('especificaciones').update(cambios).eq('id', id);
+        const { error } = await gmp()
+          .from('especificaciones')
+          .update(cambios)
+          .eq('id', id);
         if (error) throw error;
         return id;
       }
-      const { data, error } = await tablaGmp<{ id: string }>('especificaciones')
-        .insert(e)
+      const { data, error } = await gmp()
+        .from('especificaciones')
+        // La base valida los obligatorios (NOT NULL); acá el tipo es parcial.
+        .insert(e as TablasGmp['especificaciones']['Insert'])
         .select('id')
         .single();
       if (error) throw error;
-      return data!.id;
+      return data.id;
     },
     onSuccess: () => {
       inv();
@@ -215,10 +157,19 @@ export function useGuardarRenglonEspec() {
       id?: string;
       fila: Record<string, unknown>;
     }) => {
-      const t = tablaGmp(r.tabla);
-      const { error } = r.id
-        ? await t.update(r.fila).eq('id', r.id)
-        : await t.insert(r.fila);
+      // La base valida los obligatorios; acá `fila` llega sin tipo de tabla.
+      const { error } =
+        r.tabla === 'espec_formula'
+          ? await (() => {
+              const t = gmp().from('espec_formula');
+              const f = r.fila as TablasGmp['espec_formula']['Insert'];
+              return r.id ? t.update(f).eq('id', r.id) : t.insert(f);
+            })()
+          : await (() => {
+              const t = gmp().from('espec_parametros');
+              const f = r.fila as TablasGmp['espec_parametros']['Insert'];
+              return r.id ? t.update(f).eq('id', r.id) : t.insert(f);
+            })();
       if (error) throw error;
     },
     onSuccess: inv,
@@ -229,7 +180,10 @@ export function useGuardarRenglonEspec() {
 export function useAprobarEspecificacion() {
   const inv = useInvalidarEspec();
   return useMutation({
-    mutationFn: (id: string) => rpcGmp('aprobar_especificacion', { p_id: id }),
+    mutationFn: async (id: string) => {
+      const { error } = await gmp().rpc('aprobar_especificacion', { p_id: id });
+      if (error) throw error;
+    },
     onSuccess: () => {
       inv();
       avisarExito('Especificación aprobada: rige desde hoy.');
@@ -241,8 +195,14 @@ export function useAprobarEspecificacion() {
 export function useNuevaVersionEspecificacion() {
   const inv = useInvalidarEspec();
   return useMutation({
-    mutationFn: (v: { id: string; motivo: string }) =>
-      rpcGmp<string>('nueva_version_especificacion', { p_id: v.id, p_motivo: v.motivo }),
+    mutationFn: async (v: { id: string; motivo: string }) => {
+      const { data, error } = await gmp().rpc('nueva_version_especificacion', {
+        p_id: v.id,
+        p_motivo: v.motivo,
+      });
+      if (error) throw error;
+      return data;
+    },
     onSuccess: () => {
       inv();
       avisarExito('Nueva versión en borrador.');
@@ -253,21 +213,13 @@ export function useNuevaVersionEspecificacion() {
 
 /* --------------------------------- Equipos -------------------------------- */
 
-export interface Equipo {
-  id: string;
-  codigo: string;
-  nombre: string;
-  tipo: string;
-  activo: boolean;
-}
+export type Equipo = TablasGmp['equipos']['Row'];
 
 export function useEquipos() {
   return useQuery({
     queryKey: ['equipos'],
     queryFn: async () => {
-      const { data, error } = await tablaGmp<Equipo[]>('equipos')
-        .select('*')
-        .order('codigo');
+      const { data, error } = await gmp().from('equipos').select('*').order('codigo');
       if (error) throw error;
       return (data ?? []).filter((e) => e.activo);
     },
@@ -278,7 +230,7 @@ export function useCrearEquipo() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (e: { codigo: string; nombre: string; tipo: string }) => {
-      const { error } = await tablaGmp('equipos').insert(e);
+      const { error } = await gmp().from('equipos').insert(e);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -291,17 +243,8 @@ export function useCrearEquipo() {
 
 /* --------------------------- Órdenes de producción ------------------------ */
 
-export type EstadoOrden = 'ABIERTA' | 'TERMINADA' | 'LIBERADA' | 'RECHAZADA' | 'ANULADA';
-export type EtapaOrden =
-  | 'PESADA'
-  | 'ELABORACION'
-  | 'MUESTREO_GRANEL'
-  | 'CC_GRANEL'
-  | 'FRACCIONAMIENTO'
-  | 'MUESTREO_PT'
-  | 'CC_PT'
-  | 'CONTRAMUESTRA'
-  | 'REVISION';
+export type EstadoOrden = Enums['estado_orden_enum'];
+export type EtapaOrden = Enums['etapa_orden_enum'];
 
 export const ETAPAS: { etapa: EtapaOrden; titulo: string; calidad?: boolean }[] = [
   { etapa: 'PESADA', titulo: 'Pesada de materias primas' },
@@ -323,55 +266,22 @@ export const ETAPAS: { etapa: EtapaOrden; titulo: string; calidad?: boolean }[] 
   },
 ];
 
-export interface OrdenProduccion {
-  id: string;
-  numero: string;
-  formula_id: string;
-  producto_id: string;
-  especificacion_id: string | null;
-  procedimiento_version: number | null;
-  jornada: string;
-  partida: number;
-  presentacion: number;
-  presentacion_texto: string | null;
-  numero_lote: string;
-  vencimiento: string;
-  vencimiento_texto: string;
-  cantidad_teorica: number;
-  unidad: string;
-  cantidad_obtenida: number | null;
-  unidades_obtenidas: number | null;
-  estado: EstadoOrden;
-  observaciones: string | null;
-  abierta_por: string;
-  abierta_en: string;
-  terminada_por: string | null;
-  terminada_en: string | null;
-  liberada_por: string | null;
-  liberada_en: string | null;
-  motivo_cierre: string | null;
-}
+export type OrdenProduccion = TablasGmp['ordenes_produccion']['Row'];
 
 /** Datos de una etapa: la forma la fija la pantalla de cada etapa. */
 export type DatosEtapa = Record<string, unknown>;
 
-export interface EtapaRegistrada {
-  id: string;
-  orden_id: string;
-  etapa: EtapaOrden;
+/** `datos` es jsonb en la base; acá, siempre un objeto. */
+export type EtapaRegistrada = Omit<TablasGmp['op_etapas']['Row'], 'datos'> & {
   datos: DatosEtapa;
-  observaciones: string | null;
-  realizo_por: string;
-  realizo_en: string;
-  controlo_por: string | null;
-  controlo_en: string | null;
-}
+};
 
 export function useOrdenes() {
   return useQuery({
     queryKey: ['ordenes'],
     queryFn: async () => {
-      const { data, error } = await tablaGmp<OrdenProduccion[]>('ordenes_produccion')
+      const { data, error } = await gmp()
+        .from('ordenes_produccion')
         .select('*')
         .order('abierta_en', { ascending: false });
       if (error) throw error;
@@ -386,15 +296,15 @@ export function useOrden(id: string | undefined) {
     enabled: Boolean(id),
     queryFn: async () => {
       const [o, e] = await Promise.all([
-        tablaGmp<OrdenProduccion>('ordenes_produccion')
-          .select('*')
-          .eq('id', id!)
-          .single(),
-        tablaGmp<EtapaRegistrada[]>('op_etapas').select('*').eq('orden_id', id!),
+        gmp().from('ordenes_produccion').select('*').eq('id', id!).single(),
+        gmp().from('op_etapas').select('*').eq('orden_id', id!),
       ]);
       if (o.error) throw o.error;
       if (e.error) throw e.error;
-      return { orden: o.data as OrdenProduccion, etapas: e.data ?? [] };
+      return {
+        orden: o.data,
+        etapas: (e.data ?? []) as EtapaRegistrada[],
+      };
     },
   });
 }
@@ -425,25 +335,25 @@ export function useAbrirOrden() {
       pedidoId: string | null;
     }) => {
       const { pedidoId, vencimiento, especificacion_id, ...fila } = o;
-      const { data, error } = await tablaGmp<{ id: string; numero: string }>(
-        'ordenes_produccion',
-      )
+      const { data, error } = await gmp()
+        .from('ordenes_produccion')
+        // numero, numero_lote y vencimiento_texto los asigna un trigger de la base.
         .insert({
           ...fila,
           ...(vencimiento ? { vencimiento } : {}),
           ...(especificacion_id ? { especificacion_id } : {}),
-        })
+        } as TablasGmp['ordenes_produccion']['Insert'])
         .select('id, numero')
         .single();
       if (error) throw error;
       if (pedidoId) {
-        const { error: e2 } = await tablaComercial('pedido_ordenes').insert({
+        const { error: e2 } = await comercial().from('pedido_ordenes').insert({
           pedido_id: pedidoId,
-          orden_id: data!.id,
+          orden_id: data.id,
         });
         if (e2) throw e2;
       }
-      return data!;
+      return data;
     },
     onSuccess: (d) => {
       inv(d.id);
@@ -464,15 +374,15 @@ export function useGuardarEtapa() {
       datos: DatosEtapa;
       observaciones: string | null;
     }) => {
-      const t = tablaGmp('op_etapas');
+      const t = gmp().from('op_etapas');
       const { error } = e.id
         ? await t
-            .update({ datos: e.datos, observaciones: e.observaciones })
+            .update({ datos: e.datos as Json, observaciones: e.observaciones })
             .eq('id', e.id)
         : await t.insert({
             orden_id: e.ordenId,
             etapa: e.etapa,
-            datos: e.datos,
+            datos: e.datos as Json,
             observaciones: e.observaciones,
           });
       if (error) throw error;
@@ -490,7 +400,8 @@ export function useControlarEtapa() {
   const inv = useInvalidarOrden();
   return useMutation({
     mutationFn: async (e: { id: string; ordenId: string; usuarioId: string }) => {
-      const { data, error } = await tablaGmp<{ id: string }[]>('op_etapas')
+      const { data, error } = await gmp()
+        .from('op_etapas')
         .update({ controlo_por: e.usuarioId, controlo_en: new Date().toISOString() })
         .eq('id', e.id)
         .select('id');
@@ -508,12 +419,14 @@ export function useControlarEtapa() {
 export function useTerminarOrden() {
   const inv = useInvalidarOrden();
   return useMutation({
-    mutationFn: (t: { id: string; cantidad: number; unidades: number }) =>
-      rpcGmp('terminar_orden', {
+    mutationFn: async (t: { id: string; cantidad: number; unidades: number }) => {
+      const { error } = await gmp().rpc('terminar_orden', {
         p_id: t.id,
         p_cantidad: t.cantidad,
         p_unidades: t.unidades,
-      }),
+      });
+      if (error) throw error;
+    },
     onSuccess: (_d, v) => {
       inv(v.id);
       avisarExito('Orden terminada. Falta la revisión y la liberación de la DT.');
@@ -525,8 +438,14 @@ export function useTerminarOrden() {
 export function useLiberarOrden() {
   const inv = useInvalidarOrden();
   return useMutation({
-    mutationFn: (l: { id: string; aprobado: boolean; motivo: string | null }) =>
-      rpcGmp('liberar_orden', { p_id: l.id, p_aprobado: l.aprobado, p_motivo: l.motivo }),
+    mutationFn: async (l: { id: string; aprobado: boolean; motivo: string | null }) => {
+      const { error } = await gmp().rpc('liberar_orden', {
+        p_id: l.id,
+        p_aprobado: l.aprobado,
+        ...(l.motivo === null ? {} : { p_motivo: l.motivo }),
+      });
+      if (error) throw error;
+    },
     onSuccess: (_d, v) => {
       inv(v.id);
       avisarExito(v.aprobado ? 'Lote liberado: ya se puede vender.' : 'Lote rechazado.');
@@ -538,8 +457,13 @@ export function useLiberarOrden() {
 export function useAnularOrden() {
   const inv = useInvalidarOrden();
   return useMutation({
-    mutationFn: (a: { id: string; motivo: string }) =>
-      rpcGmp('anular_orden', { p_id: a.id, p_motivo: a.motivo }),
+    mutationFn: async (a: { id: string; motivo: string }) => {
+      const { error } = await gmp().rpc('anular_orden', {
+        p_id: a.id,
+        p_motivo: a.motivo,
+      });
+      if (error) throw error;
+    },
     onSuccess: (_d, v) => {
       inv(v.id);
       avisarExito('Orden anulada.');
@@ -552,10 +476,11 @@ export function useFaltantesLiberacion(id: string | undefined, habilitado: boole
   return useQuery({
     queryKey: ['orden', id, 'faltantes'],
     enabled: Boolean(id) && habilitado,
-    queryFn: () =>
-      rpcGmp<{ etapa: EtapaOrden; falta: string }[]>('faltantes_liberacion', {
-        p_id: id,
-      }),
+    queryFn: async () => {
+      const { data, error } = await gmp().rpc('faltantes_liberacion', { p_id: id! });
+      if (error) throw error;
+      return data;
+    },
   });
 }
 
@@ -567,15 +492,14 @@ export function usePesadaTeorica(
   return useQuery({
     queryKey: ['pesada-teorica', formulaId, masaKg],
     enabled: Boolean(formulaId) && Boolean(masaKg),
-    queryFn: () =>
-      rpcGmp<
-        {
-          orden: number;
-          componente: string;
-          codigo_interno: string | null;
-          masa_kg: number;
-        }[]
-      >('calcular_lote', { p_formula_id: formulaId, p_masa_kg: masaKg }),
+    queryFn: async () => {
+      const { data, error } = await gmp().rpc('calcular_lote', {
+        p_formula_id: formulaId!,
+        p_masa_kg: masaKg!,
+      });
+      if (error) throw error;
+      return data;
+    },
   });
 }
 
@@ -584,9 +508,8 @@ export function useOrdenesDePedido(pedidoId: string | undefined) {
     queryKey: ['ordenes-de-pedido', pedidoId],
     enabled: Boolean(pedidoId),
     queryFn: async () => {
-      const { data, error } = await tablaComercial<{ orden_id: string }[]>(
-        'pedido_ordenes',
-      )
+      const { data, error } = await comercial()
+        .from('pedido_ordenes')
         .select('orden_id')
         .eq('pedido_id', pedidoId!);
       if (error) return [];
@@ -596,29 +519,16 @@ export function useOrdenesDePedido(pedidoId: string | undefined) {
 }
 
 /** Una fila de comercial.v_trazabilidad_orden (§8.4). */
-export interface FilaTrazabilidad {
-  orden_id: string;
-  sentido: 'INSUMO' | 'DESPACHO';
-  momento: string;
-  codigo_interno: string | null;
-  articulo: string;
-  cantidad: number;
-  unidad: string | null;
-  lote_interno: string | null;
-  lote_proveedor: string | null;
-  recepcion: string | null;
-  contraparte: string | null;
-  pedido: string;
-}
+export type FilaTrazabilidad =
+  Database['comercial']['Views']['v_trazabilidad_orden']['Row'];
 
 export function useTrazabilidadOrden(ordenId: string | undefined) {
   return useQuery({
     queryKey: ['orden', ordenId, 'trazabilidad'],
     enabled: Boolean(ordenId),
     queryFn: async () => {
-      const { data, error } = await tablaComercial<FilaTrazabilidad[]>(
-        'v_trazabilidad_orden',
-      )
+      const { data, error } = await comercial()
+        .from('v_trazabilidad_orden')
         .select('*')
         .eq('orden_id', ordenId!)
         .order('momento', { ascending: true });
