@@ -29,6 +29,8 @@ const ROLES: Rol[] = [
   'GERENCIA_PRODUCCION',
   'GERENCIA',
   'ADMINISTRADOR_SISTEMA',
+  'ENCARGADA_STOCK',
+  'VENTAS',
 ];
 
 const SECTORES: Sector[] = [
@@ -66,9 +68,10 @@ function ModalUsuario({
   const guardar = async () => {
     await actualizar.mutateAsync({
       id: usuario.id,
+      // Puente hasta regenerar tipos: VENTAS ya existe en la base (20260929140000).
       cambios: {
-        rol,
-        roles_adicionales: adicionales.filter((r) => r !== rol) as Rol[],
+        rol: rol as Usuario['rol'],
+        roles_adicionales: adicionales.filter((r) => r !== rol) as Usuario['rol'][],
         sector,
         activo,
         /* El CHECK `usuarios_baja_consistente` exige que la baja lógica lleve

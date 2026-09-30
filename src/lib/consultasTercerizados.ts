@@ -27,6 +27,7 @@ export const ROLES_ALTA_TERCERO = [
   'GERENCIA_PRODUCCION',
   'GERENCIA',
   'DIRECCION_TECNICA',
+  'VENTAS',
 ] as const;
 
 /** Quién ingresa material y maneja el stock del tercero (recepción física, §3.3). */

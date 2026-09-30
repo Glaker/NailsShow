@@ -26,12 +26,14 @@ export const ROLES_FACTURAN = [
   'ADMINISTRACION',
   'GERENCIA',
   'GERENCIA_PRODUCCION',
+  'VENTAS',
 ] as const;
 /** Alta y edición de clientes (§3.3): la política de `comercial.clientes`. */
 export const ROLES_CLIENTES = [
   'ADMINISTRACION',
   'GERENCIA_PRODUCCION',
   'GERENCIA',
+  'VENTAS',
 ] as const;
 
 export const TEXTO_CONDICION: Record<CondicionIva, string> = {

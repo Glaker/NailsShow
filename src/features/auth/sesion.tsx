@@ -11,7 +11,11 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/lib/database.types';
 
-export type Rol = Database['core']['Enums']['rol_enum'];
+/**
+ * VENTAS (20260929140000) todavía no está en los tipos generados: se borra la
+ * unión al correr `npm run db:types` después del `db push`.
+ */
+export type Rol = Database['core']['Enums']['rol_enum'] | 'VENTAS';
 export type Sector = Database['core']['Enums']['sector_enum'];
 
 /**

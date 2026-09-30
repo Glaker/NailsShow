@@ -204,10 +204,15 @@ export const ROLES_ESCRIBEN_PEDIDOS = [
   'ADMINISTRACION',
   'GERENCIA_PRODUCCION',
   'DIRECCION_TECNICA',
+  'VENTAS',
 ] as const;
 
-/** Mismos tres roles en `avisos_escribe` / `avisos_actualiza`. */
-export const ROLES_ESCRIBEN_AVISOS = ROLES_ESCRIBEN_PEDIDOS;
+/** `avisos_escribe` / `avisos_actualiza`: Ventas no anota compras. */
+export const ROLES_ESCRIBEN_AVISOS = [
+  'ADMINISTRACION',
+  'GERENCIA_PRODUCCION',
+  'DIRECCION_TECNICA',
+] as const;
 
 /**
  * Quién termina un pedido: el chequeo de `comercial.terminar_pedido()` y la

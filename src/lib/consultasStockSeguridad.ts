@@ -29,6 +29,7 @@ export const ROLES_STOCK_PT = [
   'ADMINISTRACION',
   'GERENCIA',
   'ENCARGADA_STOCK',
+  'VENTAS',
 ] as const;
 
 /** Lo que hay que producir o comprar para volver al punto de pedido. */
