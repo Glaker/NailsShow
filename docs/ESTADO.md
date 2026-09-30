@@ -1370,3 +1370,58 @@ contable). Lo nuevo no está en el documento de alcance: ver D-34.
 **Orden propuesto:** 17 → 18 → 22 → 21 → 19 → 20 → 23/24 → 25 → 26.
 Decisiones abiertas nuevas: D-34 (alcance del módulo de Administración) y
 D-35 (qué stock mira el pedido y qué pasa con lo que no sale).
+
+---
+
+## Segunda tanda hecha (2026-09-29, commiteada en `prueba`, SIN APLICAR)
+
+**Nada de esto está en la base alojada.** `supabase db push` quedó denegado
+por los permisos de la sesión. Para ponerlo en servicio, en este orden:
+
+1. `npx supabase db push` — aplica, en orden: `20260929100000`
+   (comprobantes de proveedor), `110000` y `110100` (Calle 5; la segunda
+   corrige la primera antes de aplicarse), `120000` (tesorería y cuentas
+   corrientes de proveedores), `130000` (cobros y reportes).
+2. `npm run db:types` (si la CLI falla deja el archivo vacío: restaurar con
+   `git checkout -- src/lib/database.types.ts`).
+3. Borrar los tipos puente de `consultasCompras.ts`, `consultasCalle5.ts` y
+   `consultasAdministracion.ts` y tipar desde `Database` (patrón de
+   `consultasStockSeguridad.ts`).
+4. Recorrer con una cuenta de Administración, una de GP y la de Silveira.
+5. Merge de `prueba` a `main` para que Vercel lo publique.
+
+| Ítem | Hecho | Dónde |
+| --- | --- | --- |
+| 17 | `/stock` con pestañas (insumos, recepciones, stock de seguridad, en fábrica, conteo); las rutas viejas redirigen | `PaginaStockUnificada.tsx` |
+| 18 | Comprobante del proveedor en la recepción (A, B, C, sin factura); columna en el listado | `20260929100000`, `FormularioRecepcion.tsx` |
+| 19–22 | Reservas de PT por cliente o pedido; despacho por pedido, completo o con faltantes, de Calle 5 o fábrica; falta producir sumando todos los pedidos; «Terminado» con cantidad, destino y sobrante; «Enviar a Calle 5» | `20260929110000/110100`, `Calle5.tsx` |
+| 23–25 | Inicio de Administración, tesorería, cuentas corrientes de proveedores y clientes, pagos y cobros con imputación, solicitudes de pago, IVA, cash flow, ventas, resultado, traza de compras | `20260929120000/130000`, `features/administracion/` |
+
+**Pruebas.** PGlite: 25 (comprobantes) + 27 (Calle 5) + 30 (tesorería) +
+10 (cobros), y las suites anteriores sin regresión (salvo `probar_facturas`,
+que necesita el token de Afip SDK y red). Vitest: 89. Sin verificación visual:
+las vistas nuevas no existen en la base, así que la app no se pudo recorrer.
+
+**Cambios de comportamiento que hay que saber.**
+- La entrada de producción a PT ya no se limita a lo pedido: «Terminado» dice
+  cuánto se produjo y adónde va, y solo «Terminado» puede registrarla.
+- «Entregar» es ahora «Despachar» (parcial o completo). `entregar_pedido()`
+  sigue existiendo: despacha todo lo pendiente desde fábrica.
+- Lo producido para un cliente que va a Calle 5 queda reservado para su pedido.
+- `v_stock_seguridad.comprometido` es ahora lo producido para un cliente que
+  sigue en fábrica (antes: todo pedido terminado sin entregar).
+- En Calle 5, «Salió» pasa a «Salida sin pedido» (mostrador, ajuste) y no
+  puede tocar lo reservado.
+- La encargada de stock tiene una política de UPDATE sobre `pedidos` limitada
+  por trigger a marcar la entrega de un pedido sin pendientes.
+
+**Sigue pendiente de la cola.**
+- **Facturación ARCA en producción**: CUIT real, punto de venta habilitado,
+  `AFIP_CERT`/`AFIP_KEY` como secretos, fila nueva en
+  `comercial.configuracion_fiscal`, y resolver D-32 antes (quién registra el
+  resultado de ARCA).
+- 26 (RRHH, comisiones, COMEX, monotributos, estudio contable): espera D-34.
+- Stock valorizado: espera D-36.
+- De la cola del 2026-09-24: 1 (hablarlo antes), 5 (batch record PDF), 6
+  (especificaciones), 7 (precios y descuentos), 8 (rol Ventas), 10 (inicio de
+  Nazarena), 11 (planificación y Gantt), 12 (espera D-04).
