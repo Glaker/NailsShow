@@ -26,7 +26,7 @@ import {
   IconShieldLock,
 } from '@tabler/icons-react';
 import { Marca } from '@/components/Marca';
-import { itemsVisibles, type ItemNavegacion } from './navegacion';
+import { useItemsVisibles, type ItemNavegacion } from './navegacion';
 import { useSesion } from '@/features/auth/sesion';
 import { etiquetaEnum } from '@/lib/formato';
 import { SUPERFICIE } from './theme';
@@ -130,8 +130,7 @@ function TarjetaUsuario({ compacto = false }: { compacto?: boolean }) {
 }
 
 function ContenidoBarra({ onNavegar }: { onNavegar?: (() => void) | undefined }) {
-  const { claims } = useSesion();
-  const items = itemsVisibles(claims?.roles ?? []);
+  const items = useItemsVisibles();
 
   return (
     <Stack h="100%" gap={0} style={{ background: SUPERFICIE.barra }}>
@@ -175,9 +174,8 @@ function ContenidoBarra({ onNavegar }: { onNavegar?: (() => void) | undefined })
  * donde llega el pulgar, y el botón que abre el resto queda del lado derecho.
  */
 function BarraInferior({ onAbrirMenu }: { onAbrirMenu: () => void }) {
-  const { claims } = useSesion();
   const { pathname } = useLocation();
-  const principales = itemsVisibles(claims?.roles ?? []).filter((i) => i.principal);
+  const principales = useItemsVisibles().filter((i) => i.principal);
 
   return (
     <>

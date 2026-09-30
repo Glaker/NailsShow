@@ -24,9 +24,11 @@ import {
   IconUsers as IconClientes,
   IconTag,
   IconCalendarTime,
+  IconEye,
   type Icon,
 } from '@tabler/icons-react';
-import type { Rol } from '@/features/auth/sesion';
+import { useSesion, type Rol } from '@/features/auth/sesion';
+import { useVisibilidad, type VisibilidadRow } from '@/lib/consultasVisibilidad';
 
 export interface ItemNavegacion {
   ruta: string;
@@ -216,6 +218,13 @@ export const NAVEGACION: ItemNavegacion[] = [
     roles: ['ADMINISTRADOR_SISTEMA'],
   },
   {
+    ruta: '/visibilidad',
+    etiqueta: 'Quién ve qué',
+    etiquetaCorta: 'Visibilidad',
+    icono: IconEye,
+    roles: ['ADMINISTRADOR_SISTEMA'],
+  },
+  {
     ruta: '/auditoria',
     etiqueta: 'Auditoría',
     etiquetaCorta: 'Auditoría',
@@ -224,8 +233,88 @@ export const NAVEGACION: ItemNavegacion[] = [
   },
 ];
 
-export function itemsVisibles(roles: Rol[]): ItemNavegacion[] {
-  return NAVEGACION.filter(
-    (item) => !item.roles || item.roles.some((r) => roles.includes(r)),
-  );
+/** Pestañas que también se pueden mostrar u ocultar por rol. */
+export const PESTANIAS: { ruta: string; etiqueta: string; de: string; roles?: Rol[] }[] =
+  [
+    {
+      ruta: '/stock?vista=insumos',
+      etiqueta: 'Stock › Insumos (materia prima)',
+      de: '/stock',
+    },
+    { ruta: '/stock?vista=recepciones', etiqueta: 'Stock › Recepciones', de: '/stock' },
+    {
+      ruta: '/stock?vista=seguridad',
+      etiqueta: 'Stock › Stock de seguridad',
+      de: '/stock',
+    },
+    { ruta: '/stock?vista=fabrica', etiqueta: 'Stock › En fábrica', de: '/stock' },
+    {
+      ruta: '/stock?vista=conteo',
+      etiqueta: 'Stock › Conteo',
+      de: '/stock',
+      roles: ['DIRECCION_TECNICA', 'ADMINISTRACION', 'GERENCIA_PRODUCCION'],
+    },
+  ];
+
+/** Roles que se configuran (el Administrador del sistema ve todo). */
+export const ROLES_CONFIGURABLES: Rol[] = [
+  'OPERARIO',
+  'CONTROL_CALIDAD',
+  'DIRECCION_TECNICA',
+  'ADMINISTRACION',
+  'GERENCIA_PRODUCCION',
+  'GERENCIA',
+  'ENCARGADA_STOCK',
+  'VENTAS',
+];
+
+/** Lo que el código dice por defecto: sin `roles`, la ven todos. */
+export const visiblePorDefecto = (roles: Rol[] | undefined, rol: Rol) =>
+  !roles || roles.includes(rol);
+
+/**
+ * Si un rol ve una pantalla: la excepción cargada por el administrador, o el
+ * valor por defecto. Solo menú: la autoridad sobre los datos es RLS.
+ */
+export function veRol(
+  ruta: string,
+  rolesDefecto: Rol[] | undefined,
+  rol: Rol,
+  excepciones: VisibilidadRow[],
+): boolean {
+  const e = excepciones.find((x) => x.pantalla === ruta && x.rol === rol);
+  return e ? e.visible : visiblePorDefecto(rolesDefecto, rol);
+}
+
+/** Si un usuario (con todos sus roles) ve una pantalla. El administrador ve todo. */
+export function ve(
+  ruta: string,
+  rolesDefecto: Rol[] | undefined,
+  roles: Rol[],
+  excepciones: VisibilidadRow[],
+): boolean {
+  if (roles.includes('ADMINISTRADOR_SISTEMA')) return true;
+  return roles.some((r) => veRol(ruta, rolesDefecto, r, excepciones));
+}
+
+export function itemsVisibles(
+  roles: Rol[],
+  excepciones: VisibilidadRow[] = [],
+): ItemNavegacion[] {
+  return NAVEGACION.filter((item) => ve(item.ruta, item.roles, roles, excepciones));
+}
+
+/** Menú del usuario con sesión, con las excepciones configuradas. */
+export function useItemsVisibles(): ItemNavegacion[] {
+  const { claims } = useSesion();
+  const excepciones = useVisibilidad();
+  return itemsVisibles(claims?.roles ?? [], excepciones.data ?? []);
+}
+
+/** Si el usuario ve una pestaña (`/stock?vista=insumos`). */
+export function usePuedeVerPestania(ruta: string): boolean {
+  const { claims } = useSesion();
+  const excepciones = useVisibilidad();
+  const p = PESTANIAS.find((x) => x.ruta === ruta);
+  return ve(ruta, p?.roles, claims?.roles ?? [], excepciones.data ?? []);
 }
