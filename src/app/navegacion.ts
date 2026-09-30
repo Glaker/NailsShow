@@ -23,6 +23,7 @@ import {
   IconReportAnalytics,
   IconUsers as IconClientes,
   IconTag,
+  IconCalendarTime,
   type Icon,
 } from '@tabler/icons-react';
 import type { Rol } from '@/features/auth/sesion';
@@ -91,6 +92,19 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiquetaCorta: 'Pedidos',
     icono: IconShoppingCart,
     principal: true,
+  },
+  {
+    ruta: '/planificacion',
+    etiqueta: 'Planificación',
+    etiquetaCorta: 'Plan',
+    icono: IconCalendarTime,
+    roles: [
+      'GERENCIA_PRODUCCION',
+      'DIRECCION_TECNICA',
+      'VENTAS',
+      'ADMINISTRACION',
+      'GERENCIA',
+    ],
   },
   {
     ruta: '/tercerizados',

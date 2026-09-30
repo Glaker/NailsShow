@@ -31,6 +31,7 @@ import { PaginaCuentasClientes } from '@/features/administracion/PaginaCuentasCl
 import { PaginaSolicitudesPago } from '@/features/administracion/PaginaSolicitudesPago';
 import { PaginaReportes } from '@/features/administracion/PaginaReportes';
 import { PaginaPrecios } from '@/features/comercial/PaginaPrecios';
+import { PaginaPlanificacion } from '@/features/produccion/Planificacion';
 
 /**
  * Rutas de la aplicación.
@@ -56,6 +57,7 @@ export function AppRoutes() {
       <Route path="/formulas" element={<PaginaFormulas />} />
       <Route path="/formulas/:id" element={<PaginaFormula />} />
       <Route path="/pedidos" element={<PaginaPedidos />} />
+      <Route path="/planificacion" element={<PaginaPlanificacion />} />
       <Route path="/pedidos/:id" element={<PaginaPedido />} />
       <Route path="/compras" element={<PaginaComprasPendientes />} />
       <Route path="/clientes" element={<PaginaClientes />} />

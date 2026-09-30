@@ -43,6 +43,9 @@ export interface PedidoRow {
   para_stock: boolean;
   /** Destino sugerido de lo producido (20260929110000). Nulo = fábrica. */
   destino_deposito_id: string | null;
+  /** Planificación de Producción (20260929160000): día de inicio y días corridos. */
+  plan_inicio: string | null;
+  plan_dias: number | null;
   /** Entregado al cliente: salió del depósito PTF. */
   entregado_en: string | null;
   entregado_por: string | null;
@@ -1111,6 +1114,23 @@ export function useRegistrarConteo() {
         void qc.invalidateQueries({ queryKey: [k] });
       avisarExito('Conteo registrado.');
     },
+    onError: avisarError,
+  });
+}
+
+/** Planificar (o sacar del plan) la producción de un pedido: Gerencia de Producción. */
+export function usePlanificarPedido() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (p: { id: string; inicio: string | null; dias: number | null }) => {
+      const { data, error } = await tablaComercial<{ id: string }[]>('pedidos')
+        .update({ plan_inicio: p.inicio, plan_dias: p.inicio ? p.dias : null })
+        .eq('id', p.id)
+        .select('id');
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('No se pudo guardar el plan.');
+    },
+    onSuccess: (_d, v) => invalidarPedido(qc, v.id),
     onError: avisarError,
   });
 }

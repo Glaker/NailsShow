@@ -39,7 +39,8 @@ import {
 } from '@/lib/consultas';
 import { COLORES_ESTADO_ROTULO } from '@/app/theme';
 import { diasHasta, fecha, numero } from '@/lib/formato';
-import { useSesion } from '@/features/auth/sesion';
+import { useSesion, useTieneRol } from '@/features/auth/sesion';
+import { InicioProduccion } from '@/features/produccion/Planificacion';
 
 function TarjetaPanel({
   titulo,
@@ -75,6 +76,7 @@ export function PaginaTablero() {
   const porDia = useRecepcionesPorDia();
   const porEstado = useLotesPorEstado();
   const enCuarentena = useLotes({ estado: 'CUARENTENA' });
+  const esProduccion = useTieneRol('GERENCIA_PRODUCCION');
 
   const t = tablero.data;
   const totalLotes = (porEstado.data ?? []).reduce(
@@ -112,6 +114,7 @@ export function PaginaTablero() {
       />
 
       <Stack gap="lg">
+        {esProduccion ? <InicioProduccion /> : null}
         <SimpleGrid
           cols={{ base: 1, xs: 2, lg: 4 }}
           spacing="md"
