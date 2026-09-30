@@ -16,6 +16,12 @@ import {
   IconFileInvoice,
   IconUsersGroup,
   IconBuildingFactory2,
+  IconBriefcase,
+  IconBuildingBank,
+  IconCash,
+  IconReceipt,
+  IconReportAnalytics,
+  IconUsers as IconClientes,
   type Icon,
 } from '@tabler/icons-react';
 import type { Rol } from '@/features/auth/sesion';
@@ -108,6 +114,48 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiqueta: 'Facturas',
     etiquetaCorta: 'Facturas',
     icono: IconFileInvoice,
+  },
+  {
+    ruta: '/administracion',
+    etiqueta: 'Administración',
+    etiquetaCorta: 'Admin.',
+    icono: IconBriefcase,
+    roles: ['ADMINISTRACION', 'GERENCIA'],
+  },
+  {
+    ruta: '/cuentas-proveedores',
+    etiqueta: 'Cuentas de proveedores',
+    etiquetaCorta: 'Ctas. prov.',
+    icono: IconCash,
+    roles: ['ADMINISTRACION', 'GERENCIA'],
+  },
+  {
+    ruta: '/cuentas-clientes',
+    etiqueta: 'Cuentas de clientes',
+    etiquetaCorta: 'Ctas. cli.',
+    icono: IconClientes,
+    roles: ['ADMINISTRACION', 'GERENCIA'],
+  },
+  {
+    ruta: '/tesoreria',
+    etiqueta: 'Tesorería',
+    etiquetaCorta: 'Tesorería',
+    icono: IconBuildingBank,
+    roles: ['ADMINISTRACION', 'GERENCIA'],
+  },
+  {
+    // Cualquier área pide un pago; cada una ve las suyas.
+    ruta: '/solicitudes-pago',
+    etiqueta: 'Solicitudes de pago',
+    etiquetaCorta: 'Pagos',
+    icono: IconReceipt,
+  },
+  {
+    ruta: '/reportes',
+    etiqueta: 'Reportes',
+    etiquetaCorta: 'Reportes',
+    icono: IconReportAnalytics,
+    roles: ['ADMINISTRACION', 'GERENCIA'],
   },
   {
     ruta: '/lista-materiales',

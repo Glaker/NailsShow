@@ -493,6 +493,21 @@ falta se produce; Silveira despacha completo o con faltantes.
 pedido; el «Sale» suelto queda para mostrador.
 **Decide.** Gerencia.
 
+### D-36 · De dónde sale el costo para el stock valorizado
+
+**Contexto.** El documento de Administración pide stock valorizado y el
+alcance (§4.12.2) lo modela con costo por lote y promedio ponderado móvil. El
+sistema no tiene costos: `movimientos_stock` no se valoriza (cabecera de
+20260910170000) y el comprobante del proveedor (20260929100000) trae el total,
+no el precio por renglón.
+**Pregunta.** ¿El costo del insumo sale del comprobante del proveedor
+(cargando precio por renglón en la recepción) o de una lista de costos? ¿Y el
+del producto terminado: materiales según receta, o se suma mano de obra e
+indirectos?
+**Mientras tanto.** Sin stock valorizado; el resultado mensual es de gestión
+y no tiene costo de lo vendido.
+**Decide.** Gerencia, con el estudio contable.
+
 ## Resueltas
 
 ### R-01 · Color del rótulo de cuarentena — 2026-09-04

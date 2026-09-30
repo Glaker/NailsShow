@@ -24,6 +24,12 @@ import { PaginaUsuarios } from '@/features/usuarios/PaginaUsuarios';
 import { PaginaAuditoria } from '@/features/auditoria/PaginaAuditoria';
 import { PaginaTercerizados } from '@/features/tercerizados/PaginaTercerizados';
 import { PaginaTercero } from '@/features/tercerizados/PaginaTercero';
+import { PaginaAdministracion } from '@/features/administracion/PaginaAdministracion';
+import { PaginaTesoreria } from '@/features/administracion/PaginaTesoreria';
+import { PaginaCuentasProveedores } from '@/features/administracion/PaginaCuentasProveedores';
+import { PaginaCuentasClientes } from '@/features/administracion/PaginaCuentasClientes';
+import { PaginaSolicitudesPago } from '@/features/administracion/PaginaSolicitudesPago';
+import { PaginaReportes } from '@/features/administracion/PaginaReportes';
 
 /**
  * Rutas de la aplicación.
@@ -53,6 +59,12 @@ export function AppRoutes() {
       <Route path="/compras" element={<PaginaComprasPendientes />} />
       <Route path="/clientes" element={<PaginaClientes />} />
       <Route path="/facturas" element={<PaginaFacturas />} />
+      <Route path="/administracion" element={<PaginaAdministracion />} />
+      <Route path="/tesoreria" element={<PaginaTesoreria />} />
+      <Route path="/cuentas-proveedores" element={<PaginaCuentasProveedores />} />
+      <Route path="/cuentas-clientes" element={<PaginaCuentasClientes />} />
+      <Route path="/solicitudes-pago" element={<PaginaSolicitudesPago />} />
+      <Route path="/reportes" element={<PaginaReportes />} />
       <Route path="/tercerizados" element={<PaginaTercerizados />} />
       <Route path="/tercerizados/:id" element={<PaginaTercero />} />
       <Route path="/lista-materiales" element={<PaginaListaMateriales />} />
