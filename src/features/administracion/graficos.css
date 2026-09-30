@@ -1,0 +1,216 @@
+/*
+ * Gráficos del inicio de Administración (flujo de caja y tortas).
+ *
+ * Pedido del usuario (2026-09-30): animaciones vistosas pero cortas, para esta
+ * pantalla. Es la excepción a «nada de animaciones decorativas» de CLAUDE.md
+ * §6, que piensa en planta: acá lo pidió quien la usa. Nada pasa de 0,9 s y
+ * todo se apaga con prefers-reduced-motion (global.css).
+ */
+
+:root {
+  --gf-resorte: cubic-bezier(0.2, 0.9, 0.1, 1);
+}
+
+/* ------------------------------ Flujo ------------------------------ */
+
+.gf-marco {
+  position: relative;
+  transition: height 440ms var(--gf-resorte);
+}
+
+.gf-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 100%;
+}
+
+.gf-barra {
+  transform-box: fill-box;
+  cursor: pointer;
+  outline: none;
+  animation: gf-crecer 560ms var(--gf-resorte) both;
+  animation-delay: var(--retraso, 0ms);
+  transition:
+    opacity 180ms ease,
+    filter 180ms ease;
+}
+
+.gf-barra[data-signo='pos'] {
+  transform-origin: 50% 100%;
+}
+
+.gf-barra[data-signo='neg'] {
+  transform-origin: 50% 0%;
+}
+
+@keyframes gf-crecer {
+  from {
+    transform: scaleY(0);
+    opacity: 0.3;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+/* Al pasar por una barra, las demás se apagan un poco: la que importa resalta. */
+.gf-svg[data-foco='barra'] .gf-barra {
+  opacity: 0.45;
+}
+
+.gf-svg[data-foco='barra'] .gf-barra[data-activa='true'],
+.gf-barra:focus-visible {
+  opacity: 1;
+  filter: brightness(1.08) saturate(1.25) drop-shadow(0 3px 6px rgba(0, 0, 0, 0.18));
+}
+
+.gf-linea {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: gf-trazar 900ms var(--gf-resorte) 260ms forwards;
+  transition: stroke-width 180ms var(--gf-resorte);
+  pointer-events: none;
+}
+
+@keyframes gf-trazar {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.gf-linea-toque {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 20;
+  cursor: pointer;
+}
+
+.gf-linea-grupo:hover .gf-linea,
+.gf-linea-grupo[data-activa='true'] .gf-linea {
+  stroke-width: 4.5;
+}
+
+.gf-punto {
+  pointer-events: none;
+  animation: gf-latir 200ms var(--gf-resorte) both;
+}
+
+@keyframes gf-latir {
+  from {
+    r: 0;
+  }
+}
+
+.gf-tooltip {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  min-width: 150px;
+  padding: 8px 11px;
+  border-radius: 12px;
+  background: rgba(26, 14, 34, 0.9);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(26, 14, 34, 0.28);
+  backdrop-filter: blur(8px);
+  transform: translate(-50%, calc(-100% - 12px));
+  animation: gf-aparecer 150ms ease-out both;
+}
+
+@keyframes gf-aparecer {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-100% - 4px)) scale(0.96);
+  }
+}
+
+/* Panel que se abre desde la barra o la línea tocada (clip-path animado desde JS). */
+.gf-detalle {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  overflow: auto;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--mantine-color-body);
+  box-shadow: 0 10px 40px rgba(26, 14, 34, 0.18);
+}
+
+.gf-tinte {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  border-radius: inherit;
+  animation: gf-desvanecer 520ms ease-out forwards;
+}
+
+@keyframes gf-desvanecer {
+  0%,
+  25% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.gf-detalle .gf-aparece {
+  animation: entrada-suave 280ms var(--gf-resorte) both;
+  animation-delay: calc(140ms + var(--i, 0) * 45ms);
+}
+
+.gf-reparto {
+  height: 8px;
+  border-radius: 8px;
+  transform-origin: left center;
+  animation: gf-llenar 620ms var(--gf-resorte) both;
+  animation-delay: calc(200ms + var(--i, 0) * 45ms);
+}
+
+@keyframes gf-llenar {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* ------------------------------ Torta ------------------------------ */
+
+.gf-torta-seg {
+  fill: none;
+  cursor: pointer;
+  transition:
+    stroke-width 220ms var(--gf-resorte),
+    opacity 200ms ease;
+}
+
+.gf-torta[data-foco='true'] .gf-torta-seg {
+  opacity: 0.4;
+}
+
+.gf-torta[data-foco='true'] .gf-torta-seg[data-activa='true'] {
+  opacity: 1;
+  stroke-width: 30;
+}
+
+.gf-torta-centro {
+  transition: opacity 160ms ease;
+}
+
+.gf-leyenda-fila {
+  cursor: default;
+  border-radius: 8px;
+  padding: 2px 6px;
+  transition: background-color 160ms ease;
+}
+
+.gf-leyenda-fila[data-activa='true'] {
+  background: var(--mantine-color-default-hover);
+}

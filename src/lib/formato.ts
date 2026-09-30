@@ -70,3 +70,22 @@ export function etiquetaEnum(valor: string | null | undefined): string {
   const s = valor.replace(/_/g, ' ').toLowerCase();
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
+
+/**
+ * Plata en formato corto, pedido de Administración (2026-09-30): «$23k» por
+ * debajo del millón y «$2,34M» desde el millón. Abajo de $10k lleva un
+ * decimal («$1,5k») y abajo de $1k va entero («$850»): redondear eso a «1k»
+ * o «0k» diría otra cosa.
+ */
+export function dineroCompacto(valor: number | string | null | undefined): string {
+  const n = Number(valor ?? 0);
+  if (!Number.isFinite(n)) return '—';
+  const a = Math.abs(n);
+  const signo = n < 0 ? '−' : '';
+  const f = (x: number, dec: number) =>
+    x.toLocaleString(LOCALE, { minimumFractionDigits: 0, maximumFractionDigits: dec });
+  if (a >= 1_000_000) return `${signo}$${f(a / 1_000_000, 2)}M`;
+  if (a >= 10_000) return `${signo}$${f(Math.round(a / 1000), 0)}k`;
+  if (a >= 1000) return `${signo}$${f(a / 1000, 1)}k`;
+  return `${signo}$${f(Math.round(a), 0)}`;
+}

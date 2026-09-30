@@ -1,5 +1,16 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Alert, Button, Group, SimpleGrid, Skeleton, Stack, Text } from '@mantine/core';
+import {
+  Alert,
+  Button,
+  Group,
+  SegmentedControl,
+  SimpleGrid,
+  Skeleton,
+  Stack,
+  Text,
+} from '@mantine/core';
+import dayjs from 'dayjs';
 import {
   IconAlertTriangle,
   IconBuildingBank,
@@ -14,6 +25,9 @@ import {
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { TarjetaIndicador } from '@/components/TarjetaIndicador';
 import { diasHasta } from '@/lib/formato';
+import { useVolumenes } from '@/lib/consultasFlujo';
+import { GraficoFlujo } from './GraficoFlujo';
+import { GraficoTorta } from './GraficoTorta';
 import {
   pesos,
   useCashFlowProyectado,
@@ -154,6 +168,9 @@ export function PaginaAdministracion() {
           />
         </SimpleGrid>
 
+        <GraficoFlujo />
+        <Volumenes />
+
         <Alert color="gray" variant="light" icon={<IconInfoCircle size={18} />}>
           <Text size="sm">
             Stock valorizado: el sistema todavía no tiene el costo de cada insumo (D-36).
@@ -180,5 +197,62 @@ export function PaginaAdministracion() {
         </Group>
       </Stack>
     </>
+  );
+}
+
+/**
+ * Tortas de ventas por cliente y compras por proveedor. Mientras se factura en
+ * homologación, las ventas de prueba se muestran marcadas: sin eso la torta
+ * de ventas quedaría vacía hasta pasar a producción.
+ */
+function Volumenes() {
+  const [periodo, setPeriodo] = useState('90');
+  const hasta = dayjs().format('YYYY-MM-DD');
+  const desde = dayjs()
+    .subtract(Number(periodo) - 1, 'day')
+    .format('YYYY-MM-DD');
+  const vol = useVolumenes(desde, hasta);
+  const filas = vol.data ?? [];
+  const ventasProd = filas.filter(
+    (v) => v.lado === 'VENTA' && v.ambiente === 'PRODUCCION',
+  );
+  const ventas = ventasProd.length
+    ? ventasProd
+    : filas.filter((v) => v.lado === 'VENTA' && v.ambiente === 'HOMOLOGACION');
+  const compras = filas.filter((v) => v.lado === 'COMPRA');
+  const porcion = (v: { contraparte: string; total: number }) => ({
+    nombre: v.contraparte,
+    valor: v.total,
+  });
+
+  return (
+    <Stack gap="sm">
+      <Group justify="space-between">
+        <Text fw={700}>Volúmenes por cliente y proveedor</Text>
+        <SegmentedControl
+          value={periodo}
+          onChange={setPeriodo}
+          data={[
+            { value: '30', label: '30 días' },
+            { value: '90', label: '90 días' },
+            { value: '365', label: '12 meses' },
+          ]}
+        />
+      </Group>
+      {vol.isLoading ? (
+        <Skeleton h={220} radius="lg" />
+      ) : (
+        <SimpleGrid cols={{ base: 1, md: 2 }}>
+          <GraficoTorta
+            titulo="Ventas por cliente"
+            datos={ventas.map(porcion)}
+            aviso={
+              !ventasProd.length && ventas.length ? 'Homologación · no fiscal' : undefined
+            }
+          />
+          <GraficoTorta titulo="Compras por proveedor" datos={compras.map(porcion)} />
+        </SimpleGrid>
+      )}
+    </Stack>
   );
 }

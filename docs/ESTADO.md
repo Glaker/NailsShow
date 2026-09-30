@@ -1621,3 +1621,32 @@ cargas. **Lo que tiene que mirar la DT antes de aprobar está en
 `scripts/manual_formulas/pendientes.md`**, empezando por la 377 PREP (la
 vigente dice 70/30 p/p; el manual es 70/30 en volumen = 67,55/32,45 en masa).
 `probar_manual_formulas.mjs` 10 en verde; 15 suites PGlite en verde.
+
+### Gráficos del inicio de Administración (2026-09-30, commiteado en `prueba`, SIN APLICAR, SIN VER EN PANTALLA)
+
+`20260930180000` y su corrección `180100` (la primera fallaba en cada
+llamada a `flujo_caja_diario`): tres funciones de solo lectura.
+`GraficoFlujo.tsx`, `GraficoTorta.tsx` y `graficos.css` en SVG propio, sin
+dependencias:
+
+- **Flujo de caja día a día**: barra verde para arriba o roja para abajo según
+  el resultado del día, en proporción; líneas de saldo de bancos y de efectivo
+  en su propia escala (eje derecho). Todas las cuentas como una sola (Nail
+  Show, Athene, Virginia). Al pasar el mouse: tooltip en formato corto
+  (`dineroCompacto`: «$23k», «$2,34M»). Al tocar una barra se abre el día
+  desde la barra (clip-path animado y el marco crece): cobros con cliente, a
+  nombre de quién, quién vendió y qué; pagos con proveedor, comprobante e
+  insumos. Al tocar una línea: cada cuenta con su saldo, su parte del total y
+  lo que entró y salió.
+- **Tortas** de ventas por cliente y compras por proveedor (30 días, 90 días,
+  12 meses); en homologación, marcadas «no fiscal».
+- Animaciones: 150 a 900 ms, apagadas con reducción de movimiento. Es una
+  excepción pedida a «nada de animaciones decorativas» (§6), solo para esta
+  pantalla.
+- Pruebas: `probar_flujo.mjs` 7 en verde, 16 suites PGlite en verde; Vitest
+  102 (incluye `GraficoFlujo.test.tsx` y `formato.test.ts`), build OK.
+  **Falta verlo en pantalla** con datos reales: hace falta el `db push`.
+- Puente de tipos en `consultasFlujo.ts` hasta `npm run db:types`.
+
+**Para aplicar todo lo de hoy:** `npx supabase db push` (130000 a 180100),
+`npm run db:types`, `npx supabase functions deploy emitir-factura`.

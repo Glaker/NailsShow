@@ -35,6 +35,7 @@ reconstrucción la aplica en su lugar por orden de nombre.
 | `probar_notas_credito.mjs` | nota de crédito total, refacturar, varios emisores, Factura C, restas en cuenta corriente y ventas |
 | `probar_lote_pt.mjs` | lote en producto terminado: retenido hasta liberar, sin lote primero, Calle 5 solo liberado (RN-51, R-09) |
 | `probar_manual_formulas.mjs` | carga del manual de fórmulas v10: 44 en borrador, % que reproducen los kg, procedimientos por aroma |
+| `probar_flujo.mjs` | flujo de caja diario, detalle del día y volúmenes por contraparte para el inicio de Administración |
 | `probar_descarte.mjs` | dar de baja todo el stock de un artículo (descarte «Discontinuado» por posición) |
 
 `probar_facturas` (sesiones anteriores) necesita el token de Afip SDK y red, y
