@@ -1,6 +1,6 @@
 # Estado del proyecto y plan — handoff entre sesiones
 
-Última actualización: 2026-09-11.
+Última actualización: 2026-09-30.
 Este archivo es el punto de entrada de cada sesión nueva. Las reglas permanentes
 están en `CLAUDE.md`; acá va el estado y el plan, que cambian.
 
@@ -1514,3 +1514,27 @@ en `.claude/settings.local.json` se quitó a pedido del usuario; la de
 `consultasCompras`, `consultasCalle5`, `consultasAdministracion`,
 `consultasPrecios`, `consultasVisibilidad` y `consultasOrdenes` por los
 generados, y el merge a `main` cuando el usuario lo apruebe.
+
+---
+
+## «Quitar» sin DELETE (2026-09-30, commiteada en `prueba`, SIN APLICAR)
+
+`20260930130000_quitar_sin_delete.sql`. Cierra el rojo de «1, 8 y 9» de
+`core.verificar_invariantes()`:
+
+- **Revoca el DELETE** de `authenticated` sobre `gmp.formula_componentes` y
+  `comercial.pedido_renglones`, y borra sus políticas `componentes_borra_dt` y
+  `renglones_borra`. No borraban nada (el trigger de auditoría lo frena), pero
+  dejaban la verificación en rojo.
+- **«Quitar componente» de una fórmula en borrador** y **«Quitar material»**
+  de la lista de materiales **fallaban siempre** por lo mismo. Ahora el
+  componente queda `anulado` (con autor y fecha, patrón del renglón de pedido)
+  y el material queda `activo = false`; ninguno se reactiva, y el mismo insumo
+  u orden se puede volver a cargar (índices únicos parciales).
+  `fn_formula_coherente`, `densidad_mezcla_formula` y `calcular_lote` ignoran
+  los anulados. El front filtra lo quitado.
+- `lib.mjs` de PGlite ya **no tolera** el rojo de «1, 8 y 9»: las 11 suites lo
+  exigen y están en verde (`probar_quitar.mjs`, 12 pruebas nuevas). Vitest 94.
+
+**Para aplicarla:** `npx supabase db push` (el dry-run muestra solo esta) y
+`npm run db:types`. Es compatible con `main`: sus dos botones ya fallaban.

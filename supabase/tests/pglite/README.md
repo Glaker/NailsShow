@@ -31,6 +31,7 @@ reconstrucción la aplica en su lugar por orden de nombre.
 | `probar_visibilidad.mjs` | visibilidad de pantallas por rol, lectura del administrador |
 | `probar_ordenes.mjs` | especificaciones, órdenes de producción, etapas, liberación |
 | `probar_traza.mjs` | trazabilidad del lote hacia atrás y hacia adelante |
+| `probar_quitar.mjs` | quitar componente de fórmula y material sin DELETE; DELETE revocado |
 
 `probar_facturas` (sesiones anteriores) necesita el token de Afip SDK y red, y
 no está acá.

@@ -21,7 +21,7 @@ export async function banco() {
     await db.exec('reset role');
     await db.query(`select public.sesion((select id from core.usuarios where email='verificacion@nailshow.com.ar'))`);
     const r = await q('select * from core.verificar_invariantes()');
-    const malas = r.filter((x) => x.cumple === false && !/1, 8 y 9/.test(x.invariante));
+    const malas = r.filter((x) => x.cumple === false);
     if (malas.length) throw new Error(JSON.stringify(malas));
   });
   const fin = () => { console.log(`\n${r.ok} en verde, ${r.mal} en rojo`); process.exit(r.mal ? 1 : 0); };

@@ -921,6 +921,7 @@ export function useMaterialesDeProducto(productoId: string | undefined) {
       )
         .select('*, insumo:insumos_catalogo(nombre, codigo_interno, unidad_medida)')
         .eq('producto_id', productoId!)
+        .eq('activo', true)
         .order('creado_en');
       if (error) throw error;
       return data ?? [];
@@ -961,8 +962,9 @@ export function useQuitarMaterial() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id }: { id: string; productoId: string }) => {
+      // No se borra: queda inactivo (20260930130000).
       const { error } = await tablaGmp<null>('materiales_acondicionamiento')
-        .delete()
+        .update({ activo: false })
         .eq('id', id);
       if (error) throw error;
     },

@@ -1209,6 +1209,7 @@ export function useFormulaCompleta(formulaId: string | undefined) {
           '*, insumo:insumos_catalogo(nombre, codigo_interno, densidad_defecto:densidades_referencia!insumos_catalogo_densidad_referencia_id_fkey(*)), densidad:densidades_referencia(*)',
         )
         .eq('formula_id', formulaId!)
+        .eq('anulado', false)
         .order('orden');
       if (errorComp) throw errorComp;
 
@@ -1432,13 +1433,16 @@ export function useCrearComponenteFormula() {
   });
 }
 
-/** Quita un componente de una fórmula en borrador (RLS `componentes_borra_dt`). */
+/**
+ * Quita un componente de una fórmula en borrador: queda anulado, no se borra
+ * (20260930130000; RLS `componentes_actualiza_dt`).
+ */
 export function useEliminarComponenteFormula() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id }: { id: string; formulaId: string }) => {
       const { error } = await tablaSinTipar<null>('formula_componentes')
-        .delete()
+        .update({ anulado: true })
         .eq('id', id);
       if (error) throw error;
     },
