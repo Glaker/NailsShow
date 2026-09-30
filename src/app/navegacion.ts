@@ -25,6 +25,8 @@ import {
   IconTag,
   IconCalendarTime,
   IconEye,
+  IconFileCertificate,
+  IconClipboardText,
   type Icon,
 } from '@tabler/icons-react';
 import { useSesion, type Rol } from '@/features/auth/sesion';
@@ -81,6 +83,26 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiqueta: 'Fórmulas de fabricación',
     etiquetaCorta: 'Fórmulas',
     icono: IconClipboardList,
+  },
+  {
+    ruta: '/ordenes',
+    etiqueta: 'Órdenes de producción',
+    etiquetaCorta: 'Órdenes',
+    icono: IconClipboardText,
+    roles: [
+      'GERENCIA_PRODUCCION',
+      'DIRECCION_TECNICA',
+      'OPERARIO',
+      'CONTROL_CALIDAD',
+      'GERENCIA',
+    ],
+  },
+  {
+    ruta: '/especificaciones',
+    etiqueta: 'Especificaciones',
+    etiquetaCorta: 'Especif.',
+    icono: IconFileCertificate,
+    roles: ['GERENCIA_PRODUCCION', 'DIRECCION_TECNICA', 'CONTROL_CALIDAD', 'GERENCIA'],
   },
   {
     ruta: '/calculadora-lote',

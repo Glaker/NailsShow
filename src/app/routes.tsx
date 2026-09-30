@@ -33,6 +33,10 @@ import { PaginaReportes } from '@/features/administracion/PaginaReportes';
 import { PaginaPrecios } from '@/features/comercial/PaginaPrecios';
 import { PaginaPlanificacion } from '@/features/produccion/Planificacion';
 import { PaginaVisibilidad } from '@/features/usuarios/PaginaVisibilidad';
+import { PaginaOrdenes } from '@/features/produccion/PaginaOrdenes';
+import { PaginaOrden } from '@/features/produccion/PaginaOrden';
+import { BatchRecord } from '@/features/produccion/BatchRecord';
+import { PaginaEspecificaciones } from '@/features/produccion/PaginaEspecificaciones';
 
 /**
  * Rutas de la aplicación.
@@ -55,6 +59,10 @@ export function AppRoutes() {
       <Route path="/stock-seguridad" element={<RedirigirAStock vista="seguridad" />} />
       <Route path="/producto-terminado" element={<RedirigirAStock vista="fabrica" />} />
       <Route path="/calculadora-lote" element={<PaginaCalculadoraLote />} />
+      <Route path="/ordenes" element={<PaginaOrdenes />} />
+      <Route path="/ordenes/:id" element={<PaginaOrden />} />
+      <Route path="/ordenes/:id/batch-record" element={<BatchRecord />} />
+      <Route path="/especificaciones" element={<PaginaEspecificaciones />} />
       <Route path="/formulas" element={<PaginaFormulas />} />
       <Route path="/formulas/:id" element={<PaginaFormula />} />
       <Route path="/pedidos" element={<PaginaPedidos />} />

@@ -92,7 +92,7 @@ una costumbre.
 
 ## Abiertas — bloqueadas por documentación faltante
 
-### D-04 · Regla de formación del número de lote
+### D-04 · Regla de formación del número de lote (provisoriamente resuelta: R-08)
 
 **Falta.** POE I.40.25 «Asignación de lote», listado como vigente pero ausente
 del proyecto.
@@ -509,6 +509,17 @@ y no tiene costo de lo vendido.
 **Decide.** Gerencia, con el estudio contable.
 
 ## Resueltas
+
+### R-08 · Número de lote según I.40.25 (borrador) — 2026-09-30, provisorio
+
+**Era D-04.** El POE I.40.25 «Asignación de lote» apareció en la carpeta de
+POE como VERSION 00 BORRADOR (vigencia 31/07/2025). **Se adopta su regla, en
+forma provisoria, para las órdenes de producción (20260930110000):** lote =
+`#<presentación> dd/mm/aa` (fecha de elaboración; # distingue las
+presentaciones de un mismo granel) y vencimiento = `P<partida> mm/aa` (P
+distingue los graneles del mismo día).
+**Se revisa** cuando el POE se emita: si cambia la regla, las órdenes nuevas la
+siguen y las ya abiertas conservan su número (no se renumera un lote).
 
 ### R-01 · Color del rótulo de cuarentena — 2026-09-04
 

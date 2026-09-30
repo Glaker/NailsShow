@@ -70,6 +70,7 @@ import { ROLES_STOCK_PT } from '@/lib/consultasStockSeguridad';
 import { agruparPorPedido, usePendientesDespacho } from '@/lib/consultasCalle5';
 import { CoberturaCalle5, ModalDespacho } from './Calle5';
 import { useAplicarPreciosPedido } from '@/lib/consultasPrecios';
+import { OrdenesDelPedido } from '@/features/produccion/OrdenesDelPedido';
 import {
   CeldasPrecio,
   ClienteDelPedido,
@@ -482,6 +483,14 @@ export function PaginaPedido() {
 
         {aDespachar && !p.para_stock && p.tercero_id === null && !borrado ? (
           <CoberturaCalle5 pedido={aDespachar} />
+        ) : null}
+
+        {p.tercero_id === null && !borrado && p.estado !== 'BORRADOR' ? (
+          <OrdenesDelPedido
+            pedidoId={p.id}
+            productoId={lista[0]?.producto_id}
+            abierto={!cerrado}
+          />
         ) : null}
 
         <SeccionFactura pedido={p} renglones={lista} />
