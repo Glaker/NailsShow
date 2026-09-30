@@ -29,7 +29,7 @@ export interface FacturaParaArca {
   ambiente: 'HOMOLOGACION' | 'PRODUCCION';
   cuit_emisor: string;
   punto_venta: number;
-  tipo: 'A' | 'B';
+  tipo: 'A' | 'B' | 'C';
   codigo_arca: number;
   numero: number | null;
   /** YYYYMMDD */
@@ -40,7 +40,19 @@ export interface FacturaParaArca {
   importe_neto: number;
   importe_iva: number;
   importe_total: number;
+  /** Vacío en la Factura C: sin IVA discriminado. */
   alicuotas: { Id: number; BaseImp: number; Importe: number; alicuota: number }[];
+  /** 20260930150000. Ausente en las respuestas de versiones anteriores de la base. */
+  comprobante?: 'FACTURA' | 'NOTA_CREDITO';
+  /** La factura que anula una nota de crédito (CbtesAsoc). */
+  asociado?: {
+    codigo_arca: number;
+    punto_venta: number;
+    numero: number;
+    cuit_emisor: string;
+    /** YYYYMMDD */
+    fecha: string;
+  } | null;
 }
 
 export interface AuthArca {
@@ -115,13 +127,30 @@ export function cuerpoSolicitar(f: FacturaParaArca, auth: AuthArca, numero: numb
             MonId: 'PES',
             MonCotiz: 1,
             CondicionIVAReceptorId: f.condicion_iva,
-            Iva: {
-              AlicIva: f.alicuotas.map((a) => ({
-                Id: a.Id,
-                BaseImp: Number(a.BaseImp),
-                Importe: Number(a.Importe),
-              })),
-            },
+            // La C no discrimina IVA: ARCA rechaza el bloque Iva en ella.
+            ...(f.alicuotas.length > 0 && {
+              Iva: {
+                AlicIva: f.alicuotas.map((a) => ({
+                  Id: a.Id,
+                  BaseImp: Number(a.BaseImp),
+                  Importe: Number(a.Importe),
+                })),
+              },
+            }),
+            // La nota de crédito exige el comprobante que anula.
+            ...(f.asociado && {
+              CbtesAsoc: {
+                CbteAsoc: [
+                  {
+                    Tipo: f.asociado.codigo_arca,
+                    PtoVta: f.asociado.punto_venta,
+                    Nro: f.asociado.numero,
+                    Cuit: f.asociado.cuit_emisor,
+                    CbteFch: f.asociado.fecha,
+                  },
+                ],
+              },
+            }),
           },
         },
       },

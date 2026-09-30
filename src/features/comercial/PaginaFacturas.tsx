@@ -21,6 +21,7 @@ import { TarjetaIndicador } from '@/components/TarjetaIndicador';
 import { Vacio } from '@/components/Vacio';
 import { fecha, numero } from '@/lib/formato';
 import {
+  nombreComprobante,
   numeroComprobante,
   useFacturas,
   type EstadoFactura,
@@ -67,7 +68,8 @@ export function PaginaFacturas() {
             etiqueta="Autorizadas"
             valor={String(autorizadas.length)}
             icono={IconCircleCheck}
-            detalle={`Total ${pesos(autorizadas.reduce((a, f) => a + Number(f.importe_total), 0))}`}
+            // Las notas de crédito restan.
+            detalle={`Total ${pesos(autorizadas.reduce((a, f) => a + (f.comprobante === 'NOTA_CREDITO' ? -1 : 1) * Number(f.importe_total), 0))}`}
           />
           <TarjetaIndicador
             etiqueta="Rechazadas"
@@ -132,7 +134,7 @@ export function PaginaFacturas() {
                     <Table.Tr key={f.id}>
                       <Table.Td>
                         <Text size="sm" fw={600}>
-                          {f.tipo} {numeroComprobante(f)}
+                          {nombreComprobante(f)} {numeroComprobante(f)}
                         </Text>
                         <Text size="xs" c="dimmed">
                           {fecha(`${f.fecha}T12:00:00`)}

@@ -1557,3 +1557,32 @@ tercerizados. `probar_descarte.mjs`: 5 en verde.
 
 **Para aplicar las dos:** `npx supabase db push` (130000 y 140000), después
 `npm run db:types` y quitar el cast de `rpcComercial('descartar_articulo')`.
+
+### Notas de crédito y varios emisores (2026-09-30, commiteada en `prueba`, SIN APLICAR)
+
+`20260930150000_comercial_notas_credito_y_emisores.sql` más la Edge Function
+`emitir-factura` y el front de la ficha del pedido:
+
+- **Nota de crédito total** (RN-56): «Anular con nota de crédito» en cada
+  factura autorizada, con motivo. Va en `comercial.facturas` con
+  `comprobante = NOTA_CREDITO` y la factura asociada (CbtesAsoc), así que
+  reusa numeración, inmutabilidad y registro del resultado. Anulada, el pedido
+  se puede volver a facturar. Resta en cuenta corriente, saldos, pendiente de
+  cobro, ventas, IVA y resultado; no se le imputan cobros.
+- **Varios emisores vigentes** (D-37): cada uno con su condición frente al
+  IVA; con uno solo no se pregunta, con varios se elige «A nombre de». El
+  monotributista o exento emite **C** (sin IVA discriminado, mismo total).
+  Certificado por CUIT o uno solo delegado.
+- `preparar_factura` cambia de firma (`p_emisor_id` opcional): la llamada
+  vieja sigue andando. Hay que **redesplegar la Edge Function** después del
+  push: `npx supabase functions deploy emitir-factura`.
+- Pruebas: `probar_notas_credito.mjs` 18 en verde, 13 suites PGlite en verde
+  (188), armado ARCA 12, Vitest 96, `deno check` de la función limpio.
+  **No probado contra ARCA**: la NC B se puede probar en homologación con el
+  CUIT de demostración; la C no (ese CUIT es Responsable Inscripto).
+- **Puente de tipos** en `consultasFacturacion.ts` (`Factura`, `Emisor`)
+  hasta `npm run db:types`.
+
+**Para aplicar lo de hoy:** `npx supabase db push` (130000, 140000, 150000),
+`npm run db:types`, `npx supabase functions deploy emitir-factura`, y probar
+en homologación una factura B y su nota de crédito.

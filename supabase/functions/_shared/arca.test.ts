@@ -75,7 +75,43 @@ describe('FECAESolicitar', () => {
       CondicionIVAReceptorId: 5,
     });
     // `alicuota` es un dato interno: no viaja a ARCA.
-    expect(det.Iva.AlicIva).toEqual([{ Id: 5, BaseImp: 100, Importe: 21 }]);
+    expect(det.Iva?.AlicIva).toEqual([{ Id: 5, BaseImp: 100, Importe: 21 }]);
+    // Una factura no lleva comprobante asociado.
+    expect(det).not.toHaveProperty('CbtesAsoc');
+  });
+
+  it('la Factura C no discrimina IVA: sin bloque Iva, neto = total', () => {
+    const det = cuerpoSolicitar(
+      factura({ tipo: 'C', codigo_arca: 11, importe_neto: 121, importe_iva: 0, alicuotas: [] }),
+      AUTH,
+      1,
+    ).params.FeCAEReq.FeDetReq.FECAEDetRequest;
+    expect(det).not.toHaveProperty('Iva');
+    expect(det).toMatchObject({ ImpNeto: 121, ImpIVA: 0, ImpTotal: 121 });
+  });
+
+  it('la nota de crédito lleva la factura que anula en CbtesAsoc', () => {
+    const c = cuerpoSolicitar(
+      factura({
+        codigo_arca: 8,
+        comprobante: 'NOTA_CREDITO',
+        asociado: {
+          codigo_arca: 6,
+          punto_venta: 1,
+          numero: 41693,
+          cuit_emisor: '20409378472',
+          fecha: '20260924',
+        },
+      }),
+      AUTH,
+      12,
+    );
+    expect(c.params.FeCAEReq.FeCabReq.CbteTipo).toBe(8);
+    expect(c.params.FeCAEReq.FeDetReq.FECAEDetRequest.CbtesAsoc).toEqual({
+      CbteAsoc: [
+        { Tipo: 6, PtoVta: 1, Nro: 41693, Cuit: '20409378472', CbteFch: '20260924' },
+      ],
+    });
   });
 
   it('el total cierra con neto + IVA, que es lo que valida ARCA (10048)', () => {

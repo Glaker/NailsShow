@@ -193,7 +193,9 @@ function FichaCliente({ clienteId, nombre }: { clienteId: string; nombre: string
                     <Text size="sm">
                       {m.movimiento === 'FACTURA'
                         ? `Factura ${m.detalle_tipo}`
-                        : `Cobro · ${(m.detalle_tipo ?? '').toLowerCase()}`}
+                        : m.movimiento === 'NOTA_CREDITO'
+                          ? `Nota de crédito ${m.detalle_tipo}`
+                          : `Cobro · ${(m.detalle_tipo ?? '').toLowerCase()}`}
                     </Text>
                     <Text size="xs" c="dimmed" ff="monospace">
                       {m.referencia}

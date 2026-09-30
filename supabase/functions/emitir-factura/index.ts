@@ -2,7 +2,10 @@
  * Edge Function `emitir-factura`: emite la factura electrónica ARCA de un
  * pedido a través de Afip SDK.
  *
- * POST { "pedido_id": "<uuid>" }  con el Authorization del usuario.
+ * POST { "pedido_id": "<uuid>", "emisor_id"?: "<uuid>" }       factura
+ * POST { "nota_credito_de": "<factura uuid>", "motivo": "…" }   nota de crédito
+ * con el Authorization del usuario. La nota de crédito sigue el mismo camino
+ * que la factura: otra función la prepara y el resto es igual (20260930150000).
  *
  * Privilegios (CLAUDE.md §5, RN-66):
  * - El cliente de Supabase se crea con el token del USUARIO, no con la clave de
@@ -10,10 +13,12 @@
  *   escritura queda en la auditoría a nombre de quien apretó «Emitir».
  * - El token de Afip SDK sale del secreto AFIP_SDK_ACCESS_TOKEN y nunca vuelve
  *   al navegador. En producción, el certificado y la clave también van como
- *   secretos (AFIP_CERT, AFIP_KEY); en homologación no hacen falta.
+ *   secretos: AFIP_CERT_<CUIT> y AFIP_KEY_<CUIT> por emisor, o AFIP_CERT y
+ *   AFIP_KEY si hay uno solo o los demás delegaron el servicio (D-37). En
+ *   homologación no hacen falta.
  *
  * Qué decide la base y qué la función:
- * - La base (comercial.preparar_factura) valida el pedido, elige A o B (RN-57),
+ * - La base (comercial.preparar_factura) valida el pedido, elige A, B o C (RN-57),
  *   calcula importes y deja la factura PENDIENTE.
  * - La función pide el número a ARCA, lo fija, envía, y le pasa la respuesta
  *   cruda a comercial.registrar_resultado_factura, que la interpreta.
@@ -74,13 +79,15 @@ Deno.serve(async (req) => {
   const authorization = req.headers.get('Authorization');
   if (!authorization) return json({ error: 'Falta la sesión del usuario.' }, 401);
 
-  let pedidoId: string | undefined;
+  let entrada: { pedido_id?: string; emisor_id?: string; nota_credito_de?: string; motivo?: string } =
+    {};
   try {
-    pedidoId = (await req.json())?.pedido_id;
+    entrada = (await req.json()) ?? {};
   } catch {
     /* cuerpo inválido */
   }
-  if (!pedidoId) return json({ error: 'Falta pedido_id.' }, 400);
+  if (!entrada.pedido_id && !entrada.nota_credito_de)
+    return json({ error: 'Falta pedido_id o nota_credito_de.' }, 400);
 
   // Cliente con el token del usuario: RLS y auditoría a su nombre.
   const db = createClient(
@@ -94,7 +101,15 @@ Deno.serve(async (req) => {
   );
 
   // 1. La base prepara (o devuelve la pendiente, si es un reintento).
-  const prep = await db.rpc('preparar_factura', { p_pedido_id: pedidoId });
+  const prep = entrada.nota_credito_de
+    ? await db.rpc('preparar_nota_credito', {
+        p_factura_id: entrada.nota_credito_de,
+        p_motivo: entrada.motivo ?? '',
+      })
+    : await db.rpc('preparar_factura', {
+        p_pedido_id: entrada.pedido_id,
+        ...(entrada.emisor_id && { p_emisor_id: entrada.emisor_id }),
+      });
   if (prep.error) return json({ error: prep.error.message }, 422);
   const f = prep.data as FacturaParaArca;
 
@@ -125,13 +140,13 @@ Deno.serve(async (req) => {
   if (!tokenSdk) return registrar(null, null, 'falta el secreto AFIP_SDK_ACCESS_TOKEN.');
   const cuerpoA: Record<string, unknown> = cuerpoAuth(f);
   if (f.ambiente === 'PRODUCCION') {
-    const cert = Deno.env.get('AFIP_CERT');
-    const key = Deno.env.get('AFIP_KEY');
+    const cert = Deno.env.get(`AFIP_CERT_${f.cuit_emisor}`) ?? Deno.env.get('AFIP_CERT');
+    const key = Deno.env.get(`AFIP_KEY_${f.cuit_emisor}`) ?? Deno.env.get('AFIP_KEY');
     if (!cert || !key)
       return registrar(
         null,
         null,
-        'en producción faltan los secretos AFIP_CERT y AFIP_KEY.',
+        `en producción faltan los secretos AFIP_CERT_${f.cuit_emisor} y AFIP_KEY_${f.cuit_emisor} (o AFIP_CERT y AFIP_KEY).`,
       );
     cuerpoA.cert = cert;
     cuerpoA.key = key;

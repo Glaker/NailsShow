@@ -18,7 +18,19 @@ import { avisarError, avisarExito } from './consultas';
 export type Cliente = Database['comercial']['Tables']['clientes']['Row'];
 export type CondicionIva = Database['comercial']['Enums']['condicion_iva_enum'];
 export type TipoDocumento = Database['comercial']['Enums']['tipo_documento_enum'];
-export type Factura = Database['comercial']['Tables']['facturas']['Row'];
+/**
+ * PUENTE DE TIPOS: las columnas de 20260930150000 (nota de crédito y emisor)
+ * hasta aplicarla y correr `npm run db:types`. Después, borrar los `&`.
+ */
+export type Factura = Database['comercial']['Tables']['facturas']['Row'] & {
+  comprobante: 'FACTURA' | 'NOTA_CREDITO';
+  factura_asociada_id: string | null;
+  motivo: string | null;
+};
+export type Emisor = Database['comercial']['Tables']['configuracion_fiscal']['Row'] & {
+  razon_social: string | null;
+  condicion_iva: CondicionIva;
+};
 export type EstadoFactura = Database['comercial']['Enums']['estado_factura_enum'];
 
 /** Quién emite (D-31): el mismo criterio que `preparar_factura()` y la política. */
@@ -51,11 +63,6 @@ export const TEXTO_DOCUMENTO: Record<TipoDocumento, string> = {
   SIN_IDENTIFICAR: 'Sin identificar',
 };
 
-/**
- * RN-57, espejo de `comercial.clase_factura()`: A a Responsable Inscripto y a
- * Monotributo (ARCA rechaza B a monotributo, 10243; D-30), B al resto. Solo
- * para mostrarlo antes de emitir: decide la base.
- */
 /** Alícuotas de IVA que acepta la base (comercial.alicuota_iva_arca). */
 export const ALICUOTAS = [
   { value: '21', label: '21 %' },
@@ -64,8 +71,23 @@ export const ALICUOTAS = [
   { value: '0', label: '0 %' },
 ];
 
-export function claseFactura(c: CondicionIva): 'A' | 'B' {
-  return c === 'RESPONSABLE_INSCRIPTO' || c === 'MONOTRIBUTO' ? 'A' : 'B';
+/**
+ * RN-57, espejo de `comercial.clase_factura()`. Emisor Responsable Inscripto:
+ * A a Responsable Inscripto y a Monotributo (ARCA rechaza B a monotributo,
+ * 10243; D-30), B al resto. Emisor monotributista o exento: C. Solo para
+ * mostrarlo antes de emitir: decide la base.
+ */
+export function claseFactura(
+  receptor: CondicionIva,
+  emisor: CondicionIva = 'RESPONSABLE_INSCRIPTO',
+): 'A' | 'B' | 'C' {
+  if (emisor !== 'RESPONSABLE_INSCRIPTO') return 'C';
+  return receptor === 'RESPONSABLE_INSCRIPTO' || receptor === 'MONOTRIBUTO' ? 'A' : 'B';
+}
+
+/** «Factura B» o «Nota de crédito B». */
+export function nombreComprobante(f: Pick<Factura, 'comprobante' | 'tipo'>): string {
+  return `${f.comprobante === 'NOTA_CREDITO' ? 'Nota de crédito' : 'Factura'} ${f.tipo}`;
 }
 
 /** Espejo de `comercial.cuit_valido()`: 11 dígitos, dígito verificador módulo 11. */
@@ -146,6 +168,26 @@ export function useGuardarCliente() {
 }
 
 /* ------------------------------------------------------------------------- *
+ * Emisores (D-37)
+ * ------------------------------------------------------------------------- */
+
+/** A nombre de quién se puede facturar hoy: los emisores vigentes. */
+export function useEmisores() {
+  return useQuery({
+    queryKey: ['emisores'],
+    queryFn: async () => {
+      const { data, error } = await comercial()
+        .from('configuracion_fiscal')
+        .select('*')
+        .eq('vigente', true)
+        .order('creado_en');
+      if (error) throw error;
+      return (data ?? []) as Emisor[];
+    },
+  });
+}
+
+/* ------------------------------------------------------------------------- *
  * Facturas
  * ------------------------------------------------------------------------- */
 
@@ -163,7 +205,7 @@ export function useFacturas() {
         .select('*, pedido:pedidos(numero), cliente_ref:clientes(razon_social)')
         .order('creado_en', { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as FacturaConDatos[];
     },
   });
 }
@@ -179,7 +221,7 @@ export function useFacturasDePedido(pedidoId: string | undefined) {
         .eq('pedido_id', pedidoId!)
         .order('creado_en', { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as Factura[];
     },
   });
 }
@@ -187,7 +229,7 @@ export function useFacturasDePedido(pedidoId: string | undefined) {
 export interface ResultadoEmision {
   factura_id: string;
   estado: EstadoFactura;
-  tipo?: 'A' | 'B';
+  tipo?: 'A' | 'B' | 'C';
   punto_venta?: number;
   numero?: number | null;
   cae?: string | null;
@@ -198,42 +240,65 @@ export interface ResultadoEmision {
 }
 
 /**
- * Emite la factura del pedido por la Edge Function. La función devuelve un
- * resultado también cuando ARCA rechaza (estado RECHAZADA con el motivo): eso
- * no es un error de la llamada, es una respuesta, y se muestra como tal.
+ * Llama a la Edge Function. La función devuelve un resultado también cuando
+ * ARCA rechaza (estado RECHAZADA con el motivo): eso no es un error de la
+ * llamada, es una respuesta, y se muestra como tal.
  */
+async function emitir(body: Record<string, string>): Promise<ResultadoEmision> {
+  // `invoke` tipa el error como any: se lo toma como unknown y se lo angosta.
+  const respuestaInvoke = await supabase.functions.invoke<ResultadoEmision>(
+    'emitir-factura',
+    { body },
+  );
+  const data: ResultadoEmision | null = respuestaInvoke.data;
+  const error: unknown = respuestaInvoke.error;
+  if (error) {
+    // Error HTTP de la función: el cuerpo trae el motivo escrito.
+    if (error instanceof FunctionsHttpError) {
+      const respuesta = error.context as Response;
+      const cuerpo = (await respuesta.json().catch(() => null)) as
+        (Partial<ResultadoEmision> & { error?: string }) | null;
+      if (cuerpo?.estado) return cuerpo as ResultadoEmision;
+      throw new Error(cuerpo?.error ?? error.message);
+    }
+    throw error instanceof Error
+      ? error
+      : new Error('No se pudo llamar a la función de facturación.');
+  }
+  if (!data) throw new Error('La función no devolvió resultado.');
+  return data;
+}
+
+/** Emite la factura del pedido, a nombre del emisor elegido si hay varios. */
 export function useEmitirFactura() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (pedidoId: string): Promise<ResultadoEmision> => {
-      // `invoke` tipa el error como any: se lo toma como unknown y se lo angosta.
-      const respuestaInvoke = await supabase.functions.invoke<ResultadoEmision>(
-        'emitir-factura',
-        { body: { pedido_id: pedidoId } },
-      );
-      const data: ResultadoEmision | null = respuestaInvoke.data;
-      const error: unknown = respuestaInvoke.error;
-      if (error) {
-        // Error HTTP de la función: el cuerpo trae el motivo escrito.
-        if (error instanceof FunctionsHttpError) {
-          const respuesta = error.context as Response;
-          const cuerpo = (await respuesta.json().catch(() => null)) as
-            (Partial<ResultadoEmision> & { error?: string }) | null;
-          if (cuerpo?.estado) return cuerpo as ResultadoEmision;
-          throw new Error(cuerpo?.error ?? error.message);
-        }
-        throw error instanceof Error
-          ? error
-          : new Error('No se pudo llamar a la función de facturación.');
-      }
-      if (!data) throw new Error('La función no devolvió resultado.');
-      return data;
-    },
-    onSuccess: (r, pedidoId) => {
+    mutationFn: ({
+      pedidoId,
+      emisorId,
+    }: {
+      pedidoId: string;
+      emisorId?: string | null;
+    }) => emitir({ pedido_id: pedidoId, ...(emisorId && { emisor_id: emisorId }) }),
+    onSuccess: (r) => {
       void qc.invalidateQueries({ queryKey: ['facturas'] });
-      void qc.invalidateQueries({ queryKey: ['facturas', 'pedido', pedidoId] });
       if (r.estado === 'AUTORIZADA')
         avisarExito(`Factura ${r.tipo} autorizada. CAE ${r.cae}.`);
+    },
+    onError: avisarError,
+  });
+}
+
+/** Anula entera una factura autorizada con su nota de crédito (RN-56). */
+export function useEmitirNotaCredito() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ facturaId, motivo }: { facturaId: string; motivo: string }) =>
+      emitir({ nota_credito_de: facturaId, motivo }),
+    onSuccess: (r) => {
+      void qc.invalidateQueries({ queryKey: ['facturas'] });
+      if (r.estado === 'AUTORIZADA')
+        avisarExito(`Nota de crédito ${r.tipo} autorizada. CAE ${r.cae}.`);
     },
     onError: avisarError,
   });

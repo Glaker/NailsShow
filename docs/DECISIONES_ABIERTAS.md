@@ -530,8 +530,16 @@ cambio de fondo es de configuración, elección y reportes, no de la factura.
    se registra que un emisor venda mercadería que compró otro? Esto decide si
    el stock, IVA Compras/Ventas y las cuentas corrientes se separan por
    titular o se siguen llevando como uno solo.
-**Mientras tanto.** Sin cambios: se sigue emitiendo en homologación con un
-emisor.
+**Implementado sin los datos** (20260930150000, en homologación): varios
+emisores vigentes con su condición frente al IVA, elección al facturar y
+Factura C para el emisor monotributista o exento. **Suposición a confirmar:**
+la C cobra el mismo total que una A o B del mismo pedido (neto + IVA de los
+renglones, sin discriminar IVA), porque el precio de lista es el precio final.
+Certificados: `AFIP_CERT_<CUIT>`/`AFIP_KEY_<CUIT>` por emisor, o
+`AFIP_CERT`/`AFIP_KEY` si los otros delegaron el servicio.
+**Falta:** los CUIT y condiciones reales (una fila por emisor en
+`comercial.configuracion_fiscal`) y la respuesta 4, que puede pedir separar
+IVA y cuentas corrientes por emisor.
 **Decide.** Gerencia, con el estudio contable.
 
 ## Resueltas

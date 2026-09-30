@@ -6,6 +6,7 @@ import {
   Badge,
   Button,
   Group,
+  Modal,
   NumberInput,
   Paper,
   Select,
@@ -13,6 +14,7 @@ import {
   Stack,
   Table,
   Text,
+  Textarea,
 } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { IconAlertTriangle, IconFileInvoice, IconReceipt } from '@tabler/icons-react';
@@ -30,11 +32,16 @@ import {
   ROLES_FACTURAN,
   TEXTO_CONDICION,
   claseFactura,
+  formatearCuit,
+  nombreComprobante,
   numeroComprobante,
   useClientes,
+  useEmisores,
   useEmitirFactura,
+  useEmitirNotaCredito,
   useFacturasDePedido,
   type EstadoFactura,
+  type Factura,
   type ResultadoEmision,
 } from '@/lib/consultasFacturacion';
 
@@ -263,9 +270,10 @@ export function BadgeAmbiente({ ambiente }: { ambiente: 'HOMOLOGACION' | 'PRODUC
 }
 
 /**
- * Factura del pedido: las emitidas (autorizadas, rechazadas con su motivo) y
- * el botón para emitir. La emisión la hace la Edge Function; esta pantalla solo
- * la pide y muestra lo que ARCA contestó, también cuando rechaza.
+ * Factura del pedido: las emitidas (autorizadas, rechazadas con su motivo, y
+ * las notas de crédito que las anulan) y los botones para emitir y anular. La
+ * emisión la hace la Edge Function; esta pantalla solo la pide y muestra lo
+ * que ARCA contestó, también cuando rechaza.
  */
 export function SeccionFactura({
   pedido,
@@ -276,14 +284,31 @@ export function SeccionFactura({
 }) {
   const facturas = useFacturasDePedido(pedido.id);
   const clientes = useClientes();
+  const emisores = useEmisores();
   const emitir = useEmitirFactura();
+  const emitirNc = useEmitirNotaCredito();
   const puedeFacturar = useTieneRol(...ROLES_FACTURAN);
   const [ultimo, setUltimo] = useState<ResultadoEmision | null>(null);
+  const [emisorElegido, setEmisorElegido] = useState<string | null>(null);
+  const [anulando, setAnulando] = useState<Factura | null>(null);
+  const [motivo, setMotivo] = useState('');
 
   const lista = facturas.data ?? [];
-  const autorizada = lista.find((f) => f.estado === 'AUTORIZADA');
-  const pendiente = lista.find((f) => f.estado === 'PENDIENTE');
+  const ncDe = (f: Factura, estado: EstadoFactura) =>
+    lista.find((n) => n.factura_asociada_id === f.id && n.estado === estado);
+  // La que vale: autorizada y sin nota de crédito autorizada que la anule.
+  const autorizada = lista.find(
+    (f) =>
+      f.comprobante === 'FACTURA' && f.estado === 'AUTORIZADA' && !ncDe(f, 'AUTORIZADA'),
+  );
+  const pendiente = lista.find(
+    (f) => f.comprobante === 'FACTURA' && f.estado === 'PENDIENTE',
+  );
   const cliente = (clientes.data ?? []).find((c) => c.id === pedido.cliente_id);
+  const vigentes = emisores.data ?? [];
+  // Con uno solo no se pregunta; la pendiente ya tiene el suyo.
+  const emisor =
+    vigentes.length === 1 ? vigentes[0] : vigentes.find((e) => e.id === emisorElegido);
 
   const faltas: string[] = [];
   if (pedido.estado === 'BORRADOR') faltas.push('el pedido está en borrador');
@@ -292,24 +317,42 @@ export function SeccionFactura({
   if (renglones.length === 0) faltas.push('no tiene productos');
   if (renglones.some((r) => r.precio_unitario === null))
     faltas.push('hay productos sin precio');
+  if (!pendiente && vigentes.length > 1 && !emisor)
+    faltas.push('elegí a nombre de quién');
 
   function confirmarEmision() {
-    const clase = cliente ? claseFactura(cliente.condicion_iva) : '?';
+    const clase = cliente
+      ? claseFactura(cliente.condicion_iva, emisor?.condicion_iva)
+      : '?';
     modals.openConfirmModal({
       title: `Emitir Factura ${clase}`,
       children: (
         <Stack gap="xs">
           <Text size="sm">
-            A <b>{cliente?.razon_social}</b> por el pedido {pedido.numero}. Se pide el CAE
-            a ARCA: una factura autorizada no se modifica ni se borra; se corrige con nota
-            de crédito.
+            A <b>{cliente?.razon_social}</b> por el pedido {pedido.numero}
+            {emisor?.razon_social ? (
+              <>
+                , a nombre de <b>{emisor.razon_social}</b>
+              </>
+            ) : null}
+            . Se pide el CAE a ARCA: una factura autorizada no se modifica ni se borra; se
+            corrige con nota de crédito.
           </Text>
         </Stack>
       ),
       labels: { confirm: 'Emitir', cancel: 'Volver' },
       confirmProps: { color: 'violeta' },
-      onConfirm: () => emitir.mutate(pedido.id, { onSuccess: setUltimo }),
+      onConfirm: () =>
+        emitir.mutate(
+          { pedidoId: pedido.id, emisorId: pendiente ? null : (emisor?.id ?? null) },
+          { onSuccess: setUltimo },
+        ),
     });
+  }
+
+  function cerrarAnulacion() {
+    setAnulando(null);
+    setMotivo('');
   }
 
   return (
@@ -321,15 +364,31 @@ export function SeccionFactura({
             <Text fw={600}>Factura</Text>
           </Group>
           {puedeFacturar && !autorizada ? (
-            <Button
-              size="md"
-              leftSection={<IconReceipt size={18} />}
-              disabled={faltas.length > 0}
-              loading={emitir.isPending}
-              onClick={confirmarEmision}
-            >
-              {pendiente ? 'Reintentar emisión' : 'Emitir factura'}
-            </Button>
+            <Group gap="sm" wrap="wrap">
+              {!pendiente && vigentes.length > 1 ? (
+                <Select
+                  aria-label="A nombre de"
+                  placeholder="A nombre de…"
+                  size="md"
+                  w={260}
+                  data={vigentes.map((e) => ({
+                    value: e.id,
+                    label: `${e.razon_social ?? formatearCuit(e.cuit_emisor)} · ${TEXTO_CONDICION[e.condicion_iva]}`,
+                  }))}
+                  value={emisorElegido}
+                  onChange={setEmisorElegido}
+                />
+              ) : null}
+              <Button
+                size="md"
+                leftSection={<IconReceipt size={18} />}
+                disabled={faltas.length > 0}
+                loading={emitir.isPending}
+                onClick={confirmarEmision}
+              >
+                {pendiente ? 'Reintentar emisión' : 'Emitir factura'}
+              </Button>
+            </Group>
           ) : null}
         </Group>
 
@@ -377,56 +436,154 @@ export function SeccionFactura({
                   <Table.Th ta="right">Total</Table.Th>
                   <Table.Th>Estado</Table.Th>
                   <Table.Th>CAE / motivo</Table.Th>
+                  {puedeFacturar ? <Table.Th /> : null}
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {lista.map((f) => (
-                  <Table.Tr key={f.id}>
-                    <Table.Td>
-                      <Text size="sm" fw={600}>
-                        Factura {f.tipo} {numeroComprobante(f)}
-                      </Text>
-                      <Group gap={6}>
-                        <Text size="xs" c="dimmed">
-                          {fecha(`${f.fecha}T12:00:00`)}
+                {lista.map((f) => {
+                  const anulable =
+                    f.comprobante === 'FACTURA' &&
+                    f.estado === 'AUTORIZADA' &&
+                    !ncDe(f, 'AUTORIZADA');
+                  const ncPendiente = anulable ? ncDe(f, 'PENDIENTE') : undefined;
+                  return (
+                    <Table.Tr key={f.id}>
+                      <Table.Td>
+                        <Text size="sm" fw={600}>
+                          {nombreComprobante(f)} {numeroComprobante(f)}
                         </Text>
-                        <BadgeAmbiente ambiente={f.ambiente} />
-                      </Group>
-                    </Table.Td>
-                    <Table.Td ta="right">
-                      <Text size="sm" ff="monospace">
-                        {pesos(Number(f.importe_total))}
-                      </Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <BadgeEstadoFactura estado={f.estado} />
-                    </Table.Td>
-                    <Table.Td>
-                      {f.estado === 'AUTORIZADA' ? (
-                        <>
-                          <Text size="sm" ff="monospace">
-                            CAE {f.cae}
-                          </Text>
+                        <Group gap={6}>
                           <Text size="xs" c="dimmed">
-                            Vence {fecha(`${f.cae_vencimiento}T12:00:00`)}
+                            {fecha(`${f.fecha}T12:00:00`)}
                           </Text>
-                        </>
-                      ) : (
-                        <Text
-                          size="sm"
-                          c={f.estado === 'RECHAZADA' ? 'estadoRechazado.7' : 'dimmed'}
-                        >
-                          {f.motivo_rechazo ?? `En curso desde ${fechaHora(f.creado_en)}`}
+                          <BadgeAmbiente ambiente={f.ambiente} />
+                          {f.comprobante === 'FACTURA' && ncDe(f, 'AUTORIZADA') ? (
+                            <Badge color="gray" variant="light" radius="sm">
+                              Anulada
+                            </Badge>
+                          ) : null}
+                        </Group>
+                        {f.motivo ? (
+                          <Text size="xs" c="dimmed">
+                            {f.motivo}
+                          </Text>
+                        ) : null}
+                      </Table.Td>
+                      <Table.Td ta="right">
+                        <Text size="sm" ff="monospace">
+                          {f.comprobante === 'NOTA_CREDITO' ? '− ' : ''}
+                          {pesos(Number(f.importe_total))}
                         </Text>
-                      )}
-                    </Table.Td>
-                  </Table.Tr>
-                ))}
+                      </Table.Td>
+                      <Table.Td>
+                        <BadgeEstadoFactura estado={f.estado} />
+                      </Table.Td>
+                      <Table.Td>
+                        {f.estado === 'AUTORIZADA' ? (
+                          <>
+                            <Text size="sm" ff="monospace">
+                              CAE {f.cae}
+                            </Text>
+                            <Text size="xs" c="dimmed">
+                              Vence {fecha(`${f.cae_vencimiento}T12:00:00`)}
+                            </Text>
+                          </>
+                        ) : (
+                          <Text
+                            size="sm"
+                            c={f.estado === 'RECHAZADA' ? 'estadoRechazado.7' : 'dimmed'}
+                          >
+                            {f.motivo_rechazo ??
+                              `En curso desde ${fechaHora(f.creado_en)}`}
+                          </Text>
+                        )}
+                      </Table.Td>
+                      {puedeFacturar ? (
+                        <Table.Td>
+                          {anulable ? (
+                            <Button
+                              size="sm"
+                              variant="light"
+                              color="estadoRechazado"
+                              loading={emitirNc.isPending}
+                              onClick={() =>
+                                ncPendiente
+                                  ? emitirNc.mutate(
+                                      {
+                                        facturaId: f.id,
+                                        motivo: ncPendiente.motivo ?? '',
+                                      },
+                                      { onSuccess: setUltimo },
+                                    )
+                                  : setAnulando(f)
+                              }
+                            >
+                              {ncPendiente
+                                ? 'Reintentar nota de crédito'
+                                : 'Anular con nota de crédito'}
+                            </Button>
+                          ) : null}
+                        </Table.Td>
+                      ) : null}
+                    </Table.Tr>
+                  );
+                })}
               </Table.Tbody>
             </Table>
           </Table.ScrollContainer>
         )}
       </Stack>
+
+      <Modal
+        opened={anulando !== null}
+        onClose={cerrarAnulacion}
+        title={
+          anulando
+            ? `Anular ${nombreComprobante(anulando)} ${numeroComprobante(anulando)}`
+            : ''
+        }
+      >
+        <Stack gap="md">
+          <Text size="sm">
+            Se emite una nota de crédito por el total (
+            {pesos(Number(anulando?.importe_total ?? 0))}) que anula la factura entera.
+            Después, el pedido se puede volver a facturar. La nota de crédito autorizada
+            tampoco se modifica ni se borra.
+          </Text>
+          <Textarea
+            label="Motivo"
+            withAsterisk
+            autosize
+            minRows={2}
+            value={motivo}
+            onChange={(e) => setMotivo(e.currentTarget.value)}
+          />
+          <Group justify="flex-end">
+            <Button variant="default" onClick={cerrarAnulacion}>
+              Volver
+            </Button>
+            <Button
+              color="estadoRechazado"
+              disabled={motivo.trim().length === 0}
+              loading={emitirNc.isPending}
+              onClick={() =>
+                anulando &&
+                emitirNc.mutate(
+                  { facturaId: anulando.id, motivo },
+                  {
+                    onSuccess: (r) => {
+                      setUltimo(r);
+                      cerrarAnulacion();
+                    },
+                  },
+                )
+              }
+            >
+              Emitir nota de crédito
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Paper>
   );
 }
