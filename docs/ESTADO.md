@@ -1425,3 +1425,69 @@ las vistas nuevas no existen en la base, así que la app no se pudo recorrer.
 - De la cola del 2026-09-24: 1 (hablarlo antes), 5 (batch record PDF), 6
   (especificaciones), 7 (precios y descuentos), 8 (rol Ventas), 10 (inicio de
   Nazarena), 11 (planificación y Gantt), 12 (espera D-04).
+  **Hechos todos salvo el 1: ver la tercera tanda.**
+
+---
+
+## Tercera tanda (2026-09-29/30, commiteada en `prueba`, SIN APLICAR)
+
+La cola del 2026-09-24 quedó hecha salvo el ítem 1 (dar de baja un lote o el
+stock de una materia prima), que pide conversarlo antes (ver esa sección).
+Pedido del usuario: **no poner nada en `main` hasta revisarlo en local.**
+
+| Ítem | Hecho | Dónde |
+| --- | --- | --- |
+| 8 | Rol VENTAS (Mati): pedidos, clientes, facturas, Calle 5, ve cobranzas; no produce ni toca tesorería | `20260929140000/140100` |
+| 7 | Precios de lista versionados (444 de la hoja UTILIDAD; 95 en `scripts/precios/pendientes.md`), descuentos por cliente, precio sugerido en el pedido | `20260929150000/150100`, `/precios` |
+| 10, 11 | Inicio de Nazarena (saludo, pendientes, 2 semanas) y `/planificacion` con Gantt y calendario | `20260929160000`, `Planificacion.tsx` |
+| — | «Quién ve qué»: visibilidad de pantallas y pestañas por rol, editable por el Administrador del sistema, que además ve todo y lee tesorería | `20260929170000`, `/visibilidad` |
+| 6 | Especificaciones versionadas (§4.6), aprobación DT, motor de evaluación (§7.3) | `20260930100000`, `/especificaciones` |
+| 5 | Órdenes de producción con las nueve etapas del R.40.x.1, Realizó/Controló, equipos, lote según I.40.25 (R-08), liberación DT; batch record en PDF | `20260930110000`, `/ordenes` |
+| 12 | Trazabilidad del lote hacia atrás (insumos, lote, proveedor) y hacia adelante (despachos) | `20260930120000` |
+
+**Pruebas.** Todas las suites PGlite en verde (312 pruebas); las nuevas están
+en `supabase/tests/pglite/` (ver su README). Vitest 94, lint y build OK.
+
+### Migraciones pendientes, en orden (desde la segunda tanda)
+
+`20260929100000`, `110000`, `110100`, `120000`, `130000`, `140000`, `140100`,
+`150000`, `150100`, `160000`, `170000`, `20260930100000`, `110000`, `120000`.
+
+**Son compatibles con lo que hoy está en `main`**: agregan tablas, vistas y
+funciones; lo que cambia de comportamiento sigue aceptando las llamadas del
+front viejo (`terminar_pedido(p_pedido_id, p_consumos)`, `entregar_pedido`). Lo
+que sí se nota desde `main`: el renglón sin precio toma el precio de lista, y
+«comprometido» del stock de seguridad se calcula distinto.
+
+### Para revisarlo en local sin tocar `main`
+
+1. `npx supabase db push` (aplica las migraciones de arriba a la base alojada;
+   es la misma base que usa la app publicada: ver la nota de compatibilidad).
+   Si se prefiere no tocarla, crear un proyecto Supabase de prueba y apuntar
+   `.env.local` a él.
+2. `npm run db:types`.
+3. `npm run dev` y entrar en `http://localhost:5173`.
+4. Recién después: borrar los tipos puente y merge de `prueba` a `main`.
+
+### Usuario «Administrador dev»
+
+No se puede crear desde acá (hace falta el alta en Supabase Auth, y la clave
+de servicio no se usa: CLAUDE.md §5). Pasos: registrarse en la app con **un
+email distinto** al de la cuenta de DT (§3.5: dos credenciales), y desde la
+cuenta de verificación (ADMINISTRADOR_SISTEMA) asignarle ese rol en Usuarios.
+Ve todas las pantallas, lee todo, y en «Quién ve qué» marca y cambia qué ve
+cada rol. No escribe como otros roles: para operar un circuito se usa la
+cuenta con ese rol (si hace falta, sumarle roles adicionales en Usuarios).
+
+### Sigue pendiente
+
+- Ítem 1 de la cola del 24/09: conversarlo.
+- Facturación ARCA en producción: CUIT, punto de venta, certificado y clave,
+  y D-32 antes.
+- 26 (RRHH, comisiones, COMEX, monotributos, estudio contable): D-34.
+- Stock valorizado: D-36.
+- Que la venta de producto terminado exija lote liberado (RN-51 para PT): hoy
+  la liberación queda registrada pero el despacho no la exige, porque el stock
+  de PT todavía no lleva lote (`movimientos_pt.lote_texto`).
+- La cuenta de Mati sigue en GERENCIA_PRODUCCION: cambiarla a VENTAS desde
+  Usuarios cuando se quiera.
