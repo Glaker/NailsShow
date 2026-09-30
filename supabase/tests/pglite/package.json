@@ -1,0 +1,9 @@
+{
+  "name": "pruebas-pglite",
+  "private": true,
+  "type": "module",
+  "description": "Pruebas funcionales de las migraciones sobre PGlite (Postgres en WASM). Sin Docker.",
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.8"
+  }
+}
