@@ -544,6 +544,22 @@ IVA y cuentas corrientes por emisor.
 
 ## Resueltas
 
+### R-09 · Lote en el producto terminado y RN-51 — 2026-09-30
+
+**Resolución** del usuario, en tres respuestas:
+1. Lo que ya existe sin lote (conteo inicial, Calle 5) **sigue saliendo**,
+   marcado «sin lote», como el saldo de apertura de insumos (R-05).
+2. «Terminado» **no exige orden**: si el pedido tiene la orden de ese
+   producto, lo producido entra con su lote y solo se vende liberado por DT;
+   si no la tiene, entra sin lote y sale igual. **Es un camino para vender
+   sin liberar**, elegido a sabiendas para no frenar la planta.
+3. A Calle 5 va **solo lo liberado** o lo sin lote.
+**Dónde está.** `20260930160000`/`160100`: `gmp.impedimento_despacho_orden()`
+(la autoridad, CLAUDE.md §4), `movimientos_pt.orden_id` y el reparto por lote
+en `comercial.fn_movimiento_pt_lote`.
+**No cubre** el bloqueo de un lote de PT por retiro (RN-52): espera el módulo
+de retiro (PG.60.4).
+
 ### R-08 · Número de lote según I.40.25 (borrador) — 2026-09-30, provisorio
 
 **Era D-04.** El POE I.40.25 «Asignación de lote» apareció en la carpeta de

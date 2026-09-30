@@ -130,6 +130,8 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
   const conStock = stock.data.filter((f) => Number(f.saldo) > 0);
   const saldoDe = (id: string | null) =>
     Number(stock.data.find((f) => f.producto_id === id)?.saldo ?? 0);
+  const retenidoDe = (id: string | null) =>
+    Number(stock.data.find((f) => f.producto_id === id)?.retenido ?? 0);
 
   function abrir(s: 'entra' | 'sale') {
     setSentido(s);
@@ -290,6 +292,11 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
                         <Text size="lg" ff="monospace" fw={700}>
                           {numero(Number(f.saldo), 0)}
                         </Text>
+                        {Number(f.retenido) > 0 ? (
+                          <Text size="xs" c="estadoEnAnalisis.8">
+                            {numero(Number(f.retenido), 0)} retenidas: lote sin liberar
+                          </Text>
+                        ) : null}
                       </Table.Td>
                       <Table.Td>
                         <Text size="sm" c="dimmed">
@@ -405,7 +412,8 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
             nothingFoundMessage="Sin stock en fábrica"
             data={conStock.map((f) => ({
               value: f.producto_id,
-              label: `${f.producto} · ${numero(Number(f.saldo), 0)} en fábrica`,
+              // A Calle 5 va solo lo liberado o sin lote (R-09).
+              label: `${f.producto} · ${numero(Number(f.saldo) - Number(f.retenido), 0)} para enviar`,
             }))}
             value={envioProducto}
             onChange={setEnvioProducto}
@@ -413,7 +421,7 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
           <NumberInput
             label="Unidades"
             min={1}
-            max={saldoDe(envioProducto)}
+            max={saldoDe(envioProducto) - retenidoDe(envioProducto)}
             allowDecimal={false}
             hideControls
             value={envioCantidad}
@@ -429,7 +437,7 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
                 !envioProducto ||
                 typeof envioCantidad !== 'number' ||
                 envioCantidad <= 0 ||
-                envioCantidad > saldoDe(envioProducto)
+                envioCantidad > saldoDe(envioProducto) - retenidoDe(envioProducto)
               }
               onClick={() =>
                 envioProducto &&

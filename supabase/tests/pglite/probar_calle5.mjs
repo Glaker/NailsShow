@@ -68,7 +68,7 @@ await prueba('Caro usa la reserva de cliente', async () => {
   if (N(f.reservado) !== 0 || N(f.en_calle5) !== 0) throw new Error(JSON.stringify(f));
 });
 await rechaza('más de lo pendiente', `select comercial.despachar_pedido('${pC}', '[{"producto_id":"${duo}","cantidad":271}]', 'C5', true)`, /quedan 270/);
-await rechaza('lo que no hay', `select comercial.despachar_pedido('${pC}', '[{"producto_id":"${duo}","cantidad":5}]', 'C5', true)`, /No se puede sacar|dejaría|reservado/);
+await rechaza('lo que no hay', `select comercial.despachar_pedido('${pC}', '[{"producto_id":"${duo}","cantidad":5}]', 'C5', true)`, /No se puede sacar|dejaría|reservado|No alcanza/);
 await como(NAZA);
 let s1;
 await prueba('mandar a producir lo que falta con destino Calle 5: cuenta en producción', async () => {

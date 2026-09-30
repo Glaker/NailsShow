@@ -1486,9 +1486,8 @@ cuenta con ese rol (si hace falta, sumarle roles adicionales en Usuarios).
   y D-32 antes.
 - 26 (RRHH, comisiones, COMEX, monotributos, estudio contable): D-34.
 - Stock valorizado: D-36.
-- Que la venta de producto terminado exija lote liberado (RN-51 para PT): hoy
-  la liberación queda registrada pero el despacho no la exige, porque el stock
-  de PT todavía no lleva lote (`movimientos_pt.lote_texto`).
+- Que la venta de producto terminado exija lote liberado (RN-51 para PT):
+  hecho el 2026-09-30 (R-09), ver «Lote en el producto terminado».
 - La cuenta de Mati sigue en GERENCIA_PRODUCCION: cambiarla a VENTAS desde
   Usuarios cuando se quiera.
 
@@ -1586,3 +1585,24 @@ tercerizados. `probar_descarte.mjs`: 5 en verde.
 **Para aplicar lo de hoy:** `npx supabase db push` (130000, 140000, 150000),
 `npm run db:types`, `npx supabase functions deploy emitir-factura`, y probar
 en homologación una factura B y su nota de crédito.
+
+### Lote en el producto terminado (2026-09-30, commiteada en `prueba`, SIN APLICAR)
+
+`20260930160000` y su corrección `160100` (R-09). El stock de PT pasa a
+llevarse por lote (la orden de producción; vacío = «sin lote»):
+
+- «Terminado» toma el lote de la orden del pedido para ese producto; sin orden,
+  entra sin lote. Con dos órdenes del mismo producto en un pedido, rechaza
+  (ponytail: falta decir de cuál es lo producido cuando aparezca el caso).
+- Las salidas se reparten solas: primero lo sin lote, después por vencimiento.
+  **Una venta toma solo lo liberado o sin lote** (RN-51); ajuste y descarte,
+  cualquiera. A Calle 5 solo va lo liberado o sin lote, y «Terminado» con
+  destino Calle 5 de un lote sin liberar se rechaza: queda en PTF.
+- La traza hacia adelante sigue al lote real.
+- En «Stock en fábrica» se ve lo retenido, y «Enviar a Calle 5» no deja pasar
+  más que lo liberado.
+- `probar_lote_pt.mjs` 11 en verde; 14 suites PGlite en verde (202).
+
+**Para aplicar todo lo de hoy:** `npx supabase db push` (130000, 140000,
+150000, 160000, 160100), `npm run db:types`, `npx supabase functions deploy
+emitir-factura`.

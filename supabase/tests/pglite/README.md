@@ -33,6 +33,7 @@ reconstrucción la aplica en su lugar por orden de nombre.
 | `probar_traza.mjs` | trazabilidad del lote hacia atrás y hacia adelante |
 | `probar_quitar.mjs` | quitar componente de fórmula y material sin DELETE; DELETE revocado |
 | `probar_notas_credito.mjs` | nota de crédito total, refacturar, varios emisores, Factura C, restas en cuenta corriente y ventas |
+| `probar_lote_pt.mjs` | lote en producto terminado: retenido hasta liberar, sin lote primero, Calle 5 solo liberado (RN-51, R-09) |
 | `probar_descarte.mjs` | dar de baja todo el stock de un artículo (descarte «Discontinuado» por posición) |
 
 `probar_facturas` (sesiones anteriores) necesita el token de Afip SDK y red, y

@@ -158,6 +158,8 @@ export interface StockPuntoVentaRow {
   producto: string;
   saldo: number;
   ultimo_movimiento: string | null;
+  /** En lotes que la DT no liberó: no se venden ni van a Calle 5 (20260930160000). */
+  retenido: number;
 }
 
 export interface MovimientoPtRow {
