@@ -22,6 +22,7 @@ import { useElementSize, useMergedRef } from '@mantine/hooks';
 import { IconArrowDownRight, IconArrowUpRight, IconX } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { dineroCompacto, numero } from '@/lib/formato';
+import { MEDIOS_PAGO } from '@/lib/consultasAdministracion';
 import {
   useDetalleDia,
   useFlujoDiario,
@@ -52,12 +53,22 @@ const reducido = () =>
   window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 const diaCorto = (f: string) => dayjs(f).format('DD/MM');
-const diaLargo = (f: string) =>
-  new Date(`${f}T12:00:00`).toLocaleDateString('es-AR', {
+/* Mayúscula solo al principio: `text-transform: capitalize` da «25 De Septiembre». */
+const diaLargo = (f: string) => {
+  const s = new Date(`${f}T12:00:00`).toLocaleDateString('es-AR', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
   });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+};
+const medio = (v: string) =>
+  MEDIOS_PAGO.find((x) => x.value === v)?.label ?? v.charAt(0) + v.slice(1).toLowerCase();
+/* El concepto de un cobro o pago ya nombra a la contraparte («Cobro a X»). */
+const conQuien = (m: MovimientoDia) => {
+  const quien = m.cobro?.cliente ?? m.pago?.proveedor ?? m.contraparte;
+  return quien && !m.concepto.includes(quien) ? `${quien} · ${m.concepto}` : m.concepto;
+};
 const conSigno = (n: number) => (n > 0 ? `+${dineroCompacto(n)}` : dineroCompacto(n));
 
 type Tooltip = { x: number; y: number; lineas: string[]; titulo: string };
@@ -444,7 +455,7 @@ function Lienzo({ datos }: { datos: DiaFlujo[] }) {
           className="gf-tooltip"
           style={{ left: tooltip.x, top: tooltip.y }}
         >
-          <div style={{ fontWeight: 700, marginBottom: 2, textTransform: 'capitalize' }}>
+          <div style={{ fontWeight: 700, marginBottom: 2 }}>
             {tooltip.titulo}
           </div>
           {tooltip.lineas.map((t) => (
@@ -559,7 +570,7 @@ function Panel({
       {reducido() ? null : <div className="gf-tinte" style={{ background: tinte }} />}
       <Group justify="space-between" mb="md" className="gf-aparece" wrap="nowrap">
         <div>
-          <Text fw={700} size="lg" style={{ textTransform: 'capitalize' }}>
+          <Text fw={700} size="lg">
             {diaLargo(abierto.fecha)}
           </Text>
           {abierto.tipo === 'dia' ? (
@@ -706,7 +717,7 @@ function Tarjeta({ m }: { m: MovimientoDia }) {
     <Text size="xs" c="dimmed">
       {m.cuenta}
       {m.titular ? ` (${m.titular})` : ''} ·{' '}
-      {(m.cobro?.medio ?? m.pago?.medio ?? m.tipo).toLowerCase()}
+      {medio(m.cobro?.medio ?? m.pago?.medio ?? m.tipo)}
       {m.registrado_por ? ` · registró ${m.registrado_por}` : ''}
       {m.es_anulacion ? ' · anulación' : ''}
     </Text>
@@ -873,9 +884,7 @@ function Cuentas({
                       mt={4}
                       c={m.importe > 0 ? 'estadoAprobado.8' : 'estadoRechazado.8'}
                     >
-                      {conSigno(m.importe)} ·{' '}
-                      {m.cobro?.cliente ?? m.pago?.proveedor ?? m.contraparte ?? ''}{' '}
-                      {m.concepto}
+                      {conSigno(m.importe)} · {conQuien(m)}
                     </Text>
                   ))}
                 </Paper>

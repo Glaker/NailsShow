@@ -1646,6 +1646,13 @@ dependencias:
 - Pruebas: `probar_flujo.mjs` 7 en verde, 16 suites PGlite en verde; Vitest
   102 (incluye `GraficoFlujo.test.tsx` y `formato.test.ts`), build OK.
   **Falta verlo en pantalla** con datos reales: hace falta el `db push`.
+- **Revisado en el navegador con datos inventados** (2026-09-30, vista previa
+  temporal, sin commitear): a 1280, 800 y 390 px, pasar el mouse y tocar
+  barra y línea. Corregido: fecha «25 De Septiembre» (era `capitalize`),
+  medio de pago crudo en minúscula, «Distribuidora X Cobro a Distribuidora X»
+  en el detalle de cuentas, y leyenda de las tortas cortada en el teléfono
+  (ahora baja debajo de la dona). Con datos reales queda por mirar cómo se
+  ven días con muchos movimientos y conceptos cargados a mano.
 - Puente de tipos en `consultasFlujo.ts` hasta `npm run db:types`.
 
 **Para aplicar todo lo de hoy:** `npx supabase db push` (130000 a 180100),

@@ -96,7 +96,7 @@ export function GraficoTorta({
           Sin movimientos en el período.
         </Text>
       ) : (
-        <Group align="center" gap="lg" wrap="nowrap">
+        <Group align="center" justify="center" gap="lg">
           <svg
             ref={svg}
             className="gf-torta"
@@ -147,7 +147,7 @@ export function GraficoTorta({
               {foco ? `${numero(foco.pct, 1)} %` : 'total'}
             </text>
           </svg>
-          <Stack gap={4} style={{ minWidth: 0, flex: 1 }}>
+          <Stack gap={4} style={{ minWidth: 200, flex: 1 }}>
             {porciones.lista.map((p, i) => (
               <Group
                 key={p.nombre}
