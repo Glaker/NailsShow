@@ -1481,7 +1481,7 @@ cuenta con ese rol (si hace falta, sumarle roles adicionales en Usuarios).
 
 ### Sigue pendiente
 
-- Ítem 1 de la cola del 24/09: conversarlo.
+- Ítem 1 de la cola del 24/09: hecho el 2026-09-30 (ver «Quitar» sin DELETE).
 - Facturación ARCA en producción: CUIT, punto de venta, certificado y clave,
   y D-32 antes.
 - 26 (RRHH, comisiones, COMEX, monotributos, estudio contable): D-34.
@@ -1536,5 +1536,22 @@ generados, y el merge a `main` cuando el usuario lo apruebe.
 - `lib.mjs` de PGlite ya **no tolera** el rojo de «1, 8 y 9»: las 11 suites lo
   exigen y están en verde (`probar_quitar.mjs`, 12 pruebas nuevas). Vitest 94.
 
-**Para aplicarla:** `npx supabase db push` (el dry-run muestra solo esta) y
-`npm run db:types`. Es compatible con `main`: sus dos botones ya fallaban.
+**Para aplicarla:** `npx supabase db push` y `npm run db:types`. Es
+compatible con `main`: sus dos botones ya fallaban.
+
+### Ítem 1 de la cola del 24/09: conversado y hecho (2026-09-30, SIN APLICAR)
+
+Respuesta del usuario: «dar de baja» una materia prima que no se usa es
+**sacar el stock que quedó**. No se pidió que deje de contar en faltantes ni
+que se desactive (eso sigue siendo la casilla «Activo» de `/insumos`).
+
+`20260930140000_comercial_descartar_articulo.sql`:
+`comercial.descartar_articulo(articulo, motivo)` registra un
+`SALIDA_DESCARTE` «Discontinuado» por cada lote y depósito de Nail Show con
+saldo, en una transacción, con la política de INSERT del que la llama (DT,
+Administración, GP). En `/stock`, el desglose del artículo tiene «Dar de baja
+todo el stock» con motivo obligatorio. No toca reservas ni el stock de
+tercerizados. `probar_descarte.mjs`: 5 en verde.
+
+**Para aplicar las dos:** `npx supabase db push` (130000 y 140000), después
+`npm run db:types` y quitar el cast de `rpcComercial('descartar_articulo')`.

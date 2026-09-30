@@ -14,7 +14,12 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { comercial, core, gmp } from './supabase';
-import { avisarError, avisarExito, type ConsultaTabla } from './consultas';
+import {
+  avisarError,
+  avisarExito,
+  invalidarStock,
+  type ConsultaTabla,
+} from './consultas';
 
 /* ------------------------------------------------------------------------- *
  * Tipos de fila (puente temporal)
@@ -1133,6 +1138,29 @@ export function usePlanificarPedido() {
       if (!data || data.length === 0) throw new Error('No se pudo guardar el plan.');
     },
     onSuccess: (_d, v) => invalidarPedido(qc, v.id),
+    onError: avisarError,
+  });
+}
+
+/**
+ * Da de baja todo el stock de Nail Show que queda de un artículo: un descarte
+ * «Discontinuado» por lote y depósito, en una transacción (20260930140000).
+ */
+export function useDescartarArticulo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (d: { articuloId: string; motivo: string }) => {
+      const { data, error } = await rpcComercial<number>('descartar_articulo', {
+        p_articulo_id: d.articuloId,
+        p_motivo: d.motivo,
+      });
+      if (error) throw error;
+      return data ?? 0;
+    },
+    onSuccess: (n) => {
+      invalidarStock(qc);
+      avisarExito(`Stock dado de baja: ${n} ${n === 1 ? 'posición' : 'posiciones'}.`);
+    },
     onError: avisarError,
   });
 }

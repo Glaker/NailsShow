@@ -4,13 +4,17 @@ import {
   Box,
   Anchor,
   Badge,
+  Button,
   Chip,
   Collapse,
   Group,
+  Modal,
   Paper,
   Skeleton,
   Table,
+  Stack,
   Text,
+  Textarea,
   TextInput,
   Tooltip,
   UnstyledButton,
@@ -24,12 +28,15 @@ import {
   IconFlame,
   IconPackages,
   IconSearch,
+  IconTrash,
 } from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { InsigniaEstado } from '@/components/InsigniaEstado';
 import { TarjetaIndicador } from '@/components/TarjetaIndicador';
 import { Vacio } from '@/components/Vacio';
 import { useExistenciasPorLote, useStockPorArticulo } from '@/lib/consultas';
+import { useDescartarArticulo } from '@/lib/consultasComercial';
+import { useTieneRol } from '@/features/auth/sesion';
 import { fecha, numero } from '@/lib/formato';
 import { PanelReservas } from '@/features/tercerizados/PanelReservas';
 
@@ -295,6 +302,15 @@ export function PaginaStock() {
 /** Desglose de un artículo: una fila por lote y depósito, que es la posición real. */
 function Desglose({ articuloId }: { articuloId: string }) {
   const posiciones = useExistenciasPorLote(articuloId);
+  // Los roles de la política de INSERT de movimientos_stock.
+  const puedeMover = useTieneRol(
+    'DIRECCION_TECNICA',
+    'ADMINISTRACION',
+    'GERENCIA_PRODUCCION',
+  );
+  const descartar = useDescartarArticulo();
+  const [bajando, setBajando] = useState(false);
+  const [motivo, setMotivo] = useState('');
 
   if (posiciones.isLoading) return <Skeleton h={90} m="md" />;
 
@@ -307,78 +323,139 @@ function Desglose({ articuloId }: { articuloId: string }) {
     );
   }
 
+  const conSaldo = filas.filter((p) => Number(p.saldo ?? 0) > 0);
+
   return (
-    <Table
-      verticalSpacing="xs"
-      withColumnBorders={false}
-      style={{ background: 'var(--mantine-color-violeta-0)' }}
-    >
-      <Table.Thead>
-        <Table.Tr>
-          <Table.Th>Lote</Table.Th>
-          <Table.Th>Estado</Table.Th>
-          <Table.Th>Depósito</Table.Th>
-          <Table.Th ta="right">Saldo</Table.Th>
-          <Table.Th>Vence</Table.Th>
-          <Table.Th>Despacho</Table.Th>
-        </Table.Tr>
-      </Table.Thead>
-      <Table.Tbody>
-        {filas.map((p) => (
-          <Table.Tr key={`${p.lote_insumo_id}-${p.deposito_id}`}>
-            <Table.Td>
-              <Anchor component={Link} to={`/lotes/${p.lote_insumo_id}`} size="sm">
-                {p.numero_registro_interno}
-              </Anchor>
-              <Text size="xs" c="dimmed">
-                prov. {p.lote_proveedor}
-              </Text>
-            </Table.Td>
-            <Table.Td>
-              {p.estado ? <InsigniaEstado estado={p.estado} size="sm" /> : null}
-            </Table.Td>
-            <Table.Td>
-              <Text size="sm">{p.deposito_numero}</Text>
-              <Text size="xs" c="dimmed">
-                {p.deposito_nombre}
-              </Text>
-            </Table.Td>
-            <Table.Td ta="right">
-              <Text size="sm" ff="monospace" fw={600}>
-                {numero(p.saldo, 3)} {p.unidad}
-              </Text>
-            </Table.Td>
-            <Table.Td>
-              <Group gap={6} wrap="nowrap">
-                <Text size="sm">{fecha(p.plazo_validez)}</Text>
-                {p.vence_en_90_dias ? (
-                  <Badge size="xs" color="estadoEnAnalisis" variant="light" radius="sm">
-                    pronto
-                  </Badge>
-                ) : null}
-              </Group>
-            </Table.Td>
-            <Table.Td>
-              {p.impedimento_despacho ? (
-                <Tooltip label={p.impedimento_despacho} multiline w={300}>
-                  <Badge
-                    color="estadoRechazado"
-                    variant="light"
-                    radius="sm"
-                    leftSection={<IconBan size={12} />}
-                  >
-                    Retenido
-                  </Badge>
-                </Tooltip>
-              ) : (
-                <Badge color="estadoAprobado" variant="light" radius="sm">
-                  Despachable
-                </Badge>
-              )}
-            </Table.Td>
+    <>
+      {puedeMover && conSaldo.length > 0 ? (
+        <Group justify="flex-end" px="md" pt="sm">
+          <Button
+            size="sm"
+            variant="light"
+            color="estadoRechazado"
+            leftSection={<IconTrash size={16} />}
+            onClick={() => setBajando(true)}
+          >
+            Dar de baja todo el stock
+          </Button>
+        </Group>
+      ) : null}
+      <Modal
+        opened={bajando}
+        onClose={() => setBajando(false)}
+        title="Dar de baja todo el stock"
+      >
+        <Stack gap="md">
+          <Text size="sm">
+            Se registra un descarte «Discontinuado» por cada lote y depósito con saldo (
+            {conSaldo.length} {conSaldo.length === 1 ? 'posición' : 'posiciones'}). Los
+            movimientos quedan en el kardex y no se deshacen: la corrección es un ajuste.
+          </Text>
+          <Textarea
+            label="Motivo"
+            withAsterisk
+            autosize
+            minRows={2}
+            value={motivo}
+            onChange={(e) => setMotivo(e.currentTarget.value)}
+          />
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setBajando(false)}>
+              Cancelar
+            </Button>
+            <Button
+              color="estadoRechazado"
+              disabled={motivo.trim().length === 0}
+              loading={descartar.isPending}
+              onClick={() =>
+                descartar.mutate(
+                  { articuloId, motivo },
+                  {
+                    onSuccess: () => {
+                      setBajando(false);
+                      setMotivo('');
+                    },
+                  },
+                )
+              }
+            >
+              Dar de baja
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+      <Table
+        verticalSpacing="xs"
+        withColumnBorders={false}
+        style={{ background: 'var(--mantine-color-violeta-0)' }}
+      >
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Lote</Table.Th>
+            <Table.Th>Estado</Table.Th>
+            <Table.Th>Depósito</Table.Th>
+            <Table.Th ta="right">Saldo</Table.Th>
+            <Table.Th>Vence</Table.Th>
+            <Table.Th>Despacho</Table.Th>
           </Table.Tr>
-        ))}
-      </Table.Tbody>
-    </Table>
+        </Table.Thead>
+        <Table.Tbody>
+          {filas.map((p) => (
+            <Table.Tr key={`${p.lote_insumo_id}-${p.deposito_id}`}>
+              <Table.Td>
+                <Anchor component={Link} to={`/lotes/${p.lote_insumo_id}`} size="sm">
+                  {p.numero_registro_interno}
+                </Anchor>
+                <Text size="xs" c="dimmed">
+                  prov. {p.lote_proveedor}
+                </Text>
+              </Table.Td>
+              <Table.Td>
+                {p.estado ? <InsigniaEstado estado={p.estado} size="sm" /> : null}
+              </Table.Td>
+              <Table.Td>
+                <Text size="sm">{p.deposito_numero}</Text>
+                <Text size="xs" c="dimmed">
+                  {p.deposito_nombre}
+                </Text>
+              </Table.Td>
+              <Table.Td ta="right">
+                <Text size="sm" ff="monospace" fw={600}>
+                  {numero(p.saldo, 3)} {p.unidad}
+                </Text>
+              </Table.Td>
+              <Table.Td>
+                <Group gap={6} wrap="nowrap">
+                  <Text size="sm">{fecha(p.plazo_validez)}</Text>
+                  {p.vence_en_90_dias ? (
+                    <Badge size="xs" color="estadoEnAnalisis" variant="light" radius="sm">
+                      pronto
+                    </Badge>
+                  ) : null}
+                </Group>
+              </Table.Td>
+              <Table.Td>
+                {p.impedimento_despacho ? (
+                  <Tooltip label={p.impedimento_despacho} multiline w={300}>
+                    <Badge
+                      color="estadoRechazado"
+                      variant="light"
+                      radius="sm"
+                      leftSection={<IconBan size={12} />}
+                    >
+                      Retenido
+                    </Badge>
+                  </Tooltip>
+                ) : (
+                  <Badge color="estadoAprobado" variant="light" radius="sm">
+                    Despachable
+                  </Badge>
+                )}
+              </Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
+    </>
   );
 }
