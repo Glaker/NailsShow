@@ -508,6 +508,32 @@ indirectos?
 y no tiene costo de lo vendido.
 **Decide.** Gerencia, con el estudio contable.
 
+### D-37 · Tres emisores de factura sobre un mismo stock
+
+**Contexto.** Indicación del usuario (2026-09-30): las facturas se pueden
+emitir a nombre de **Virginia Arleo** (la dueña, persona física), **Athene
+del Plata** y **Nail Show SRL**, que son «titulares solidarios del stock». El
+sistema tiene hoy un solo emisor vigente (`comercial.configuracion_fiscal`,
+índice «una vigente»), y la clase de factura depende solo del receptor
+(`clase_factura`: A o B), lo que supone un emisor Responsable Inscripto.
+`comercial.facturas` ya guarda CUIT y punto de venta por factura, así que el
+cambio de fondo es de configuración, elección y reportes, no de la factura.
+**Preguntas.**
+1. CUIT y condición frente al IVA de cada uno. Un emisor monotributista emite
+   Factura C, no A ni B: la clase pasa a depender de emisor y receptor.
+2. Quién elige el emisor de cada factura, y si hay una regla (por cliente,
+   por canal, por tope de facturación del monotributo) o es libre.
+3. Un certificado por CUIT, o uno solo con el servicio de facturación
+   delegado por los otros dos en ARCA.
+4. Para el estudio contable: si el stock es de los tres sin distinción, ¿cómo
+   se reparte el crédito fiscal de compras (va a quien fue facturado) y cómo
+   se registra que un emisor venda mercadería que compró otro? Esto decide si
+   el stock, IVA Compras/Ventas y las cuentas corrientes se separan por
+   titular o se siguen llevando como uno solo.
+**Mientras tanto.** Sin cambios: se sigue emitiendo en homologación con un
+emisor.
+**Decide.** Gerencia, con el estudio contable.
+
 ## Resueltas
 
 ### R-08 · Número de lote según I.40.25 (borrador) — 2026-09-30, provisorio
