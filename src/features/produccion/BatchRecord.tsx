@@ -14,6 +14,7 @@ import {
   type EtapaRegistrada,
 } from '@/lib/consultasOrdenes';
 import { CONFIG_ETAPAS, unidadesRecuento } from './etapasOrden';
+import { TrazabilidadOrden } from './TrazabilidadOrden';
 
 /*
  * Estilos del documento: papel, no pantalla. Colores fijos a propósito (se
@@ -349,6 +350,9 @@ export function BatchRecord() {
           <b>Observaciones:</b> {revision?.observaciones ?? ''}
         </p>
         <Firmas e={revision} quien={quien} />
+
+        <h2>Trazabilidad del lote (anexo)</h2>
+        <TrazabilidadOrden ordenId={o.id} impreso />
 
         <h2>Liberación del producto terminado al mercado</h2>
         <p>

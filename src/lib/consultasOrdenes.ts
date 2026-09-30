@@ -594,3 +594,36 @@ export function useOrdenesDePedido(pedidoId: string | undefined) {
     },
   });
 }
+
+/** Una fila de comercial.v_trazabilidad_orden (§8.4). */
+export interface FilaTrazabilidad {
+  orden_id: string;
+  sentido: 'INSUMO' | 'DESPACHO';
+  momento: string;
+  codigo_interno: string | null;
+  articulo: string;
+  cantidad: number;
+  unidad: string | null;
+  lote_interno: string | null;
+  lote_proveedor: string | null;
+  recepcion: string | null;
+  contraparte: string | null;
+  pedido: string;
+}
+
+export function useTrazabilidadOrden(ordenId: string | undefined) {
+  return useQuery({
+    queryKey: ['orden', ordenId, 'trazabilidad'],
+    enabled: Boolean(ordenId),
+    queryFn: async () => {
+      const { data, error } = await tablaComercial<FilaTrazabilidad[]>(
+        'v_trazabilidad_orden',
+      )
+        .select('*')
+        .eq('orden_id', ordenId!)
+        .order('momento', { ascending: true });
+      if (error) return [];
+      return data ?? [];
+    },
+  });
+}

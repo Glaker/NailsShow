@@ -54,6 +54,7 @@ import {
   type EtapaRegistrada,
   type OrdenProduccion,
 } from '@/lib/consultasOrdenes';
+import { TrazabilidadOrden } from './TrazabilidadOrden';
 import {
   COLOR_ESTADO_ORDEN,
   CONFIG_ETAPAS,
@@ -249,6 +250,8 @@ export function PaginaOrden() {
             </Paper>
           );
         })}
+
+        <TrazabilidadOrden ordenId={o.id} />
       </Stack>
 
       <Modal
