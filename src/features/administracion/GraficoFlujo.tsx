@@ -678,7 +678,8 @@ function Columna({
             style={
               {
                 '--i': k + 2,
-                borderLeft: `4px solid var(--mantine-color-${color}-6)`,
+                // Tinte suave del color de la columna, no un borde lateral grueso.
+                background: `var(--mantine-color-${color}-light)`,
               }
             }
           >
