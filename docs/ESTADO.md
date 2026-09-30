@@ -1606,3 +1606,18 @@ llevarse por lote (la orden de producción; vacío = «sin lote»):
 **Para aplicar todo lo de hoy:** `npx supabase db push` (130000, 140000,
 150000, 160000, 160100), `npm run db:types`, `npx supabase functions deploy
 emitir-factura`.
+
+### Manual de fórmulas v10 (2026-09-30, commiteada en `prueba`, SIN APLICAR)
+
+`20260930170000_carga_manual_formulas.sql`, generada por
+`scripts/manual_formulas/generar_migracion.mjs` desde
+`App/manual_formulas_produccion_v10.pdf` (transcripto leyendo cada página).
+**44 fórmulas en BORRADOR**, cada una con su procedimiento (el texto del
+manual, con página de origen): 24 SKU de Nail Show y 20 productos tercerizados
+nuevos (Navi 5, Glam 3, Jennifer Beauty 12; Glam y Jennifer Beauty se dan de
+alta como clientes). % p/p solo donde el manual pesa en kg; cucharadas y ml sin
+densidad quedan en el procedimiento. Autora: la DT activa, como las otras
+cargas. **Lo que tiene que mirar la DT antes de aprobar está en
+`scripts/manual_formulas/pendientes.md`**, empezando por la 377 PREP (la
+vigente dice 70/30 p/p; el manual es 70/30 en volumen = 67,55/32,45 en masa).
+`probar_manual_formulas.mjs` 10 en verde; 15 suites PGlite en verde.

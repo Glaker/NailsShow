@@ -26,7 +26,7 @@ await prueba('Ventas prepara la factura del pedido', async () => {
   if (!f.f) throw new Error('sin factura');
 });
 await prueba('Ventas da de alta un cliente tercerizado', async () => {
-  await q(`insert into gmp.terceros (nombre, color) values ('Navi','grape')`);
+  await q(`insert into gmp.terceros (nombre, color) values ('Cliente de prueba','grape')`);
 });
 await rechaza('Ventas no termina pedidos', `select comercial.terminar_pedido('${ped}')`, /Gerencia de Producción/);
 await rechaza('Ventas no anota compras', `insert into comercial.avisos_compra (insumo_id, cantidad, unidad) select id, 1, 'UNIDAD' from gmp.insumos_catalogo limit 1`, /row-level/);
