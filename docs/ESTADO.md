@@ -1373,7 +1373,7 @@ D-35 (qué stock mira el pedido y qué pasa con lo que no sale).
 
 ---
 
-## Segunda tanda hecha (2026-09-29, commiteada en `prueba`, SIN APLICAR)
+## Segunda tanda hecha (2026-09-29, commiteada en `prueba`, APLICADA en la base el 2026-09-30; front sin publicar)
 
 **Nada de esto está en la base alojada.** `supabase db push` quedó denegado
 por los permisos de la sesión. Para ponerlo en servicio, en este orden:
@@ -1429,7 +1429,7 @@ las vistas nuevas no existen en la base, así que la app no se pudo recorrer.
 
 ---
 
-## Tercera tanda (2026-09-29/30, commiteada en `prueba`, SIN APLICAR)
+## Tercera tanda (2026-09-29/30, commiteada en `prueba`, APLICADA en la base el 2026-09-30; front sin publicar)
 
 La cola del 2026-09-24 quedó hecha salvo el ítem 1 (dar de baja un lote o el
 stock de una materia prima), que pide conversarlo antes (ver esa sección).
@@ -1491,3 +1491,26 @@ cuenta con ese rol (si hace falta, sumarle roles adicionales en Usuarios).
   de PT todavía no lleva lote (`movimientos_pt.lote_texto`).
 - La cuenta de Mati sigue en GERENCIA_PRODUCCION: cambiarla a VENTAS desde
   Usuarios cuando se quiera.
+
+### Aplicación (2026-09-30)
+
+`supabase db push` de las 14 migraciones (`20260929100000` a
+`20260930120000`) contra `yxpzsxkefqfuhyvslkfw`, sin errores; tipos
+regenerados (`dc9cf3f`). Verificado en la base: 444 precios vigentes, rol
+VENTAS, las 16 tablas nuevas con RLS forzada, y `core.verificar_invariantes()`
+en verde salvo «1, 8 y 9», que **viene de antes**: `comercial.pedido_renglones`
+y `gmp.formula_componentes` tienen DELETE otorgado a `authenticated` desde
+migraciones anteriores (pendiente: revocarlo en una migración nueva).
+
+**Acceso.** El token con acceso al proyecto está en `~/.bashrc` y, desde
+el 2026-09-30, también como variable de usuario de Windows
+(`SUPABASE_ACCESS_TOKEN`): PowerShell no lee `.bashrc` y la CLI caía en
+el login del llavero, que es de la cuenta que solo ve el proyecto pausado
+(`ungcuiiuqkmdjcaeyzae`) y respondía 403. La regla `deny` de `db push`
+en `.claude/settings.local.json` se quitó a pedido del usuario; la de
+`vercel --prod` sigue.
+
+**Falta:** revisar en local (`npm run dev`), reemplazar los tipos puente de
+`consultasCompras`, `consultasCalle5`, `consultasAdministracion`,
+`consultasPrecios`, `consultasVisibilidad` y `consultasOrdenes` por los
+generados, y el merge a `main` cuando el usuario lo apruebe.
