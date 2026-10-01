@@ -45,3 +45,48 @@ describe('visibilidad de pantallas', () => {
     ).toBe(true);
   });
 });
+
+describe('reparto por rol del 2026-10-01', () => {
+  const rutas = (rol: Parameters<typeof itemsVisibles>[0][number]) =>
+    itemsVisibles([rol]).map((i) => i.ruta);
+
+  it('la encargada de stock ve solo su tablero y los pedidos a armar', () => {
+    expect(rutas('ENCARGADA_STOCK')).toEqual(['/', '/armado']);
+  });
+  it('Dirección Técnica no ve clientes, facturas, pedidos ni producción', () => {
+    const r = rutas('DIRECCION_TECNICA');
+    for (const fuera of [
+      '/clientes',
+      '/facturas',
+      '/pedidos',
+      '/ordenes',
+      '/planificacion',
+    ])
+      expect(r).not.toContain(fuera);
+    for (const dentro of ['/formulas', '/lotes', '/liberacion', '/stock'])
+      expect(r).toContain(dentro);
+  });
+  it('Administración no ve fórmulas, insumos, planificación ni tercerizados', () => {
+    const r = rutas('ADMINISTRACION');
+    for (const fuera of ['/formulas', '/lotes', '/planificacion', '/tercerizados'])
+      expect(r).not.toContain(fuera);
+    expect(r).toContain('/punto-venta');
+  });
+  it('Ventas tiene su sección y no la lista de pedidos de producción', () => {
+    const r = rutas('VENTAS');
+    expect(r).toContain('/ventas');
+    expect(r).not.toContain('/pedidos');
+  });
+  it('catálogos, calculadora y lista de materiales no son secciones', () => {
+    const todas = itemsVisibles(['ADMINISTRADOR_SISTEMA']).map((i) => i.ruta);
+    for (const r of [
+      '/insumos',
+      '/productos',
+      '/proveedores',
+      '/depositos',
+      '/calculadora-lote',
+      '/lista-materiales',
+    ])
+      expect(todas).not.toContain(r);
+  });
+});

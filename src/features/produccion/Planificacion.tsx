@@ -7,10 +7,12 @@ import {
   Box,
   Button,
   Group,
+  Menu,
   Modal,
   NumberInput,
   Paper,
   SegmentedControl,
+  SimpleGrid,
   Skeleton,
   Stack,
   Text,
@@ -24,7 +26,9 @@ import {
   IconMinus,
   IconPlus,
   IconCalendarPlus,
+  IconDots,
 } from '@tabler/icons-react';
+import type { CSSProperties } from 'react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { useSesion, useTieneRol } from '@/features/auth/sesion';
 import { fecha, fechaISO } from '@/lib/formato';
@@ -142,7 +146,7 @@ export function Gantt({
             </Box>
           ))}
         </Box>
-        {filas.map((p) => {
+        {filas.map((p, n) => {
           const ini = Math.max(diasEntre(desde, p.plan_inicio!), 0);
           const fin = Math.min(diasEntre(desde, finPlan(p)!), dias - 1);
           const entrega = p.fecha_entrega ? diasEntre(desde, p.fecha_entrega) : null;
@@ -185,22 +189,30 @@ export function Gantt({
                 />
               ))}
               <Box
-                style={{
-                  gridColumn: `${ini + 2} / ${fin + 3}`,
-                  gridRow: 1,
-                  alignSelf: 'center',
-                  height: 30,
-                  zIndex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  borderRadius: 6,
-                  padding: '0 2px',
-                  background: `var(--mantine-color-${colorPedido(p)}-${tarde ? 7 : 5})`,
-                  color: '#fff',
-                }}
+                className="gantt-barra"
+                style={
+                  {
+                    '--i': n,
+                    gridColumn: `${ini + 2} / ${fin + 3}`,
+                    gridRow: 1,
+                    alignSelf: 'center',
+                    height: 30,
+                    zIndex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderRadius: 6,
+                    padding: '0 2px',
+                    background: `var(--mantine-color-${colorPedido(p)}-${tarde ? 7 : 5})`,
+                    color: '#fff',
+                  } as CSSProperties
+                }
               >
-                {editable ? (
+                {editable && fin - ini < 3 ? (
+                  /* Bloque corto: los cuatro botones (≈88 px) no entran en uno a
+                     tres días de 26–40 px y quedaban blancos sobre la grilla. */
+                  <AccionesCortas p={p} mover={mover} />
+                ) : editable ? (
                   <>
                     <Group gap={0} wrap="nowrap">
                       <Tooltip label="Un día antes">
@@ -264,72 +276,167 @@ export function Gantt({
   );
 }
 
+/** Las mismas cuatro acciones del bloque, en un menú, para bloques cortos. */
+function AccionesCortas({
+  p,
+  mover,
+}: {
+  p: PedidoRow;
+  mover: (p: PedidoRow, inicio: number, largo: number) => void;
+}) {
+  return (
+    <Menu position="bottom" withArrow shadow="md">
+      <Menu.Target>
+        <ActionIcon
+          size="sm"
+          variant="transparent"
+          c="#fff"
+          mx="auto"
+          aria-label={`Mover o estirar ${p.numero}`}
+        >
+          <IconDots size={16} />
+        </ActionIcon>
+      </Menu.Target>
+      <Menu.Dropdown>
+        <Menu.Label>
+          {p.numero} · {p.plan_dias} {p.plan_dias === 1 ? 'día' : 'días'}
+        </Menu.Label>
+        <Menu.Item
+          leftSection={<IconChevronLeft size={16} />}
+          onClick={() => mover(p, -1, 0)}
+        >
+          Un día antes
+        </Menu.Item>
+        <Menu.Item
+          leftSection={<IconChevronRight size={16} />}
+          onClick={() => mover(p, 1, 0)}
+        >
+          Un día después
+        </Menu.Item>
+        <Menu.Item leftSection={<IconPlus size={16} />} onClick={() => mover(p, 0, 1)}>
+          Un día más
+        </Menu.Item>
+        <Menu.Item
+          leftSection={<IconMinus size={16} />}
+          disabled={p.plan_dias === 1}
+          onClick={() => mover(p, 0, -1)}
+        >
+          Un día menos
+        </Menu.Item>
+      </Menu.Dropdown>
+    </Menu>
+  );
+}
+
 /* ------------------------------- Calendario ------------------------------ */
 
-/** Mes con las entregas comprometidas y los días de producción de cada pedido. */
+/**
+ * Mes con las entregas comprometidas y los días de producción de cada pedido.
+ * Grilla de calendario de verdad: una sola hoja con líneas, el número en la
+ * esquina, hoy en un círculo y el fin de semana apenas teñido.
+ */
 export function CalendarioMes({ pedidos, mes }: { pedidos: PedidoRow[]; mes: string }) {
   const primero = `${mes.slice(0, 7)}-01`;
   const desde = lunesDe(primero);
   const dias = Array.from({ length: 42 }, (_, i) => sumarDias(desde, i));
   const [hoy] = useState(() => iso(new Date()));
   return (
-    <Box style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+    <div className="calendario" key={mes}>
       {DIAS_SEMANA.map((d) => (
-        <Text key={d} size="xs" c="dimmed" ta="center" fw={600}>
+        <div key={d} className="calendario-dia-semana">
           {d}
-        </Text>
+        </div>
       ))}
-      {dias.map((d) => {
+      {dias.map((d, i) => {
         const entregas = pedidos.filter((p) => p.fecha_entrega === d);
         const produce = pedidos.filter(
           (p) => p.plan_inicio && d >= p.plan_inicio && d <= finPlan(p)!,
         );
-        const delMes = d.slice(0, 7) === mes.slice(0, 7);
+        const dow = (aFecha(d).getDay() + 6) % 7;
         return (
-          <Paper
+          <div
             key={d}
-            withBorder
-            p={4}
-            mih={64}
-            style={{
-              borderColor:
-                d === hoy ? 'var(--mantine-color-violeta-5)' : 'var(--superficie-borde)',
-              opacity: delMes ? 1 : 0.45,
-            }}
+            className="calendario-celda"
+            data-fuera={d.slice(0, 7) !== mes.slice(0, 7)}
+            data-finde={dow >= 5}
+            data-hoy={d === hoy}
+            style={{ '--i': i } as CSSProperties}
           >
-            <Text size="xs" fw={d === hoy ? 800 : 500}>
-              {aFecha(d).getDate()}
-            </Text>
-            <Stack gap={2}>
-              {produce.map((p) => (
-                <Badge
-                  key={`p${p.id}`}
-                  size="xs"
-                  color={colorPedido(p)}
-                  variant="light"
-                  radius="sm"
-                  fullWidth
+            <span className="calendario-numero">{aFecha(d).getDate()}</span>
+            {produce.map((p) => (
+              <Tooltip key={`p${p.id}`} label={`Produce ${p.numero} · ${p.cliente}`}>
+                <Link
+                  to={`/pedidos/${p.id}`}
+                  className="calendario-evento"
+                  style={{
+                    background: `var(--mantine-color-${colorPedido(p)}-1)`,
+                    color: `var(--mantine-color-${colorPedido(p)}-9)`,
+                    borderLeftColor: `var(--mantine-color-${colorPedido(p)}-6)`,
+                  }}
                 >
                   {p.numero}
-                </Badge>
-              ))}
-              {entregas.map((p) => (
-                <Badge
-                  key={`e${p.id}`}
-                  size="xs"
-                  color="red"
-                  variant="outline"
-                  radius="sm"
-                  fullWidth
+                </Link>
+              </Tooltip>
+            ))}
+            {entregas.map((p) => (
+              <Tooltip key={`e${p.id}`} label={`Entrega ${p.numero} · ${p.cliente}`}>
+                <Link
+                  to={`/pedidos/${p.id}`}
+                  className="calendario-evento calendario-entrega"
                 >
-                  entrega {p.numero}
-                </Badge>
-              ))}
-            </Stack>
-          </Paper>
+                  ● {p.numero}
+                </Link>
+              </Tooltip>
+            ))}
+          </div>
         );
       })}
-    </Box>
+    </div>
+  );
+}
+
+/** Título del mes con flechas, para recorrer el calendario sin editar nada. */
+function MesNavegable({ pedidos }: { pedidos: PedidoRow[] }) {
+  const [hoy] = useState(() => iso(new Date()));
+  const [mes, setMes] = useState(() => hoy.slice(0, 7));
+  const correr = (n: number) => {
+    const d = aFecha(`${mes}-01`);
+    d.setMonth(d.getMonth() + n);
+    setMes(iso(d).slice(0, 7));
+  };
+  return (
+    <>
+      <Group justify="space-between" mb="sm" wrap="nowrap">
+        <Title order={3} tt="capitalize">
+          {aFecha(`${mes}-01`).toLocaleDateString('es-AR', {
+            month: 'long',
+            year: 'numeric',
+          })}
+        </Title>
+        <Group gap={6} wrap="nowrap">
+          <ActionIcon
+            variant="default"
+            size="lg"
+            onClick={() => correr(-1)}
+            aria-label="Mes anterior"
+          >
+            <IconChevronLeft size={18} />
+          </ActionIcon>
+          <Button variant="default" onClick={() => setMes(hoy.slice(0, 7))}>
+            Hoy
+          </Button>
+          <ActionIcon
+            variant="default"
+            size="lg"
+            onClick={() => correr(1)}
+            aria-label="Mes siguiente"
+          >
+            <IconChevronRight size={18} />
+          </ActionIcon>
+        </Group>
+      </Group>
+      <CalendarioMes pedidos={pedidos} mes={`${mes}-01`} />
+    </>
   );
 }
 
@@ -564,13 +671,43 @@ export function PaginaPlanificacion() {
   );
 }
 
-/* --------------------------- Inicio de Producción ------------------------- */
+/* ------------------------------ Inicio de pedidos ------------------------ */
+
+function Contador({
+  valor,
+  etiqueta,
+  color,
+  i,
+}: {
+  valor: number;
+  etiqueta: string;
+  color: string;
+  i: number;
+}) {
+  return (
+    <Paper
+      withBorder
+      p="md"
+      radius="lg"
+      className="contador"
+      style={{ borderColor: 'var(--superficie-borde)', '--i': i } as CSSProperties}
+    >
+      <Text fz={34} fw={800} lh={1} c={`${color}.7`}>
+        {valor}
+      </Text>
+      <Text size="sm" c="dimmed" mt={6}>
+        {etiqueta}
+      </Text>
+    </Paper>
+  );
+}
 
 /**
- * Inicio de Nazarena (ítem 10): saludo, pedidos pendientes y las próximas dos
- * semanas de producción. Va arriba del tablero para Gerencia de Producción.
+ * Inicio de Nazarena y de Ventas (pedido del 2026-10-01): saludo, resumen de
+ * pedidos, el Gantt de las próximas dos semanas y un calendario de verdad.
+ * Solo se mira: para mover algo se va a Planificación.
  */
-export function InicioProduccion() {
+export function InicioPedidos({ descripcion }: { descripcion?: string }) {
   const { claims } = useSesion();
   const pedidos = usePedidos();
   const [ahora] = useState(() => new Date());
@@ -581,60 +718,136 @@ export function InicioProduccion() {
   const saludo = hora < 13 ? 'Buen día' : hora < 20 ? 'Buenas tardes' : 'Buenas noches';
   const nombre = claims?.nombre?.split(' ')[0] ?? '';
   const hoy = iso(ahora);
-  const vencidos = lista.filter((p) => p.fecha_entrega && p.fecha_entrega < hoy).length;
+  const vencidos = lista.filter((p) => p.fecha_entrega && p.fecha_entrega < hoy);
+  const enProduccion = lista.filter((p) => p.estado === 'EN_PRODUCCION');
+  const sinPlan = lista.filter((p) => !p.plan_inicio);
 
-  if (pedidos.isLoading) return <Skeleton h={200} />;
+  if (pedidos.isLoading) return <Skeleton h={420} radius="lg" />;
   return (
-    <Paper withBorder p="lg" style={{ borderColor: 'var(--superficie-borde)' }}>
-      <Group justify="space-between" mb="md" wrap="wrap">
-        <div>
-          <Title order={2}>
-            {saludo}
-            {nombre ? `, ${nombre}` : ''}
-          </Title>
-          <Text c="dimmed">
-            {lista.length === 0
+    <Stack gap="lg">
+      <div className="saludo">
+        <Title order={1}>
+          {saludo}
+          {nombre ? `, ${nombre}` : ''}
+        </Title>
+        <Text c="dimmed" size="lg">
+          {descripcion ??
+            (lista.length === 0
               ? 'No hay pedidos pendientes.'
-              : `${lista.length} pedidos pendientes${vencidos ? `, ${vencidos} con la entrega vencida` : ''}.`}
-          </Text>
-        </div>
-        <Button component={Link} to="/planificacion" variant="light">
-          Planificación
-        </Button>
-      </Group>
-      <Stack gap={6} mb="md">
-        {lista.slice(0, 8).map((p) => {
-          const tarde = p.fecha_entrega !== null && p.fecha_entrega < hoy;
-          return (
-            <Group key={p.id} justify="space-between" wrap="nowrap">
-              <Text size="sm" truncate>
-                <Anchor component={Link} to={`/pedidos/${p.id}`} fw={600}>
-                  {p.numero}
-                </Anchor>{' '}
-                · {p.cliente}
-              </Text>
-              <Group gap={6} wrap="nowrap">
-                {p.plan_inicio ? (
-                  <Badge variant="light" color="violeta">
-                    produce {fecha(p.plan_inicio).slice(0, 5)}
-                  </Badge>
-                ) : (
-                  <Badge variant="light" color="gray">
-                    sin planificar
-                  </Badge>
-                )}
-                <Badge
-                  variant={tarde ? 'filled' : 'light'}
-                  color={tarde ? 'red' : 'rosa'}
+              : `Tenés ${lista.length} pedidos por delante.`)}
+        </Text>
+      </div>
+
+      <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
+        <Contador
+          i={0}
+          valor={lista.length}
+          etiqueta="Pedidos pendientes"
+          color="violeta"
+        />
+        <Contador
+          i={1}
+          valor={enProduccion.length}
+          etiqueta="En producción"
+          color="ciruela"
+        />
+        <Contador i={2} valor={sinPlan.length} etiqueta="Sin planificar" color="gray" />
+        <Contador
+          i={3}
+          valor={vencidos.length}
+          etiqueta="Con la entrega vencida"
+          color={vencidos.length ? 'red' : 'gray'}
+        />
+      </SimpleGrid>
+
+      <Paper
+        withBorder
+        p="lg"
+        radius="lg"
+        className="entrada"
+        style={{ borderColor: 'var(--superficie-borde)' }}
+      >
+        <Title order={3} mb="sm">
+          Resumen de pedidos
+        </Title>
+        {lista.length === 0 ? (
+          <Text c="dimmed">No hay pedidos pendientes.</Text>
+        ) : (
+          <Stack gap={0}>
+            {lista.slice(0, 10).map((p, i) => {
+              const tarde = p.fecha_entrega !== null && p.fecha_entrega < hoy;
+              return (
+                <Group
+                  key={p.id}
+                  justify="space-between"
+                  wrap="nowrap"
+                  className="fila-resumen"
+                  style={{ '--i': i } as CSSProperties}
                 >
-                  entrega {p.fecha_entrega ? fecha(p.fecha_entrega).slice(0, 5) : '—'}
-                </Badge>
-              </Group>
-            </Group>
-          );
-        })}
-      </Stack>
-      <Gantt pedidos={lista} desde={lunesDe(hoy)} dias={14} editable={false} />
-    </Paper>
+                  <Text size="sm" truncate>
+                    <Anchor component={Link} to={`/pedidos/${p.id}`} fw={700}>
+                      {p.numero}
+                    </Anchor>{' '}
+                    · {p.cliente}
+                  </Text>
+                  <Group gap={6} wrap="nowrap">
+                    {p.plan_inicio ? (
+                      <Badge variant="light" color="violeta">
+                        produce {fecha(p.plan_inicio).slice(0, 5)}
+                      </Badge>
+                    ) : (
+                      <Badge variant="light" color="gray">
+                        sin planificar
+                      </Badge>
+                    )}
+                    <Badge
+                      variant={tarde ? 'filled' : 'light'}
+                      color={tarde ? 'red' : 'rosa'}
+                    >
+                      entrega {p.fecha_entrega ? fecha(p.fecha_entrega).slice(0, 5) : '—'}
+                    </Badge>
+                  </Group>
+                </Group>
+              );
+            })}
+            {lista.length > 10 ? (
+              <Text size="sm" c="dimmed" mt="xs">
+                y {lista.length - 10} más
+              </Text>
+            ) : null}
+          </Stack>
+        )}
+      </Paper>
+
+      <Paper
+        withBorder
+        p="lg"
+        radius="lg"
+        className="entrada"
+        style={{ borderColor: 'var(--superficie-borde)' }}
+      >
+        <Group justify="space-between" mb="sm" wrap="wrap">
+          <Title order={3}>Próximas dos semanas</Title>
+          <Text size="xs" c="dimmed">
+            Para mover o estirar algo, andá a{' '}
+            <Anchor component={Link} to="/planificacion" size="xs">
+              Planificación
+            </Anchor>
+            .
+          </Text>
+        </Group>
+        <Gantt pedidos={lista} desde={lunesDe(hoy)} dias={14} editable={false} />
+      </Paper>
+
+      <Paper
+        withBorder
+        p="lg"
+        radius="lg"
+        className="entrada"
+        style={{ borderColor: 'var(--superficie-borde)' }}
+      >
+        <MesNavegable pedidos={lista} />
+      </Paper>
+    </Stack>
   );
 }

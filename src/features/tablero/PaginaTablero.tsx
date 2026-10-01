@@ -39,8 +39,11 @@ import {
 } from '@/lib/consultas';
 import { COLORES_ESTADO_ROTULO } from '@/app/theme';
 import { diasHasta, fecha, numero } from '@/lib/formato';
-import { useSesion, useTieneRol } from '@/features/auth/sesion';
-import { InicioProduccion } from '@/features/produccion/Planificacion';
+import { useSesion } from '@/features/auth/sesion';
+import { InicioPedidos } from '@/features/produccion/Planificacion';
+import { PaginaAdministracion } from '@/features/administracion/PaginaAdministracion';
+import { PaginaArmado } from '@/features/ventas/PaginaArmado';
+import { TableroDT } from './TableroDT';
 
 function TarjetaPanel({
   titulo,
@@ -63,20 +66,42 @@ function TarjetaPanel({
 }
 
 /**
- * Tablero.
+ * Tablero según el rol principal (pedido del 2026-10-01): cada uno ve al
+ * entrar lo que le toca y nada más. Gerencia, el administrador del sistema,
+ * calidad y planta siguen con el tablero general del circuito de insumos.
+ */
+export function PaginaTablero() {
+  const { claims } = useSesion();
+  switch (claims?.rol) {
+    case 'ADMINISTRACION':
+      return <PaginaAdministracion />;
+    case 'DIRECCION_TECNICA':
+      return <TableroDT />;
+    case 'GERENCIA_PRODUCCION':
+      return <InicioPedidos />;
+    case 'VENTAS':
+      return <InicioPedidos descripcion="Así vienen los pedidos." />;
+    case 'ENCARGADA_STOCK':
+      return <PaginaArmado />;
+    default:
+      return <TableroGeneral />;
+  }
+}
+
+/**
+ * Tablero general.
  *
  * El criterio de qué entra: cada número tiene que poder terminar en una acción
  * del turno. «Lotes en cuarentena» manda a muestrear, «recepciones sin cargar»
  * manda a Administración, «lotes por vencer» manda a revisar depósito. Un
  * indicador que solo se mira no ocupa lugar acá.
  */
-export function PaginaTablero() {
+function TableroGeneral() {
   const { claims } = useSesion();
   const tablero = useTablero();
   const porDia = useRecepcionesPorDia();
   const porEstado = useLotesPorEstado();
   const enCuarentena = useLotes({ estado: 'CUARENTENA' });
-  const esProduccion = useTieneRol('GERENCIA_PRODUCCION');
 
   const t = tablero.data;
   const totalLotes = (porEstado.data ?? []).reduce(
@@ -114,7 +139,6 @@ export function PaginaTablero() {
       />
 
       <Stack gap="lg">
-        {esProduccion ? <InicioProduccion /> : null}
         <SimpleGrid
           cols={{ base: 1, xs: 2, lg: 4 }}
           spacing="md"

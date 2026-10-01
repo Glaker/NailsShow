@@ -17,8 +17,9 @@ import {
   UnstyledButton,
 } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
-import { NavLink as EnlaceRuta, useLocation } from 'react-router-dom';
+import { NavLink as EnlaceRuta, Link, useLocation } from 'react-router-dom';
 import {
+  IconBooks,
   IconChevronRight,
   IconLogout,
   IconPlus,
@@ -26,7 +27,7 @@ import {
   IconShieldLock,
 } from '@tabler/icons-react';
 import { Marca } from '@/components/Marca';
-import { useItemsVisibles, type ItemNavegacion } from './navegacion';
+import { ROLES_CATALOGOS, useItemsVisibles, type ItemNavegacion } from './navegacion';
 import { useSesion } from '@/features/auth/sesion';
 import { etiquetaEnum } from '@/lib/formato';
 import { SUPERFICIE } from './theme';
@@ -111,6 +112,20 @@ function TarjetaUsuario({ compacto = false }: { compacto?: boolean }) {
           </Text>
         </Menu.Item>
         <Menu.Divider />
+        {claims.roles.some(
+          (r) => r === 'ADMINISTRADOR_SISTEMA' || ROLES_CATALOGOS.includes(r),
+        ) ? (
+          <Menu.Item
+            component={Link}
+            to="/catalogos"
+            leftSection={<IconBooks size={16} />}
+          >
+            Catálogos
+            <Text size="xs" c="dimmed">
+              Productos, insumos, proveedores y depósitos
+            </Text>
+          </Menu.Item>
+        ) : null}
         <Menu.Item
           leftSection={<IconRefresh size={16} />}
           onClick={() => void refrescar()}

@@ -1,14 +1,10 @@
 import {
   IconLayoutDashboard,
   IconPackages,
-  IconScale,
-  IconFlask,
   IconPackage,
-  IconBuildingWarehouse,
-  IconAddressBook,
+  IconScale,
   IconUsers,
   IconHistory,
-  IconCalculator,
   IconClipboardList,
   IconShoppingCart,
   IconBuildingStore,
@@ -27,6 +23,7 @@ import {
   IconEye,
   IconFileCertificate,
   IconClipboardText,
+  IconRosetteDiscountCheck,
   type Icon,
 } from '@tabler/icons-react';
 import { useSesion, type Rol } from '@/features/auth/sesion';
@@ -48,8 +45,17 @@ export interface ItemNavegacion {
   principal?: boolean;
 }
 
+/*
+ * Reparto por rol (pedido del 2026-10-01): cada uno ve lo suyo y nada más.
+ * Los catálogos (productos, insumos, proveedores, depósitos) no son sección:
+ * se abren desde el menú del usuario (`/catalogos`). La calculadora y «qué
+ * lleva cada producto» viven dentro de Fórmulas.
+ */
+const PRODUCCION: Rol[] = ['GERENCIA_PRODUCCION', 'OPERARIO', 'GERENCIA'];
+
 export const NAVEGACION: ItemNavegacion[] = [
   {
+    // El contenido cambia según el rol principal (PaginaTablero).
     ruta: '/',
     etiqueta: 'Tablero',
     etiquetaCorta: 'Tablero',
@@ -57,11 +63,57 @@ export const NAVEGACION: ItemNavegacion[] = [
     principal: true,
   },
   {
+    ruta: '/ventas',
+    etiqueta: 'Ventas',
+    etiquetaCorta: 'Ventas',
+    icono: IconShoppingCart,
+    roles: ['VENTAS', 'GERENCIA'],
+    principal: true,
+  },
+  {
+    ruta: '/armado',
+    etiqueta: 'Pedidos a armar',
+    etiquetaCorta: 'Armado',
+    icono: IconPackage,
+    roles: ['ENCARGADA_STOCK', 'GERENCIA'],
+    principal: true,
+  },
+  {
+    ruta: '/pedidos',
+    etiqueta: 'Pedidos',
+    etiquetaCorta: 'Pedidos',
+    icono: IconShoppingCart,
+    roles: [...PRODUCCION, 'ADMINISTRACION'],
+    principal: true,
+  },
+  {
+    ruta: '/planificacion',
+    etiqueta: 'Planificación',
+    etiquetaCorta: 'Plan',
+    icono: IconCalendarTime,
+    roles: ['GERENCIA_PRODUCCION', 'GERENCIA'],
+  },
+  {
+    ruta: '/ordenes',
+    etiqueta: 'Órdenes de producción',
+    etiquetaCorta: 'Órdenes',
+    icono: IconClipboardText,
+    roles: [...PRODUCCION, 'CONTROL_CALIDAD'],
+  },
+  {
+    ruta: '/formulas',
+    etiqueta: 'Fórmulas y calculadora',
+    etiquetaCorta: 'Fórmulas',
+    icono: IconClipboardList,
+    roles: [...PRODUCCION, 'DIRECCION_TECNICA', 'CONTROL_CALIDAD'],
+  },
+  {
     // Recepciones, stock de seguridad, stock en fábrica y conteo son pestañas.
     ruta: '/stock',
     etiqueta: 'Stock y recepciones',
     etiquetaCorta: 'Stock',
     icono: IconScale,
+    roles: [...PRODUCCION, 'ADMINISTRACION', 'DIRECCION_TECNICA', 'CONTROL_CALIDAD'],
     principal: true,
   },
   {
@@ -69,33 +121,16 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiqueta: 'Lotes de insumo',
     etiquetaCorta: 'Lotes',
     icono: IconPackages,
+    roles: [...PRODUCCION, 'DIRECCION_TECNICA', 'CONTROL_CALIDAD'],
     principal: true,
   },
   {
-    ruta: '/insumos',
-    etiqueta: 'Catálogo de insumos',
-    etiquetaCorta: 'Insumos',
-    icono: IconFlask,
-    principal: true,
-  },
-  {
-    ruta: '/formulas',
-    etiqueta: 'Fórmulas de fabricación',
-    etiquetaCorta: 'Fórmulas',
-    icono: IconClipboardList,
-  },
-  {
-    ruta: '/ordenes',
-    etiqueta: 'Órdenes de producción',
-    etiquetaCorta: 'Órdenes',
-    icono: IconClipboardText,
-    roles: [
-      'GERENCIA_PRODUCCION',
-      'DIRECCION_TECNICA',
-      'OPERARIO',
-      'CONTROL_CALIDAD',
-      'GERENCIA',
-    ],
+    // Lo que la DT libera: lotes de producto terminado y su batch record.
+    ruta: '/liberacion',
+    etiqueta: 'Liberación de lotes',
+    etiquetaCorta: 'Liberación',
+    icono: IconRosetteDiscountCheck,
+    roles: ['DIRECCION_TECNICA', 'CONTROL_CALIDAD', 'GERENCIA'],
   },
   {
     ruta: '/especificaciones',
@@ -105,67 +140,54 @@ export const NAVEGACION: ItemNavegacion[] = [
     roles: ['GERENCIA_PRODUCCION', 'DIRECCION_TECNICA', 'CONTROL_CALIDAD', 'GERENCIA'],
   },
   {
-    ruta: '/calculadora-lote',
-    etiqueta: 'Calculadora de lote',
-    etiquetaCorta: 'Calculadora',
-    icono: IconCalculator,
-  },
-  {
-    ruta: '/pedidos',
-    etiqueta: 'Pedidos',
-    etiquetaCorta: 'Pedidos',
-    icono: IconShoppingCart,
-    principal: true,
-  },
-  {
-    ruta: '/planificacion',
-    etiqueta: 'Planificación',
-    etiquetaCorta: 'Plan',
-    icono: IconCalendarTime,
-    roles: [
-      'GERENCIA_PRODUCCION',
-      'DIRECCION_TECNICA',
-      'VENTAS',
-      'ADMINISTRACION',
-      'GERENCIA',
-    ],
+    ruta: '/punto-venta',
+    etiqueta: 'Calle 5',
+    etiquetaCorta: 'Calle 5',
+    icono: IconBuildingStore,
+    roles: ['GERENCIA_PRODUCCION', 'GERENCIA', 'ADMINISTRACION', 'VENTAS'],
   },
   {
     ruta: '/tercerizados',
     etiqueta: 'Tercerizados',
     etiquetaCorta: 'Tercer.',
     icono: IconBuildingFactory2,
+    roles: ['GERENCIA_PRODUCCION', 'GERENCIA'],
   },
   {
     ruta: '/compras',
     etiqueta: 'Compras pendientes',
     etiquetaCorta: 'Compras',
     icono: IconListCheck,
-  },
-  {
-    ruta: '/clientes',
-    etiqueta: 'Clientes',
-    etiquetaCorta: 'Clientes',
-    icono: IconUsersGroup,
-  },
-  {
-    ruta: '/precios',
-    etiqueta: 'Precios y descuentos',
-    etiquetaCorta: 'Precios',
-    icono: IconTag,
+    roles: ['GERENCIA_PRODUCCION', 'ADMINISTRACION', 'GERENCIA'],
   },
   {
     ruta: '/facturas',
     etiqueta: 'Facturas',
     etiquetaCorta: 'Facturas',
     icono: IconFileInvoice,
+    roles: ['ADMINISTRACION', 'VENTAS', 'GERENCIA'],
   },
   {
+    ruta: '/clientes',
+    etiqueta: 'Clientes',
+    etiquetaCorta: 'Clientes',
+    icono: IconUsersGroup,
+    roles: ['ADMINISTRACION', 'VENTAS', 'GERENCIA'],
+  },
+  {
+    ruta: '/precios',
+    etiqueta: 'Precios y descuentos',
+    etiquetaCorta: 'Precios',
+    icono: IconTag,
+    roles: ['ADMINISTRACION', 'VENTAS', 'GERENCIA'],
+  },
+  {
+    // Para Administración es su Tablero; acá queda para Gerencia.
     ruta: '/administracion',
     etiqueta: 'Administración',
     etiquetaCorta: 'Admin.',
     icono: IconBriefcase,
-    roles: ['ADMINISTRACION', 'GERENCIA'],
+    roles: ['GERENCIA'],
   },
   {
     ruta: '/cuentas-proveedores',
@@ -189,11 +211,12 @@ export const NAVEGACION: ItemNavegacion[] = [
     roles: ['ADMINISTRACION', 'GERENCIA'],
   },
   {
-    // Cualquier área pide un pago; cada una ve las suyas.
+    // Cada área pide sus pagos.
     ruta: '/solicitudes-pago',
     etiqueta: 'Solicitudes de pago',
     etiquetaCorta: 'Pagos',
     icono: IconReceipt,
+    roles: ['ADMINISTRACION', 'GERENCIA', 'GERENCIA_PRODUCCION', 'VENTAS'],
   },
   {
     ruta: '/reportes',
@@ -201,36 +224,6 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiquetaCorta: 'Reportes',
     icono: IconReportAnalytics,
     roles: ['ADMINISTRACION', 'GERENCIA'],
-  },
-  {
-    ruta: '/lista-materiales',
-    etiqueta: 'Qué lleva cada producto',
-    etiquetaCorta: 'Materiales',
-    icono: IconPackages,
-  },
-  {
-    ruta: '/punto-venta',
-    etiqueta: 'Calle 5 — punto de venta',
-    etiquetaCorta: 'Calle 5',
-    icono: IconBuildingStore,
-  },
-  {
-    ruta: '/productos',
-    etiqueta: 'Catálogo de productos',
-    etiquetaCorta: 'Productos',
-    icono: IconPackage,
-  },
-  {
-    ruta: '/proveedores',
-    etiqueta: 'Proveedores',
-    etiquetaCorta: 'Proveed.',
-    icono: IconAddressBook,
-  },
-  {
-    ruta: '/depositos',
-    etiqueta: 'Depósitos',
-    etiquetaCorta: 'Depósitos',
-    icono: IconBuildingWarehouse,
   },
   {
     ruta: '/usuarios',
@@ -255,6 +248,14 @@ export const NAVEGACION: ItemNavegacion[] = [
   },
 ];
 
+/** Quién tiene los catálogos en el menú del usuario. */
+export const ROLES_CATALOGOS: Rol[] = [
+  'GERENCIA_PRODUCCION',
+  'DIRECCION_TECNICA',
+  'CONTROL_CALIDAD',
+  'GERENCIA',
+];
+
 /** Pestañas que también se pueden mostrar u ocultar por rol. */
 export const PESTANIAS: { ruta: string; etiqueta: string; de: string; roles?: Rol[] }[] =
   [
@@ -262,19 +263,32 @@ export const PESTANIAS: { ruta: string; etiqueta: string; de: string; roles?: Ro
       ruta: '/stock?vista=insumos',
       etiqueta: 'Stock › Insumos (materia prima)',
       de: '/stock',
+      roles: [...PRODUCCION, 'CONTROL_CALIDAD'],
     },
-    { ruta: '/stock?vista=recepciones', etiqueta: 'Stock › Recepciones', de: '/stock' },
+    {
+      // La DT mira la recepción para aprobar calidad y cantidad.
+      ruta: '/stock?vista=recepciones',
+      etiqueta: 'Stock › Recepciones',
+      de: '/stock',
+      roles: [...PRODUCCION, 'DIRECCION_TECNICA', 'CONTROL_CALIDAD'],
+    },
     {
       ruta: '/stock?vista=seguridad',
       etiqueta: 'Stock › Stock de seguridad',
       de: '/stock',
+      roles: PRODUCCION,
     },
-    { ruta: '/stock?vista=fabrica', etiqueta: 'Stock › En fábrica', de: '/stock' },
+    {
+      ruta: '/stock?vista=fabrica',
+      etiqueta: 'Stock › En fábrica',
+      de: '/stock',
+      roles: [...PRODUCCION, 'ADMINISTRACION'],
+    },
     {
       ruta: '/stock?vista=conteo',
       etiqueta: 'Stock › Conteo',
       de: '/stock',
-      roles: ['DIRECCION_TECNICA', 'ADMINISTRACION', 'GERENCIA_PRODUCCION'],
+      roles: ['GERENCIA_PRODUCCION', 'GERENCIA'],
     },
   ];
 

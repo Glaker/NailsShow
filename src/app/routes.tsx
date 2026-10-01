@@ -6,20 +6,21 @@ import {
   PaginaStockUnificada,
   RedirigirAStock,
 } from '@/features/stock/PaginaStockUnificada';
-import { PaginaCalculadoraLote } from '@/features/produccion/PaginaCalculadoraLote';
-import { PaginaFormulas } from '@/features/produccion/PaginaFormulas';
+import {
+  PaginaFormulasUnificada,
+  RedirigirACalculadora,
+} from '@/features/produccion/PaginaFormulasUnificada';
+import { PaginaLiberacion } from '@/features/produccion/PaginaLiberacion';
 import { PaginaFormula } from '@/features/produccion/PaginaFormula';
 import { PaginaPedidos } from '@/features/comercial/PaginaPedidos';
 import { PaginaPedido } from '@/features/comercial/PaginaPedido';
 import { PaginaComprasPendientes } from '@/features/comercial/PaginaComprasPendientes';
 import { PaginaClientes } from '@/features/comercial/PaginaClientes';
 import { PaginaFacturas } from '@/features/comercial/PaginaFacturas';
-import { PaginaListaMateriales } from '@/features/comercial/PaginaListaMateriales';
 import { PaginaPuntoVenta } from '@/features/comercial/PaginaPuntoVenta';
-import { PaginaInsumos } from '@/features/maestros/PaginaInsumos';
-import { PaginaProductos } from '@/features/maestros/PaginaProductos';
-import { PaginaProveedores } from '@/features/maestros/PaginaProveedores';
-import { PaginaDepositos } from '@/features/maestros/PaginaDepositos';
+import { PaginaCatalogos, RedirigirACatalogo } from '@/features/maestros/PaginaCatalogos';
+import { PaginaVentas } from '@/features/ventas/PaginaVentas';
+import { PaginaArmado } from '@/features/ventas/PaginaArmado';
 import { PaginaUsuarios } from '@/features/usuarios/PaginaUsuarios';
 import { PaginaAuditoria } from '@/features/auditoria/PaginaAuditoria';
 import { PaginaTercerizados } from '@/features/tercerizados/PaginaTercerizados';
@@ -58,12 +59,13 @@ export function AppRoutes() {
       <Route path="/conteo" element={<RedirigirAStock vista="conteo" />} />
       <Route path="/stock-seguridad" element={<RedirigirAStock vista="seguridad" />} />
       <Route path="/producto-terminado" element={<RedirigirAStock vista="fabrica" />} />
-      <Route path="/calculadora-lote" element={<PaginaCalculadoraLote />} />
+      <Route path="/calculadora-lote" element={<RedirigirACalculadora />} />
+      <Route path="/liberacion" element={<PaginaLiberacion />} />
       <Route path="/ordenes" element={<PaginaOrdenes />} />
       <Route path="/ordenes/:id" element={<PaginaOrden />} />
       <Route path="/ordenes/:id/batch-record" element={<BatchRecord />} />
       <Route path="/especificaciones" element={<PaginaEspecificaciones />} />
-      <Route path="/formulas" element={<PaginaFormulas />} />
+      <Route path="/formulas" element={<PaginaFormulasUnificada />} />
       <Route path="/formulas/:id" element={<PaginaFormula />} />
       <Route path="/pedidos" element={<PaginaPedidos />} />
       <Route path="/planificacion" element={<PaginaPlanificacion />} />
@@ -80,12 +82,16 @@ export function AppRoutes() {
       <Route path="/reportes" element={<PaginaReportes />} />
       <Route path="/tercerizados" element={<PaginaTercerizados />} />
       <Route path="/tercerizados/:id" element={<PaginaTercero />} />
-      <Route path="/lista-materiales" element={<PaginaListaMateriales />} />
+      <Route path="/lista-materiales" element={<RedirigirACalculadora />} />
+      <Route path="/ventas" element={<PaginaVentas />} />
+      <Route path="/armado" element={<PaginaArmado />} />
       <Route path="/punto-venta" element={<PaginaPuntoVenta />} />
-      <Route path="/insumos" element={<PaginaInsumos />} />
-      <Route path="/productos" element={<PaginaProductos />} />
-      <Route path="/proveedores" element={<PaginaProveedores />} />
-      <Route path="/depositos" element={<PaginaDepositos />} />
+      <Route path="/catalogos" element={<PaginaCatalogos />} />
+      {/* Rutas viejas de los catálogos: llevan a su pestaña. */}
+      <Route path="/insumos" element={<RedirigirACatalogo vista="insumos" />} />
+      <Route path="/productos" element={<RedirigirACatalogo vista="productos" />} />
+      <Route path="/proveedores" element={<RedirigirACatalogo vista="proveedores" />} />
+      <Route path="/depositos" element={<RedirigirACatalogo vista="depositos" />} />
       <Route path="/usuarios" element={<PaginaUsuarios />} />
       <Route path="/visibilidad" element={<PaginaVisibilidad />} />
       <Route path="/auditoria" element={<PaginaAuditoria />} />
