@@ -58,7 +58,8 @@ const COLOR_ESTADO = {
   RECHAZADO: 'estadoRechazado',
 } as const;
 
-function FormularioProveedor({ onListo }: { onListo: () => void }) {
+/** Alta de proveedor (DT, Administración y GP, §3.3). El dictamen sigue siendo de la DT. */
+export function FormularioProveedor({ onListo }: { onListo: () => void }) {
   const crear = useCrearProveedor();
   const form = useForm({
     mode: 'controlled',

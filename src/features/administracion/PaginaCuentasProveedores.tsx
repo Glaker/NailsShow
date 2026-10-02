@@ -19,10 +19,12 @@ import { DateInput } from '@mantine/dates';
 import {
   IconCash,
   IconFileInvoice,
+  IconPlus,
   IconScale,
   IconUsersGroup,
 } from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
+import { FormularioProveedor } from '@/features/maestros/PaginaProveedores';
 import { Vacio } from '@/components/Vacio';
 import { useProveedores } from '@/lib/consultas';
 import { fecha, fechaISO } from '@/lib/formato';
@@ -61,6 +63,7 @@ export function PaginaCuentasProveedores() {
   const saldos = useSaldosProveedores();
   const proveedores = useProveedores();
   const [elegido, setElegido] = useState<string | null>(null);
+  const [nuevo, setNuevo] = useState(false);
   const filas = saldos.data ?? [];
   const nombre = (id: string | null) =>
     (proveedores.data ?? []).find((p) => p.id === id)?.razon_social ?? '';
@@ -71,18 +74,37 @@ export function PaginaCuentasProveedores() {
         titulo="Cuentas corrientes de proveedores"
         descripcion="Lo que se debe a cada proveedor, qué vence y si coincide con lo que ellos informan."
         acciones={
-          <Select
-            placeholder="Ir a un proveedor"
-            searchable
-            w={280}
-            data={(proveedores.data ?? [])
-              .filter((p) => p.activo)
-              .map((p) => ({ value: p.id, label: p.razon_social }))}
-            value={elegido}
-            onChange={setElegido}
-          />
+          <Group gap="sm" wrap="wrap">
+            <Button leftSection={<IconPlus size={18} />} onClick={() => setNuevo(true)}>
+              Nuevo proveedor
+            </Button>
+            <Select
+              placeholder="Ir a un proveedor"
+              searchable
+              w={280}
+              data={(proveedores.data ?? [])
+                .filter((p) => p.activo)
+                .map((p) => ({ value: p.id, label: p.razon_social }))}
+              value={elegido}
+              onChange={setElegido}
+            />
+          </Group>
         }
       />
+      {/* Alta de proveedor: queda sin dictamen hasta que Dirección Técnica lo apruebe. */}
+      <Modal
+        opened={nuevo}
+        onClose={() => setNuevo(false)}
+        title="Nuevo proveedor"
+        centered
+        size="lg"
+      >
+        <Text size="sm" c="dimmed" mb="sm">
+          Queda «sin dictamen» hasta que Dirección Técnica lo apruebe. Para pagarle y
+          cargarle comprobantes no hace falta esperar el dictamen.
+        </Text>
+        <FormularioProveedor onListo={() => setNuevo(false)} />
+      </Modal>
       <Stack gap="lg">
         {saldos.isLoading ? (
           <Skeleton h={200} />
