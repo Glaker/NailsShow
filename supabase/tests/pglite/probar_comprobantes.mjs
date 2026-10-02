@@ -32,7 +32,10 @@ await rechaza('NC sin factura asociada', `insert into comercial.comprobantes_pro
 await rechaza('NC B sobre factura A', `insert into comercial.comprobantes_proveedor (proveedor_id, tipo, punto_venta, numero, importe_total, comprobante_asociado_id) values ('${prov}','NOTA_CREDITO_B',3,7,10,'${fa.id}')`, /misma clase/);
 await rechaza('no se edita', `update comercial.comprobantes_proveedor set importe_total = 1 where id = '${fa.id}'`, /no se edita/);
 await rechaza('no se borra', `delete from comercial.comprobantes_proveedor where id = '${fa.id}'`, /permission|denied|rechaz|DELETE/i);
+// B5 (20261001170000): con su nota de crédito vigente, la factura no se anula.
+await rechaza('con su NC vigente no se anula', `select comercial.anular_comprobante_proveedor('${fa.id}', 'número mal cargado')`, /notas de crédito vigentes/);
 await prueba('se anula con motivo, a nombre de quien anula', async () => {
+  await q(`select comercial.anular_comprobante_proveedor((select id from comercial.comprobantes_proveedor where comprobante_asociado_id = $1), 'va con la factura')`, [fa.id]);
   await q(`select comercial.anular_comprobante_proveedor($1, 'número mal cargado')`, [fa.id]);
   const a = await uno(`select anulado_en, anulado_por, motivo_anulacion from comercial.comprobantes_proveedor where id=$1`, [fa.id]);
   if (!a.anulado_en || !a.anulado_por) throw new Error(JSON.stringify(a));

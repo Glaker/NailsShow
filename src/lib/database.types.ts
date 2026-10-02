@@ -171,8 +171,29 @@ export type Database = {
             foreignKeyName: "avisos_compra_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "v_calle5_tomado_ventas"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "avisos_compra_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "v_pendientes_despacho"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "avisos_compra_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avisos_compra_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["pedido_stock_id"]
           },
           {
             foreignKeyName: "avisos_compra_proveedor_id_fkey"
@@ -700,6 +721,85 @@ export type Database = {
           },
         ]
       }
+      despacho_diferencias: {
+        Row: {
+          despacho_id: string
+          enviado: number
+          id: string
+          motivo: string
+          pedido_id: string
+          pendiente: number
+          producto_id: string
+          registrado_en: string
+          registrado_por: string
+        }
+        Insert: {
+          despacho_id: string
+          enviado: number
+          id?: string
+          motivo: string
+          pedido_id: string
+          pendiente: number
+          producto_id: string
+          registrado_en?: string
+          registrado_por?: string
+        }
+        Update: {
+          despacho_id?: string
+          enviado?: number
+          id?: string
+          motivo?: string
+          pedido_id?: string
+          pendiente?: number
+          producto_id?: string
+          registrado_en?: string
+          registrado_por?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "despacho_diferencias_despacho_id_fkey"
+            columns: ["despacho_id"]
+            isOneToOne: false
+            referencedRelation: "despachos_pt"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despacho_diferencias_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despacho_diferencias_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_calle5_tomado_ventas"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "despacho_diferencias_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pendientes_despacho"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "despacho_diferencias_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despacho_diferencias_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["pedido_stock_id"]
+          },
+        ]
+      }
       despachos_pt: {
         Row: {
           con_faltantes: boolean
@@ -740,10 +840,61 @@ export type Database = {
             foreignKeyName: "despachos_pt_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "v_calle5_tomado_ventas"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "despachos_pt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "v_pendientes_despacho"
             referencedColumns: ["pedido_id"]
           },
+          {
+            foreignKeyName: "despachos_pt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despachos_pt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["pedido_stock_id"]
+          },
         ]
+      }
+      escalas_descuento: {
+        Row: {
+          carga: number
+          cargado_en: string
+          cargado_por: string | null
+          desde_monto: number
+          id: string
+          porcentaje: number
+          vigente_desde: string
+        }
+        Insert: {
+          carga: number
+          cargado_en?: string
+          cargado_por?: string | null
+          desde_monto: number
+          id?: string
+          porcentaje: number
+          vigente_desde?: string
+        }
+        Update: {
+          carga?: number
+          cargado_en?: string
+          cargado_por?: string | null
+          desde_monto?: number
+          id?: string
+          porcentaje?: number
+          vigente_desde?: string
+        }
+        Relationships: []
       }
       facturas: {
         Row: {
@@ -879,8 +1030,29 @@ export type Database = {
             foreignKeyName: "facturas_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "v_calle5_tomado_ventas"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "facturas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "v_pendientes_despacho"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "facturas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["pedido_stock_id"]
           },
         ]
       }
@@ -981,6 +1153,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lista_mayorista: {
+        Row: {
+          alicuota_iva: number
+          cargado_en: string
+          cargado_por: string
+          es_regalo: boolean
+          id: string
+          minimo: number | null
+          numero_lista: string
+          orden: number
+          orden_lista: number | null
+          origen: string | null
+          precio_lista: number
+          precio_promo: number
+          producto_id: string
+          rubro: string | null
+          unidades_pack: number
+        }
+        Insert: {
+          alicuota_iva?: number
+          cargado_en?: string
+          cargado_por?: string
+          es_regalo?: boolean
+          id?: string
+          minimo?: number | null
+          numero_lista: string
+          orden?: never
+          orden_lista?: number | null
+          origen?: string | null
+          precio_lista: number
+          precio_promo: number
+          producto_id: string
+          rubro?: string | null
+          unidades_pack?: number
+        }
+        Update: {
+          alicuota_iva?: number
+          cargado_en?: string
+          cargado_por?: string
+          es_regalo?: boolean
+          id?: string
+          minimo?: number | null
+          numero_lista?: string
+          orden?: never
+          orden_lista?: number | null
+          origen?: string | null
+          precio_lista?: number
+          precio_promo?: number
+          producto_id?: string
+          rubro?: string | null
+          unidades_pack?: number
+        }
+        Relationships: []
       }
       metas_stock_seguridad: {
         Row: {
@@ -1458,8 +1684,29 @@ export type Database = {
             foreignKeyName: "pedido_consumos_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "v_calle5_tomado_ventas"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_consumos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "v_pendientes_despacho"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_consumos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_consumos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["pedido_stock_id"]
           },
         ]
       }
@@ -1497,8 +1744,29 @@ export type Database = {
             foreignKeyName: "pedido_ordenes_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "v_calle5_tomado_ventas"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_ordenes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "v_pendientes_despacho"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_ordenes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_ordenes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["pedido_stock_id"]
           },
         ]
       }
@@ -1567,42 +1835,78 @@ export type Database = {
             foreignKeyName: "pedido_origen_insumos_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "v_calle5_tomado_ventas"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_origen_insumos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "v_pendientes_despacho"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_origen_insumos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_origen_insumos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["pedido_stock_id"]
           },
         ]
       }
       pedido_renglones: {
         Row: {
+          a_producir: number | null
           alicuota_iva: number
           anulado: boolean
           anulado_en: string | null
           anulado_por: string | null
           cantidad: number
+          de_calle5: number | null
           id: string
           pedido_id: string
+          precio_base: number | null
+          precio_final: number | null
+          precio_manual: boolean
           precio_unitario: number | null
           producto_id: string
         }
         Insert: {
+          a_producir?: number | null
           alicuota_iva?: number
           anulado?: boolean
           anulado_en?: string | null
           anulado_por?: string | null
           cantidad: number
+          de_calle5?: number | null
           id?: string
           pedido_id: string
+          precio_base?: number | null
+          precio_final?: number | null
+          precio_manual?: boolean
           precio_unitario?: number | null
           producto_id: string
         }
         Update: {
+          a_producir?: number | null
           alicuota_iva?: number
           anulado?: boolean
           anulado_en?: string | null
           anulado_por?: string | null
           cantidad?: number
+          de_calle5?: number | null
           id?: string
           pedido_id?: string
+          precio_base?: number | null
+          precio_final?: number | null
+          precio_manual?: boolean
           precio_unitario?: number | null
           producto_id?: string
         }
@@ -1618,8 +1922,29 @@ export type Database = {
             foreignKeyName: "pedido_renglones_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "v_calle5_tomado_ventas"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_renglones_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "v_pendientes_despacho"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_renglones_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_renglones_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["pedido_stock_id"]
           },
         ]
       }
@@ -1629,21 +1954,33 @@ export type Database = {
           cliente_id: string | null
           creado_en: string
           creado_por: string
+          descuento_pct: number | null
           destino_deposito_id: string | null
+          destino_envio: string | null
           eliminado_en: string | null
           eliminado_por: string | null
           entregado_en: string | null
           entregado_por: string | null
+          es_venta: boolean
           estado: Database["comercial"]["Enums"]["estado_pedido_enum"]
+          estado_pago: string
           fecha: string
           fecha_entrega: string | null
+          forma_pago: string | null
+          gestionado_por: string | null
           id: string
           motivo_eliminacion: string | null
           numero: string
           observaciones: string | null
+          para_pedido_id: string | null
           para_stock: boolean
           plan_dias: number | null
           plan_inicio: string | null
+          reservar_calle5: boolean
+          stock_nota: string | null
+          stock_ok: boolean | null
+          stock_ok_en: string | null
+          stock_ok_por: string | null
           tercero_id: string | null
         }
         Insert: {
@@ -1651,21 +1988,33 @@ export type Database = {
           cliente_id?: string | null
           creado_en?: string
           creado_por?: string
+          descuento_pct?: number | null
           destino_deposito_id?: string | null
+          destino_envio?: string | null
           eliminado_en?: string | null
           eliminado_por?: string | null
           entregado_en?: string | null
           entregado_por?: string | null
+          es_venta?: boolean
           estado?: Database["comercial"]["Enums"]["estado_pedido_enum"]
+          estado_pago?: string
           fecha?: string
           fecha_entrega?: string | null
+          forma_pago?: string | null
+          gestionado_por?: string | null
           id?: string
           motivo_eliminacion?: string | null
           numero: string
           observaciones?: string | null
+          para_pedido_id?: string | null
           para_stock?: boolean
           plan_dias?: number | null
           plan_inicio?: string | null
+          reservar_calle5?: boolean
+          stock_nota?: string | null
+          stock_ok?: boolean | null
+          stock_ok_en?: string | null
+          stock_ok_por?: string | null
           tercero_id?: string | null
         }
         Update: {
@@ -1673,21 +2022,33 @@ export type Database = {
           cliente_id?: string | null
           creado_en?: string
           creado_por?: string
+          descuento_pct?: number | null
           destino_deposito_id?: string | null
+          destino_envio?: string | null
           eliminado_en?: string | null
           eliminado_por?: string | null
           entregado_en?: string | null
           entregado_por?: string | null
+          es_venta?: boolean
           estado?: Database["comercial"]["Enums"]["estado_pedido_enum"]
+          estado_pago?: string
           fecha?: string
           fecha_entrega?: string | null
+          forma_pago?: string | null
+          gestionado_por?: string | null
           id?: string
           motivo_eliminacion?: string | null
           numero?: string
           observaciones?: string | null
+          para_pedido_id?: string | null
           para_stock?: boolean
           plan_dias?: number | null
           plan_inicio?: string | null
+          reservar_calle5?: boolean
+          stock_nota?: string | null
+          stock_ok?: boolean | null
+          stock_ok_en?: string | null
+          stock_ok_por?: string | null
           tercero_id?: string | null
         }
         Relationships: [
@@ -1704,6 +2065,41 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_saldos_clientes"
             referencedColumns: ["cliente_id"]
+          },
+          {
+            foreignKeyName: "pedidos_para_pedido_id_fkey"
+            columns: ["para_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_para_pedido_id_fkey"
+            columns: ["para_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_calle5_tomado_ventas"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedidos_para_pedido_id_fkey"
+            columns: ["para_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pendientes_despacho"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedidos_para_pedido_id_fkey"
+            columns: ["para_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_para_pedido_id_fkey"
+            columns: ["para_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["pedido_stock_id"]
           },
         ]
       }
@@ -1818,8 +2214,29 @@ export type Database = {
             foreignKeyName: "reservas_pt_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "v_calle5_tomado_ventas"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "reservas_pt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "v_pendientes_despacho"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "reservas_pt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservas_pt_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["pedido_stock_id"]
           },
         ]
       }
@@ -1915,8 +2332,29 @@ export type Database = {
             foreignKeyName: "reservas_stock_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "v_calle5_tomado_ventas"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "reservas_stock_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "v_pendientes_despacho"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "reservas_stock_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservas_stock_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["pedido_stock_id"]
           },
         ]
       }
@@ -2122,6 +2560,14 @@ export type Database = {
         }
         Relationships: []
       }
+      v_calle5_tomado_ventas: {
+        Row: {
+          pedido_id: string | null
+          producto_id: string | null
+          tomado: number | null
+        }
+        Relationships: []
+      }
       v_cash_flow_proyectado: {
         Row: {
           detalle: string | null
@@ -2280,6 +2726,16 @@ export type Database = {
           },
         ]
       }
+      v_disponible_calle5: {
+        Row: {
+          disponible: number | null
+          en_calle5: number | null
+          producto_id: string | null
+          reservado: number | null
+          tomado_sin_reservar: number | null
+        }
+        Relationships: []
+      }
       v_disponible_por_insumo: {
         Row: {
           codigo_interno: string | null
@@ -2289,6 +2745,30 @@ export type Database = {
           reservado: number | null
           saldo: number | null
           saldo_apertura: number | null
+        }
+        Relationships: []
+      }
+      v_escala_descuento: {
+        Row: {
+          carga: number | null
+          cargado_en: string | null
+          desde_monto: number | null
+          porcentaje: number | null
+          vigente_desde: string | null
+        }
+        Insert: {
+          carga?: number | null
+          cargado_en?: string | null
+          desde_monto?: number | null
+          porcentaje?: number | null
+          vigente_desde?: string | null
+        }
+        Update: {
+          carga?: number | null
+          cargado_en?: string | null
+          desde_monto?: number | null
+          porcentaje?: number | null
+          vigente_desde?: string | null
         }
         Relationships: []
       }
@@ -2382,8 +2862,29 @@ export type Database = {
             foreignKeyName: "facturas_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "v_calle5_tomado_ventas"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "facturas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "v_pendientes_despacho"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "facturas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["pedido_stock_id"]
           },
         ]
       }
@@ -2465,6 +2966,25 @@ export type Database = {
             referencedColumns: ["articulo_id"]
           },
         ]
+      }
+      v_lista_mayorista: {
+        Row: {
+          alicuota_iva: number | null
+          codigo_interno: string | null
+          es_regalo: boolean | null
+          minimo: number | null
+          numero_lista: string | null
+          orden_lista: number | null
+          precio_base: number | null
+          precio_lista: number | null
+          precio_promo: number | null
+          producto: string | null
+          producto_id: string | null
+          rubro: string | null
+          unidades_pack: number | null
+          vigente_desde: string | null
+        }
+        Relationships: []
       }
       v_pendientes_despacho: {
         Row: {
@@ -2625,8 +3145,29 @@ export type Database = {
             foreignKeyName: "reservas_stock_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "v_calle5_tomado_ventas"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "reservas_stock_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
             referencedRelation: "v_pendientes_despacho"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "reservas_stock_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservas_stock_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["pedido_stock_id"]
           },
         ]
       }
@@ -2953,6 +3494,61 @@ export type Database = {
           },
         ]
       }
+      v_ventas: {
+        Row: {
+          a_producir: number | null
+          cliente: string | null
+          cliente_id: string | null
+          creado_en: string | null
+          descuento_aplicado: number | null
+          descuento_pct: number | null
+          despachado: number | null
+          destino_envio: string | null
+          entregado_en: string | null
+          estado: Database["comercial"]["Enums"]["estado_pedido_enum"] | null
+          estado_pago: string | null
+          factura_numero: number | null
+          factura_punto_venta: number | null
+          factura_tipo: string | null
+          fecha: string | null
+          fecha_entrega: string | null
+          forma_pago: string | null
+          gestionado: string | null
+          gestionado_por: string | null
+          id: string | null
+          importe_lista: number | null
+          importe_total: number | null
+          numero: string | null
+          observaciones: string | null
+          pedido_stock: string | null
+          pedido_stock_estado:
+            | Database["comercial"]["Enums"]["estado_pedido_enum"]
+            | null
+          pedido_stock_id: string | null
+          pendiente: number | null
+          productos: number | null
+          reservar_calle5: boolean | null
+          stock_nota: string | null
+          stock_ok: boolean | null
+          stock_ok_en: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "v_saldos_clientes"
+            referencedColumns: ["cliente_id"]
+          },
+        ]
+      }
       v_ventas_mensuales: {
         Row: {
           ambiente: string | null
@@ -3032,6 +3628,10 @@ export type Database = {
       anular_pago_proveedor: {
         Args: { p_id: string; p_motivo: string }
         Returns: undefined
+      }
+      anular_transferencia: {
+        Args: { p_grupo: string; p_motivo: string }
+        Returns: number
       }
       aplicar_precios_pedido: { Args: { p_pedido_id: string }; Returns: number }
       articulo_de_insumo: { Args: { p_insumo_id: string }; Returns: string }
@@ -3139,6 +3739,7 @@ export type Database = {
         Args: { p_articulo_id: string; p_motivo: string }
         Returns: number
       }
+      descuento_por_monto: { Args: { p_monto: number }; Returns: number }
       deshacer_apertura: {
         Args: { p_migracion_id: string; p_motivo: string }
         Returns: {
@@ -3190,6 +3791,14 @@ export type Database = {
         Returns: undefined
       }
       entregar_pedido: { Args: { p_pedido_id: string }; Returns: undefined }
+      enviar_armado: {
+        Args: { p_motivo?: string; p_pedido_id: string; p_renglones: Json }
+        Returns: string
+      }
+      enviar_venta: {
+        Args: { p_de_calle5?: Json; p_pedido_id: string }
+        Returns: Json
+      }
       explotar_pedido: {
         Args: { p_pedido_id: string }
         Returns: Database["comercial"]["CompositeTypes"]["renglon_faltante"][]
@@ -3321,6 +3930,7 @@ export type Database = {
         Args: { p_factura_id: string; p_motivo: string }
         Returns: Json
       }
+      recalcular_venta: { Args: { p_pedido_id: string }; Returns: undefined }
       registrar_cobro_cliente: {
         Args: {
           p_cliente_id: string
@@ -3379,6 +3989,7 @@ export type Database = {
         Args: { p_deposito_id: string; p_producto_id: string }
         Returns: number
       }
+      reservar_venta: { Args: { p_pedido_id: string }; Returns: number }
       saldo_fondos: {
         Args: { p_cuenta_id: string; p_hasta?: string }
         Returns: number
@@ -3447,6 +4058,10 @@ export type Database = {
           p_origen: string
           p_producto_id: string
         }
+        Returns: undefined
+      }
+      verificar_stock_pedido: {
+        Args: { p_nota?: string; p_ok: boolean; p_pedido_id: string }
         Returns: undefined
       }
       vincular_recepcion_compras: {
@@ -3866,8 +4481,9 @@ export type Database = {
           levantado_en: string | null
           levantado_motivo: string | null
           levantado_por: string | null
-          lote_insumo_id: string
+          lote_insumo_id: string | null
           motivo: Database["gmp"]["Enums"]["motivo_bloqueo_enum"]
+          orden_id: string | null
           origen: string
           origen_id: string | null
         }
@@ -3880,8 +4496,9 @@ export type Database = {
           levantado_en?: string | null
           levantado_motivo?: string | null
           levantado_por?: string | null
-          lote_insumo_id: string
+          lote_insumo_id?: string | null
           motivo: Database["gmp"]["Enums"]["motivo_bloqueo_enum"]
+          orden_id?: string | null
           origen?: string
           origen_id?: string | null
         }
@@ -3894,8 +4511,9 @@ export type Database = {
           levantado_en?: string | null
           levantado_motivo?: string | null
           levantado_por?: string | null
-          lote_insumo_id?: string
+          lote_insumo_id?: string | null
           motivo?: Database["gmp"]["Enums"]["motivo_bloqueo_enum"]
+          orden_id?: string | null
           origen?: string
           origen_id?: string | null
         }
@@ -3912,6 +4530,13 @@ export type Database = {
             columns: ["lote_insumo_id"]
             isOneToOne: false
             referencedRelation: "v_lotes_insumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bloqueos_lote_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_produccion"
             referencedColumns: ["id"]
           },
         ]
@@ -5510,6 +6135,7 @@ export type Database = {
           lote_insumo_id: string | null
           motivo: Database["gmp"]["Enums"]["motivo_bloqueo_enum"] | null
           numero_registro_interno: string | null
+          orden_id: string | null
           origen: string | null
           origen_id: string | null
         }
@@ -5526,6 +6152,13 @@ export type Database = {
             columns: ["lote_insumo_id"]
             isOneToOne: false
             referencedRelation: "v_lotes_insumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bloqueos_lote_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_produccion"
             referencedColumns: ["id"]
           },
         ]
