@@ -1681,3 +1681,157 @@ devuelve como `Json`); `descartar_articulo` usa el cliente tipado.
 
 **Falta:** probar en homologación una factura B y su nota de crédito, y el
 merge de `prueba` a `main` cuando el usuario lo apruebe.
+
+---
+
+## Handoff 2026-10-01 (roles, Ventas, Silveira, Fase B, logo) — LEER PRIMERO
+
+Todo en la rama `prueba`. Commiteado solo la etapa 1 (`c3fe82c`, menú y tablero
+por rol) y el alta de Diego (`1551248`). **Lo demás está en el árbol de trabajo,
+sin commitear y sin aplicar a la base.**
+
+### Bloqueo n.º 1: una línea que corrige el usuario
+
+El hook `.claude/hooks/guardas.mjs` no deja editar migraciones existentes (ni
+Bash ni Edit). En `supabase/migrations/20261001130000_comercial_central_ventas.sql`,
+línea 567, `coalesce(g.nombre, c.nombre) as gestionado` tiene que ser
+`coalesce(g.nombre_completo, c.nombre_completo) as gestionado` (`core.v_nomina`
+expone `nombre_completo`). Sin eso la migración falla entera. El usuario dijo
+haberla cambiado, pero **en disco seguía la vieja** (¿sin guardar?). Verificar:
+`grep -n "as gestionado" supabase/migrations/20261001130000_comercial_central_ventas.sql`.
+
+Mientras tanto las suites se corrieron con una copia temporal en
+`supabase/tests/pglite/_tmp/` (se borra sola) que lee esa línea corregida; script
+en el scratchpad de la sesión (`tmp_suites.mjs`): copia `reconstruir.mjs` y
+`lib.mjs`, sube un nivel las rutas y sustituye ese archivo.
+**Última corrida: 20 suites en verde.**
+
+### Migraciones nuevas, en orden (ninguna aplicada)
+
+| Archivo | Qué |
+| --- | --- |
+| `20261001130000_comercial_central_ventas` | lista mayorista, escalas de descuento, columnas de venta en pedidos y renglones, recálculo de precios, `v_disponible_calle5`, `enviar_venta(uuid,bool)`, `reservar_venta`, reserva para la venta de lo que Producción termina en Calle 5 (`para_pedido_id`), `verificar_stock_pedido`, `v_ventas`. **Línea 567 rota.** |
+| `…130100_comercial_pago_en_pedido_cerrado` | en pedido cerrado se cambian solo `estado_pago`, `forma_pago`, `observaciones`. |
+| `…140000_carga_lista_mayorista` | 178 productos de la lista 46.14 (`scripts/precios/generar_lista_mayorista.mjs`). |
+| `…150000_matias_ventas` | Matías pasa a VENTAS. |
+| `…160000_gmp_bloqueo_lote_producto_terminado` | `gmp.bloqueos_lote.orden_id` (lote de PT); `impedimento_despacho_orden` con vencimiento y bloqueos; `gmp.lote_despachable()` responde por insumo y por PT. |
+| `…160100_comercial_venta_reserva_lote_y_factura` | `enviar_venta(uuid)` **reserva siempre** (se borra la de bool); `asignar_lotes_pt` con `gmp.lote_despachable`; `despacho_diferencias` + `enviar_armado(pedido, renglones, motivo)` (lo pedido y lo que salió, motivo obligatorio si difiere); `preparar_factura` de una venta toma lo **despachado**; `escalas_descuento.vigente_desde`. |
+| `…160200_comercial_asignar_lotes_mensaje` | mensaje de `asignar_lotes_pt` («Dirección Técnica todavía no liberó», sin decimales). |
+| `…170000_comercial_fase_b_tesoreria` | B1 `anular_transferencia` y la pata suelta se rechaza; B2 resultado sin anulados; B3 cash flow sin anulaciones en el bruto; B5 no se anula comprobante con pagos o NC vigentes; B6 solicitud con mismo proveedor e importe; R11 `for update` al imputar. |
+| `…170100_comercial_anular_transferencia_correccion` | `anular_transferencia` con advisory lock (el `for update` pedía UPDATE sobre el libro). |
+
+Pruebas nuevas: PGlite `probar_ventas_central.mjs` (23), `probar_bloqueo_lote_pt.mjs`
+(6), `probar_fase_b.mjs` (11); `probar_comprobantes.mjs` adaptada a B5. pgTAP
+`supabase/tests/database/bloqueo_lote_pt.test.sql` (7 aserciones; corre en CI con
+`supabase test db`; **no se pudo correr local**, pide Docker).
+
+### Pasos para ponerlo en servicio (con la línea corregida)
+
+1. Las 20 suites PGlite contra los archivos reales.
+2. `npx supabase db push` y `npm run db:types`.
+3. Sacar los tipos puente: todo `src/lib/consultasVentas.ts`
+   (`tablaComercial`/`rpcComercial`), `useAnularTransferencia` en
+   `consultasAdministracion.ts`, `es_venta`/`para_pedido_id` opcionales en
+   `PedidoRow` (`consultasComercial.ts`).
+4. Commits en el orden pedido: (a) migraciones + tipos + sin puentes; (b)
+   `docs/AUDITORIA_ADMIN.md` + `PENDIENTES.md`; (c) Ventas (`features/ventas/PaginaVentas.tsx`,
+   `PaginaVenta.tsx`, `lib/consultasVentas.ts` + test); (d) Silveira
+   (`features/ventas/PaginaArmado.tsx`, «Sacar fallado» en `PaginaPuntoVenta.tsx`).
+   Aparte: logo e intro (`components/Marca.tsx`, `components/IntroMarca.tsx`,
+   `public/marca-nailshow.png`, `index.html`, `global.css`) y Fase B front.
+5. `npm run lint`, `npx vitest run`, `npm run dev` y recorrer con cada rol.
+
+### Segunda vuelta del 2026-10-01 (hecho, sin commitear)
+
+- `…160300_comercial_enviar_venta_decide_ventas`: **el sistema no reparte entre
+  clientes**. `enviar_venta(uuid, p_de_calle5 jsonb)`: Ventas dice por producto
+  cuánto sale de Calle 5 (sugerido lo disponible, se puede bajar a 0; nunca más
+  que lo disponible ni que lo pedido); eso se reserva, el resto va a Producción.
+  Reasignar = liberar la reserva con motivo y reservar para otro (Calle 5 →
+  Reservas). Suite de Ventas: 25 en verde.
+- Planilla de venta: en «Enviar», columna editable «De Calle 5» por renglón.
+- Silveira, «Enviado»: primero «Va completo» / «Va con faltantes»; con faltantes
+  edita cantidades y el motivo es obligatorio.
+- Recepción: «Sin factura» se llama «Factura X / en negro» (mismo valor).
+- Procedimiento de la fórmula como **«Más información»** desplegable en la
+  calculadora y en la orden de producción del lote. Editan DT y GP (falta saber
+  el rol de **Anabella**: si es DT o GP ya puede; si es CONTROL_CALIDAD hay que
+  sumarla en `PanelProcedimiento.tsx` y en la política de la base).
+- Animaciones: transición en cada cambio de pantalla (clave por ruta en
+  `layout.tsx`), menús y desplegables con «pop», botones que se levantan, filas
+  de tabla escalonadas, logo que gira al pasar, ítem activo de la barra.
+- **Fase B front hecha**: «Anular transferencia» (una por transferencia) en
+  Tesorería; «Anular» con motivo en Cuentas de proveedores (comprobante, NC,
+  pago) y de clientes (cobro), solo Administración y Gerencia
+  (`ModalAnular` en `compartidos.tsx`). Lint 0 errores, Vitest 111.
+- Verificado contra el pedido del usuario: recepción con factura A/B/C/X ✓;
+  venta compara con Calle 5 y lo que falta va a Naza ✓ (falta aplicar); al
+  terminar, Naza elige Calle 5 o fábrica ✓ (`TerminarPedido.tsx`); salida por
+  pedido entero, completo o con faltantes ✓; deciden Mati y Silveira ✓; reservar
+  stock de Calle 5 para un cliente ✓ (Calle 5 → Por producto → Reservar → «Para
+  un cliente»).
+
+### Tercera vuelta (2026-10-02, hecho, sin commitear)
+
+- Anabella es Dirección Técnica: ya edita el procedimiento (DT y GP).
+- **Fase B terminada** en código (falta aplicar la base):
+  - #40 cuenta corriente con «Desde/Hasta», saldo de arrastre y saldo a fecha
+    (`periodoCuenta` en `consultasAdministracion.ts` + test
+    `src/lib/periodoCuenta.test.ts`; `FiltroPeriodo` en `compartidos.tsx`) en
+    proveedores y clientes.
+  - #44 «Historial» de cada comprobante, pago o cobro (`useAuditoriaDe`,
+    `ModalHistorial`); visible para DT, Gerencia y Administrador del sistema
+    (RLS). Que Administración lo lea: `PENDIENTES.md` #13.
+  - #37 «Editar cuenta» en Tesorería (nombre, banco, número, titular, activa; el
+    tipo no cambia).
+  - B7 resuelto por el menú nuevo (GP no ve cuentas de clientes ni facturas).
+  - B8 se deja como está, a propósito: `PENDIENTES.md` #14.
+  - Lo demás de la matriz espera decisión o es Fase C (ver abajo). **Frenar acá
+    hasta el OK de Fase C**, como pidió el usuario.
+
+### A medias (seguir acá)
+
+- **Primero de todo**: la línea 567 de `20261001130000` (ver «Bloqueo n.º 1»).
+  Después, los pasos de «Pasos para ponerlo en servicio».
+- ~~**Fase B, front**~~ hecho (ver arriba). Lo que sigue es lo de abajo:
+- **Fase B, front** (la base está hecha y probada):
+  - `PaginaTesoreria.tsx` (~l.249-285): en filas con `transferencia_grupo`,
+    reemplazar «Anular» por pata por «Anular transferencia» →
+    `useAnularTransferencia({ grupo, motivo })` (hook escrito). Hoy la base
+    rechaza el botón por pata.
+  - B4: columna «Anular» con modal de motivo en `PaginaCuentasProveedores.tsx`
+    (COMPROBANTE/NOTA_CREDITO → `useAnularComprobante` con `m.comprobante_id`;
+    PAGO → `useAnularPagoProveedor` con `m.pago_id`) y en
+    `PaginaCuentasClientes.tsx` (COBRO → `useAnularCobroCliente`, `m.cobro_id`).
+    Solo Administración y Gerencia. Hooks escritos en `consultasAdministracion.ts`.
+  - Revisar el comentario de `useAnularTransferencia`: un backtick en la shell
+    pudo comerse el texto «npm run db:types».
+- **Resto de Fase B sin empezar**: B7 (verificar: con el menú nuevo GP ya no ve
+  Cuentas de clientes), B8 (recepción + comprobante en una transacción), matriz
+  #40 (cuenta corriente con saldo a fecha y arrastre), #44 (del comprobante a su
+  auditoría), #37 (editar cajas). Bloqueados por decisión: #13 y #38 (alícuotas,
+  PENDIENTES #4), #25 (vencimiento de facturas), #30 (D-36), #15/#16/#18
+  (reportes). **El usuario pidió frenar al terminar la Fase B**; la Fase C
+  (cierre de período, Libro IVA, conciliación bancaria, búsqueda en grillas)
+  espera su OK.
+- **Logo**: hecho, sin ver en pantalla. `public/marca-nailshow.png` (512 px,
+  desde `App/logo-248360920-….png`); intro una vez por sesión del navegador.
+- **Sin ver en pantalla**: Ventas, la planilla de carga y la bandeja de Silveira.
+- **Cuentas pendientes**: Agustina Sierra (VENTAS, igual que Mati) y Silveira
+  (ENCARGADA_STOCK) no se registraron todavía; con el mail, migración de alta
+  como `20261001150000_matias_ventas.sql` (por email, sin RAISE).
+
+### Decisiones de esta sesión (no volver a discutirlas)
+
+- Precio base = precio con promoción; pack = unidades × precio unitario; el
+  renglón se carga en packs.
+- Escala por monto: la de la planilla (0/20/25/30/35 % desde 0, 625 mil, 1 M,
+  1,45 M y 4,616 M), provisoria y con vigencia. Discrepancia con Mati y si se
+  acumula con la promo: `PENDIENTES.md` #8 y #9.
+- Reserva en Calle 5 automática al enviar (justificada en el encabezado de
+  `…160100`).
+- Los 114 productos que faltan no se dan de alta: clasificados en
+  `scripts/precios/pendientes_mayorista.md` (a 31, b 80, c 3) para revisar con DT.
+- DT conserva Auditoría. Fase B aprobada; frenar al terminarla.
+- Animaciones: excepción pedida a «nada de animaciones decorativas» (§6), sin
+  rebote, apagadas con reducción de movimiento.
