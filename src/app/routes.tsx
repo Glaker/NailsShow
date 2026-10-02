@@ -20,6 +20,7 @@ import { PaginaFacturas } from '@/features/comercial/PaginaFacturas';
 import { PaginaPuntoVenta } from '@/features/comercial/PaginaPuntoVenta';
 import { PaginaCatalogos, RedirigirACatalogo } from '@/features/maestros/PaginaCatalogos';
 import { PaginaVentas } from '@/features/ventas/PaginaVentas';
+import { PaginaVenta } from '@/features/ventas/PaginaVenta';
 import { PaginaArmado } from '@/features/ventas/PaginaArmado';
 import { PaginaUsuarios } from '@/features/usuarios/PaginaUsuarios';
 import { PaginaAuditoria } from '@/features/auditoria/PaginaAuditoria';
@@ -84,6 +85,7 @@ export function AppRoutes() {
       <Route path="/tercerizados/:id" element={<PaginaTercero />} />
       <Route path="/lista-materiales" element={<RedirigirACalculadora />} />
       <Route path="/ventas" element={<PaginaVentas />} />
+      <Route path="/ventas/:id" element={<PaginaVenta />} />
       <Route path="/armado" element={<PaginaArmado />} />
       <Route path="/punto-venta" element={<PaginaPuntoVenta />} />
       <Route path="/catalogos" element={<PaginaCatalogos />} />

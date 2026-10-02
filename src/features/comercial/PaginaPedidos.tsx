@@ -103,7 +103,8 @@ export function PaginaPedidos() {
       ? 'borradores'
       : 'tablero';
 
-  const todos = pedidos.data ?? [];
+  // Los pedidos de venta viven en la central de Ventas; acá llega su S-xxxx.
+  const todos = (pedidos.data ?? []).filter((p) => !p.es_venta);
   const cuenta = (v: Vista) =>
     todos.filter((p) => ESTADOS_DE_VISTA[v].includes(p.estado)).length;
   const filas = todos

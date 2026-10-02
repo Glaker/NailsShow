@@ -62,6 +62,7 @@ const abiertos = (pedidos: PedidoRow[]) =>
   pedidos.filter(
     (p) =>
       p.eliminado_en === null &&
+      !p.es_venta &&
       (p.estado === 'CONFIRMADO' || p.estado === 'EN_PRODUCCION'),
   );
 
@@ -205,7 +206,7 @@ export function Gantt({
                     padding: '0 2px',
                     background: `var(--mantine-color-${colorPedido(p)}-${tarde ? 7 : 5})`,
                     color: '#fff',
-                  } as CSSProperties
+                  }
                 }
               >
                 {editable && fin - ini < 3 ? (
@@ -690,7 +691,7 @@ function Contador({
       p="md"
       radius="lg"
       className="contador"
-      style={{ borderColor: 'var(--superficie-borde)', '--i': i } as CSSProperties}
+      style={{ borderColor: 'var(--superficie-borde)', '--i': i }}
     >
       <Text fz={34} fw={800} lh={1} c={`${color}.7`}>
         {valor}
@@ -782,7 +783,7 @@ export function InicioPedidos({ descripcion }: { descripcion?: string }) {
                   justify="space-between"
                   wrap="nowrap"
                   className="fila-resumen"
-                  style={{ '--i': i } as CSSProperties}
+                  style={{ '--i': i }}
                 >
                   <Text size="sm" truncate>
                     <Anchor component={Link} to={`/pedidos/${p.id}`} fw={700}>

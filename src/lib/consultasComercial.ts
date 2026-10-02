@@ -56,6 +56,10 @@ export interface PedidoRow {
   entregado_por: string | null;
   creado_por: string;
   creado_en: string;
+  /** Pedido de la central de Ventas (20261001130000): se arma desde Calle 5. */
+  es_venta?: boolean;
+  /** En un pedido de stock: la venta para la que se produce. */
+  para_pedido_id?: string | null;
 }
 
 export interface PedidoConConteoRow extends PedidoRow {

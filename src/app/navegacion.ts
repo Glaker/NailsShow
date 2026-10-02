@@ -67,7 +67,7 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiqueta: 'Ventas',
     etiquetaCorta: 'Ventas',
     icono: IconShoppingCart,
-    roles: ['VENTAS', 'GERENCIA'],
+    roles: ['VENTAS', 'ADMINISTRACION', 'GERENCIA'],
     principal: true,
   },
   {
