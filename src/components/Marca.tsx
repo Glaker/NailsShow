@@ -1,12 +1,7 @@
-/**
- * Marca del sistema.
- *
- * Un frasco de esmalte dibujado en SVG. Es la única concesión decorativa del
- * sistema y está acá por una razón práctica: la aplicación se abre en una
- * tablet compartida donde también hay otras, y la marca es lo que hace que se
- * reconozca de un vistazo cuál es.
- */
-export function Marca({ size = 34 }: { size?: number }) {
+import { useState } from 'react';
+
+/** Frasco de esmalte en SVG: la marca anterior, que queda de respaldo si el logo no carga. */
+function Frasco({ size }: { size: number }) {
   return (
     <svg
       width={size}
@@ -38,5 +33,41 @@ export function Marca({ size = 34 }: { size?: number }) {
         fillOpacity="0.25"
       />
     </svg>
+  );
+}
+
+/** Logo de Nail Show (public/marca-nailshow.png). */
+export const LOGO = '/marca-nailshow.png';
+
+/**
+ * Marca del sistema: el logo de Nail Show en un círculo blanco, que se lee
+ * igual sobre la barra oscura y sobre fondo claro. Si el archivo no está, queda
+ * el frasco.
+ */
+export function Marca({ size = 34 }: { size?: number }) {
+  const [falla, setFalla] = useState(false);
+  if (falla) return <Frasco size={size} />;
+  return (
+    <span
+      className="marca"
+      style={{
+        display: 'inline-grid',
+        placeItems: 'center',
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        background: '#fff',
+        flexShrink: 0,
+      }}
+    >
+      <img
+        src={LOGO}
+        alt=""
+        width={size - 4}
+        height={size - 4}
+        style={{ display: 'block', objectFit: 'contain' }}
+        onError={() => setFalla(true)}
+      />
+    </span>
   );
 }

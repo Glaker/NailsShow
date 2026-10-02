@@ -201,7 +201,7 @@ body {
 
 :root {
   --curva-salida: cubic-bezier(0.22, 0.61, 0.36, 1);
-  --curva-resorte: cubic-bezier(0.34, 1.36, 0.64, 1);
+  --curva-resorte: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes entrada-resorte {
@@ -307,6 +307,215 @@ a.contador:hover {
 }
 .nav-item:hover svg {
   transform: translateX(2px);
+}
+
+/* Cambio de pantalla: la página nueva aparece desde un desenfoque mínimo. */
+@keyframes entrada-pagina {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+.entrada-pagina {
+  animation: entrada-pagina 340ms var(--curva-salida) both;
+}
+
+/* Botones: se levantan apenas al pasar y se hunden al apretar. */
+.mantine-Button-root {
+  transition:
+    transform 140ms var(--curva-salida),
+    box-shadow 140ms var(--curva-salida),
+    background-color var(--transicion);
+}
+.mantine-Button-root:not(:disabled):not([data-disabled]):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(40, 23, 50, 0.12);
+}
+.mantine-Button-root:not(:disabled):not([data-disabled]):active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: none;
+}
+
+/* Filas de tabla: las primeras entran escalonadas al cargar el listado. */
+.mantine-Table-tbody > tr {
+  animation: entrada-suave 260ms var(--curva-salida) both;
+}
+.mantine-Table-tbody > tr:nth-child(2) {
+  animation-delay: 25ms;
+}
+.mantine-Table-tbody > tr:nth-child(3) {
+  animation-delay: 50ms;
+}
+.mantine-Table-tbody > tr:nth-child(4) {
+  animation-delay: 75ms;
+}
+.mantine-Table-tbody > tr:nth-child(5) {
+  animation-delay: 100ms;
+}
+.mantine-Table-tbody > tr:nth-child(6) {
+  animation-delay: 125ms;
+}
+.mantine-Table-tbody > tr:nth-child(7) {
+  animation-delay: 150ms;
+}
+.mantine-Table-tbody > tr:nth-child(8) {
+  animation-delay: 175ms;
+}
+.mantine-Table-tbody > tr:nth-child(n + 9) {
+  animation-delay: 200ms;
+}
+
+/* Logo de la barra: gira apenas al pasar el mouse. */
+.marca img {
+  transition: transform 420ms var(--curva-salida);
+}
+.marca:hover img {
+  transform: rotate(-10deg) scale(1.06);
+}
+
+/* Ítem activo de la barra: el degradé entra suave al cambiar de sección. */
+@keyframes nav-activo {
+  from {
+    background-position: 100% 0;
+    opacity: 0.6;
+  }
+  to {
+    background-position: 0 0;
+    opacity: 1;
+  }
+}
+.nav-item[data-activo='true'] {
+  background-size: 200% 100%;
+  animation: nav-activo 360ms var(--curva-salida) both;
+}
+
+/* Entrada a la aplicación con el logo (IntroMarca). 1,9 s en total. */
+.intro-marca {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(
+    900px 600px at 50% 40%,
+    #3a2447 0%,
+    #1a0e22 60%,
+    #12081a 100%
+  );
+  cursor: pointer;
+  animation: intro-salida 520ms var(--curva-salida) 1380ms both;
+}
+.intro-escena {
+  position: relative;
+  width: min(46vmin, 260px);
+  aspect-ratio: 1;
+  animation: intro-acercar 520ms var(--curva-salida) 1380ms both;
+}
+.intro-disco {
+  position: absolute;
+  inset: 9%;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 0 rgba(230, 41, 127, 0);
+  animation:
+    intro-aparecer 760ms var(--curva-salida) 80ms both,
+    intro-brillo 900ms var(--curva-salida) 700ms both;
+}
+.intro-disco img {
+  width: 88%;
+  height: 88%;
+  object-fit: contain;
+}
+.intro-anillo {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+.intro-anillo circle {
+  fill: none;
+  stroke: url(#intro-degrade);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: intro-trazo 900ms var(--curva-salida) 260ms both;
+}
+@keyframes intro-aparecer {
+  from {
+    opacity: 0;
+    transform: scale(0.72);
+    filter: blur(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+@keyframes intro-trazo {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes intro-brillo {
+  50% {
+    box-shadow: 0 0 60px 6px rgba(230, 41, 127, 0.35);
+  }
+  to {
+    box-shadow: 0 0 30px 0 rgba(124, 200, 214, 0.15);
+  }
+}
+@keyframes intro-acercar {
+  to {
+    transform: scale(1.12);
+    filter: blur(6px);
+  }
+}
+@keyframes intro-salida {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+/* Pedido de venta: el pie con la cuenta queda a la vista mientras se baja. */
+.pie-venta {
+  position: sticky;
+  bottom: 12px;
+  z-index: 5;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(6px);
+  animation: entrada-suave 260ms var(--curva-salida) both;
+}
+@media (max-width: 62em) {
+  .pie-venta {
+    bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+}
+
+/* El total se recalcula mientras se escribe: un pulso corto lo acompaña. */
+@keyframes pulso-monto {
+  from {
+    transform: scale(1.06);
+    color: var(--mantine-color-rosa-7);
+  }
+  to {
+    transform: none;
+  }
+}
+.monto-vivo {
+  display: inline-block;
+  transform-origin: left center;
+  animation: pulso-monto 320ms var(--curva-resorte) both;
 }
 
 /* Calendario del mes: una hoja con líneas finas, como un calendario de pared. */

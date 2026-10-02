@@ -5,6 +5,7 @@ import { AppRoutes } from './routes';
 import { useSesion } from '@/features/auth/sesion';
 import { PantallaIngreso } from '@/features/auth/PantallaIngreso';
 import { PantallaSinHabilitar } from '@/features/auth/PantallaSinHabilitar';
+import { IntroMarca } from '@/components/IntroMarca';
 
 /**
  * Puerta de la aplicación.
@@ -29,9 +30,12 @@ function Puerta() {
   if (sinHabilitar) return <PantallaSinHabilitar />;
 
   return (
-    <Layout>
-      <AppRoutes />
-    </Layout>
+    <>
+      <IntroMarca />
+      <Layout>
+        <AppRoutes />
+      </Layout>
+    </>
   );
 }
 

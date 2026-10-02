@@ -110,7 +110,7 @@ export function PantallaIngreso() {
       <Stack gap="lg" w="100%" maw={420} className="entrada">
         <Center>
           <Group gap="sm">
-            <Marca size={44} />
+            <Marca size={72} />
             <div>
               <Text c="#fff" fw={800} fz={24} lh={1.1} style={{ letterSpacing: 0.5 }}>
                 NAIL SHOW

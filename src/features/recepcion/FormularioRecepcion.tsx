@@ -731,7 +731,7 @@ function ComprobanteDelProveedor({
           { label: 'Factura A', value: 'FACTURA_A' },
           { label: 'Factura B', value: 'FACTURA_B' },
           { label: 'Factura C', value: 'FACTURA_C' },
-          { label: 'Sin factura', value: 'SIN_FACTURA' },
+          { label: 'Factura X / en negro', value: 'SIN_FACTURA' },
         ]}
         {...form.getInputProps('comprobante.tipo')}
       />

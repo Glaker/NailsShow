@@ -55,6 +55,7 @@ import {
   type OrdenProduccion,
 } from '@/lib/consultasOrdenes';
 import { TrazabilidadOrden } from './TrazabilidadOrden';
+import { MasInformacion } from './PanelProcedimiento';
 import {
   COLOR_ESTADO_ORDEN,
   CONFIG_ETAPAS,
@@ -167,6 +168,9 @@ export function PaginaOrden() {
             </Text>
           ) : null}
         </Paper>
+
+        {/* El procedimiento de la fórmula, a mano mientras se hace el lote. */}
+        <MasInformacion formulaId={o.formula_id} />
 
         {ETAPAS.map(({ etapa, titulo, calidad }) => {
           const r = porEtapa.get(etapa);

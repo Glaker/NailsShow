@@ -1,4 +1,3 @@
-import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Anchor,
@@ -59,7 +58,7 @@ export function TableroDT() {
           className="contador"
           component={Link}
           to="/lotes?estado=CUARENTENA"
-          style={{ borderColor: 'var(--superficie-borde)', '--i': 0 } as CSSProperties}
+          style={{ borderColor: 'var(--superficie-borde)', '--i': 0 }}
         >
           <Group gap="sm" mb={6}>
             <IconFlask size={22} color="var(--mantine-color-estadoCuarentena-7)" />
@@ -76,7 +75,7 @@ export function TableroDT() {
           className="contador"
           component={Link}
           to="/liberacion"
-          style={{ borderColor: 'var(--superficie-borde)', '--i': 1 } as CSSProperties}
+          style={{ borderColor: 'var(--superficie-borde)', '--i': 1 }}
         >
           <Group gap="sm" mb={6}>
             <IconRosetteDiscountCheck
@@ -179,7 +178,7 @@ export function TableroDT() {
                     justify="space-between"
                     wrap="nowrap"
                     className="fila-resumen"
-                    style={{ '--i': i } as CSSProperties}
+                    style={{ '--i': i }}
                   >
                     <Text size="sm" truncate>
                       <Anchor

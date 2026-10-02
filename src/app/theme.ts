@@ -415,6 +415,16 @@ export const theme = createTheme({
     Tooltip: {
       defaultProps: { transitionProps: { transition: 'fade', duration: 120 } },
     },
+    // Menús y desplegables se abren con el mismo «pop» que los modales.
+    Menu: {
+      defaultProps: { transitionProps: { transition: 'pop-top-right', duration: 180 } },
+    },
+    Popover: {
+      defaultProps: { transitionProps: { transition: 'pop', duration: 180 } },
+    },
+    Combobox: {
+      defaultProps: { transitionProps: { transition: 'pop', duration: 160 } },
+    },
     Paper: {
       defaultProps: { radius: 'lg' },
     },

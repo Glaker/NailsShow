@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   Badge,
   Button,
+  Collapse,
   Group,
   Modal,
   Paper,
@@ -11,7 +12,13 @@ import {
   Textarea,
   Timeline,
 } from '@mantine/core';
-import { IconHistory, IconListNumbers, IconPencil } from '@tabler/icons-react';
+import {
+  IconChevronDown,
+  IconHistory,
+  IconInfoCircle,
+  IconListNumbers,
+  IconPencil,
+} from '@tabler/icons-react';
 import { useTieneRol } from '@/features/auth/sesion';
 import { useGuardarProcedimiento, useProcedimientos } from '@/lib/consultas';
 import { useNomina } from '@/lib/consultasComercial';
@@ -217,6 +224,41 @@ function EditorProcedimiento({
           Guardar versión
         </Button>
       </Group>
+    </Stack>
+  );
+}
+
+/**
+ * «Más información» (pedido del 2026-10-01): el procedimiento de la fórmula a
+ * mano cuando se va a hacer el lote, sin ocupar la pantalla. Se abre y cierra;
+ * lo editan Dirección Técnica y Gerencia de Producción.
+ */
+export function MasInformacion({ formulaId }: { formulaId: string }) {
+  const [abierto, setAbierto] = useState(false);
+  return (
+    <Stack gap="xs">
+      <Button
+        variant="light"
+        color="violeta"
+        size="md"
+        leftSection={<IconInfoCircle size={18} />}
+        rightSection={
+          <IconChevronDown
+            size={16}
+            style={{
+              transform: abierto ? 'rotate(180deg)' : 'none',
+              transition: 'transform var(--transicion)',
+            }}
+          />
+        }
+        onClick={() => setAbierto((a) => !a)}
+        style={{ alignSelf: 'flex-start' }}
+      >
+        Más información: procedimiento
+      </Button>
+      <Collapse in={abierto} transitionDuration={260}>
+        <PanelProcedimiento formulaId={formulaId} />
+      </Collapse>
     </Stack>
   );
 }

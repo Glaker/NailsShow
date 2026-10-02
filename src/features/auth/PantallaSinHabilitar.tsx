@@ -29,7 +29,7 @@ export function PantallaSinHabilitar() {
     >
       <Stack gap="lg" w="100%" maw={460} className="entrada">
         <Center>
-          <Marca size={44} />
+          <Marca size={72} />
         </Center>
 
         <Paper p="xl" radius="lg" shadow="xl">

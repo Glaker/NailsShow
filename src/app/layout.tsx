@@ -266,6 +266,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const esMovil = useMediaQuery('(max-width: 62em)');
   const [panelAbierto, panel] = useDisclosure(false);
   const { claims } = useSesion();
+  const { pathname } = useLocation();
 
   return (
     <AppShell
@@ -311,7 +312,10 @@ export function Layout({ children }: { children: ReactNode }) {
           </Group>
         ) : null}
 
-        <div className="entrada">{children}</div>
+        {/* La clave por ruta repite la entrada suave en cada cambio de pantalla. */}
+        <div className="entrada entrada-pagina" key={pathname}>
+          {children}
+        </div>
       </AppShell.Main>
 
       {esMovil ? (

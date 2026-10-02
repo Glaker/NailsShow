@@ -39,7 +39,7 @@ import {
   useClimaPlanta,
 } from '@/lib/clima';
 import { BadgeEstadoFormula } from './estadoFormula';
-import { PanelProcedimiento } from './PanelProcedimiento';
+import { MasInformacion } from './PanelProcedimiento';
 import {
   calcularLote,
   type Densidad,
@@ -529,7 +529,7 @@ export function PaginaCalculadoraLote() {
           </Paper>
 
           {/* Cómo se hace el lote: el procedimiento vigente de la fórmula. */}
-          {formulaId ? <PanelProcedimiento formulaId={formulaId} /> : null}
+          {formulaId ? <MasInformacion formulaId={formulaId} /> : null}
 
           {formulaSeleccionada?.estado !== 'VIGENTE' ? (
             <Alert color="estadoEnAnalisis" variant="light" radius="md">
