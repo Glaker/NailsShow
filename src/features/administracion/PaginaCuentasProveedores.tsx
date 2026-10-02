@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Anchor,
   Badge,
   Button,
   Group,
@@ -33,12 +34,23 @@ import {
 } from '@/lib/consultasCompras';
 import {
   pesos,
+  periodoCuenta,
   saldoCorrido,
   useConciliarProveedor,
+  useAnularComprobante,
+  useAnularPagoProveedor,
   useCuentaCorrienteProveedor,
   useSaldosProveedores,
 } from '@/lib/consultasAdministracion';
-import { MONEDA, ModalPagoProveedor, aNumero } from './compartidos';
+import { useTieneRol } from '@/features/auth/sesion';
+import {
+  FiltroPeriodo,
+  MONEDA,
+  ModalAnular,
+  ModalPagoProveedor,
+  aNumero,
+  ModalHistorial,
+} from './compartidos';
 
 /**
  * Cuenta corriente de proveedores (§2.2 del documento de Administración):
@@ -167,8 +179,25 @@ function FichaProveedor({
 }) {
   const cc = useCuentaCorrienteProveedor(proveedorId);
   const [modal, setModal] = useState<'pago' | 'comprobante' | 'conciliar' | null>(null);
+  const puedeAnular = useTieneRol('ADMINISTRACION', 'GERENCIA');
+  const veHistorial = useTieneRol(
+    'DIRECCION_TECNICA',
+    'GERENCIA',
+    'ADMINISTRADOR_SISTEMA',
+  );
+  const [historial, setHistorial] = useState<{ id: string; ref: string } | null>(null);
+  const anularPago = useAnularPagoProveedor();
+  const anularComp = useAnularComprobante();
+  const [anulando, setAnulando] = useState<{
+    tipo: 'pago' | 'comprobante';
+    id: string;
+    ref: string;
+  } | null>(null);
   const filas = saldoCorrido(cc.data ?? []);
   const saldo = filas.at(-1)?.saldo ?? 0;
+  const [desdeCc, setDesdeCc] = useState<string | null>(null);
+  const [hastaCc, setHastaCc] = useState<string | null>(null);
+  const periodo = periodoCuenta(filas, desdeCc, hastaCc);
 
   return (
     <Stack gap="md">
@@ -192,6 +221,14 @@ function FichaProveedor({
         </Button>
       </Group>
 
+      <FiltroPeriodo
+        desde={desdeCc}
+        hasta={hastaCc}
+        onDesde={setDesdeCc}
+        onHasta={setHastaCc}
+        anterior={periodo.anterior}
+        aFecha={periodo.aFecha}
+      />
       {cc.isLoading ? (
         <Skeleton h={160} />
       ) : filas.length === 0 ? (
@@ -209,10 +246,24 @@ function FichaProveedor({
                 <Table.Th ta="right">Debe</Table.Th>
                 <Table.Th ta="right">Haber</Table.Th>
                 <Table.Th ta="right">Saldo</Table.Th>
+                {puedeAnular ? <Table.Th /> : null}
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {filas.map((m, i) => (
+              {desdeCc ? (
+                <Table.Tr>
+                  <Table.Td>{fecha(desdeCc)}</Table.Td>
+                  <Table.Td colSpan={4}>
+                    <Text size="sm" fw={600}>
+                      Saldo anterior
+                    </Text>
+                  </Table.Td>
+                  <Table.Td ta="right" ff="monospace" fw={600}>
+                    {pesos(periodo.anterior)}
+                  </Table.Td>
+                </Table.Tr>
+              ) : null}
+              {periodo.visibles.map((m, i) => (
                 <Table.Tr key={i}>
                   <Table.Td>{fecha(m.fecha)}</Table.Td>
                   <Table.Td>
@@ -222,6 +273,20 @@ function FichaProveedor({
                     <Text size="xs" c="dimmed" ff="monospace">
                       {m.referencia}
                     </Text>
+                    {veHistorial && (m.pago_id ?? m.comprobante_id) ? (
+                      <Anchor
+                        size="xs"
+                        component="button"
+                        onClick={() =>
+                          setHistorial({
+                            id: m.pago_id ?? m.comprobante_id ?? '',
+                            ref: m.referencia ?? '',
+                          })
+                        }
+                      >
+                        Historial
+                      </Anchor>
+                    ) : null}
                   </Table.Td>
                   <Table.Td>{fecha(m.vencimiento_pago)}</Table.Td>
                   <Table.Td ta="right" ff="monospace">
@@ -233,11 +298,63 @@ function FichaProveedor({
                   <Table.Td ta="right" ff="monospace" fw={600}>
                     {pesos(m.saldo)}
                   </Table.Td>
+                  {puedeAnular ? (
+                    <Table.Td>
+                      {m.pago_id || m.comprobante_id ? (
+                        <Button
+                          size="compact-xs"
+                          variant="subtle"
+                          color="gray"
+                          onClick={() =>
+                            setAnulando(
+                              m.pago_id
+                                ? { tipo: 'pago', id: m.pago_id, ref: m.referencia ?? '' }
+                                : {
+                                    tipo: 'comprobante',
+                                    id: m.comprobante_id ?? '',
+                                    ref: m.referencia ?? '',
+                                  },
+                            )
+                          }
+                        >
+                          Anular
+                        </Button>
+                      ) : null}
+                    </Table.Td>
+                  ) : null}
                 </Table.Tr>
               ))}
             </Table.Tbody>
           </Table>
         </Table.ScrollContainer>
+      )}
+      <ModalHistorial
+        registroId={historial?.id ?? null}
+        titulo={`Historial ${historial?.ref ?? ''}`}
+        onCerrar={() => setHistorial(null)}
+      />
+      {anulando === null ? null : (
+        <ModalAnular
+          abierto
+          titulo={
+            anulando.tipo === 'pago'
+              ? `Anular el pago ${anulando.ref}`
+              : `Anular el comprobante ${anulando.ref}`
+          }
+          explicacion={
+            anulando.tipo === 'pago'
+              ? 'El egreso de la caja o el banco se revierte y la deuda vuelve a la cuenta corriente. Después cargá el pago correcto.'
+              : 'Queda anulado con su motivo. Si tiene pagos o notas de crédito vigentes, primero hay que anular esos.'
+          }
+          cargando={anularPago.isPending || anularComp.isPending}
+          onCerrar={() => setAnulando(null)}
+          onAnular={(motivo) =>
+            (anulando.tipo === 'pago' ? anularPago : anularComp).mutate(
+              { id: anulando.id, motivo },
+              { onSuccess: () => setAnulando(null) },
+            )
+          }
+        />
       )}
 
       <ModalPagoProveedor

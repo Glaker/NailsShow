@@ -213,6 +213,32 @@ export const useTransferirFondos = () =>
     'Transferencia registrada.',
   );
 
+/** #37: editar una caja o cuenta (nombre, banco, número, titular, activa). El tipo no cambia. */
+export const useEditarCuentaFondos = () =>
+  useMutacion(
+    (c: {
+      id: string;
+      nombre: string;
+      banco: string | null;
+      numero: string | null;
+      titular: string | null;
+      activo: boolean;
+    }) =>
+      avisarSiFalla(
+        comercial()
+          .from('cuentas_fondos')
+          .update({
+            nombre: c.nombre,
+            banco: c.banco,
+            numero: c.numero,
+            titular: c.titular,
+            activo: c.activo,
+          })
+          .eq('id', c.id),
+      ),
+    'Cuenta actualizada.',
+  );
+
 export const useAnularMovimientoFondos = () =>
   useMutacion(
     (a: { id: string; motivo: string }) =>
@@ -220,6 +246,49 @@ export const useAnularMovimientoFondos = () =>
         comercial().rpc('anular_movimiento_fondos', { p_id: a.id, p_motivo: a.motivo }),
       ),
     'Movimiento anulado con su inverso.',
+  );
+
+/** B1 (20261001170000): una transferencia se anula entera, las dos patas en una transacción. */
+export const useAnularTransferencia = () =>
+  useMutacion(
+    (a: { grupo: string; motivo: string }) =>
+      avisarSiFalla(
+        comercial().rpc('anular_transferencia', { p_grupo: a.grupo, p_motivo: a.motivo }),
+      ),
+    'Transferencia anulada: las dos cuentas vuelven a su saldo.',
+  );
+
+/** B4: anular un pago a proveedor (revierte su egreso; la deuda vuelve). */
+export const useAnularPagoProveedor = () =>
+  useMutacion(
+    (a: { id: string; motivo: string }) =>
+      avisarSiFalla(
+        comercial().rpc('anular_pago_proveedor', { p_id: a.id, p_motivo: a.motivo }),
+      ),
+    'Pago anulado: el egreso se revirtió y la deuda volvió a la cuenta corriente.',
+  );
+
+/** B4: anular un cobro (revierte su ingreso; la factura vuelve a pendiente). */
+export const useAnularCobroCliente = () =>
+  useMutacion(
+    (a: { id: string; motivo: string }) =>
+      avisarSiFalla(
+        comercial().rpc('anular_cobro_cliente', { p_id: a.id, p_motivo: a.motivo }),
+      ),
+    'Cobro anulado: el ingreso se revirtió y la factura volvió a pendiente.',
+  );
+
+/** B4: anular un comprobante de proveedor (B5: antes, sus pagos y notas de crédito). */
+export const useAnularComprobante = () =>
+  useMutacion(
+    (a: { id: string; motivo: string }) =>
+      avisarSiFalla(
+        comercial().rpc('anular_comprobante_proveedor', {
+          p_id: a.id,
+          p_motivo: a.motivo,
+        }),
+      ),
+    'Comprobante anulado. Cargá el correcto si corresponde.',
   );
 
 export const useConciliarFondos = () =>
@@ -526,4 +595,25 @@ export function saldoCorrido<T extends { debe: number | null; haber: number | nu
     acc.push({ ...m, saldo: previo + Number(m.debe) - Number(m.haber) });
     return acc;
   }, []);
+}
+
+/**
+ * Cuenta corriente entre dos fechas (#40 de la auditoría, patrón Holistor):
+ * el saldo de arrastre es el de todo lo anterior a «desde»; las filas del
+ * período siguen con su saldo corrido desde el principio; el saldo a fecha es
+ * el de la última fila hasta «hasta». Fechas ISO (aaaa-mm-dd); vacías = sin tope.
+ */
+export function periodoCuenta<T extends { fecha: string | null; saldo: number }>(
+  filas: T[],
+  desde: string | null,
+  hasta: string | null,
+) {
+  const dia = (f: string | null) => (f ?? '').slice(0, 10);
+  const antes = desde ? filas.filter((m) => dia(m.fecha) < desde) : [];
+  const anterior = antes.at(-1)?.saldo ?? 0;
+  const visibles = filas.filter(
+    (m) => (!desde || dia(m.fecha) >= desde) && (!hasta || dia(m.fecha) <= hasta),
+  );
+  const aFecha = visibles.at(-1)?.saldo ?? anterior;
+  return { anterior, visibles, aFecha };
 }

@@ -11,8 +11,10 @@ import {
   Text,
   TextInput,
 } from '@mantine/core';
-import { fecha } from '@/lib/formato';
+import { DateInput } from '@mantine/dates';
+import { fecha, fechaISO } from '@/lib/formato';
 import { numeroComprobante } from '@/lib/consultasCompras';
+import { useAuditoriaDe } from '@/lib/consultas';
 import {
   MEDIOS_PAGO,
   pesos,
@@ -234,6 +236,187 @@ export function ModalPagoProveedor({
           </Button>
         </Group>
       </Stack>
+    </Modal>
+  );
+}
+
+/**
+ * Anular con motivo (B4, docs/AUDITORIA_ADMIN.md): pagos, cobros, comprobantes
+ * y transferencias. No se borra nada: la base registra la anulación o el
+ * contramovimiento, con su motivo, y queda en la auditoría.
+ */
+export function ModalAnular({
+  titulo,
+  explicacion,
+  abierto,
+  cargando,
+  onCerrar,
+  onAnular,
+}: {
+  titulo: string;
+  explicacion: string;
+  abierto: boolean;
+  cargando: boolean;
+  onCerrar: () => void;
+  onAnular: (motivo: string) => void;
+}) {
+  const [motivo, setMotivo] = useState('');
+  const cerrar = () => {
+    setMotivo('');
+    onCerrar();
+  };
+  return (
+    <Modal opened={abierto} onClose={cerrar} title={titulo} centered>
+      <Stack gap="md">
+        <Text size="sm">{explicacion}</Text>
+        <TextInput
+          label="Motivo"
+          placeholder="Ej.: importe mal cargado"
+          value={motivo}
+          onChange={(e) => setMotivo(e.currentTarget.value)}
+          data-autofocus
+        />
+        <Group justify="flex-end">
+          <Button variant="default" onClick={cerrar}>
+            Volver
+          </Button>
+          <Button
+            color="red"
+            loading={cargando}
+            disabled={motivo.trim().length < 3}
+            onClick={() => {
+              onAnular(motivo.trim());
+              setMotivo('');
+            }}
+          >
+            Anular
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
+  );
+}
+
+/**
+ * Período de la cuenta corriente (#40): desde y hasta, el saldo de arrastre y
+ * el saldo a la fecha. Sin fechas, la cuenta entera.
+ */
+export function FiltroPeriodo({
+  desde,
+  hasta,
+  onDesde,
+  onHasta,
+  anterior,
+  aFecha,
+}: {
+  desde: string | null;
+  hasta: string | null;
+  onDesde: (v: string | null) => void;
+  onHasta: (v: string | null) => void;
+  anterior: number;
+  aFecha: number;
+}) {
+  const aFechaDe = (v: string | null) => (v ? new Date(`${v}T12:00:00`) : null);
+  return (
+    <Group gap="sm" align="flex-end" wrap="wrap">
+      <DateInput
+        label="Desde"
+        valueFormat="DD/MM/YYYY"
+        clearable
+        w={150}
+        value={aFechaDe(desde)}
+        onChange={(v) => onDesde(v ? fechaISO(new Date(v)) : null)}
+      />
+      <DateInput
+        label="Hasta"
+        valueFormat="DD/MM/YYYY"
+        clearable
+        w={150}
+        value={aFechaDe(hasta)}
+        onChange={(v) => onHasta(v ? fechaISO(new Date(v)) : null)}
+      />
+      <Text size="sm" c="dimmed">
+        {desde ? (
+          <>
+            Saldo anterior <b>{pesos(anterior)}</b> ·{' '}
+          </>
+        ) : null}
+        Saldo {hasta ? `al ${fecha(hasta)}` : 'a hoy'} <b>{pesos(aFecha)}</b>
+      </Text>
+    </Group>
+  );
+}
+
+/** Campos que cambiaron entre dos versiones de una fila auditada. */
+function cambios(antes: unknown, despues: unknown) {
+  const a = (antes ?? {}) as Record<string, unknown>;
+  const d = (despues ?? {}) as Record<string, unknown>;
+  return Object.keys({ ...a, ...d }).filter(
+    (k) => JSON.stringify(a[k]) !== JSON.stringify(d[k]),
+  );
+}
+
+/**
+ * Historial de un comprobante, pago o cobro (#44): quién lo cargó, quién lo
+ * cambió o anuló, cuándo y qué valores tenía antes y después.
+ */
+export function ModalHistorial({
+  registroId,
+  titulo,
+  onCerrar,
+}: {
+  registroId: string | null;
+  titulo: string;
+  onCerrar: () => void;
+}) {
+  const historial = useAuditoriaDe(registroId);
+  return (
+    <Modal
+      opened={registroId !== null}
+      onClose={onCerrar}
+      title={titulo}
+      size="lg"
+      centered
+    >
+      {historial.isLoading ? (
+        <Text size="sm" c="dimmed">
+          Cargando…
+        </Text>
+      ) : (historial.data ?? []).length === 0 ? (
+        <Text size="sm" c="dimmed">
+          Sin registros de auditoría para esta fila.
+        </Text>
+      ) : (
+        <Stack gap="sm">
+          {(historial.data ?? []).map((h) => {
+            const campos =
+              h.operacion === 'UPDATE' ? cambios(h.datos_antes, h.datos_despues) : [];
+            const antes = (h.datos_antes ?? {}) as Record<string, unknown>;
+            const despues = (h.datos_despues ?? {}) as Record<string, unknown>;
+            const quien = (h.usuario as { nombre_completo?: string } | null)
+              ?.nombre_completo;
+            return (
+              <Stack key={h.id} gap={2}>
+                <Text size="sm" fw={600}>
+                  {h.operacion === 'INSERT'
+                    ? 'Alta'
+                    : h.operacion === 'UPDATE'
+                      ? 'Cambio'
+                      : h.operacion}
+                  {' · '}
+                  {fecha(h.ocurrido_en)} · {quien ?? h.db_role}
+                </Text>
+                {campos.map((k) => (
+                  <Text key={k} size="xs" ff="monospace" c="dimmed">
+                    {k}: {JSON.stringify(antes[k]) ?? '—'} →{' '}
+                    {JSON.stringify(despues[k]) ?? '—'}
+                  </Text>
+                ))}
+              </Stack>
+            );
+          })}
+        </Stack>
+      )}
     </Modal>
   );
 }

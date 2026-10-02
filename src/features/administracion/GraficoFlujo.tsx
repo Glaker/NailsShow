@@ -455,9 +455,7 @@ function Lienzo({ datos }: { datos: DiaFlujo[] }) {
           className="gf-tooltip"
           style={{ left: tooltip.x, top: tooltip.y }}
         >
-          <div style={{ fontWeight: 700, marginBottom: 2 }}>
-            {tooltip.titulo}
-          </div>
+          <div style={{ fontWeight: 700, marginBottom: 2 }}>{tooltip.titulo}</div>
           {tooltip.lineas.map((t) => (
             <div key={t}>{t}</div>
           ))}
@@ -670,12 +668,7 @@ function Columna({
         </Text>
       </Group>
       {movimientos.length === 0 ? (
-        <Text
-          size="sm"
-          c="dimmed"
-          className="gf-aparece"
-          style={{ '--i': 2 }}
-        >
+        <Text size="sm" c="dimmed" className="gf-aparece" style={{ '--i': 2 }}>
           Nada este día.
         </Text>
       ) : (
@@ -686,13 +679,11 @@ function Columna({
             p="sm"
             radius="md"
             className="gf-aparece"
-            style={
-              {
-                '--i': k + 2,
-                // Tinte suave del color de la columna, no un borde lateral grueso.
-                background: `var(--mantine-color-${color}-light)`,
-              }
-            }
+            style={{
+              '--i': k + 2,
+              // Tinte suave del color de la columna, no un borde lateral grueso.
+              background: `var(--mantine-color-${color}-light)`,
+            }}
           >
             <Tarjeta m={m} />
           </Paper>

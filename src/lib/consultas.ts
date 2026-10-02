@@ -676,6 +676,27 @@ export function useAuditoria(limite = 200) {
   });
 }
 
+/**
+ * Historial de un registro (#44 de la auditoría de Administración): todo lo
+ * que la auditoría guardó de esa fila, del alta a hoy. RLS: lo leen Dirección
+ * Técnica, Gerencia y el Administrador del sistema.
+ */
+export function useAuditoriaDe(registroId: string | null) {
+  return useQuery({
+    queryKey: ['auditoria-de', registroId],
+    enabled: Boolean(registroId),
+    queryFn: async () => {
+      const { data, error } = await core()
+        .from('auditoria')
+        .select('*, usuario:usuarios(nombre_completo, rol)')
+        .eq('registro_id', registroId!)
+        .order('ocurrido_en', { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 /* ------------------------------------------------------------------------- *
  * Stock (comercial)
  *

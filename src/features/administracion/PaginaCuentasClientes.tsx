@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   Alert,
+  Anchor,
   Badge,
   Button,
   Group,
@@ -16,20 +17,30 @@ import {
 } from '@mantine/core';
 import { IconCash, IconInfoCircle, IconUsers } from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
+import { useTieneRol } from '@/features/auth/sesion';
 import { Vacio } from '@/components/Vacio';
 import { fecha } from '@/lib/formato';
 import { useClientes } from '@/lib/consultasFacturacion';
 import {
   MEDIOS_PAGO,
   pesos,
+  periodoCuenta,
   saldoCorrido,
+  useAnularCobroCliente,
   useCuentaCorrienteCliente,
   useFacturasPendientes,
   useRegistrarCobro,
   useSaldosClientes,
   type MedioPago,
 } from '@/lib/consultasAdministracion';
-import { MONEDA, SelectCuenta, aNumero } from './compartidos';
+import {
+  MONEDA,
+  SelectCuenta,
+  aNumero,
+  ModalAnular,
+  FiltroPeriodo,
+  ModalHistorial,
+} from './compartidos';
 
 /**
  * Cuenta corriente de clientes (§3 del documento de Administración):
@@ -156,10 +167,22 @@ export function PaginaCuentasClientes() {
 
 function FichaCliente({ clienteId, nombre }: { clienteId: string; nombre: string }) {
   const cc = useCuentaCorrienteCliente(clienteId);
+  const puedeAnular = useTieneRol('ADMINISTRACION', 'GERENCIA');
+  const veHistorial = useTieneRol(
+    'DIRECCION_TECNICA',
+    'GERENCIA',
+    'ADMINISTRADOR_SISTEMA',
+  );
+  const [historial, setHistorial] = useState<{ id: string; ref: string } | null>(null);
+  const anularCobro = useAnularCobroCliente();
+  const [anulando, setAnulando] = useState<{ id: string; ref: string } | null>(null);
   const [cobrando, setCobrando] = useState(false);
   const filas = saldoCorrido(
     (cc.data ?? []).filter((m) => m.ambiente !== 'HOMOLOGACION'),
   );
+  const [desdeCc, setDesdeCc] = useState<string | null>(null);
+  const [hastaCc, setHastaCc] = useState<string | null>(null);
+  const periodo = periodoCuenta(filas, desdeCc, hastaCc);
   return (
     <Stack gap="md">
       <Group>
@@ -167,6 +190,14 @@ function FichaCliente({ clienteId, nombre }: { clienteId: string; nombre: string
           Registrar cobro
         </Button>
       </Group>
+      <FiltroPeriodo
+        desde={desdeCc}
+        hasta={hastaCc}
+        onDesde={setDesdeCc}
+        onHasta={setHastaCc}
+        anterior={periodo.anterior}
+        aFecha={periodo.aFecha}
+      />
       {cc.isLoading ? (
         <Skeleton h={160} />
       ) : filas.length === 0 ? (
@@ -183,10 +214,24 @@ function FichaCliente({ clienteId, nombre }: { clienteId: string; nombre: string
                 <Table.Th ta="right">Debe</Table.Th>
                 <Table.Th ta="right">Haber</Table.Th>
                 <Table.Th ta="right">Saldo</Table.Th>
+                {puedeAnular ? <Table.Th /> : null}
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {filas.map((m, i) => (
+              {desdeCc ? (
+                <Table.Tr>
+                  <Table.Td>{fecha(desdeCc)}</Table.Td>
+                  <Table.Td colSpan={3}>
+                    <Text size="sm" fw={600}>
+                      Saldo anterior
+                    </Text>
+                  </Table.Td>
+                  <Table.Td ta="right" ff="monospace" fw={600}>
+                    {pesos(periodo.anterior)}
+                  </Table.Td>
+                </Table.Tr>
+              ) : null}
+              {periodo.visibles.map((m, i) => (
                 <Table.Tr key={i}>
                   <Table.Td>{fecha(m.fecha)}</Table.Td>
                   <Table.Td>
@@ -200,6 +245,20 @@ function FichaCliente({ clienteId, nombre }: { clienteId: string; nombre: string
                     <Text size="xs" c="dimmed" ff="monospace">
                       {m.referencia}
                     </Text>
+                    {veHistorial && (m.cobro_id ?? m.factura_id) ? (
+                      <Anchor
+                        size="xs"
+                        component="button"
+                        onClick={() =>
+                          setHistorial({
+                            id: m.cobro_id ?? m.factura_id ?? '',
+                            ref: m.referencia ?? '',
+                          })
+                        }
+                      >
+                        Historial
+                      </Anchor>
+                    ) : null}
                   </Table.Td>
                   <Table.Td ta="right" ff="monospace">
                     {Number(m.debe) ? pesos(m.debe) : ''}
@@ -210,11 +269,47 @@ function FichaCliente({ clienteId, nombre }: { clienteId: string; nombre: string
                   <Table.Td ta="right" ff="monospace" fw={600}>
                     {pesos(m.saldo)}
                   </Table.Td>
+                  {puedeAnular ? (
+                    <Table.Td>
+                      {m.cobro_id ? (
+                        <Button
+                          size="compact-xs"
+                          variant="subtle"
+                          color="gray"
+                          onClick={() =>
+                            setAnulando({ id: m.cobro_id ?? '', ref: m.referencia ?? '' })
+                          }
+                        >
+                          Anular
+                        </Button>
+                      ) : null}
+                    </Table.Td>
+                  ) : null}
                 </Table.Tr>
               ))}
             </Table.Tbody>
           </Table>
         </Table.ScrollContainer>
+      )}
+      <ModalHistorial
+        registroId={historial?.id ?? null}
+        titulo={`Historial ${historial?.ref ?? ''}`}
+        onCerrar={() => setHistorial(null)}
+      />
+      {anulando === null ? null : (
+        <ModalAnular
+          abierto
+          titulo={`Anular el cobro ${anulando.ref}`}
+          explicacion="El ingreso de la caja o el banco se revierte y la factura vuelve a quedar pendiente. Después cargá el cobro correcto."
+          cargando={anularCobro.isPending}
+          onCerrar={() => setAnulando(null)}
+          onAnular={(motivo) =>
+            anularCobro.mutate(
+              { id: anulando.id, motivo },
+              { onSuccess: () => setAnulando(null) },
+            )
+          }
+        />
       )}
       <ModalCobro
         clienteId={clienteId}

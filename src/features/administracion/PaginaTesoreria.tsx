@@ -30,6 +30,8 @@ import { diasHasta, fecha, fechaISO } from '@/lib/formato';
 import {
   pesos,
   useAnularMovimientoFondos,
+  useEditarCuentaFondos,
+  useAnularTransferencia,
   useConciliarFondos,
   useCrearCuentaFondos,
   useMovimientosFondos,
@@ -39,7 +41,7 @@ import {
   type SaldoFondos,
   type TipoCuentaFondos,
 } from '@/lib/consultasAdministracion';
-import { MONEDA, SelectCuenta, aNumero } from './compartidos';
+import { MONEDA, SelectCuenta, aNumero, ModalAnular } from './compartidos';
 
 type Modal_ = 'cuenta' | 'movimiento' | 'transferencia' | 'conciliar' | null;
 
@@ -203,6 +205,9 @@ function Movimientos({
 }) {
   const movs = useMovimientosFondos(cuenta.cuenta_id);
   const anular = useAnularMovimientoFondos();
+  const [editandoCuenta, setEditandoCuenta] = useState(false);
+  const anularTransf = useAnularTransferencia();
+  const [anulandoTransf, setAnulandoTransf] = useState<string | null>(null);
   const [anulando, setAnulando] = useState<string | null>(null);
   const [motivo, setMotivo] = useState('');
   const filas = movs.data ?? [];
@@ -212,14 +217,23 @@ function Movimientos({
     <Stack gap="xs">
       <Group justify="space-between">
         <Text fw={600}>Movimientos de {cuenta.nombre}</Text>
-        <Button
-          size="compact-md"
-          variant="light"
-          leftSection={<IconScale size={16} />}
-          onClick={onConciliar}
-        >
-          Conciliar
-        </Button>
+        <Group gap="xs">
+          <Button
+            size="compact-md"
+            variant="default"
+            onClick={() => setEditandoCuenta(true)}
+          >
+            Editar cuenta
+          </Button>
+          <Button
+            size="compact-md"
+            variant="light"
+            leftSection={<IconScale size={16} />}
+            onClick={onConciliar}
+          >
+            Conciliar
+          </Button>
+        </Group>
       </Group>
       <Paper
         withBorder
@@ -272,7 +286,16 @@ function Movimientos({
                         {pesos(m.importe)}
                       </Table.Td>
                       <Table.Td>
-                        {!automatico && !m.anula_a_id && !anulados.has(m.id) ? (
+                        {m.transferencia_grupo && !m.anula_a_id && !anulados.has(m.id) ? (
+                          <Button
+                            size="compact-xs"
+                            variant="subtle"
+                            color="gray"
+                            onClick={() => setAnulandoTransf(m.transferencia_grupo)}
+                          >
+                            Anular transferencia
+                          </Button>
+                        ) : !automatico && !m.anula_a_id && !anulados.has(m.id) ? (
                           <Button
                             size="compact-xs"
                             variant="subtle"
@@ -291,6 +314,24 @@ function Movimientos({
           </Table.ScrollContainer>
         )}
       </Paper>
+      {anulandoTransf === null ? null : (
+        <ModalAnular
+          abierto
+          titulo="Anular la transferencia"
+          explicacion="Se revierten las dos cuentas a la vez: la que mandó y la que recibió. Las dos patas originales quedan a la vista."
+          cargando={anularTransf.isPending}
+          onCerrar={() => setAnulandoTransf(null)}
+          onAnular={(motivo) =>
+            anularTransf.mutate(
+              { grupo: anulandoTransf, motivo },
+              { onSuccess: () => setAnulandoTransf(null) },
+            )
+          }
+        />
+      )}
+      {editandoCuenta ? (
+        <ModalEditarCuenta cuenta={cuenta} onCerrar={() => setEditandoCuenta(false)} />
+      ) : null}
       <Modal
         opened={anulando !== null}
         onClose={() => setAnulando(null)}
@@ -329,6 +370,83 @@ function Movimientos({
         </Stack>
       </Modal>
     </Stack>
+  );
+}
+
+/** #37: editar la caja o cuenta. Se precarga con lo que tiene; el tipo no se cambia. */
+function ModalEditarCuenta({
+  cuenta,
+  onCerrar,
+}: {
+  cuenta: SaldoFondos;
+  onCerrar: () => void;
+}) {
+  const editar = useEditarCuentaFondos();
+  const [nombre, setNombre] = useState(cuenta.nombre ?? '');
+  const [banco, setBanco] = useState(cuenta.banco ?? '');
+  const [numero, setNumero] = useState(cuenta.numero ?? '');
+  const [titular, setTitular] = useState(cuenta.titular ?? '');
+  const [activo, setActivo] = useState(cuenta.activo ?? true);
+  return (
+    <Modal opened onClose={onCerrar} title={`Editar ${cuenta.nombre ?? ''}`} centered>
+      <Stack gap="sm">
+        <TextInput
+          label="Nombre"
+          value={nombre}
+          onChange={(e) => setNombre(e.currentTarget.value)}
+        />
+        {cuenta.tipo === 'BANCO' ? (
+          <>
+            <TextInput
+              label="Banco"
+              value={banco}
+              onChange={(e) => setBanco(e.currentTarget.value)}
+            />
+            <TextInput
+              label="Número / CBU"
+              value={numero}
+              onChange={(e) => setNumero(e.currentTarget.value)}
+            />
+          </>
+        ) : null}
+        {cuenta.de_tercero ? (
+          <TextInput
+            label="Titular"
+            value={titular}
+            onChange={(e) => setTitular(e.currentTarget.value)}
+          />
+        ) : null}
+        <Checkbox
+          label="Activa (si no, no aparece para pagar ni cobrar; su historia queda)"
+          checked={activo}
+          onChange={(e) => setActivo(e.currentTarget.checked)}
+        />
+        <Group justify="flex-end">
+          <Button variant="default" onClick={onCerrar}>
+            Volver
+          </Button>
+          <Button
+            loading={editar.isPending}
+            disabled={!nombre.trim() || (Boolean(cuenta.de_tercero) && !titular.trim())}
+            onClick={() =>
+              editar.mutate(
+                {
+                  id: cuenta.cuenta_id ?? '',
+                  nombre: nombre.trim(),
+                  banco: banco.trim() || null,
+                  numero: numero.trim() || null,
+                  titular: titular.trim() || null,
+                  activo,
+                },
+                { onSuccess: onCerrar },
+              )
+            }
+          >
+            Guardar
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
   );
 }
 
