@@ -3679,6 +3679,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      cargar_escala_descuento: {
+        Args: { p_escalones: Json; p_vigente_desde?: string }
+        Returns: number
+      }
       cargar_recepcion_a_stock: {
         Args: { p_recepcion_id: string }
         Returns: {

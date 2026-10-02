@@ -33,6 +33,7 @@ import {
   IconSend,
 } from '@tabler/icons-react';
 import { useClientes } from '@/lib/consultasFacturacion';
+import { TablaEscala } from './TablaEscala';
 import { fecha, fechaISO, numero } from '@/lib/formato';
 import {
   FORMAS_PAGO,
@@ -696,11 +697,23 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
               </Text>
             </div>
           </Group>
-          {sig && pedidos.length ? (
-            <Text size="sm" c="dimmed">
-              Te faltan <b>{pesos(sig.falta)}</b> para el {numero(sig.porcentaje)} %
-            </Text>
-          ) : null}
+          <Group gap="sm" wrap="nowrap">
+            {sig && pedidos.length ? (
+              <Text size="sm" c="dimmed">
+                Te faltan <b>{pesos(sig.falta)}</b> para el {numero(sig.porcentaje)} %
+              </Text>
+            ) : null}
+            <Popover withArrow shadow="md" position="top-end">
+              <Popover.Target>
+                <Button variant="subtle" size="compact-sm">
+                  Ver escala
+                </Button>
+              </Popover.Target>
+              <Popover.Dropdown>
+                <TablaEscala monto={cuenta.lista} />
+              </Popover.Dropdown>
+            </Popover>
+          </Group>
         </Group>
       </Paper>
 

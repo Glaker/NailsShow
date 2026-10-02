@@ -502,3 +502,23 @@ export function useVerificarStock() {
     onError: avisarError,
   });
 }
+
+/** Cambiar la escala de descuento por monto: se carga entera, con la fecha desde la que rige. */
+export function useCargarEscala() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (d: { escalones: Escalon[]; vigenteDesde: string }) => {
+      const { error } = await comercial().rpc('cargar_escala_descuento', {
+        p_escalones: d.escalones,
+        p_vigente_desde: d.vigenteDesde,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['escala-descuento'] });
+      void qc.invalidateQueries({ queryKey: ['ventas'] });
+      avisarExito('Escala nueva cargada. La anterior queda en el historial.');
+    },
+    onError: avisarError,
+  });
+}

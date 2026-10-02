@@ -156,10 +156,18 @@ await prueba('la escala que rige es la última con vigencia empezada', async () 
   const a = await uno(`select comercial.descuento_por_monto(700000) n`);
   if (N(a.n) !== 20) throw new Error(JSON.stringify(a));
 });
+await rechaza('una escala nueva empieza en $0', `select comercial.cargar_escala_descuento('[{"desde_monto":1000,"porcentaje":10}]'::jsonb)`, /empieza en \$0/);
+await prueba('Ventas carga una escala nueva y rige desde hoy; la anterior queda', async () => {
+  const c = await uno(`select comercial.cargar_escala_descuento($1::jsonb) n`, [JSON.stringify([{ desde_monto: 0, porcentaje: 0 }, { desde_monto: 500000, porcentaje: 22 }])]);
+  const a = await uno(`select comercial.descuento_por_monto(700000) n`);
+  const viejas = await uno(`select count(distinct carga)::int n from comercial.escalas_descuento`);
+  if (N(a.n) !== 22 || viejas.n !== c.n) throw new Error(JSON.stringify({ c, a, viejas }));
+});
 await rechaza('un pedido enviado no se vuelve a enviar', `select comercial.enviar_venta('${p1}')`, /ya se envió/);
 const comun = (await uno(`insert into comercial.pedidos (numero, cliente) values ('P-9','x') returning id`)).id;
 await rechaza('solo se envían pedidos de venta', `select comercial.enviar_venta('${comun}')`, /No es un pedido de venta/);
 await como('silveira@x');
+await rechaza('la encargada de stock no cambia la escala', `select comercial.cargar_escala_descuento('[{"desde_monto":0,"porcentaje":0}]'::jsonb)`, /la cambia Ventas/);
 await rechaza('la encargada de stock no envía ventas', `select comercial.enviar_venta('${p2}')`, /de Ventas/);
 
 await invariantes();

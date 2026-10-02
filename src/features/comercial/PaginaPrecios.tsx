@@ -17,6 +17,7 @@ import {
 import { useDebouncedState } from '@mantine/hooks';
 import { IconDiscount2, IconSearch, IconTag } from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
+import { CambiarEscala, TablaEscala } from '@/features/ventas/TablaEscala';
 import { Vacio } from '@/components/Vacio';
 import { useTieneRol } from '@/features/auth/sesion';
 import { useProductos } from '@/lib/consultas';
@@ -44,7 +45,7 @@ export function PaginaPrecios() {
     <>
       <EncabezadoPagina
         titulo="Precios y descuentos"
-        descripcion="Precio de lista por producto (IVA incluido) y descuentos por cliente, generales o por producto."
+        descripcion="Precio de lista por producto (IVA incluido), descuentos por cliente y la escala de descuento por monto del pedido mayorista."
       />
       <Tabs value={vista} onChange={setVista} color="violeta" keepMounted={false}>
         <Tabs.List mb="md">
@@ -54,12 +55,31 @@ export function PaginaPrecios() {
           <Tabs.Tab value="descuentos" leftSection={<IconDiscount2 size={17} />}>
             Descuentos por cliente
           </Tabs.Tab>
+          <Tabs.Tab value="escala" leftSection={<IconDiscount2 size={17} />}>
+            Escala por monto
+          </Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel value="precios">
           <Precios />
         </Tabs.Panel>
         <Tabs.Panel value="descuentos">
           <Descuentos />
+        </Tabs.Panel>
+        <Tabs.Panel value="escala">
+          <Paper
+            withBorder
+            p="md"
+            maw={520}
+            style={{ borderColor: 'var(--superficie-borde)' }}
+          >
+            <Text size="sm" c="dimmed" mb="sm">
+              Se aplica sola al pedido mayorista entero, según el total con precio de
+              promoción, y se suma a la promoción. En un pedido se puede fijar otro
+              porcentaje («Descuento del pedido: Fijo»).
+            </Text>
+            <TablaEscala />
+            <CambiarEscala />
+          </Paper>
         </Tabs.Panel>
       </Tabs>
     </>
