@@ -31,6 +31,17 @@ import { ROLES_CATALOGOS, useItemsVisibles, type ItemNavegacion } from './navega
 import { useSesion } from '@/features/auth/sesion';
 import { etiquetaEnum } from '@/lib/formato';
 import { SUPERFICIE } from './theme';
+import { MODO_PRACTICA } from '@/lib/practica';
+
+/** Cartel fijo de la app de práctica: datos inventados, nada se factura. */
+export function CartelPractica() {
+  return (
+    <div className="cartel-practica no-imprimir" role="status">
+      <b>MODO PRÁCTICA</b> · Base de prueba con datos inventados. Nada de lo que cargues
+      acá es real ni se factura.
+    </div>
+  );
+}
 
 const ANCHO_BARRA = 250;
 
@@ -293,6 +304,7 @@ export function Layout({ children }: { children: ReactNode }) {
       </AppShell.Navbar>
 
       <AppShell.Main>
+        {MODO_PRACTICA ? <CartelPractica /> : null}
         {esMovil ? (
           <Group justify="space-between" mb="md" className="no-imprimir" wrap="nowrap">
             <Group gap={8} wrap="nowrap">

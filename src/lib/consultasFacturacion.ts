@@ -14,6 +14,7 @@ import { FunctionsHttpError } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 import { comercial, supabase } from './supabase';
 import { avisarError, avisarExito } from './consultas';
+import { MODO_PRACTICA } from './practica';
 
 export type Cliente = Database['comercial']['Tables']['clientes']['Row'];
 export type CondicionIva = Database['comercial']['Enums']['condicion_iva_enum'];
@@ -240,6 +241,11 @@ export interface ResultadoEmision {
  * llamada, es una respuesta, y se muestra como tal.
  */
 async function emitir(body: Record<string, string>): Promise<ResultadoEmision> {
+  if (MODO_PRACTICA) {
+    throw new Error(
+      'En el modo práctica no se emiten facturas: es una base de prueba, ARCA no se entera de nada.',
+    );
+  }
   // `invoke` tipa el error como any: se lo toma como unknown y se lo angosta.
   const respuestaInvoke = await supabase.functions.invoke<ResultadoEmision>(
     'emitir-factura',

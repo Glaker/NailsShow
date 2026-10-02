@@ -18,6 +18,8 @@ import { zod4Resolver } from 'mantine-form-zod-resolver';
 import { z } from 'zod';
 import { IconAlertTriangle, IconLock, IconMail, IconUser } from '@tabler/icons-react';
 import { Marca } from '@/components/Marca';
+import { MODO_PRACTICA } from '@/lib/practica';
+import { CartelPractica } from '@/app/layout';
 import { useSesion } from './sesion';
 
 /*
@@ -108,6 +110,7 @@ export function PantallaIngreso() {
       }}
     >
       <Stack gap="lg" w="100%" maw={420} className="entrada">
+        {MODO_PRACTICA ? <CartelPractica /> : null}
         <Center>
           <Group gap="sm">
             <Marca size={72} />
