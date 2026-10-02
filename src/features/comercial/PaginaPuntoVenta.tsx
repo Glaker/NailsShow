@@ -133,9 +133,9 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
   const retenidoDe = (id: string | null) =>
     Number(stock.data.find((f) => f.producto_id === id)?.retenido ?? 0);
 
-  function abrir(s: 'entra' | 'sale') {
+  function abrir(s: 'entra' | 'sale', t?: string) {
     setSentido(s);
-    setTipo(s === 'entra' ? 'ENTRADA_DEVOLUCION' : 'SALIDA_VENTA');
+    setTipo(t ?? (s === 'entra' ? 'ENTRADA_DEVOLUCION' : 'SALIDA_VENTA'));
     setAbierto(true);
   }
 
@@ -226,6 +226,19 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
                   lo que sale sin pedido: mostrador, ajuste, descarte (D-35). */}
               {esCalle5 ? 'Salida sin pedido' : 'Salió'}
             </Button>
+            {esCalle5 ? (
+              // Lo fallado sale como descarte, con motivo obligatorio (lo exige la
+              // base): nunca se borra un movimiento, se corrige con otro (RN-54).
+              <Button
+                size="md"
+                variant="light"
+                color="red"
+                leftSection={<IconArrowUp size={18} />}
+                onClick={() => abrir('sale', 'SALIDA_DESCARTE')}
+              >
+                Sacar fallado
+              </Button>
+            ) : null}
           </Group>
         }
       />
@@ -250,9 +263,9 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
           radius="md"
           icon={<IconInfoCircle size={18} />}
         >
-          El lote de cada unidad se anota como texto. Hasta que el sistema tenga lote de
-          producto terminado, un retiro de mercado no alcanza automáticamente a este
-          depósito: conviene cargarlo siempre.
+          Lo producido entra con su lote; lo que se carga a mano lleva el lote como texto.
+          Un ajuste o un descarte siempre pide motivo y no se borra: si estuvo mal, se
+          corrige con otro movimiento.
         </Alert>
 
         {stock.isLoading ? (
