@@ -1,8 +1,8 @@
 ---
 version: 1
-slug: "src-app-layout-tsx"
-primary_target: "src/app/layout.tsx"
-related_targets: ["src/app/theme.ts","src/app/global.css"]
+slug: 'src-app-layout-tsx'
+primary_target: 'src/app/layout.tsx'
+related_targets: ['src/app/theme.ts', 'src/app/global.css']
 ---
 
 # Superficie: la aplicación completa (cascarón, tema y pantallas)

@@ -6,9 +6,7 @@
       {
         "rule": "layout-transition",
         "value": "*",
-        "files": [
-          "src/features/administracion/graficos.css"
-        ],
+        "files": ["src/features/administracion/graficos.css"],
         "createdAt": "2026-09-30T20:28:38.276Z",
         "reason": "Claude triage 2026-09-30: .gf-marco anima height una sola vez porque el usuario pidió que el gráfico se amplíe al tocar una barra; la otra es stroke-width de un path SVG, que es pintura, no layout"
       },
