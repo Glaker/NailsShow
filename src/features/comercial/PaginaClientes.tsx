@@ -129,7 +129,7 @@ export function PaginaClientes() {
                     </Table.Td>
                     <Table.Td>
                       <Group gap={6}>
-                        <Badge variant="light" color="violeta" radius="sm">
+                        <Badge variant="light" color="azul" radius="sm">
                           {claseFactura(c.condicion_iva)}
                         </Badge>
                         {!c.activo ? (

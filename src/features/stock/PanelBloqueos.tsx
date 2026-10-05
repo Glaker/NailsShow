@@ -241,8 +241,6 @@ export function PanelBloqueos({ loteId }: { loteId: string }) {
               Cancelar
             </Button>
             <Button
-              variant="gradient"
-              gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
               loading={levantar.isPending}
               disabled={motivoLevantar.trim().length < 10}
               onClick={() =>

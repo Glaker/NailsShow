@@ -161,7 +161,9 @@ export function PaginaPedidos() {
             descripcion="Cargá el primer pedido para ver qué hace falta comprar y qué se puede fabricar ya."
             accion={
               puedeCargar ? (
-                <Button onClick={() => setAbierto(true)}>Nuevo pedido</Button>
+                <Button variant="light" onClick={() => setAbierto(true)}>
+                  Nuevo pedido
+                </Button>
               ) : undefined
             }
           />
@@ -234,7 +236,7 @@ export function PaginaPedidos() {
                               to={`/pedidos/${p.id}`}
                               fw={600}
                               size="sm"
-                              c="violeta"
+                              c="azul"
                               onClick={(e) => e.stopPropagation()}
                             >
                               {p.numero}

@@ -131,7 +131,7 @@ export function PasarAProduccion({
                         />
                       )}
                       {falta ? (
-                        <Text size="xs" c="estadoRechazado.8" mt={4}>
+                        <Text size="xs" c="estadoRechazado" mt={4}>
                           No alcanza el stock aprobado
                         </Text>
                       ) : null}

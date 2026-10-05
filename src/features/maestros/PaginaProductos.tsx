@@ -174,12 +174,7 @@ function FormularioProducto({
           <Button variant="subtle" color="gray" onClick={onListo}>
             Cancelar
           </Button>
-          <Button
-            type="submit"
-            loading={crear.isPending || actualizar.isPending}
-            variant="gradient"
-            gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
-          >
+          <Button type="submit" loading={crear.isPending || actualizar.isPending}>
             {editando ? 'Guardar cambios' : 'Agregar al catálogo'}
           </Button>
         </Group>
@@ -236,12 +231,7 @@ export function PaginaProductos() {
         descripcion="Los productos terminados que fabrica la planta. Base de las órdenes de producción."
         acciones={
           puedeEditar ? (
-            <Button
-              leftSection={<IconPlus size={18} />}
-              variant="gradient"
-              gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
-              onClick={abrirAlta}
-            >
+            <Button leftSection={<IconPlus size={18} />} onClick={abrirAlta}>
               Nuevo producto
             </Button>
           ) : null
@@ -332,7 +322,7 @@ export function PaginaProductos() {
                       </Table.Td>
                       <Table.Td>
                         {p.origen ? (
-                          <Badge variant="light" radius="sm" color="violeta">
+                          <Badge variant="light" radius="sm" color="azul">
                             {etiquetaEnum(p.origen)}
                           </Badge>
                         ) : (

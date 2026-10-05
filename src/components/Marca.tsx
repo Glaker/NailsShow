@@ -11,20 +11,14 @@ function Frasco({ size }: { size: number }) {
       aria-hidden="true"
       focusable="false"
     >
-      <defs>
-        <linearGradient id="marca-frasco" x1="8" y1="14" x2="32" y2="36">
-          <stop offset="0%" stopColor="#d45a88" />
-          <stop offset="100%" stopColor="#8b479f" />
-        </linearGradient>
-      </defs>
       {/* Tapa */}
-      <rect x="16" y="3" width="8" height="9" rx="2" fill="#e8dcec" />
+      <rect x="16" y="3" width="8" height="9" rx="2" fill="#e5e5ea" />
       {/* Cuello */}
-      <rect x="17.5" y="11" width="5" height="4" fill="#c9b3d1" />
+      <rect x="17.5" y="11" width="5" height="4" fill="#c7c7cc" />
       {/* Cuerpo */}
       <path
         d="M12 19a5 5 0 0 1 3.2-4.66l.8-.32V14h8v.02l.8.32A5 5 0 0 1 28 19v13a4 4 0 0 1-4 4h-8a4 4 0 0 1-4-4V19Z"
-        fill="url(#marca-frasco)"
+        fill="#0071e3"
       />
       {/* Brillo */}
       <path

@@ -34,7 +34,7 @@ export function PaginaCatalogos() {
       value={vista}
       onChange={(v) => v && setParams({ vista: v }, { replace: true })}
       keepMounted={false}
-      color="violeta"
+      color="azul"
     >
       <Tabs.List mb="lg">
         <Tabs.Tab value="productos" leftSection={<IconPackage size={18} />}>

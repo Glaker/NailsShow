@@ -8,7 +8,8 @@ export interface PorcionTorta {
   valor: number;
 }
 
-const COLORES = ['violeta', 'rosa', 'ciruela', 'blue', 'teal', 'orange'];
+// Tonos de la carta; ninguno de los cuatro reservados de I.20.2.
+const COLORES = ['azul', 'indigo', 'grape', 'blue', 'cyan', 'pink'];
 const MAXIMO = COLORES.length;
 const R = 70;
 const C = 2 * Math.PI * R;

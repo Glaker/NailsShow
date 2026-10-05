@@ -1,4 +1,4 @@
-import { Group, Paper, Text, ThemeIcon } from '@mantine/core';
+import { Group, Paper, Text } from '@mantine/core';
 import type { Icon } from '@tabler/icons-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
@@ -16,17 +16,19 @@ interface Props {
 }
 
 /**
- * Indicador del tablero.
+ * Indicador del tablero: la etiqueta, la cifra grande y la línea de contexto.
+ * Si el indicador es de material, un punto con el color de su estado según
+ * I.20.2; si no, nada de color.
  *
- * Un número grande, su etiqueta, y una línea de contexto. La línea de contexto
- * es la que hace útil al indicador: «12 en cuarentena» no dice nada por sí
- * solo; «12 en cuarentena, 3 hace más de una semana» dice qué hacer hoy.
+ * La línea de contexto es la que hace útil al indicador: «12 en cuarentena» no
+ * dice nada por sí solo; «12 en cuarentena, 3 hace más de una semana» dice qué
+ * hacer hoy.
  */
 export function TarjetaIndicador({
   etiqueta,
   valor,
   icono: Icono,
-  color = 'violeta',
+  color = 'azul',
   detalle,
   a,
 }: Props) {
@@ -34,26 +36,41 @@ export function TarjetaIndicador({
     borderColor: 'var(--superficie-borde)',
     textDecoration: 'none',
     display: 'block',
+    color: 'inherit',
     transition: 'transform var(--transicion), box-shadow var(--transicion)',
   } as const;
 
   const cuerpo = (
     <>
-      <Group justify="space-between" wrap="nowrap" align="flex-start">
-        <div style={{ minWidth: 0 }}>
+      <Group justify="space-between" wrap="nowrap" align="flex-start" gap="sm">
+        <Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
+          <Icono size={16} stroke={1.7} color="var(--mantine-color-dimmed)" />
           <Text size="sm" c="dimmed" fw={500} truncate>
             {etiqueta}
           </Text>
-          <Text fz={30} fw={700} lh={1.15} mt={6} c="ciruela.8">
-            {valor}
-          </Text>
-        </div>
-        <ThemeIcon variant="light" color={color} size={44} radius="md">
-          <Icono size={22} stroke={1.7} />
-        </ThemeIcon>
+        </Group>
+        {/* Punto de estado, solo para indicadores de material (I.20.2): un
+            indicador que no es de estado no lleva color, así el color siempre
+            significa lo mismo que en el rótulo pegado al envase. */}
+        {color.startsWith('estado') ? (
+          <span
+            aria-hidden="true"
+            style={{
+              width: 10,
+              height: 10,
+              marginTop: 5,
+              flexShrink: 0,
+              borderRadius: '50%',
+              background: `var(--mantine-color-${color}-filled)`,
+            }}
+          />
+        ) : null}
       </Group>
+      <Text fz={36} lh={1.05} mt={12} className="cifra">
+        {valor}
+      </Text>
       {detalle ? (
-        <Text size="xs" c="dimmed" mt="sm">
+        <Text size="xs" c="dimmed" mt={8}>
           {detalle}
         </Text>
       ) : null}

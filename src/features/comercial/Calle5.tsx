@@ -56,7 +56,7 @@ import {
 export function PanelCalle5() {
   const [vista, setVista] = useState<string | null>('pedidos');
   return (
-    <Tabs value={vista} onChange={setVista} color="violeta" keepMounted={false}>
+    <Tabs value={vista} onChange={setVista} color="azul" keepMounted={false}>
       <Tabs.List mb="md">
         <Tabs.Tab value="pedidos" leftSection={<IconTruckDelivery size={17} />}>
           Pedidos a despachar
@@ -375,7 +375,7 @@ function FormularioDespacho({
           leftSection={<IconTruckDelivery size={18} />}
           loading={despachar.isPending}
           disabled={sale <= 0 || excedidos.length > 0}
-          color={queda > 0 ? 'estadoCuarentena' : 'violeta'}
+          color={queda > 0 ? 'estadoCuarentena' : 'azul'}
           onClick={() =>
             despachar.mutate(
               {
@@ -580,7 +580,7 @@ function FilaProducto({
       </Table.Tr>
       {abierto ? (
         <Table.Tr>
-          <Table.Td colSpan={8} style={{ background: 'var(--mantine-color-violeta-0)' }}>
+          <Table.Td colSpan={8} style={{ background: 'var(--mantine-color-azul-light)' }}>
             <Stack gap="xs">
               <Text size="xs" c="dimmed">
                 Quién lo pide. El sistema no reparte: reservá para el pedido que tiene que

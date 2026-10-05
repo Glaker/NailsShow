@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Box, Paper, Text } from '@mantine/core';
 
 export interface PuntoSerie {
@@ -31,7 +31,6 @@ interface Props {
  * ocurrieron, y este gráfico muestra actividad registrada.
  */
 export function GraficoArea({ datos, alto = 220, unidad = '' }: Props) {
-  const id = useId().replace(/:/g, '');
   const [activo, setActivo] = useState<number | null>(null);
 
   const geometria = useMemo(() => {
@@ -92,25 +91,6 @@ export function GraficoArea({ datos, alto = 220, unidad = '' }: Props) {
         style={{ display: 'block', overflow: 'visible' }}
         onMouseLeave={() => setActivo(null)}
       >
-        <defs>
-          <linearGradient id={`relleno-${id}`} x1="0" y1="0" x2="0" y2="1">
-            <stop
-              offset="0%"
-              stopColor="var(--mantine-color-violeta-5)"
-              stopOpacity="0.28"
-            />
-            <stop
-              offset="100%"
-              stopColor="var(--mantine-color-violeta-5)"
-              stopOpacity="0"
-            />
-          </linearGradient>
-          <linearGradient id={`linea-${id}`} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="var(--mantine-color-violeta-7)" />
-            <stop offset="100%" stopColor="var(--mantine-color-rosa-6)" />
-          </linearGradient>
-        </defs>
-
         {/* Guías horizontales: tres, con el máximo arriba. */}
         {[0, 0.5, 1].map((f) => (
           <line
@@ -124,11 +104,11 @@ export function GraficoArea({ datos, alto = 220, unidad = '' }: Props) {
           />
         ))}
 
-        <path d={relleno} fill={`url(#relleno-${id})`} />
+        <path d={relleno} fill="var(--mantine-color-azul-filled)" fillOpacity={0.1} />
         <path
           d={curva}
           fill="none"
-          stroke={`url(#linea-${id})`}
+          stroke="var(--mantine-color-azul-filled)"
           strokeWidth={2.5}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -141,7 +121,7 @@ export function GraficoArea({ datos, alto = 220, unidad = '' }: Props) {
               x2={punto.x}
               y1={MARGEN.arriba}
               y2={base}
-              stroke="var(--mantine-color-violeta-3)"
+              stroke="var(--mantine-color-azul-light-color)"
               strokeWidth={1}
               strokeDasharray="3 3"
             />
@@ -149,8 +129,8 @@ export function GraficoArea({ datos, alto = 220, unidad = '' }: Props) {
               cx={punto.x}
               cy={punto.y}
               r={5.5}
-              fill="#fff"
-              stroke="var(--mantine-color-violeta-7)"
+              fill="var(--mantine-color-body)"
+              stroke="var(--mantine-color-azul-filled)"
               strokeWidth={2.5}
             />
           </>

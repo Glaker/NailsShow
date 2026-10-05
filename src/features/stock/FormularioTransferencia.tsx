@@ -108,7 +108,7 @@ export function FormularioTransferencia({ posicion, onListo }: Props) {
           {...form.getInputProps('motivo')}
         />
 
-        <Alert color="violeta" variant="light" radius="md">
+        <Alert color="azul" variant="light" radius="md">
           El lote puede quedar repartido entre dos depósitos, y está bien: la existencia
           se lleva por depósito. Lo que no se puede es mover más de lo que hay en el
           origen.
@@ -118,13 +118,7 @@ export function FormularioTransferencia({ posicion, onListo }: Props) {
           <Button variant="subtle" color="gray" onClick={onListo}>
             Cancelar
           </Button>
-          <Button
-            type="submit"
-            variant="gradient"
-            gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
-            loading={transferir.isPending}
-            disabled={excede}
-          >
+          <Button type="submit" loading={transferir.isPending} disabled={excede}>
             Transferir
           </Button>
         </Group>

@@ -400,12 +400,12 @@ export function FormularioRecepcion({ onListo }: Props) {
                     ) : null}
                     {insumo?.requiere_protocolo ? (
                       <Tooltip label="RN-01: exige protocolo de análisis">
-                        <IconFileCheck size={17} color="var(--mantine-color-violeta-6)" />
+                        <IconFileCheck size={17} color="var(--mantine-color-azul-6)" />
                       </Tooltip>
                     ) : null}
                     {insumo?.requiere_pesada_recepcion ? (
                       <Tooltip label="RN-03: se pesa en la recepción">
-                        <IconScale size={17} color="var(--mantine-color-violeta-6)" />
+                        <IconScale size={17} color="var(--mantine-color-azul-6)" />
                       </Tooltip>
                     ) : null}
                   </Group>
@@ -535,7 +535,7 @@ export function FormularioRecepcion({ onListo }: Props) {
                         <Text size="sm" fw={500} mb={6}>
                           Total de etiquetas
                         </Text>
-                        <Text size="lg" fw={700} c="violeta.7">
+                        <Text size="lg" fw={700} c="azul">
                           {(lote.planchas_etiquetas ?? 0) *
                             (lote.etiquetas_por_plancha ?? 0)}
                         </Text>
@@ -625,8 +625,6 @@ export function FormularioRecepcion({ onListo }: Props) {
             loading={
               crear.isPending || vincular.isPending || registrarComprobante.isPending
             }
-            variant="gradient"
-            gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
           >
             Registrar recepción
           </Button>

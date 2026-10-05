@@ -38,7 +38,7 @@ import { MONEDA, ModalPagoProveedor, SelectCuenta, aNumero } from './compartidos
 
 const COLOR: Record<EstadoSolicitud, string> = {
   PENDIENTE: 'estadoCuarentena',
-  APROBADA: 'violeta',
+  APROBADA: 'azul',
   PAGADA: 'estadoAprobado',
   RECHAZADA: 'red',
   ANULADA: 'gray',

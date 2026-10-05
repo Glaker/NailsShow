@@ -348,7 +348,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
               Calle 5: {v!.stock_nota}
             </Badge>
           ) : (
-            <Badge size="lg" variant="light" color="violeta">
+            <Badge size="lg" variant="light" color="azul">
               Calle 5 todavía no lo revisó
             </Badge>
           )}
@@ -518,11 +518,11 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                   <Fragment key={f.producto_id}>
                     {titulo ? (
                       <Table.Tr>
-                        <Table.Td colSpan={10} bg="ciruela.0">
+                        <Table.Td colSpan={10} bg="var(--superficie-tenue)">
                           <Text
                             size="xs"
                             fw={800}
-                            c="ciruela.8"
+                            c="dimmed"
                             tt="uppercase"
                             style={{ letterSpacing: 0.6 }}
                           >
@@ -533,7 +533,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                     ) : null}
                     <Table.Tr
                       style={{
-                        background: c > 0 ? 'var(--mantine-color-violeta-0)' : undefined,
+                        background: c > 0 ? 'var(--mantine-color-azul-light)' : undefined,
                       }}
                     >
                       <Table.Td>
@@ -561,7 +561,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                           <Tooltip
                             label={`Pack de ${f.unidades_pack}: el precio es ${f.unidades_pack} × unitario`}
                           >
-                            <Badge variant="light" color="violeta" size="sm">
+                            <Badge variant="light" color="azul" size="sm">
                               ×{f.unidades_pack}
                             </Badge>
                           </Tooltip>
@@ -585,7 +585,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                           ? pct((f.precio_lista - f.precio_promo) / f.precio_lista)
                           : ''}
                       </Table.Td>
-                      <Table.Td ta="right" ff="monospace" fw={600} c="red.8">
+                      <Table.Td ta="right" ff="monospace" fw={600} c="red">
                         {f.es_regalo ? 'de regalo' : pesos(f.precio_promo)}
                       </Table.Td>
                       <Table.Td ta="right" ff="monospace">
@@ -597,7 +597,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                             size="sm"
                             ff="monospace"
                             fw={manual.has(f.producto_id) ? 800 : 400}
-                            c={manual.has(f.producto_id) ? 'violeta.8' : 'inherit'}
+                            c={manual.has(f.producto_id) ? 'azul' : 'inherit'}
                           >
                             {manual.has(f.producto_id)
                               ? `${pesos(manual.get(f.producto_id)! / f.unidades_pack)} a mano`
@@ -677,7 +677,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
               <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
                 % descuento
               </Text>
-              <Text fz={20} fw={700} ff="monospace" c="rosa.7">
+              <Text fz={20} fw={700} ff="monospace" c="indigo">
                 {numero(cuenta.descuento)} %
               </Text>
             </div>
@@ -685,14 +685,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
               <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
                 Total con descuento
               </Text>
-              <Text
-                fz={26}
-                fw={800}
-                ff="monospace"
-                c="ciruela.8"
-                key={cuenta.total}
-                className="monto-vivo"
-              >
+              <Text fz={28} key={cuenta.total} className="cifra monto-vivo">
                 {pesos(cuenta.total)}
               </Text>
             </div>

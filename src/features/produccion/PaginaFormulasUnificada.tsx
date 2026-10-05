@@ -31,7 +31,7 @@ export function PaginaFormulasUnificada() {
         value={vista}
         onChange={(v) => v && setParams({ vista: v }, { replace: true })}
         keepMounted={false}
-        color="violeta"
+        color="azul"
       >
         <Group justify="space-between" mb="lg" wrap="wrap" gap="sm">
           <Tabs.List>

@@ -102,7 +102,7 @@ export function PanelReservas({ titular }: { titular: Tercero | null }) {
                     <Table.Td>
                       <Badge
                         variant="light"
-                        color={r.para_tercero_id ? 'indigo' : 'violeta'}
+                        color={r.para_tercero_id ? 'indigo' : 'azul'}
                         radius="sm"
                       >
                         {r.para_nombre ?? 'Nail Show'}

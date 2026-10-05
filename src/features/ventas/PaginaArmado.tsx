@@ -279,7 +279,7 @@ function PedidosAArmar() {
                 </div>
                 <Stack gap={4} align="flex-end">
                   {p.fecha_entrega ? (
-                    <Badge variant="light" color="rosa">
+                    <Badge variant="light" color="indigo">
                       entrega {fecha(p.fecha_entrega).slice(0, 5)}
                     </Badge>
                   ) : null}
@@ -400,7 +400,7 @@ export function PaginaArmado() {
           Estos son los pedidos para armar.
         </Text>
       </div>
-      <Tabs value={pestania} onChange={setPestania} color="violeta" keepMounted={false}>
+      <Tabs value={pestania} onChange={setPestania} color="azul" keepMounted={false}>
         <Tabs.List mb="lg">
           <Tabs.Tab value="armar" leftSection={<IconPackage size={18} />}>
             Pedidos a armar

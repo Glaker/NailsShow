@@ -83,7 +83,7 @@ export function PanelStockLote({ loteId }: { loteId: string }) {
           {posiciones.length > 0 ? (
             <Text size="sm" c="dimmed">
               Total{' '}
-              <Text span fw={700} ff="monospace" c="ciruela.2">
+              <Text span fw={700} ff="monospace">
                 {numero(total, 3)} {unidad}
               </Text>{' '}
               en {posiciones.length} {posiciones.length === 1 ? 'depósito' : 'depósitos'}
@@ -93,7 +93,7 @@ export function PanelStockLote({ loteId }: { loteId: string }) {
 
         {posiciones.length === 0 ? (
           <Alert
-            color="violeta"
+            color="azul"
             variant="light"
             radius="md"
             icon={<IconInfoCircle size={18} />}
@@ -152,7 +152,7 @@ export function PanelStockLote({ loteId }: { loteId: string }) {
                           <Tooltip label="Transferir a otro depósito">
                             <ActionIcon
                               variant="light"
-                              color="violeta"
+                              color="azul"
                               size="lg"
                               onClick={() => setTransferencia(p)}
                             >
@@ -162,7 +162,7 @@ export function PanelStockLote({ loteId }: { loteId: string }) {
                           <Tooltip label="Ajuste, descarte o muestra">
                             <ActionIcon
                               variant="light"
-                              color="violeta"
+                              color="azul"
                               size="lg"
                               onClick={() => setMovimiento(p)}
                             >
@@ -255,7 +255,7 @@ export function PanelStockLote({ loteId }: { loteId: string }) {
                           size="sm"
                           ff="monospace"
                           fw={600}
-                          c={cantidad < 0 ? 'estadoRechazado.7' : 'estadoAprobado.8'}
+                          c={cantidad < 0 ? 'estadoRechazado' : 'estadoAprobado'}
                         >
                           {cantidad > 0 ? '+' : ''}
                           {numero(cantidad, 3)}
@@ -322,7 +322,7 @@ export function PanelStockLote({ loteId }: { loteId: string }) {
       >
         <Stack gap="md">
           <Text size="sm">{anulando?.descripcion}</Text>
-          <Alert color="violeta" variant="light" radius="md">
+          <Alert color="azul" variant="light" radius="md">
             El movimiento no se borra ni se edita: se crea su inverso y los dos quedan en
             el kardex, uno al lado del otro. Es lo que exige RN-54 y lo que un inspector
             espera encontrar.

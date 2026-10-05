@@ -123,12 +123,7 @@ export function FormularioProveedor({ onListo }: { onListo: () => void }) {
           <Button variant="subtle" color="gray" onClick={onListo}>
             Cancelar
           </Button>
-          <Button
-            type="submit"
-            loading={crear.isPending}
-            variant="gradient"
-            gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
-          >
+          <Button type="submit" loading={crear.isPending}>
             Dar de alta
           </Button>
         </Group>
@@ -175,7 +170,7 @@ export function PaginaProveedores() {
         confirm: estado === 'APROBADO' ? 'Aprobar' : 'Rechazar',
         cancel: 'Cancelar',
       },
-      confirmProps: { color: estado === 'APROBADO' ? 'violeta' : 'estadoRechazado' },
+      confirmProps: { color: estado === 'APROBADO' ? 'azul' : 'estadoRechazado' },
       onConfirm: () =>
         dictaminar.mutate({ id, estado, observaciones: observaciones || null }),
     });
@@ -188,12 +183,7 @@ export function PaginaProveedores() {
         descripcion="Alta de proveedores y dictamen de aprobación. La aprobación es competencia exclusiva de Dirección Técnica."
         acciones={
           puedeAlta ? (
-            <Button
-              leftSection={<IconPlus size={18} />}
-              variant="gradient"
-              gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
-              onClick={modal.open}
-            >
+            <Button leftSection={<IconPlus size={18} />} onClick={modal.open}>
               Nuevo proveedor
             </Button>
           ) : null

@@ -5,7 +5,7 @@ import type { EstadoAviso, EstadoPedido } from '@/lib/consultasComercial';
 const COLOR_ESTADO: Record<EstadoPedido, string> = {
   BORRADOR: 'gray',
   CONFIRMADO: 'estadoEnAnalisis',
-  EN_PRODUCCION: 'violeta',
+  EN_PRODUCCION: 'azul',
   CUMPLIDO: 'estadoAprobado',
   CANCELADO: 'estadoRechazado',
 };
@@ -75,7 +75,7 @@ export function BadgeEntrega({
 
 const COLOR_AVISO: Record<EstadoAviso, string> = {
   PENDIENTE: 'estadoEnAnalisis',
-  EN_COMPRA: 'violeta',
+  EN_COMPRA: 'azul',
   RESUELTO: 'estadoAprobado',
   DESCARTADO: 'gray',
 };

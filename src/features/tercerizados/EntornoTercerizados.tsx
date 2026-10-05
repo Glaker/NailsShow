@@ -33,14 +33,17 @@ export function EntornoTercerizados({
       >
         <Group justify="space-between" align="center" gap="md">
           <Group gap="md" wrap="nowrap" style={{ minWidth: 0 }}>
-            <ThemeIcon size={46} radius="md" variant="filled" color={color ?? 'indigo'}>
-              <IconBuildingFactory2 size={26} />
+            <ThemeIcon size={46} radius="md" variant="filled" color={color ?? 'azul'}>
+              <IconBuildingFactory2 size={24} stroke={1.7} />
             </ThemeIcon>
             <Stack gap={2} style={{ minWidth: 0 }}>
-              <Text size="xs" fw={700} c="#aab3c5" style={{ letterSpacing: 1.2 }}>
-                TERCERIZADOS
-              </Text>
-              <Text fz={24} fw={800} lh={1.15} c="#fff">
+              <Text
+                fz={24}
+                fw={780}
+                lh={1.15}
+                c="#fff"
+                style={{ letterSpacing: '-0.02em' }}
+              >
                 {titulo}
               </Text>
               {descripcion ? (

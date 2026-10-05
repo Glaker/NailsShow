@@ -50,7 +50,7 @@ export function PaginaStockUnificada() {
       value={vista}
       onChange={(v) => v && setParams({ vista: v }, { replace: true })}
       keepMounted={false}
-      color="violeta"
+      color="azul"
     >
       <Tabs.List mb="lg">
         {puede.insumos ? (

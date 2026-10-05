@@ -1,0 +1,652 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-04T00:00:00Z",
+  "title": "Design System: Trazabilidad Nail Show",
+  "extensions": {
+    "colorMeta": {
+      "azul": {
+        "role": "primary",
+        "displayName": "Azul de acción",
+        "canonical": "#0071e3",
+        "tonalRamp": [
+          "#0052a6",
+          "#0062c4",
+          "#0071e3",
+          "#0a84ff",
+          "#2997ff",
+          "#75b1f8",
+          "#d3e6fd",
+          "#eaf3fe"
+        ]
+      },
+      "azul-oscuro": {
+        "role": "primary",
+        "displayName": "Azul de acción nocturno",
+        "canonical": "#0a84ff",
+        "tonalRamp": [
+          "#0052a6",
+          "#0062c4",
+          "#0071e3",
+          "#0a84ff",
+          "#2997ff",
+          "#75b1f8",
+          "#d3e6fd",
+          "#eaf3fe"
+        ]
+      },
+      "azul-tenue": {
+        "role": "primary",
+        "displayName": "Azul velado",
+        "canonical": "#eaf3fe",
+        "tonalRamp": [
+          "#0052a6",
+          "#0062c4",
+          "#0071e3",
+          "#0a84ff",
+          "#2997ff",
+          "#75b1f8",
+          "#d3e6fd",
+          "#eaf3fe"
+        ]
+      },
+      "fondo": {
+        "role": "neutral",
+        "displayName": "Gris papel Apple",
+        "canonical": "#f5f5f7",
+        "tonalRamp": [
+          "#000000",
+          "#1c1c1e",
+          "#2c2c2e",
+          "#48484a",
+          "#8e8e93",
+          "#aeaeb2",
+          "#d1d1d6",
+          "#f5f5f7"
+        ]
+      },
+      "fondo-oscuro": {
+        "role": "neutral",
+        "displayName": "Negro puro",
+        "canonical": "#000000",
+        "tonalRamp": [
+          "#000000",
+          "#1c1c1e",
+          "#2c2c2e",
+          "#48484a",
+          "#8e8e93",
+          "#aeaeb2",
+          "#d1d1d6",
+          "#f5f5f7"
+        ]
+      },
+      "tarjeta": {
+        "role": "neutral",
+        "displayName": "Blanco tarjeta",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#000000",
+          "#1c1c1e",
+          "#2c2c2e",
+          "#48484a",
+          "#8e8e93",
+          "#aeaeb2",
+          "#d1d1d6",
+          "#f5f5f7"
+        ]
+      },
+      "tarjeta-oscuro": {
+        "role": "neutral",
+        "displayName": "Carbón tarjeta",
+        "canonical": "#1c1c1e",
+        "tonalRamp": [
+          "#000000",
+          "#1c1c1e",
+          "#2c2c2e",
+          "#48484a",
+          "#8e8e93",
+          "#aeaeb2",
+          "#d1d1d6",
+          "#f5f5f7"
+        ]
+      },
+      "tinta": {
+        "role": "neutral",
+        "displayName": "Tinta",
+        "canonical": "#1d1d1f",
+        "tonalRamp": [
+          "#000000",
+          "#1c1c1e",
+          "#2c2c2e",
+          "#48484a",
+          "#8e8e93",
+          "#aeaeb2",
+          "#d1d1d6",
+          "#f5f5f7"
+        ]
+      },
+      "tinta-oscuro": {
+        "role": "neutral",
+        "displayName": "Tinta nocturna",
+        "canonical": "#f5f5f7",
+        "tonalRamp": [
+          "#000000",
+          "#1c1c1e",
+          "#2c2c2e",
+          "#48484a",
+          "#8e8e93",
+          "#aeaeb2",
+          "#d1d1d6",
+          "#f5f5f7"
+        ]
+      },
+      "atenuado": {
+        "role": "neutral",
+        "displayName": "Gris secundario",
+        "canonical": "#6e6e73",
+        "tonalRamp": [
+          "#000000",
+          "#1c1c1e",
+          "#2c2c2e",
+          "#48484a",
+          "#8e8e93",
+          "#aeaeb2",
+          "#d1d1d6",
+          "#f5f5f7"
+        ]
+      },
+      "atenuado-oscuro": {
+        "role": "neutral",
+        "displayName": "Gris secundario nocturno",
+        "canonical": "#a1a1a6",
+        "tonalRamp": [
+          "#000000",
+          "#1c1c1e",
+          "#2c2c2e",
+          "#48484a",
+          "#8e8e93",
+          "#aeaeb2",
+          "#d1d1d6",
+          "#f5f5f7"
+        ]
+      },
+      "marcador": {
+        "role": "neutral",
+        "displayName": "Gris marcador",
+        "canonical": "#86868b",
+        "tonalRamp": [
+          "#000000",
+          "#1c1c1e",
+          "#2c2c2e",
+          "#48484a",
+          "#8e8e93",
+          "#aeaeb2",
+          "#d1d1d6",
+          "#f5f5f7"
+        ]
+      },
+      "borde-campo": {
+        "role": "neutral",
+        "displayName": "Borde de campo",
+        "canonical": "#d2d2d7",
+        "tonalRamp": [
+          "#000000",
+          "#1c1c1e",
+          "#2c2c2e",
+          "#48484a",
+          "#8e8e93",
+          "#aeaeb2",
+          "#d1d1d6",
+          "#f5f5f7"
+        ]
+      },
+      "borde-campo-oscuro": {
+        "role": "neutral",
+        "displayName": "Borde de campo nocturno",
+        "canonical": "#3a3a3c",
+        "tonalRamp": [
+          "#000000",
+          "#1c1c1e",
+          "#2c2c2e",
+          "#48484a",
+          "#8e8e93",
+          "#aeaeb2",
+          "#d1d1d6",
+          "#f5f5f7"
+        ]
+      },
+      "borde-superficie": {
+        "role": "neutral",
+        "displayName": "Borde de superficie",
+        "canonical": "#e5e5ea",
+        "tonalRamp": [
+          "#000000",
+          "#1c1c1e",
+          "#2c2c2e",
+          "#48484a",
+          "#8e8e93",
+          "#aeaeb2",
+          "#d1d1d6",
+          "#f5f5f7"
+        ]
+      },
+      "borde-superficie-oscuro": {
+        "role": "neutral",
+        "displayName": "Borde de superficie nocturno",
+        "canonical": "#2c2c2e",
+        "tonalRamp": [
+          "#000000",
+          "#1c1c1e",
+          "#2c2c2e",
+          "#48484a",
+          "#8e8e93",
+          "#aeaeb2",
+          "#d1d1d6",
+          "#f5f5f7"
+        ]
+      },
+      "superficie-tenue": {
+        "role": "neutral",
+        "displayName": "Superficie tenue",
+        "canonical": "#fafafc",
+        "tonalRamp": [
+          "#000000",
+          "#1c1c1e",
+          "#2c2c2e",
+          "#48484a",
+          "#8e8e93",
+          "#aeaeb2",
+          "#d1d1d6",
+          "#f5f5f7"
+        ]
+      },
+      "barra": {
+        "role": "neutral",
+        "displayName": "Barra lateral",
+        "canonical": "#fbfbfd",
+        "tonalRamp": [
+          "#000000",
+          "#1c1c1e",
+          "#2c2c2e",
+          "#48484a",
+          "#8e8e93",
+          "#aeaeb2",
+          "#d1d1d6",
+          "#f5f5f7"
+        ]
+      },
+      "barra-oscuro": {
+        "role": "neutral",
+        "displayName": "Barra lateral nocturna",
+        "canonical": "#121214",
+        "tonalRamp": [
+          "#000000",
+          "#1c1c1e",
+          "#2c2c2e",
+          "#48484a",
+          "#8e8e93",
+          "#aeaeb2",
+          "#d1d1d6",
+          "#f5f5f7"
+        ]
+      },
+      "barra-texto": {
+        "role": "neutral",
+        "displayName": "Texto de barra",
+        "canonical": "#3a3a3c",
+        "tonalRamp": [
+          "#000000",
+          "#1c1c1e",
+          "#2c2c2e",
+          "#48484a",
+          "#8e8e93",
+          "#aeaeb2",
+          "#d1d1d6",
+          "#f5f5f7"
+        ]
+      },
+      "barra-icono": {
+        "role": "neutral",
+        "displayName": "Ícono de barra",
+        "canonical": "#6e6e73",
+        "tonalRamp": [
+          "#000000",
+          "#1c1c1e",
+          "#2c2c2e",
+          "#48484a",
+          "#8e8e93",
+          "#aeaeb2",
+          "#d1d1d6",
+          "#f5f5f7"
+        ]
+      },
+      "estado-cuarentena": {
+        "role": "status",
+        "displayName": "Cuarentena (I.20.2, reservado)",
+        "canonical": "#fab005",
+        "tonalRamp": [
+          "#e67700",
+          "#f08c00",
+          "#f59f00",
+          "#fab005",
+          "#fcc419",
+          "#ffd43b",
+          "#ffec99",
+          "#fff9db"
+        ]
+      },
+      "estado-en-analisis": {
+        "role": "status",
+        "displayName": "En análisis (I.20.2, reservado)",
+        "canonical": "#868e96",
+        "tonalRamp": [
+          "#212529",
+          "#343a40",
+          "#495057",
+          "#868e96",
+          "#adb5bd",
+          "#ced4da",
+          "#e9ecef",
+          "#f8f9fa"
+        ]
+      },
+      "estado-aprobado": {
+        "role": "status",
+        "displayName": "Aprobado (I.20.2, reservado)",
+        "canonical": "#40c057",
+        "tonalRamp": [
+          "#2b8a3e",
+          "#2f9e44",
+          "#37b24d",
+          "#40c057",
+          "#51cf66",
+          "#69db7c",
+          "#b2f2bb",
+          "#ebfbee"
+        ]
+      },
+      "estado-rechazado": {
+        "role": "status",
+        "displayName": "Rechazado (I.20.2, reservado)",
+        "canonical": "#fa5252",
+        "tonalRamp": [
+          "#c92a2a",
+          "#e03131",
+          "#f03e3e",
+          "#fa5252",
+          "#ff6b6b",
+          "#ff8787",
+          "#ffc9c9",
+          "#fff5f5"
+        ]
+      },
+      "tercerizados-fondo": {
+        "role": "neutral",
+        "displayName": "Pizarra tercerizados",
+        "canonical": "#e3e6ed",
+        "tonalRamp": [
+          "#141820",
+          "#1a1f2a",
+          "#1f2533",
+          "#232a3a",
+          "#2b3242",
+          "#cfd4de",
+          "#e3e6ed",
+          "#f5f6f9"
+        ]
+      },
+      "tercerizados-cabecera": {
+        "role": "neutral",
+        "displayName": "Cabecera tercerizados",
+        "canonical": "#1f2533",
+        "tonalRamp": [
+          "#141820",
+          "#1a1f2a",
+          "#1f2533",
+          "#232a3a",
+          "#2b3242",
+          "#cfd4de",
+          "#e3e6ed",
+          "#f5f6f9"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Título de pantalla y de ingreso. text-wrap: balance."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Título de tarjeta principal o formulario (h2)."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Título de sección (h3; h4 15.5px/1.35)."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Texto general y descripción bajo el título."
+      },
+      "body-sm": {
+        "displayName": "Body chico",
+        "purpose": "Etiquetas de indicador, ayudas, ítems de barra (14.5px/500)."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Cabeceras de tabla en minúscula de oración, atenuadas."
+      },
+      "cifra": {
+        "displayName": "Cifra",
+        "purpose": "Número grande del tablero; siempre tabular."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Códigos e identificadores."
+      }
+    },
+    "shadows": [
+      {
+        "name": "xs",
+        "value": "0 1px 2px rgba(0, 0, 0, 0.04)",
+        "purpose": "Separación mínima."
+      },
+      {
+        "name": "sm",
+        "value": "0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)",
+        "purpose": "Tarjeta en reposo sobre el fondo."
+      },
+      {
+        "name": "md",
+        "value": "0 4px 14px rgba(0, 0, 0, 0.07)",
+        "purpose": "Menús y barra inferior."
+      },
+      {
+        "name": "lg",
+        "value": "0 8px 28px rgba(0, 0, 0, 0.09)",
+        "purpose": "Modales."
+      },
+      {
+        "name": "xl",
+        "value": "0 16px 48px rgba(0, 0, 0, 0.12)",
+        "purpose": "Paneles superpuestos."
+      },
+      {
+        "name": "hover-tarjeta",
+        "value": "0 6px 18px rgba(0, 0, 0, 0.1)",
+        "purpose": "Tarjeta-enlace al pasar, con translateY(-2px)."
+      },
+      {
+        "name": "hover-boton",
+        "value": "0 4px 12px rgba(0, 0, 0, 0.12)",
+        "purpose": "Botón al pasar, con translateY(-1px)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "duracion-transicion",
+        "value": "160ms",
+        "purpose": "DURACION_TRANSICION: modales, paneles, combobox."
+      },
+      {
+        "name": "transicion",
+        "value": "180ms cubic-bezier(0.25, 0.1, 0.25, 1)",
+        "purpose": "Hover y cambio de color de ítems, pestañas, filas."
+      },
+      {
+        "name": "curva-salida",
+        "value": "cubic-bezier(0.22, 0.61, 0.36, 1)",
+        "purpose": "Curva de toda entrada y transición de estado. Nunca rebota."
+      },
+      {
+        "name": "entrada-pagina",
+        "value": "340ms cubic-bezier(0.22, 0.61, 0.36, 1)",
+        "purpose": "Cambio de pantalla: translateY(10px) y blur(4px) a nada, una vez por ruta."
+      },
+      {
+        "name": "fundido-esquema",
+        "value": "260ms cubic-bezier(0.25, 0.1, 0.25, 1)",
+        "purpose": "View Transition al alternar claro/oscuro."
+      },
+      {
+        "name": "boton",
+        "value": "140ms cubic-bezier(0.22, 0.61, 0.36, 1)",
+        "purpose": "Levantar y hundir el botón."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "movil",
+        "value": "62em"
+      },
+      {
+        "name": "compacto",
+        "value": "48em"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botón primario",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Píldora azul de acción; la primaria va arriba a la derecha.",
+      "html": "<button class=\"ds-btn-primary\">Nuevo pedido</button>",
+      "css": ".ds-btn-primary{font-family:-apple-system, BlinkMacSystemFont, \"SF Pro Text\", Inter, \"Segoe UI\", Roboto, sans-serif;font-size:15px;font-weight:600;letter-spacing:-0.006em;background:#0071e3;color:#fff;border:0;border-radius:22px;min-height:44px;padding:0 22px;cursor:pointer;transition:transform 140ms cubic-bezier(0.22,0.61,0.36,1),box-shadow 140ms cubic-bezier(0.22,0.61,0.36,1),background-color 180ms cubic-bezier(0.25,0.1,0.25,1)}.ds-btn-primary:hover{background:#0062c4;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.12)}.ds-btn-primary:active{transform:scale(0.98);box-shadow:none}.ds-btn-primary:focus-visible{outline:2px solid #0071e3;outline-offset:2px}"
+    },
+    {
+      "name": "Botón secundario",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Variante default de Mantine: blanco con borde gris, misma píldora.",
+      "html": "<button class=\"ds-btn-default\">Cancelar</button>",
+      "css": ".ds-btn-default{font-family:-apple-system, BlinkMacSystemFont, \"SF Pro Text\", Inter, \"Segoe UI\", Roboto, sans-serif;font-size:15px;font-weight:600;background:#fff;color:#1d1d1f;border:1px solid #d2d2d7;border-radius:22px;min-height:44px;padding:0 22px;cursor:pointer;transition:transform 140ms cubic-bezier(0.22,0.61,0.36,1),box-shadow 140ms cubic-bezier(0.22,0.61,0.36,1),background-color 180ms cubic-bezier(0.25,0.1,0.25,1)}.ds-btn-default:hover{background:#f5f5f7;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.12)}.ds-btn-default:active{transform:scale(0.98);box-shadow:none}.ds-btn-default:focus-visible{outline:2px solid #0071e3;outline-offset:2px}"
+    },
+    {
+      "name": "Campo de texto",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo md de 44px, radio 10px, cursor azul.",
+      "html": "<label class=\"ds-field\"><span>Correo</span><input class=\"ds-input\" placeholder=\"nombre@nailshow.com.ar\"></label>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:4px;font-family:-apple-system, BlinkMacSystemFont, \"SF Pro Text\", Inter, \"Segoe UI\", Roboto, sans-serif;font-size:13.5px;font-weight:500;color:#1d1d1f}.ds-input{font-family:inherit;font-size:15px;min-height:44px;padding:0 14px;border:1px solid #d2d2d7;border-radius:10px;background:#fff;color:#1d1d1f;caret-color:#0071e3;font-variant-numeric:tabular-nums}.ds-input::placeholder{color:#86868b}.ds-input:focus-visible{outline:none;border-color:#0071e3;box-shadow:0 0 0 3px #d3e6fd}"
+    },
+    {
+      "name": "Ítem de barra lateral",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Barra estilo macOS: ícono gris; el activo sobre pastilla gris con ícono azul.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-item\" data-activo=\"true\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><path d=\"M5 12l-2 0l9 -9l9 9l-2 0\"/><path d=\"M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7\"/></svg><span>Inicio</span></a><a class=\"ds-nav-item\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><rect x=\"4\" y=\"4\" width=\"16\" height=\"16\" rx=\"2\"/><path d=\"M4 10h16\"/></svg><span>Pedidos</span></a></nav>",
+      "css": ".ds-nav{display:flex;flex-direction:column;gap:2px;width:226px;padding:8px;background:#fbfbfd;border-right:1px solid #e5e5ea;font-family:-apple-system, BlinkMacSystemFont, \"SF Pro Text\", Inter, \"Segoe UI\", Roboto, sans-serif}.ds-nav-item{display:flex;align-items:center;gap:12px;min-height:44px;padding:0 12px;border-radius:10px;color:#3a3a3c;font-size:14.5px;font-weight:500;text-decoration:none;cursor:pointer;transition:background-color 180ms cubic-bezier(0.25,0.1,0.25,1),color 180ms cubic-bezier(0.25,0.1,0.25,1)}.ds-nav-item svg{color:#6e6e73;flex-shrink:0;transition:color 180ms cubic-bezier(0.25,0.1,0.25,1)}.ds-nav-item:hover{background:rgba(0,0,0,0.04);color:#1d1d1f}.ds-nav-item[data-activo=\"true\"]{background:rgba(0,0,0,0.07);color:#1d1d1f;font-weight:600}.ds-nav-item[data-activo=\"true\"] svg{color:#0071e3}.ds-nav-item:focus-visible{outline:2px solid #0071e3}"
+    },
+    {
+      "name": "Insignia",
+      "kind": "chip",
+      "refersTo": "badge",
+      "description": "Cápsula en minúscula de oración; azul liviano para interfaz, color reservado solo para estado de material.",
+      "html": "<span class=\"ds-badge\">Ventas</span> <span class=\"ds-badge ds-badge-aprobado\">Aprobado</span>",
+      "css": ".ds-badge{display:inline-flex;align-items:center;height:22px;padding:0 10px;border-radius:22px;background:#eaf3fe;color:#0071e3;font-family:-apple-system, BlinkMacSystemFont, \"SF Pro Text\", Inter, \"Segoe UI\", Roboto, sans-serif;font-size:12px;font-weight:600;letter-spacing:0;text-transform:none}.ds-badge-aprobado{background:#ebfbee;color:#2b8a3e}"
+    },
+    {
+      "name": "Tarjeta indicador",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Etiqueta, cifra grande tabular y contexto; punto de color solo si es estado de material.",
+      "html": "<a class=\"ds-indicador\" href=\"#\"><div class=\"ds-ind-top\"><span class=\"ds-ind-label\">Lotes en cuarentena</span><span class=\"ds-ind-dot\"></span></div><div class=\"ds-ind-cifra\">12</div><div class=\"ds-ind-det\">3 hace más de una semana</div></a>",
+      "css": ".ds-indicador{display:block;width:240px;padding:20px;background:#fff;border:1px solid #e5e5ea;border-radius:16px;color:#1d1d1f;font-family:-apple-system, BlinkMacSystemFont, \"SF Pro Text\", Inter, \"Segoe UI\", Roboto, sans-serif;text-decoration:none;cursor:pointer;transition:transform 180ms cubic-bezier(0.25,0.1,0.25,1),box-shadow 180ms cubic-bezier(0.25,0.1,0.25,1)}.ds-indicador:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,0.1)}.ds-indicador:focus-visible{outline:2px solid #0071e3;outline-offset:2px}.ds-ind-top{display:flex;justify-content:space-between;align-items:flex-start}.ds-ind-label{font-size:13.5px;font-weight:500;color:#6e6e73}.ds-ind-dot{width:10px;height:10px;margin-top:5px;border-radius:50%;background:#fab005}.ds-ind-cifra{margin-top:12px;font-size:36px;line-height:1.05;font-weight:650;letter-spacing:-0.03em;font-variant-numeric:tabular-nums}.ds-ind-det{margin-top:8px;font-size:12px;color:#6e6e73}"
+    },
+    {
+      "name": "Tabla",
+      "kind": "custom",
+      "refersTo": "table-header",
+      "description": "Cabeceras chicas, semibold y atenuadas en minúscula de oración; filas de 44px con hover.",
+      "html": "<table class=\"ds-table\"><thead><tr><th>Lote</th><th>Producto</th><th>Cantidad</th></tr></thead><tbody><tr><td>L-2410</td><td>Esmalte base</td><td>1200</td></tr><tr><td>L-2411</td><td>Removedor</td><td>480</td></tr></tbody></table>",
+      "css": ".ds-table{border-collapse:separate;border-spacing:0;width:420px;background:#fff;border:1px solid #e5e5ea;border-radius:16px;overflow:hidden;font-family:-apple-system, BlinkMacSystemFont, \"SF Pro Text\", Inter, \"Segoe UI\", Roboto, sans-serif;font-size:15px;color:#1d1d1f;font-variant-numeric:tabular-nums}.ds-table th{text-align:left;font-size:12.5px;font-weight:600;color:#6e6e73;padding:10px 14px;border-bottom:1px solid #e5e5ea}.ds-table td{height:44px;padding:0 14px;border-bottom:1px solid #e5e5ea}.ds-table tbody tr:last-child td{border-bottom:0}.ds-table tbody tr{transition:background-color 180ms cubic-bezier(0.25,0.1,0.25,1)}.ds-table tbody tr:hover{background:#f5f5f7}"
+    }
+  ],
+  "narrative": {
+    "northStar": "La herramienta de Apple en la planta",
+    "overview": "Un sistema de trabajo con la sobriedad de las apps de Apple, elegida por el usuario como referencia: neutro, preciso y tranquilo. Casi toda la interfaz es gris frío, blanco y casi negro; hay un único color de interfaz, el azul de acción, y el resto del color lo ponen los cuatro estados de rótulo de I.20.2. El usuario ve primero los datos, encuentra la acción en azul y lee el estado del material por su color reservado, sin ruido alrededor.\n\nLa densidad es alta pero nunca estrecha: los espaciados son compactos para que entren más filas, y todo control mide al menos 44 px porque se usa con guantes, en tablet, bajo luz de galpón. Hay modo claro y oscuro a elección, cada uno con su propia escala de grises de Apple. El movimiento existe pero es corto, con curva de salida, y nunca afirma algo que la base no confirmó.\n\nEl logo de Nail Show (lettering con aro arcoíris) es el único lugar donde vive el arcoíris. Se rechazó explícitamente la dirección colorida anterior: panel con degradés, muestras decorativas, acentos de marca en la interfaz.",
+    "keyCharacteristics": [
+      "Neutro de punta a punta; un solo azul de acción.",
+      "Cuatro colores reservados para el estado del material, y para nada más.",
+      "Letra del sistema (SF Pro) en Apple, Inter autoalojada en el resto.",
+      "Esquinas amplias: campos de 10 px, tarjetas de 16 px, botones píldora.",
+      "Sombras suaves y cortas que separan la tarjeta del fondo.",
+      "Áreas de toque de 44 px como piso, densidad ganada en el espaciado.",
+      "Modo claro y oscuro, con fundido de 260 ms al alternar."
+    ],
+    "rules": [
+      {
+        "name": "The Único Azul Rule",
+        "body": "El azul es el único color de interfaz. Botones, enlaces, foco y selección son azules; lo demás es gris. Si una pantalla necesita un segundo acento, no lo necesita.",
+        "section": "colors"
+      },
+      {
+        "name": "The Cuatro Reservados Rule",
+        "body": "Amarillo, gris de análisis, verde y rojo de I.20.2 comunican el estado del material y nada más. Ningún botón, ícono de navegación, gráfico decorativo ni aviso de marca los usa: un verde cualquiera degrada la señal del rótulo pegado al envase.",
+        "section": "colors"
+      },
+      {
+        "name": "The Cifra Tabular Rule",
+        "body": "Tablas, campos y toda cifra usan `tabular-nums`, para que las columnas de números se alineen. La cifra destacada lleva 650 y -0.03em.",
+        "section": "typography"
+      },
+      {
+        "name": "The Minúscula de Oración Rule",
+        "body": "Cabeceras de tabla e insignias van en minúscula de oración, peso 600, sin interletrado agregado, como en macOS. Nada de rótulos en mayúscula sostenida.",
+        "section": "typography"
+      },
+      {
+        "name": "The 44 Píxeles Rule",
+        "body": "Todo control interactivo (botón, ícono de acción, campo, select, pestaña, ítem de navegación, celda de tabla) mide al menos 44 px. La densidad se gana en el espacio entre elementos, nunca achicando el área de toque.",
+        "section": "layout"
+      },
+      {
+        "name": "The Sombra que Separa Rule",
+        "body": "La sombra es negra, difusa y de baja opacidad (≤ 0,12). Separa la tarjeta del fondo; no la hace flotar ni la tiñe. Sin desenfoque de fondo en las capas superpuestas (overlay al 50 %, `blur: 0`).",
+        "section": "elevation"
+      },
+      {
+        "name": "The Movimiento que No Afirma Rule",
+        "body": "Se anima lo que el usuario tocó o lo que acaba de entrar, una sola vez. Nada se mueve solo después de entrar, nada parpadea, y ninguna animación sugiere que un registro se guardó, se firmó o cambió de estado: eso lo dice el texto.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "**Do** usar el azul de acción (`#0071e3` claro, `#0a84ff` oscuro) para la acción primaria, enlaces, foco y selección, y nada más.",
+      "**Do** consumir los colores de estado por nombre (`estadoCuarentena`, `estadoEnAnalisis`, `estadoAprobado`, `estadoRechazado`) a través de `COLORES_ESTADO_ROTULO`.",
+      "**Do** dar 44px a todo control y ganar densidad en el espaciado (6 / 10 / 14 / 20 / 28 px).",
+      "**Do** apoyar las tarjetas blancas (16px de radio, borde `#e5e5ea`) sobre el fondo `#f5f5f7`; en oscuro, `#1c1c1e` sobre negro.",
+      "**Do** usar cifras tabulares en tablas, campos e indicadores.",
+      "**Do** escribir cabeceras e insignias en minúscula de oración, peso 600.",
+      "**Do** respetar `prefers-reduced-motion` en toda animación nueva."
+    ],
+    "donts": [
+      "**Don't** usar amarillo, verde, rojo ni el gris de análisis de I.20.2 en botones, navegación, gráficos decorativos o avisos que no sean estado de material.",
+      "**Don't** agregar un segundo color de acento, degradés ni muestras decorativas: el arcoíris vive solo en el logo.",
+      "**Don't** poner rótulos chicos en mayúscula sostenida sobre títulos o cifras.",
+      "**Don't** usar sombras teñidas, duras o de opacidad mayor a 0,12, ni desenfoque detrás de modales.",
+      "**Don't** animar nada que se mueva solo, rebote o sugiera que algo se guardó o firmó.",
+      "**Don't** achicar un control por debajo de 44px para que entre más información."
+    ]
+  }
+}

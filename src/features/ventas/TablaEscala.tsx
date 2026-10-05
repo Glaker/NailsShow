@@ -48,7 +48,7 @@ export function TablaEscala({ monto }: { monto?: number }) {
           return (
             <Table.Tr
               key={e.desde_monto}
-              style={esta ? { background: 'var(--mantine-color-violeta-0)' } : undefined}
+              style={esta ? { background: 'var(--mantine-color-azul-light)' } : undefined}
             >
               <Table.Td>
                 <Text size="sm" fw={esta ? 700 : 400}>
@@ -61,7 +61,7 @@ export function TablaEscala({ monto }: { monto?: number }) {
               </Table.Td>
               <Table.Td ta="right">
                 {esta ? (
-                  <Badge color="rosa" variant="filled">
+                  <Badge color="indigo" variant="filled">
                     {numero(e.porcentaje)} % · este pedido
                   </Badge>
                 ) : (

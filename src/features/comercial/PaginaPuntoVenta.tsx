@@ -217,7 +217,7 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
             )}
             <Button
               size="md"
-              color="violeta"
+              color="azul"
               variant={esCalle5 ? 'default' : 'filled'}
               leftSection={<IconArrowUp size={18} />}
               onClick={() => abrir('sale')}
@@ -306,7 +306,7 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
                           {numero(Number(f.saldo), 0)}
                         </Text>
                         {Number(f.retenido) > 0 ? (
-                          <Text size="xs" c="estadoEnAnalisis.8">
+                          <Text size="xs" c="estadoEnAnalisis">
                             {numero(Number(f.retenido), 0)} retenidas: lote sin liberar
                           </Text>
                         ) : null}
@@ -619,7 +619,7 @@ function UltimosMovimientos({
                       <Badge
                         variant="light"
                         radius="sm"
-                        color={entra ? 'estadoAprobado' : 'violeta'}
+                        color={entra ? 'estadoAprobado' : 'azul'}
                       >
                         {m.tipo.replace(/_/g, ' ').toLowerCase()}
                       </Badge>
@@ -634,7 +634,7 @@ function UltimosMovimientos({
                         size="sm"
                         ff="monospace"
                         fw={600}
-                        c={entra ? 'estadoAprobado.7' : 'inherit'}
+                        c={entra ? 'estadoAprobado' : 'inherit'}
                       >
                         {entra ? '+' : ''}
                         {numero(Number(m.cantidad), 0)}

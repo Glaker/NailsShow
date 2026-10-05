@@ -76,8 +76,8 @@ const colorPedido = (p: PedidoRow) =>
     : p.para_stock
       ? 'indigo'
       : p.estado === 'EN_PRODUCCION'
-        ? 'violeta'
-        : 'rosa';
+        ? 'azul'
+        : 'indigo';
 
 /* --------------------------------- Gantt --------------------------------- */
 
@@ -137,7 +137,7 @@ export function Gantt({
               style={{
                 fontSize: 11,
                 borderLeft: '1px solid var(--superficie-borde)',
-                background: d === hoy ? 'var(--mantine-color-violeta-1)' : undefined,
+                background: d === hoy ? 'var(--mantine-color-azul-light)' : undefined,
                 fontWeight: d === hoy ? 700 : 400,
               }}
             >
@@ -191,23 +191,21 @@ export function Gantt({
               ))}
               <Box
                 className="gantt-barra"
-                style={
-                  {
-                    '--i': n,
-                    gridColumn: `${ini + 2} / ${fin + 3}`,
-                    gridRow: 1,
-                    alignSelf: 'center',
-                    height: 30,
-                    zIndex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    borderRadius: 6,
-                    padding: '0 2px',
-                    background: `var(--mantine-color-${colorPedido(p)}-${tarde ? 7 : 5})`,
-                    color: '#fff',
-                  }
-                }
+                style={{
+                  '--i': n,
+                  gridColumn: `${ini + 2} / ${fin + 3}`,
+                  gridRow: 1,
+                  alignSelf: 'center',
+                  height: 30,
+                  zIndex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderRadius: 6,
+                  padding: '0 2px',
+                  background: `var(--mantine-color-${colorPedido(p)}-${tarde ? 7 : 5})`,
+                  color: '#fff',
+                }}
               >
                 {editable && fin - ini < 3 ? (
                   /* Bloque corto: los cuatro botones (≈88 px) no entran en uno a
@@ -689,11 +687,10 @@ function Contador({
     <Paper
       withBorder
       p="md"
-      radius="lg"
       className="contador"
       style={{ borderColor: 'var(--superficie-borde)', '--i': i }}
     >
-      <Text fz={34} fw={800} lh={1} c={`${color}.7`}>
+      <Text fz={34} lh={1} c={color === 'gray' ? 'inherit' : color} className="cifra">
         {valor}
       </Text>
       <Text size="sm" c="dimmed" mt={6}>
@@ -740,17 +737,12 @@ export function InicioPedidos({ descripcion }: { descripcion?: string }) {
       </div>
 
       <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
-        <Contador
-          i={0}
-          valor={lista.length}
-          etiqueta="Pedidos pendientes"
-          color="violeta"
-        />
+        <Contador i={0} valor={lista.length} etiqueta="Pedidos pendientes" color="azul" />
         <Contador
           i={1}
           valor={enProduccion.length}
           etiqueta="En producción"
-          color="ciruela"
+          color="grape"
         />
         <Contador i={2} valor={sinPlan.length} etiqueta="Sin planificar" color="gray" />
         <Contador
@@ -793,7 +785,7 @@ export function InicioPedidos({ descripcion }: { descripcion?: string }) {
                   </Text>
                   <Group gap={6} wrap="nowrap">
                     {p.plan_inicio ? (
-                      <Badge variant="light" color="violeta">
+                      <Badge variant="light" color="azul">
                         produce {fecha(p.plan_inicio).slice(0, 5)}
                       </Badge>
                     ) : (
@@ -803,7 +795,7 @@ export function InicioPedidos({ descripcion }: { descripcion?: string }) {
                     )}
                     <Badge
                       variant={tarde ? 'filled' : 'light'}
-                      color={tarde ? 'red' : 'rosa'}
+                      color={tarde ? 'red' : 'indigo'}
                     >
                       entrega {p.fecha_entrega ? fecha(p.fecha_entrega).slice(0, 5) : '—'}
                     </Badge>

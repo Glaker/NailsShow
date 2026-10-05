@@ -33,7 +33,7 @@ const QUIEN: Partial<Record<Rol, string>> = {
 
 /**
  * «Quién ve qué»: cada pantalla y pestaña contra cada rol. Tildado = la ve.
- * El borde violeta marca lo que se cambió respecto del valor del código. El
+ * El borde azul marca lo que se cambió respecto del valor del código. El
  * Administrador del sistema ve todo.
  *
  * Es visibilidad del menú, no permiso: una pantalla que se le muestra a un rol
@@ -69,7 +69,7 @@ export function PaginaVisibilidad() {
         <Alert color="gray" variant="light" icon={<IconInfoCircle size={18} />}>
           Esto decide qué aparece en el menú. Lo que cada rol puede leer o cargar lo sigue
           decidiendo la base: si le mostrás una pantalla a un rol sin permiso, la va a ver
-          vacía. El borde violeta marca lo que cambiaste respecto del valor original.
+          vacía. El borde azul marca lo que cambiaste respecto del valor original.
         </Alert>
         {excepciones.isLoading ? (
           <Skeleton h={400} />
@@ -130,12 +130,12 @@ export function PaginaVisibilidad() {
                                 aria-label={`${f.etiqueta} para ${etiquetaEnum(r)}`}
                                 checked={visto}
                                 disabled={!esAdmin || fijar.isPending}
-                                color={cambiado ? 'violeta' : 'gray'}
+                                color={cambiado ? 'azul' : 'gray'}
                                 styles={
                                   cambiado
                                     ? {
                                         input: {
-                                          borderColor: 'var(--mantine-color-violeta-6)',
+                                          borderColor: 'var(--mantine-color-azul-6)',
                                           borderWidth: 2,
                                         },
                                       }

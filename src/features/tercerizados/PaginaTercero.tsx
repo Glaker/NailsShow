@@ -536,7 +536,7 @@ function PestanaProductos({ tercero }: { tercero: Tercero }) {
                   </Table.Td>
                   <Table.Td>
                     {p.producto_base_id ? (
-                      <Badge variant="light" color="violeta" radius="sm">
+                      <Badge variant="light" color="azul" radius="sm">
                         Nail Show con otra etiqueta: {nombre.get(p.producto_base_id)}
                       </Badge>
                     ) : (

@@ -92,7 +92,7 @@ export function FaltantesConsolidados({ hayEnCurso }: { hayEnCurso: boolean }) {
                             component={Link}
                             to={`/pedidos/${p.pedido_id}`}
                             variant="outline"
-                            color="violeta"
+                            color="azul"
                             radius="sm"
                             style={{ cursor: 'pointer', textTransform: 'none' }}
                           >
@@ -112,7 +112,7 @@ export function FaltantesConsolidados({ hayEnCurso }: { hayEnCurso: boolean }) {
                       </Text>
                     </Table.Td>
                     <Table.Td ta="right">
-                      <Text size="sm" ff="monospace" fw={700} c="estadoRechazado.7">
+                      <Text size="sm" ff="monospace" fw={700} c="estadoRechazado">
                         {numero(f.faltante, dec)} {u}
                       </Text>
                     </Table.Td>

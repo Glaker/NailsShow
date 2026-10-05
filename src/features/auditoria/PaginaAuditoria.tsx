@@ -20,9 +20,9 @@ import { fechaHora } from '@/lib/formato';
 
 const COLOR_OPERACION: Record<string, string> = {
   INSERT: 'estadoAprobado',
-  UPDATE: 'violeta',
+  UPDATE: 'azul',
   DELETE_INTENTO: 'estadoRechazado',
-  FIRMA: 'rosa',
+  FIRMA: 'indigo',
   LOGIN: 'gray',
 };
 
@@ -98,7 +98,7 @@ function FilaAuditoria({
         <Table.Td>
           <UnstyledButton onClick={() => setAbierto((v) => !v)} aria-label="Ver valores">
             <Group gap={4}>
-              <Text size="xs" c="violeta.7" fw={600}>
+              <Text size="xs" c="azul" fw={600}>
                 {abierto ? 'Ocultar' : 'Ver valores'}
               </Text>
               <IconChevronDown

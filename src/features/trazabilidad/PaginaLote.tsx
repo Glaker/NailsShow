@@ -164,14 +164,14 @@ export function PaginaLote() {
           <Text size="sm" c="dimmed">
             {nota}
           </Text>
-          <Alert color="violeta" variant="light" radius="md">
+          <Alert color="azul" variant="light" radius="md">
             Queda registrado a tu nombre y no se puede deshacer. La corrección de un
             estado se hace con no conformidad, no revirtiendo.
           </Alert>
         </Stack>
       ),
       labels: { confirm: etiqueta, cancel: 'Cancelar' },
-      confirmProps: { color: destino === 'RECHAZADO' ? 'estadoRechazado' : 'violeta' },
+      confirmProps: { color: destino === 'RECHAZADO' ? 'estadoRechazado' : 'azul' },
       onConfirm: () => emitir.mutate({ loteId, estado: destino }),
     });
   };
@@ -205,12 +205,7 @@ export function PaginaLote() {
 
         <Group gap="sm">
           {puedeMuestrear ? (
-            <Button
-              variant="gradient"
-              gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
-              leftSection={<IconTestPipe size={18} />}
-              onClick={modalMuestreo.open}
-            >
+            <Button leftSection={<IconTestPipe size={18} />} onClick={modalMuestreo.open}>
               Registrar muestreo
             </Button>
           ) : null}
@@ -228,10 +223,7 @@ export function PaginaLote() {
               key={t.destino}
               {...(t.destino === 'RECHAZADO'
                 ? { variant: 'outline' as const, color: 'estadoRechazado' }
-                : {
-                    variant: 'gradient' as const,
-                    gradient: { from: 'violeta.7', to: 'rosa.6', deg: 135 },
-                  })}
+                : {})}
               leftSection={
                 t.destino === 'RECHAZADO' ? (
                   <IconCircleX size={18} />
@@ -437,7 +429,7 @@ export function PaginaLote() {
                   Todavía no se emitió ningún rótulo para este lote.
                 </Text>
               ) : (
-                <Timeline active={0} bulletSize={20} lineWidth={2} color="violeta">
+                <Timeline active={0} bulletSize={20} lineWidth={2} color="azul">
                   {(rotulos.data ?? []).map((r) => (
                     <Timeline.Item
                       key={r.id}
@@ -446,7 +438,7 @@ export function PaginaLote() {
                         <Group gap="xs">
                           <InsigniaEstado estado={r.estado} size="sm" />
                           {r.vigente ? (
-                            <Badge size="xs" variant="filled" color="violeta" radius="sm">
+                            <Badge size="xs" variant="filled" color="azul" radius="sm">
                               vigente
                             </Badge>
                           ) : null}
@@ -472,7 +464,7 @@ export function PaginaLote() {
             {rotuloVigente ? (
               <RotuloLote lote={l} rotulo={rotuloVigente} />
             ) : (
-              <Alert color="violeta" variant="light" radius="md" className="no-imprimir">
+              <Alert color="azul" variant="light" radius="md" className="no-imprimir">
                 Este lote todavía no tiene rótulo. Mientras no lo tenga, el material no
                 puede ingresar a cuarentena: I.20.2 exige rotular el estado.
               </Alert>

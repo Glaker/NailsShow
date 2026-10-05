@@ -47,7 +47,7 @@ export function PaginaPrecios() {
         titulo="Precios y descuentos"
         descripcion="Precio de lista por producto (IVA incluido), descuentos por cliente y la escala de descuento por monto del pedido mayorista."
       />
-      <Tabs value={vista} onChange={setVista} color="violeta" keepMounted={false}>
+      <Tabs value={vista} onChange={setVista} color="azul" keepMounted={false}>
         <Tabs.List mb="md">
           <Tabs.Tab value="precios" leftSection={<IconTag size={17} />}>
             Precios de lista

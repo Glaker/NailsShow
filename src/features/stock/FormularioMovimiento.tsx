@@ -190,8 +190,6 @@ export function FormularioMovimiento({ posicion, onListo, tipoInicial }: Props) 
           </Button>
           <Button
             type="submit"
-            variant="gradient"
-            gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
             loading={registrar.isPending}
             disabled={excede || muestraBloqueada}
           >

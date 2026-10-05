@@ -72,7 +72,6 @@ export function PaginaTercerizados() {
         puedeAlta ? (
           <Button
             size="md"
-            color="indigo"
             leftSection={<IconPlus size={18} />}
             onClick={() => setAlta(true)}
           >
@@ -194,7 +193,7 @@ function Numero({
 }) {
   return (
     <Stack gap={0} align="flex-start">
-      <Text fz={26} fw={800} lh={1} c={valor > 0 ? `${color}.8` : 'dimmed'}>
+      <Text fz={28} lh={1} c={valor > 0 ? color : 'dimmed'} className="cifra">
         {valor}
       </Text>
       <Text size="xs" c="dimmed" lh={1.2}>

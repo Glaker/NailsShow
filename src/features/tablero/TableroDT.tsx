@@ -64,7 +64,7 @@ export function TableroDT() {
             <IconFlask size={22} color="var(--mantine-color-estadoCuarentena-7)" />
             <Text fw={600}>Insumos sin aprobar</Text>
           </Group>
-          <Text fz={40} fw={800} lh={1} c="estadoCuarentena.8">
+          <Text fz={40} lh={1} c="estadoCuarentena.8" className="cifra">
             {cargando ? '…' : insumos.length}
           </Text>
         </Paper>
@@ -84,7 +84,7 @@ export function TableroDT() {
             />
             <Text fw={600}>Lotes de producto por liberar</Text>
           </Group>
-          <Text fz={40} fw={800} lh={1} c="estadoEnAnalisis.8">
+          <Text fz={40} lh={1} c="estadoEnAnalisis" className="cifra">
             {cargando ? '…' : porLiberar.length}
           </Text>
         </Paper>

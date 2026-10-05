@@ -27,7 +27,7 @@ export function PaginaReportes() {
         titulo="Reportes"
         descripcion="IVA, ventas, resultado y flujo de fondos, armados con lo que se carga día a día."
       />
-      <Tabs value={vista} onChange={setVista} color="violeta" keepMounted={false}>
+      <Tabs value={vista} onChange={setVista} color="azul" keepMounted={false}>
         <Tabs.List mb="md">
           <Tabs.Tab value="iva">IVA Compras vs. Ventas</Tabs.Tab>
           <Tabs.Tab value="ventas">Ventas</Tabs.Tab>
@@ -225,7 +225,7 @@ function Resultado() {
               ta="right"
               ff="monospace"
               fw={700}
-              c={Number(f.resultado) < 0 ? 'red.7' : 'estadoAprobado.7'}
+              c={Number(f.resultado) < 0 ? 'red' : 'estadoAprobado'}
             >
               {pesos(f.resultado)}
             </Table.Td>
@@ -332,7 +332,7 @@ const SITUACION: Record<string, { texto: string; color: string }> = {
   IMPAGA: { texto: 'Impaga', color: 'red' },
   CERRADA: { texto: 'Pagada', color: 'estadoAprobado' },
   DESCARTADA: { texto: 'Descartada', color: 'gray' },
-  SIN_COMPRA: { texto: 'Recepción sin compra anotada', color: 'violeta' },
+  SIN_COMPRA: { texto: 'Recepción sin compra anotada', color: 'azul' },
 };
 
 /** Traza de cada compra: pedido de Producción → recepción → factura → pago. */

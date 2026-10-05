@@ -185,7 +185,7 @@ export function PaginaStockSeguridad() {
               <Text
                 component={Link}
                 to="/stock?vista=fabrica"
-                c="violeta"
+                c="azul"
                 fw={600}
                 size="sm"
               >
@@ -388,7 +388,7 @@ export function PaginaStockSeguridad() {
                                 size="lg"
                                 radius="sm"
                                 variant="light"
-                                color={f.accion === 'PRODUCIR' ? 'violeta' : 'indigo'}
+                                color={f.accion === 'PRODUCIR' ? 'azul' : 'indigo'}
                               >
                                 {f.accion === 'PRODUCIR' ? 'Producir' : 'Comprar'}{' '}
                                 {numero(total, 0)}

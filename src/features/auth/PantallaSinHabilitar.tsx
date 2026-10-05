@@ -19,8 +19,7 @@ export function PantallaSinHabilitar() {
     <Box
       style={{
         minHeight: '100dvh',
-        background:
-          'radial-gradient(1100px 600px at 15% -10%, #3a2447 0%, #1a0e22 55%, #14091b 100%)',
+        background: 'var(--app-fondo)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -29,13 +28,18 @@ export function PantallaSinHabilitar() {
     >
       <Stack gap="lg" w="100%" maw={460} className="entrada">
         <Center>
-          <Marca size={72} />
+          <Marca size={88} />
         </Center>
 
-        <Paper p="xl" radius="lg" shadow="xl">
+        <Paper
+          p="xl"
+          withBorder
+          shadow="sm"
+          style={{ borderColor: 'var(--superficie-borde)' }}
+        >
           <Stack gap="md">
             <Group gap="sm">
-              <IconClockPause size={26} color="var(--mantine-color-violeta-7)" />
+              <IconClockPause size={26} color="var(--mantine-color-azul-text)" />
               <Title order={2}>Cuenta pendiente de habilitación</Title>
             </Group>
 
@@ -50,7 +54,7 @@ export function PantallaSinHabilitar() {
               recién se aplica cuando ésta se renueva.
             </Text>
 
-            <Paper withBorder p="sm" radius="md" bg="violeta.0">
+            <Paper withBorder p="sm" bg="var(--superficie-tenue)">
               <Text size="xs" c="dimmed">
                 Correo de la cuenta
               </Text>

@@ -129,7 +129,7 @@ function ModalUsuario({
         />
 
         <Alert
-          color="violeta"
+          color="azul"
           variant="light"
           radius="md"
           icon={<IconInfoCircle size={18} />}
@@ -149,12 +149,7 @@ function ModalUsuario({
           <Button variant="subtle" color="gray" onClick={onCerrar}>
             Cancelar
           </Button>
-          <Button
-            loading={actualizar.isPending}
-            onClick={() => void guardar()}
-            variant="gradient"
-            gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
-          >
+          <Button loading={actualizar.isPending} onClick={() => void guardar()}>
             Guardar
           </Button>
         </Group>
@@ -212,7 +207,7 @@ export function PaginaUsuarios() {
                           {u.nombre_completo}
                         </Text>
                         {u.es_dt_titular ? (
-                          <Badge size="xs" variant="light" color="rosa" radius="sm">
+                          <Badge size="xs" variant="light" color="indigo" radius="sm">
                             DT titular
                           </Badge>
                         ) : null}

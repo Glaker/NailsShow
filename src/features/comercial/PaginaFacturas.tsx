@@ -150,7 +150,7 @@ export function PaginaFacturas() {
                             component={Link}
                             to={`/pedidos/${f.pedido_id}`}
                             size="sm"
-                            c="violeta"
+                            c="azul"
                             fw={600}
                           >
                             {f.pedido.numero}
@@ -183,7 +183,7 @@ export function PaginaFacturas() {
                         ) : (
                           <Text
                             size="sm"
-                            c={f.estado === 'RECHAZADA' ? 'estadoRechazado.7' : 'dimmed'}
+                            c={f.estado === 'RECHAZADA' ? 'estadoRechazado' : 'dimmed'}
                             maw={320}
                           >
                             {f.motivo_rechazo ?? 'En curso'}

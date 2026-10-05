@@ -72,7 +72,7 @@ export function PaginaDepositos() {
                         <Badge
                           variant="light"
                           radius="sm"
-                          color={d.es_exterior ? 'rosa' : 'violeta'}
+                          color={d.es_exterior ? 'indigo' : 'azul'}
                         >
                           {d.es_exterior ? 'Exterior' : 'Planta'}
                         </Badge>

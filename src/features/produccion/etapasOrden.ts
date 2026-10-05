@@ -7,7 +7,7 @@
 import type { EstadoOrden, EtapaOrden } from '@/lib/consultasOrdenes';
 
 export const COLOR_ESTADO_ORDEN: Record<EstadoOrden, string> = {
-  ABIERTA: 'violeta',
+  ABIERTA: 'azul',
   TERMINADA: 'estadoEnAnalisis',
   LIBERADA: 'estadoAprobado',
   RECHAZADA: 'estadoRechazado',

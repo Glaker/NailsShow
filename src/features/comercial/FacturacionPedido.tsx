@@ -219,7 +219,7 @@ export function TotalesPedido({ renglones }: { renglones: PedidoRenglonRow[] }) 
   return (
     <Group justify="flex-end" gap="xl">
       {sinPrecio > 0 ? (
-        <Text size="sm" c="estadoEnAnalisis.8">
+        <Text size="sm" c="estadoEnAnalisis">
           {sinPrecio === 1
             ? 'Un producto sin precio'
             : `${sinPrecio} productos sin precio`}
@@ -341,7 +341,7 @@ export function SeccionFactura({
         </Stack>
       ),
       labels: { confirm: 'Emitir', cancel: 'Volver' },
-      confirmProps: { color: 'violeta' },
+      confirmProps: { color: 'azul' },
       onConfirm: () =>
         emitir.mutate(
           { pedidoId: pedido.id, emisorId: pendiente ? null : (emisor?.id ?? null) },
@@ -491,7 +491,7 @@ export function SeccionFactura({
                         ) : (
                           <Text
                             size="sm"
-                            c={f.estado === 'RECHAZADA' ? 'estadoRechazado.7' : 'dimmed'}
+                            c={f.estado === 'RECHAZADA' ? 'estadoRechazado' : 'dimmed'}
                           >
                             {f.motivo_rechazo ??
                               `En curso desde ${fechaHora(f.creado_en)}`}

@@ -210,12 +210,7 @@ function FormularioInsumo({
           <Button variant="subtle" color="gray" onClick={onListo}>
             Cancelar
           </Button>
-          <Button
-            type="submit"
-            loading={crear.isPending || actualizar.isPending}
-            variant="gradient"
-            gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
-          >
+          <Button type="submit" loading={crear.isPending || actualizar.isPending}>
             {editando ? 'Guardar cambios' : 'Agregar al catálogo'}
           </Button>
         </Group>
@@ -275,12 +270,7 @@ export function PaginaInsumos() {
         descripcion="Cada ficha define el circuito del material: qué exige al recibirlo y a qué depósito va."
         acciones={
           puedeEditar ? (
-            <Button
-              leftSection={<IconPlus size={18} />}
-              variant="gradient"
-              gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
-              onClick={abrirAlta}
-            >
+            <Button leftSection={<IconPlus size={18} />} onClick={abrirAlta}>
               Nuevo insumo
             </Button>
           ) : null
@@ -366,16 +356,13 @@ export function PaginaInsumos() {
                             <Tooltip label="RN-01: exige protocolo de análisis">
                               <IconFileCheck
                                 size={17}
-                                color="var(--mantine-color-violeta-6)"
+                                color="var(--mantine-color-azul-6)"
                               />
                             </Tooltip>
                           ) : null}
                           {i.requiere_pesada_recepcion ? (
                             <Tooltip label="RN-03: se pesa en la recepción">
-                              <IconScale
-                                size={17}
-                                color="var(--mantine-color-violeta-6)"
-                              />
+                              <IconScale size={17} color="var(--mantine-color-azul-6)" />
                             </Tooltip>
                           ) : null}
                           {i.es_inflamable ? (

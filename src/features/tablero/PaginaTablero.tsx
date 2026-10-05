@@ -128,7 +128,7 @@ function TableroGeneral() {
         acciones={
           <Badge
             variant="light"
-            color="violeta"
+            color="azul"
             size="lg"
             radius="sm"
             leftSection={<IconCalendarClock size={14} />}
@@ -175,7 +175,7 @@ function TableroGeneral() {
                 etiqueta="Sin rotular"
                 valor={numero(t?.lotes_sin_rotular ?? 0)}
                 icono={IconClipboardOff}
-                color="rosa"
+                color="indigo"
                 detalle="Recibidos y todavía sin rótulo de estado"
                 a="/lotes?estado=RECIBIDO"
               />
@@ -211,6 +211,11 @@ function TableroGeneral() {
               }
             >
               <Stack gap="md">
+                {totalLotes === 0 ? (
+                  <Text c="dimmed" size="sm" ta="center" py="xl">
+                    Sin lotes registrados.
+                  </Text>
+                ) : null}
                 {(porEstado.data ?? []).map((fila) => {
                   const estado = fila.estado as EstadoCalidad;
                   const cantidad = Number(fila.cantidad ?? 0);
@@ -371,7 +376,7 @@ function TableroGeneral() {
                       <fila.icono
                         size={18}
                         stroke={1.6}
-                        color="var(--mantine-color-violeta-6)"
+                        color="var(--mantine-color-azul-6)"
                       />
                       <Text size="sm">{fila.etiqueta}</Text>
                     </Group>

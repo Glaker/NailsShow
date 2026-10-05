@@ -160,7 +160,7 @@ export function PaginaComprasPendientes() {
               etiqueta="Pasadas de fecha"
               valor={String(vencidas)}
               icono={IconAlertTriangle}
-              color={vencidas > 0 ? 'estadoRechazado' : 'violeta'}
+              color={vencidas > 0 ? 'estadoRechazado' : 'azul'}
               detalle="La entrega del pedido ya pasó y la compra sigue abierta."
             />
           </SimpleGrid>
@@ -229,7 +229,7 @@ export function PaginaComprasPendientes() {
                               {insumo?.codigo_interno ?? ''}
                             </Text>
                             {abierta && total && total.n > 1 ? (
-                              <Text size="xs" c="estadoEnAnalisis.8">
+                              <Text size="xs" c="estadoEnAnalisis">
                                 Anotado para {total.n} pedidos · {numero(total.total, 2)}{' '}
                                 {a.unidad} en total
                               </Text>
@@ -253,7 +253,7 @@ export function PaginaComprasPendientes() {
                                   to={`/pedidos/${a.pedido_id}`}
                                   size="sm"
                                   fw={600}
-                                  c="violeta"
+                                  c="azul"
                                 >
                                   {a.pedido.numero}
                                 </Text>

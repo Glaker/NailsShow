@@ -10,11 +10,11 @@ interface Props {
 /** Encabezado de pantalla: título, una línea de qué es, y las acciones. */
 export function EncabezadoPagina({ titulo, descripcion, acciones }: Props) {
   return (
-    <Group justify="space-between" align="flex-end" wrap="wrap" gap="md" mb="lg">
-      <Stack gap={2} style={{ minWidth: 0 }}>
+    <Group justify="space-between" align="flex-end" wrap="wrap" gap="md" mb="xl">
+      <Stack gap={4} style={{ minWidth: 0 }}>
         <Title order={1}>{titulo}</Title>
         {descripcion ? (
-          <Text c="dimmed" size="sm">
+          <Text c="dimmed" size="md">
             {descripcion}
           </Text>
         ) : null}

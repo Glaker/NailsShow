@@ -21,7 +21,7 @@ function Puerta() {
   if (cargando) {
     return (
       <Center h="100dvh">
-        <Loader color="violeta" />
+        <Loader color="azul" />
       </Center>
     );
   }

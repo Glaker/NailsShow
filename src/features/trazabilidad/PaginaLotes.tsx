@@ -74,7 +74,7 @@ export function PaginaLotes() {
                 setParams(params, { replace: true });
               }}
               variant="light"
-              color="violeta"
+              color="azul"
               radius="sm"
             >
               Todos
@@ -88,7 +88,7 @@ export function PaginaLotes() {
                   setParams(params, { replace: true });
                 }}
                 variant="light"
-                color="violeta"
+                color="azul"
                 radius="sm"
               >
                 {TEXTO_ESTADO[e]}

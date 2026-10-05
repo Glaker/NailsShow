@@ -35,7 +35,7 @@ export function BadgePara({
       {tercero.nombre}
     </Badge>
   ) : (
-    <Badge size="sm" radius="sm" variant="light" color="violeta">
+    <Badge size="sm" radius="sm" variant="light" color="azul">
       Nail Show
     </Badge>
   );
@@ -47,7 +47,7 @@ const COLUMNAS: {
   icono: typeof IconEye;
   color: string;
 }[] = [
-  { estado: 'CONFIRMADO', titulo: 'Para revisar', icono: IconEye, color: 'violeta' },
+  { estado: 'CONFIRMADO', titulo: 'Para revisar', icono: IconEye, color: 'azul' },
   {
     estado: 'EN_PRODUCCION',
     titulo: 'En producción',
@@ -59,7 +59,7 @@ const COLUMNAS: {
 
 /**
  * Tablero de pedidos para Producción: tres columnas, tarjetas grandes con el
- * color del cliente (violeta Nail Show, el suyo los tercerizados), lo más
+ * color del cliente (azul Nail Show, el suyo los tercerizados), lo más
  * urgente arriba. Pensado para dejarlo abierto en la tablet de planta.
  */
 export function TableroPedidos({
@@ -120,7 +120,7 @@ export function TableroPedidos({
               ) : (
                 lista.map((p) => {
                   const t = p.tercero_id ? terceros.get(p.tercero_id) : null;
-                  const color = t ? colorTercero(t) : 'violeta';
+                  const color = t ? colorTercero(t) : 'azul';
                   return (
                     <Paper
                       key={p.id}

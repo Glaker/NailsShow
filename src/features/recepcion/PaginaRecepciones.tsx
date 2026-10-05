@@ -85,7 +85,7 @@ export function PaginaRecepciones() {
         </Text>
       ),
       labels: { confirm: 'Cargar a stock', cancel: 'Cancelar' },
-      confirmProps: { color: 'violeta' },
+      confirmProps: { color: 'azul' },
       onConfirm: () => cargar.mutate(id),
     });
   };
@@ -97,12 +97,7 @@ export function PaginaRecepciones() {
         descripcion="Ingreso de mercadería según I.20.1. Cada recepción agrupa los lotes que llegaron con un remito."
         acciones={
           puedeRegistrar ? (
-            <Button
-              leftSection={<IconPlus size={18} />}
-              variant="gradient"
-              gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
-              onClick={modal.open}
-            >
+            <Button leftSection={<IconPlus size={18} />} onClick={modal.open}>
               Nueva recepción
             </Button>
           ) : null
@@ -165,7 +160,7 @@ export function PaginaRecepciones() {
                         <Group gap={6} wrap="nowrap">
                           <Text size="sm">{proveedor?.razon_social ?? '—'}</Text>
                           {r.proveedor_nuevo ? (
-                            <Badge size="xs" variant="light" color="rosa" radius="sm">
+                            <Badge size="xs" variant="light" color="indigo" radius="sm">
                               nuevo
                             </Badge>
                           ) : null}
@@ -192,7 +187,7 @@ export function PaginaRecepciones() {
                               variant="light"
                               radius="sm"
                               color={
-                                c.tipo === 'SIN_FACTURA' ? 'estadoCuarentena' : 'violeta'
+                                c.tipo === 'SIN_FACTURA' ? 'estadoCuarentena' : 'azul'
                               }
                             >
                               {ETIQUETA_COMPROBANTE[c.tipo]}
@@ -217,7 +212,7 @@ export function PaginaRecepciones() {
                         <Badge
                           variant="light"
                           radius="sm"
-                          color={r.cargado_a_stock ? 'violeta' : 'gray'}
+                          color={r.cargado_a_stock ? 'azul' : 'gray'}
                         >
                           {r.cargado_a_stock ? 'Cargada a stock' : 'Pendiente'}
                         </Badge>
@@ -233,7 +228,7 @@ export function PaginaRecepciones() {
                             <Button
                               size="compact-sm"
                               variant="light"
-                              color="violeta"
+                              color="azul"
                               leftSection={<IconPackageImport size={15} />}
                               loading={cargar.isPending && cargar.variables === r.id}
                               onClick={() => confirmarCarga(r.id, r.numero, lotes.length)}

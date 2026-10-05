@@ -90,12 +90,7 @@ function FormularioNuevaFormula({ onListo }: { onListo: (id: string) => void }) 
           <Button variant="subtle" color="gray" onClick={() => form.reset()}>
             Limpiar
           </Button>
-          <Button
-            type="submit"
-            loading={crear.isPending}
-            variant="gradient"
-            gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
-          >
+          <Button type="submit" loading={crear.isPending}>
             Crear en borrador
           </Button>
         </Group>
@@ -142,12 +137,7 @@ export function PaginaFormulas() {
         descripcion="Fórmula maestra en %P/P (PG.60.8), por producto. La calculadora de lote explota la que elijas."
         acciones={
           puedeEditar ? (
-            <Button
-              leftSection={<IconPlus size={18} />}
-              variant="gradient"
-              gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
-              onClick={modal.open}
-            >
+            <Button leftSection={<IconPlus size={18} />} onClick={modal.open}>
               Nueva fórmula
             </Button>
           ) : null

@@ -182,7 +182,7 @@ export function FormularioCliente({
           />
         ) : null}
         <Alert
-          color="violeta"
+          color="azul"
           variant="light"
           radius="md"
           icon={<IconInfoCircle size={18} />}

@@ -265,13 +265,13 @@ function ResumenPorcentajes({ componentes }: { componentes: FormulaComponenteRow
         )}
       </Group>
       {csp && restante < 0 ? (
-        <Text size="xs" c="estadoRechazado.7" mt={4}>
+        <Text size="xs" c="estadoRechazado" mt={4}>
           Los demás componentes ya suman más de 100 %: al csp no le queda nada. La base va
           a rechazar el paso a vigente.
         </Text>
       ) : null}
       {!csp && Math.abs(suma - 100) > 1e-4 ? (
-        <Text size="xs" c="estadoEnAnalisis.7" mt={4}>
+        <Text size="xs" c="estadoEnAnalisis" mt={4}>
           Sin csp, la suma tiene que dar exactamente 100 % para poder pasar a vigente.
         </Text>
       ) : null}
@@ -499,12 +499,7 @@ export function PaginaFormula() {
             label="Cargá la densidad del producto terminado antes de pasar a vigente."
             disabled={puedeMarcarVigente}
           >
-            <Button
-              variant="gradient"
-              gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
-              disabled={!puedeMarcarVigente}
-              onClick={confirmarVigente}
-            >
+            <Button disabled={!puedeMarcarVigente} onClick={confirmarVigente}>
               Marcar como vigente
             </Button>
           </Tooltip>
@@ -512,7 +507,7 @@ export function PaginaFormula() {
       </Group>
 
       {!puedeEditar ? (
-        <Alert color="violeta" variant="light" radius="md" mb="md">
+        <Alert color="azul" variant="light" radius="md" mb="md">
           Estás viendo esta fórmula en modo lectura: solo Dirección Técnica la edita
           (§3.3).
         </Alert>

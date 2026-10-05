@@ -40,7 +40,7 @@ const PASO_MIN = 24;
 const EASING = 'cubic-bezier(0.2, 0.9, 0.1, 1)';
 
 const LINEAS = [
-  { clave: 'saldo_bancos', nombre: 'Bancos', color: 'var(--mantine-color-violeta-6)' },
+  { clave: 'saldo_bancos', nombre: 'Bancos', color: 'var(--mantine-color-azul-6)' },
   { clave: 'saldo_efectivo', nombre: 'Efectivo', color: 'var(--mantine-color-orange-6)' },
 ] as const;
 type ClaveLinea = (typeof LINEAS)[number]['clave'];
@@ -150,7 +150,7 @@ export function GraficoFlujo() {
       {flujo.isLoading ? (
         <Skeleton h={ALTO} radius="md" />
       ) : flujo.isError ? (
-        <Text size="sm" c="estadoRechazado.7" py="xl" ta="center">
+        <Text size="sm" c="estadoRechazado" py="xl" ta="center">
           No se pudo leer el flujo de caja: {flujo.error.message}
         </Text>
       ) : (
@@ -526,7 +526,7 @@ function Panel({
       ? VERDE
       : abierto.signo === 'neg'
         ? ROJO
-        : 'var(--mantine-color-violeta-6)';
+        : 'var(--mantine-color-azul-6)';
 
   // Se abre desde lo que se tocó: el recorte parte del rectángulo de la barra.
   useLayoutEffect(() => {
@@ -573,10 +573,10 @@ function Panel({
           </Text>
           {abierto.tipo === 'dia' ? (
             <Group gap="md">
-              <Text size="sm" c="estadoAprobado.7">
+              <Text size="sm" c="estadoAprobado">
                 Entró {dineroCompacto(dia.ingresos)}
               </Text>
-              <Text size="sm" c="estadoRechazado.7">
+              <Text size="sm" c="estadoRechazado">
                 Salió {dineroCompacto(dia.egresos)}
               </Text>
               <Text size="sm" fw={700}>
@@ -608,7 +608,7 @@ function Panel({
           <Skeleton h={70} radius="md" />
         </Stack>
       ) : detalle.isError ? (
-        <Text size="sm" c="estadoRechazado.7">
+        <Text size="sm" c="estadoRechazado">
           No se pudo leer el día: {detalle.error.message}
         </Text>
       ) : abierto.tipo === 'dia' ? (
@@ -797,7 +797,7 @@ function Cuentas({
     {
       nombre: 'Bancos y billeteras',
       filas: cuentas.filter((c) => c.tipo !== 'CAJA'),
-      color: 'violeta',
+      color: 'azul',
     },
     {
       nombre: 'Efectivo',
@@ -873,7 +873,7 @@ function Cuentas({
                       key={m.id}
                       size="xs"
                       mt={4}
-                      c={m.importe > 0 ? 'estadoAprobado.8' : 'estadoRechazado.8'}
+                      c={m.importe > 0 ? 'estadoAprobado' : 'estadoRechazado'}
                     >
                       {conSigno(m.importe)} · {conQuien(m)}
                     </Text>

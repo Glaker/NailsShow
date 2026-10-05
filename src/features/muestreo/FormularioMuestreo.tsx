@@ -178,7 +178,7 @@ export function FormularioMuestreo({ lote, onListo }: Props) {
             withBorder
             p="md"
             radius="md"
-            bg="violeta.0"
+            bg="var(--mantine-color-azul-light)"
             style={{ borderColor: 'var(--superficie-borde)' }}
           >
             <Text size="sm" fw={600}>
@@ -342,8 +342,6 @@ export function FormularioMuestreo({ lote, onListo }: Props) {
             type="submit"
             loading={registrar.isPending}
             disabled={!verificacionesOk}
-            variant="gradient"
-            gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
           >
             Registrar muestreo
           </Button>

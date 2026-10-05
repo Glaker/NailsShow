@@ -602,7 +602,7 @@ function ModalConciliarProveedor({
           />
         </Group>
         {informado !== '' && dif !== 0 ? (
-          <Text size="sm" c="red.7">
+          <Text size="sm" c="red">
             Diferencia {pesos(dif)}: explicala.
           </Text>
         ) : null}

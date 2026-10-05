@@ -133,7 +133,7 @@ export function PaginaStock() {
                 checked={filtro === valor}
                 onChange={() => setFiltro(valor)}
                 variant="light"
-                color="violeta"
+                color="azul"
                 radius="sm"
               >
                 {etiqueta}
@@ -387,7 +387,7 @@ function Desglose({ articuloId }: { articuloId: string }) {
       <Table
         verticalSpacing="xs"
         withColumnBorders={false}
-        style={{ background: 'var(--mantine-color-violeta-0)' }}
+        style={{ background: 'var(--mantine-color-azul-light)' }}
       >
         <Table.Thead>
           <Table.Tr>

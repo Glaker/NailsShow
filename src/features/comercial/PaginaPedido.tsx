@@ -258,7 +258,7 @@ export function PaginaPedido() {
       title: paso.confirmar.titulo,
       children: <Text size="sm">{paso.confirmar.texto}</Text>,
       labels: { confirm: paso.etiqueta, cancel: 'Volver' },
-      confirmProps: { color: paso.tipo === 'peligro' ? 'red' : 'violeta' },
+      confirmProps: { color: paso.tipo === 'peligro' ? 'red' : 'azul' },
       onConfirm: ejecutar,
     });
   }
@@ -357,7 +357,7 @@ export function PaginaPedido() {
                               ? 'subtle'
                               : 'default'
                         }
-                        color={paso.tipo === 'peligro' ? 'red' : 'violeta'}
+                        color={paso.tipo === 'peligro' ? 'red' : 'azul'}
                         disabled={bloqueado}
                         loading={
                           cambiarEstado.isPending &&
@@ -944,7 +944,7 @@ function FaltantesDePedido({
                       </Text>
                     </Table.Td>
                     <Table.Td ta="right">
-                      <Text size="sm" ff="monospace" fw={700} c="estadoRechazado.7">
+                      <Text size="sm" ff="monospace" fw={700} c="estadoRechazado">
                         {numero(f.faltante, 2)}
                       </Text>
                     </Table.Td>
@@ -998,7 +998,7 @@ function FaltantesDePedido({
                             w={260}
                             label="Otro pedido ya pidió comprar este insumo. Los dos pedidos se calculan contra el mismo stock: sumá las cantidades antes de pedirle al proveedor."
                           >
-                            <Text size="xs" c="estadoEnAnalisis.8">
+                            <Text size="xs" c="estadoEnAnalisis">
                               También para{' '}
                               {otros
                                 .map(

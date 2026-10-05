@@ -4,7 +4,7 @@ import { Notifications } from '@mantine/notifications';
 import { ModalsProvider } from '@mantine/modals';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
-import { theme } from './theme';
+import { resolverVariables, theme } from './theme';
 import { ProveedorSesion } from '@/features/auth/sesion';
 
 /**
@@ -33,7 +33,11 @@ export function Providers({ children }: { children: ReactNode }) {
   );
 
   return (
-    <MantineProvider theme={theme} defaultColorScheme="light">
+    <MantineProvider
+      theme={theme}
+      cssVariablesResolver={resolverVariables}
+      defaultColorScheme="light"
+    >
       <Notifications position="top-right" limit={3} />
       <ModalsProvider>
         <ProveedorSesion>

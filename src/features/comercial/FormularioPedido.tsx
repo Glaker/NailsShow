@@ -458,7 +458,7 @@ export function FormularioPedido({ pedidos, onCerrar, terceroInicial = null }: P
         />
 
         <Alert
-          color="violeta"
+          color="azul"
           variant="light"
           radius="md"
           icon={<IconInfoCircle size={18} />}
@@ -481,8 +481,6 @@ export function FormularioPedido({ pedidos, onCerrar, terceroInicial = null }: P
             Guardar borrador
           </Button>
           <Button
-            variant="gradient"
-            gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
             leftSection={<IconSend size={16} />}
             loading={registrar.isPending && registrar.variables?.confirmar === true}
             disabled={registrar.isPending}

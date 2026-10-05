@@ -1,20 +1,40 @@
 <!doctype html>
-<html lang="es-AR">
+<html lang="es-AR" data-mantine-color-scheme="light">
   <head>
     <meta charset="UTF-8" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
-    <meta name="color-scheme" content="light" />
-    <!-- Barra del navegador en teléfono, en el ciruela de la barra lateral. -->
-    <meta name="theme-color" content="#1a0e22" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- Barra del navegador en teléfono: gris claro en claro, negro en oscuro. -->
+    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
     <meta
       name="description"
       content="Sistema electrónico de trazabilidad de Nail Show SRL. Registro de fabricación, control de calidad y liberación de producto bajo Buenas Prácticas de Fabricación."
     />
     <link rel="icon" type="image/png" href="/marca-nailshow.png" />
     <link rel="apple-touch-icon" href="/marca-nailshow.png" />
+    <!-- Inter servida desde public/fonts (ver global.css): en planta no depende de la red. -->
+    <link
+      rel="preload"
+      href="/fonts/inter-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <!--
+      Modo claro u oscuro elegido por el usuario (lo guarda Mantine). Se aplica
+      antes de pintar para que la pantalla no parpadee en blanco.
+    -->
+    <script>
+      try {
+        var esquema = localStorage.getItem('mantine-color-scheme-value');
+        if (esquema === 'dark' || esquema === 'light')
+          document.documentElement.setAttribute('data-mantine-color-scheme', esquema);
+      } catch (e) {}
+    </script>
     <title>Trazabilidad — Nail Show SRL</title>
   </head>
   <body>

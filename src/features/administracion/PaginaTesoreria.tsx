@@ -159,9 +159,7 @@ function TarjetaCuenta({
         withBorder
         p="md"
         style={{
-          borderColor: activa
-            ? 'var(--mantine-color-violeta-5)'
-            : 'var(--superficie-borde)',
+          borderColor: activa ? 'var(--mantine-color-azul-5)' : 'var(--superficie-borde)',
           borderWidth: activa ? 2 : 1,
         }}
       >
@@ -182,7 +180,7 @@ function TarjetaCuenta({
           fw={700}
           ff="monospace"
           mt={4}
-          c={Number(c.saldo) < 0 ? 'red.7' : 'ciruela.8'}
+          c={Number(c.saldo) < 0 ? 'red' : 'inherit'}
         >
           {pesos(c.saldo)}
         </Text>

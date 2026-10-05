@@ -58,7 +58,7 @@ export function avisarError(error: unknown) {
 }
 
 export function avisarExito(mensaje: string) {
-  notifications.show({ color: 'violeta', title: 'Listo', message: mensaje });
+  notifications.show({ color: 'azul', title: 'Listo', message: mensaje });
 }
 
 /* ------------------------------------------------------------------------- *

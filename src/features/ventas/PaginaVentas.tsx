@@ -280,7 +280,7 @@ export function PaginaVentas() {
                           borrador
                         </Badge>
                       ) : (
-                        <Badge color="violeta" variant="light">
+                        <Badge color="azul" variant="light">
                           a revisar
                         </Badge>
                       )}

@@ -124,7 +124,7 @@ export function PaginaConteo() {
 
       <Stack gap="md" className="no-imprimir">
         <Alert
-          color="violeta"
+          color="azul"
           variant="light"
           radius="md"
           icon={<IconInfoCircle size={18} />}

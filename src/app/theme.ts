@@ -1,4 +1,9 @@
-import { createTheme, rem, type MantineColorsTuple } from '@mantine/core';
+import {
+  createTheme,
+  rem,
+  type CSSVariablesResolver,
+  type MantineColorsTuple,
+} from '@mantine/core';
 
 /**
  * Tema del sistema de trazabilidad.
@@ -129,79 +134,67 @@ const estadoRechazado: MantineColorsTuple = [
  * Color de interfaz
  * ------------------------------------------------------------------------- *
  *
- * Violeta orquídea. La elección es de identidad: el cliente fabrica cosmética
- * para uñas y su mundo visual es ése. La condición que tiene que cumplir
- * cualquier color de marca en este sistema es una sola, y la cumple: no
- * competir con ninguno de los cuatro colores reservados de I.20.2. Un violeta
- * no se confunde con amarillo, gris, verde ni rojo ni siquiera en una tablet
- * con película protectora y luz de galpón.
+ * Rediseño del 2026-10-04, con la línea visual de Apple como referencia pedida:
+ * sobrio, minimalista y limpio. La interfaz es casi toda neutra (grises fríos,
+ * blanco, casi negro) y tiene un único color de acción, el azul. El arcoíris
+ * vive solo en el logo.
  *
- * (En la fase 0 este color era azul, por la misma condición. Cambió el color,
- * no el criterio.)
+ * La condición de siempre se mantiene: el color de interfaz no puede competir
+ * con los cuatro reservados de I.20.2, y un azul no se confunde con amarillo,
+ * gris, verde ni rojo. (En la fase 0 el color también era azul, por la misma
+ * razón.)
  */
-const violeta: MantineColorsTuple = [
-  '#fbf3fd',
-  '#f2e4f7',
-  '#e5c6ef',
-  '#d6a5e6',
-  '#c989de',
-  '#c176d9',
-  '#bd6cd7',
-  '#a558bf',
-  '#934dab',
-  '#7f4096',
+
+/**
+ * Azul de acción: botones primarios, enlaces, selección y foco. Shade 7
+ * (#0071e3) en claro, con 4,7:1 de contraste para texto blanco; shade 6
+ * (#0a84ff) en oscuro.
+ */
+const azul: MantineColorsTuple = [
+  '#eaf3fe',
+  '#d3e6fd',
+  '#a7cdfb',
+  '#75b1f8',
+  '#4a98f6',
+  '#2997ff',
+  '#0a84ff',
+  '#0071e3',
+  '#0062c4',
+  '#0052a6',
 ];
 
 /**
- * Rosa de acento. Se usa con cuentagotas: gradiente de marca, un dato
- * destacado, el estado activo de la navegación. Nunca para comunicar estado de
- * material.
+ * Escala oscura de Mantine reemplazada por los grises del modo oscuro de
+ * Apple: negro puro de fondo, superficies #1c1c1e y #2c2c2e.
  */
-const rosa: MantineColorsTuple = [
-  '#ffeff6',
-  '#fadce7',
-  '#eeb7cc',
-  '#e390b0',
-  '#d96f98',
-  '#d45a88',
-  '#d34f80',
-  '#bb3f6d',
-  '#a83661',
-  '#942b54',
+const dark: MantineColorsTuple = [
+  '#f5f5f7',
+  '#d1d1d6',
+  '#aeaeb2',
+  '#8e8e93',
+  '#636366',
+  '#48484a',
+  '#3a3a3c',
+  '#2c2c2e',
+  '#1c1c1e',
+  '#000000',
 ];
 
 /**
- * Ciruela: la escala oscura de la barra lateral y de las superficies de marca.
- * Va de la más oscura a la más clara para poder usarla como `ciruela.0` = fondo
- * de la barra, igual que se lee un fondo.
+ * Superficies y bordes de la aplicación. Son variables CSS (global.css) para
+ * que cambien solas entre modo claro y oscuro.
  */
-const ciruela: MantineColorsTuple = [
-  '#f7f2f8',
-  '#e8dcec',
-  '#c9b3d1',
-  '#a888b5',
-  '#8b679d',
-  '#6d4a7f',
-  '#523562',
-  '#3a2447',
-  '#281732',
-  '#1a0e22',
-];
-
-/** Superficies y bordes de la aplicación, en un solo lugar. */
 export const SUPERFICIE = {
-  /** Fondo general de la aplicación. Blanco con una gota de violeta. */
-  fondo: '#faf7fb',
+  /** Fondo general: gris claro en claro, negro en oscuro. */
+  fondo: 'var(--app-fondo)',
   /** Fondo de tarjeta. */
-  tarjeta: '#ffffff',
+  tarjeta: 'var(--mantine-color-body)',
   /** Borde de tarjeta y de tabla. */
-  borde: '#efe6f3',
+  borde: 'var(--superficie-borde)',
   /** Fondo de la barra lateral. */
-  barra: '#1a0e22',
-  /** Fondo del ítem de navegación activo. */
-  barraActiva: '#3a2447',
+  barra: 'var(--app-barra)',
   /** Texto secundario dentro de la barra lateral. */
-  barraTexto: '#c9b3d1',
+  barraTexto: 'var(--app-barra-texto)',
 } as const;
 
 /**
@@ -211,12 +204,13 @@ export const SUPERFICIE = {
  *
  * `RECIBIDO` y `MUESTREADO` no tienen color de rótulo en I.20.2 porque no
  * tienen rótulo: son estados internos del circuito. Se muestran en la escala
- * de interfaz, nunca en una de las cuatro reservadas.
+ * de interfaz (índigo, para no confundirse con el azul de saldo de apertura),
+ * nunca en una de las cuatro reservadas.
  */
 export const COLORES_ESTADO_ROTULO = {
-  RECIBIDO: 'violeta',
+  RECIBIDO: 'indigo',
   CUARENTENA: 'estadoCuarentena',
-  MUESTREADO: 'violeta',
+  MUESTREADO: 'indigo',
   EN_ANALISIS: 'estadoEnAnalisis',
   APROBADO: 'estadoAprobado',
   RECHAZADO: 'estadoRechazado',
@@ -230,41 +224,67 @@ export const COLORES_ESTADO_ROTULO = {
 export type ColorEstadoRotulo =
   (typeof COLORES_ESTADO_ROTULO)[keyof typeof COLORES_ESTADO_ROTULO];
 
+/**
+ * Variables de Mantine que cambian por esquema. Los grises de texto atenuado de
+ * fábrica (gray.6, 3,3:1 sobre blanco) no alcanzan el 4,5:1 que pide una tablet
+ * con película protectora: se oscurecen en claro y se aclaran en oscuro.
+ */
+export const resolverVariables: CSSVariablesResolver = () => ({
+  variables: {},
+  light: {
+    '--mantine-color-body': '#ffffff',
+    '--mantine-color-text': '#1d1d1f',
+    '--mantine-color-dimmed': '#6e6e73',
+    '--mantine-color-placeholder': '#86868b',
+    '--mantine-color-default-border': '#d2d2d7',
+  },
+  dark: {
+    '--mantine-color-body': '#1c1c1e',
+    '--mantine-color-text': '#f5f5f7',
+    '--mantine-color-dimmed': '#a1a1a6',
+    '--mantine-color-placeholder': '#8e8e93',
+    '--mantine-color-default-border': '#3a3a3c',
+  },
+});
+
+/**
+ * La letra del sistema de Apple (SF Pro) donde existe, en Mac, iPhone y iPad.
+ * En Windows y Android, Inter (public/fonts, ver global.css): la más cercana a
+ * SF con licencia libre. Segoe UI y Roboto quedan de último respaldo.
+ */
+const FUENTE =
+  '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Segoe UI", Roboto, sans-serif';
+
 export const theme = createTheme({
   colors: {
-    violeta,
-    rosa,
-    ciruela,
+    azul,
+    dark,
     estadoCuarentena,
     estadoEnAnalisis,
     estadoAprobado,
     estadoRechazado,
   },
-  primaryColor: 'violeta',
-  primaryShade: { light: 7, dark: 5 },
+  primaryColor: 'azul',
+  primaryShade: { light: 7, dark: 6 },
 
   fontSmoothing: true,
   defaultRadius: 'md',
 
-  fontFamily:
-    '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+  fontFamily: FUENTE,
   fontFamilyMonospace:
     'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
 
   /*
-   * Radio moderado. La fase 0 lo tenía casi en cero por densidad; la densidad
-   * la dan el espaciado y el tamaño de fuente, no las esquinas. Un radio de 8
-   * a 12 px separa mejor las tarjetas del fondo, que es lo que hace legible un
-   * tablero con doce indicadores.
+   * Esquinas amplias, como en las superficies de Apple: los campos en 10 px,
+   * las tarjetas en 16 y los botones en píldora.
    */
   radius: {
-    xs: rem(4),
-    sm: rem(6),
-    md: rem(8),
-    lg: rem(12),
-    xl: rem(16),
+    xs: rem(6),
+    sm: rem(8),
+    md: rem(10),
+    lg: rem(16),
+    xl: rem(22),
   },
-
   /* Espaciado compacto. La densidad se gana acá, no achicando controles. */
   spacing: {
     xs: rem(6),
@@ -277,38 +297,38 @@ export const theme = createTheme({
   /* Tipografía con cuerpo generoso: se lee a distancia de brazo, en tablet. */
   fontSizes: {
     xs: rem(12),
-    sm: rem(13),
+    sm: rem(13.5),
     md: rem(15),
     lg: rem(17),
     xl: rem(20),
   },
   lineHeights: {
     xs: '1.3',
-    sm: '1.35',
+    sm: '1.4',
     md: '1.45',
     lg: '1.45',
-    xl: '1.5',
+    xl: '1.4',
   },
 
   headings: {
+    fontFamily: FUENTE,
     fontWeight: '700',
     sizes: {
-      h1: { fontSize: rem(26), lineHeight: '1.25' },
-      h2: { fontSize: rem(21), lineHeight: '1.3' },
-      h3: { fontSize: rem(17), lineHeight: '1.35' },
-      h4: { fontSize: rem(15), lineHeight: '1.4' },
+      h1: { fontSize: rem(30), lineHeight: '1.12' },
+      h2: { fontSize: rem(22), lineHeight: '1.2' },
+      h3: { fontSize: rem(18), lineHeight: '1.3' },
+      h4: { fontSize: rem(15.5), lineHeight: '1.35' },
     },
   },
 
-  /* Sombras cortas y de poco radio: con luz de planta, una sombra difusa no se ve. */
+  /* Sombras suaves y cortas: separan la tarjeta del fondo sin ensuciarla. */
   shadows: {
-    xs: '0 1px 2px rgba(40, 23, 50, 0.06)',
-    sm: '0 1px 3px rgba(40, 23, 50, 0.08)',
-    md: '0 2px 8px rgba(40, 23, 50, 0.08)',
-    lg: '0 4px 16px rgba(40, 23, 50, 0.10)',
-    xl: '0 8px 28px rgba(40, 23, 50, 0.12)',
+    xs: '0 1px 2px rgba(0, 0, 0, 0.04)',
+    sm: '0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)',
+    md: '0 4px 14px rgba(0, 0, 0, 0.07)',
+    lg: '0 8px 28px rgba(0, 0, 0, 0.09)',
+    xl: '0 16px 48px rgba(0, 0, 0, 0.12)',
   },
-
   /* Ver la nota sobre movimiento en el encabezado del archivo. */
   respectReducedMotion: true,
   cursorType: 'pointer',
@@ -320,7 +340,7 @@ export const theme = createTheme({
      * cierra la diferencia hasta los 44 px exigidos.
      */
     Button: {
-      defaultProps: { size: 'md' },
+      defaultProps: { size: 'md', radius: 'xl' },
       styles: { root: { minHeight: rem(ALTURA_TACTIL_MIN) } },
     },
     ActionIcon: {
@@ -391,7 +411,22 @@ export const theme = createTheme({
         verticalSpacing: 'sm',
         highlightOnHover: true,
       },
-      styles: { td: { minHeight: rem(ALTURA_TACTIL_MIN) } },
+      /*
+       * Cabeceras chicas, semibold y atenuadas, en minúscula de oración como en
+       * las tablas de macOS: la fila de datos es lo que pesa.
+       */
+      styles: {
+        td: { minHeight: rem(ALTURA_TACTIL_MIN) },
+        th: {
+          fontSize: rem(12.5),
+          fontWeight: 600,
+          color: 'var(--mantine-color-dimmed)',
+        },
+      },
+    },
+    Badge: {
+      defaultProps: { radius: 'xl' },
+      styles: { root: { fontWeight: 600, letterSpacing: 0, textTransform: 'none' } },
     },
     Tabs: {
       styles: { tab: { minHeight: rem(ALTURA_TACTIL_MIN) } },
@@ -403,13 +438,13 @@ export const theme = createTheme({
       defaultProps: {
         radius: 'lg',
         transitionProps: { transition: 'pop', duration: DURACION_TRANSICION },
-        overlayProps: { backgroundOpacity: 0.45, blur: 2 },
+        overlayProps: { backgroundOpacity: 0.5, blur: 0 },
       },
     },
     Drawer: {
       defaultProps: {
         transitionProps: { duration: DURACION_TRANSICION },
-        overlayProps: { backgroundOpacity: 0.45, blur: 2 },
+        overlayProps: { backgroundOpacity: 0.5, blur: 0 },
       },
     },
     Tooltip: {

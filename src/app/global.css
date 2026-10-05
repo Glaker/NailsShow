@@ -6,11 +6,57 @@
  * vive en el tema o en el componente.
  */
 
+/*
+ * Inter variable (peso 400–800), subconjunto latino, que cubre el español.
+ * Es la letra en Windows y Android; en Mac, iPhone y iPad se usa SF Pro, la del
+ * sistema (theme.ts). Servida desde la propia app porque en planta la red no es
+ * confiable. Licencia SIL Open Font License, de Google Fonts.
+ */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('/fonts/inter-latin.woff2') format('woff2');
+}
+
+/*
+ * Superficies (rediseño del 2026-10-04, con Apple como referencia): grises
+ * fríos y blanco en claro, negro y grises carbón en oscuro. El único color de
+ * interfaz es el azul de acción; el resto lo ponen los estados de I.20.2.
+ */
 :root {
-  --transicion: 160ms cubic-bezier(0.22, 0.61, 0.36, 1);
-  --superficie-fondo: #faf7fb;
-  --superficie-borde: #efe6f3;
-  --barra-fondo: #1a0e22;
+  --transicion: 180ms cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+:root,
+:root[data-mantine-color-scheme='light'] {
+  --app-fondo: #f5f5f7;
+  --superficie-fondo: var(--app-fondo);
+  --superficie-borde: #e5e5ea;
+  --superficie-tenue: #fafafc;
+  --app-barra: #fbfbfd;
+  --app-barra-borde: #e5e5ea;
+  --app-barra-texto: #3a3a3c;
+  --app-barra-icono: #6e6e73;
+  --app-barra-hover: rgba(0, 0, 0, 0.04);
+  --app-barra-activa: rgba(0, 0, 0, 0.07);
+  --app-barra-activa-texto: #1d1d1f;
+  --app-desplazamiento: #c7c7cc;
+}
+
+:root[data-mantine-color-scheme='dark'] {
+  --app-fondo: #000000;
+  --superficie-borde: #2c2c2e;
+  --superficie-tenue: #161618;
+  --app-barra: #121214;
+  --app-barra-borde: #262628;
+  --app-barra-texto: #d1d1d6;
+  --app-barra-icono: #98989d;
+  --app-barra-hover: rgba(255, 255, 255, 0.05);
+  --app-barra-activa: rgba(255, 255, 255, 0.1);
+  --app-barra-activa-texto: #ffffff;
+  --app-desplazamiento: #48484a;
 }
 
 html,
@@ -20,15 +66,49 @@ body,
 }
 
 body {
-  background: var(--superficie-fondo);
+  background: var(--app-fondo);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  letter-spacing: -0.006em;
+}
+
+/* Títulos con el interletrado apretado de los titulares de Apple. */
+.mantine-Title-root {
+  letter-spacing: -0.022em;
+  text-wrap: balance;
+}
+
+/* Cifras: siempre tabulares, para que las columnas de números se alineen. */
+table,
+input,
+.cifra {
+  font-variant-numeric: tabular-nums;
+}
+
+.cifra {
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+
+::selection {
+  background: var(--mantine-color-azul-light);
+  color: inherit;
+}
+
+:focus-visible {
+  outline-color: var(--mantine-color-azul-filled);
+}
+
+input,
+textarea {
+  caret-color: var(--mantine-color-azul-filled);
 }
 
 /* Barra de desplazamiento discreta: en tablet la barra ancha se toca sin querer. */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #d6c6dd transparent;
+  scrollbar-color: var(--app-desplazamiento) transparent;
 }
 
 /*
@@ -129,10 +209,13 @@ body {
 /* Tarjeta que es enlace: se levanta apenas. Sin escala, para no mover el texto. */
 .tarjeta-enlace:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(40, 23, 50, 0.1);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
 }
 
-/* Ítem de la barra lateral. */
+/*
+ * Ítem de la barra lateral, como la barra de una app de macOS: ícono gris y
+ * nombre; el activo queda sobre una pastilla gris con el ícono en azul.
+ */
 .nav-item {
   display: flex;
   align-items: center;
@@ -140,9 +223,9 @@ body {
   min-height: 44px;
   padding: 0 12px;
   border-radius: 10px;
-  color: #c9b3d1;
+  color: var(--app-barra-texto);
   text-decoration: none;
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 500;
   transition:
     background-color var(--transicion),
@@ -150,18 +233,24 @@ body {
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  background: var(--app-barra-hover);
+  color: var(--app-barra-activa-texto);
 }
 
 .nav-item[data-activo='true'] {
-  background: linear-gradient(135deg, #6d4a7f 0%, #a8406f 130%);
-  color: #fff;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  background: var(--app-barra-activa);
+  color: var(--app-barra-activa-texto);
+  font-weight: 600;
+}
+
+.nav-item svg {
+  flex-shrink: 0;
+  color: var(--app-barra-icono);
+  transition: color var(--transicion);
 }
 
 .nav-item[data-activo='true'] svg {
-  color: #fff;
+  color: var(--mantine-color-azul-filled);
 }
 
 /* Barra inferior del teléfono. */
@@ -173,7 +262,7 @@ body {
   justify-content: center;
   gap: 3px;
   min-height: 56px;
-  color: #8b679d;
+  color: var(--mantine-color-dimmed);
   text-decoration: none;
   font-size: 11px;
   font-weight: 600;
@@ -181,7 +270,7 @@ body {
 }
 
 .nav-inferior[data-activo='true'] {
-  color: var(--mantine-color-violeta-7);
+  color: var(--mantine-color-azul-filled);
 }
 
 /* Fila de tabla que se puede tocar entera. */
@@ -251,9 +340,6 @@ body {
 .saludo {
   animation: entrada-suave 360ms var(--curva-salida) both;
 }
-.saludo h1 {
-  color: var(--mantine-color-ciruela-8);
-}
 
 /* Contadores del inicio: entran escalonados con un rebote apenas visible. */
 .contador {
@@ -268,7 +354,7 @@ body {
 }
 a.contador:hover {
   transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(40, 23, 50, 0.1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
 }
 
 /* Filas de resumen: entran de a una desde la izquierda. */
@@ -284,7 +370,7 @@ a.contador:hover {
   border-bottom: 0;
 }
 .fila-resumen:hover {
-  background: var(--mantine-color-violeta-0);
+  background: var(--mantine-color-azul-light);
 }
 
 /* Gantt: cada bloque crece desde su primer día. */
@@ -298,15 +384,7 @@ a.contador:hover {
 }
 .gantt-barra:hover {
   filter: brightness(1.07);
-  box-shadow: 0 3px 10px rgba(40, 23, 50, 0.18);
-}
-
-/* Barra lateral: el ícono se corre apenas al pasar. */
-.nav-item svg {
-  transition: transform var(--transicion);
-}
-.nav-item:hover svg {
-  transform: translateX(2px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
 }
 
 /* Cambio de pantalla: la página nueva aparece desde un desenfoque mínimo. */
@@ -335,7 +413,7 @@ a.contador:hover {
 }
 .mantine-Button-root:not(:disabled):not([data-disabled]):hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(40, 23, 50, 0.12);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 .mantine-Button-root:not(:disabled):not([data-disabled]):active {
   transform: translateY(0) scale(0.98);
@@ -371,30 +449,6 @@ a.contador:hover {
   animation-delay: 200ms;
 }
 
-/* Logo de la barra: gira apenas al pasar el mouse. */
-.marca img {
-  transition: transform 420ms var(--curva-salida);
-}
-.marca:hover img {
-  transform: rotate(-10deg) scale(1.06);
-}
-
-/* Ítem activo de la barra: el degradé entra suave al cambiar de sección. */
-@keyframes nav-activo {
-  from {
-    background-position: 100% 0;
-    opacity: 0.6;
-  }
-  to {
-    background-position: 0 0;
-    opacity: 1;
-  }
-}
-.nav-item[data-activo='true'] {
-  background-size: 200% 100%;
-  animation: nav-activo 360ms var(--curva-salida) both;
-}
-
 /* Entrada a la aplicación con el logo (IntroMarca). 1,9 s en total. */
 .intro-marca {
   position: fixed;
@@ -402,12 +456,7 @@ a.contador:hover {
   z-index: 1000;
   display: grid;
   place-items: center;
-  background: radial-gradient(
-    900px 600px at 50% 40%,
-    #3a2447 0%,
-    #1a0e22 60%,
-    #12081a 100%
-  );
+  background: #000;
   cursor: pointer;
   animation: intro-salida 520ms var(--curva-salida) 1380ms both;
 }
@@ -424,10 +473,7 @@ a.contador:hover {
   place-items: center;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 0 0 0 rgba(230, 41, 127, 0);
-  animation:
-    intro-aparecer 760ms var(--curva-salida) 80ms both,
-    intro-brillo 900ms var(--curva-salida) 700ms both;
+  animation: intro-aparecer 760ms var(--curva-salida) 80ms both;
 }
 .intro-disco img {
   width: 88%;
@@ -442,8 +488,8 @@ a.contador:hover {
 }
 .intro-anillo circle {
   fill: none;
-  stroke: url(#intro-degrade);
-  stroke-width: 3;
+  stroke: #fff;
+  stroke-width: 2;
   stroke-linecap: round;
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
@@ -466,14 +512,6 @@ a.contador:hover {
     stroke-dashoffset: 0;
   }
 }
-@keyframes intro-brillo {
-  50% {
-    box-shadow: 0 0 60px 6px rgba(230, 41, 127, 0.35);
-  }
-  to {
-    box-shadow: 0 0 30px 0 rgba(124, 200, 214, 0.15);
-  }
-}
 @keyframes intro-acercar {
   to {
     transform: scale(1.12);
@@ -492,7 +530,7 @@ a.contador:hover {
   position: sticky;
   bottom: 12px;
   z-index: 5;
-  background: rgba(255, 255, 255, 0.96);
+  background: color-mix(in srgb, var(--mantine-color-body) 96%, transparent);
   backdrop-filter: blur(6px);
   animation: entrada-suave 260ms var(--curva-salida) both;
 }
@@ -506,7 +544,7 @@ a.contador:hover {
 @keyframes pulso-monto {
   from {
     transform: scale(1.06);
-    color: var(--mantine-color-rosa-7);
+    color: var(--mantine-color-indigo-7);
   }
   to {
     transform: none;
@@ -530,7 +568,7 @@ a.contador:hover {
 }
 .calendario-dia-semana {
   padding: 8px 0;
-  background: #fff;
+  background: var(--mantine-color-body);
   color: var(--mantine-color-dimmed);
   font-size: 11px;
   font-weight: 700;
@@ -545,16 +583,16 @@ a.contador:hover {
   min-width: 0;
   min-height: 96px;
   padding: 6px;
-  background: #fff;
+  background: var(--mantine-color-body);
   animation: entrada-suave 260ms var(--curva-salida) both;
   animation-delay: calc(var(--i, 0) * 7ms);
   transition: background-color var(--transicion);
 }
 .calendario-celda[data-finde='true'] {
-  background: #fcf8fd;
+  background: var(--superficie-tenue);
 }
 .calendario-celda:hover {
-  background: var(--mantine-color-violeta-0);
+  background: var(--mantine-color-azul-light);
 }
 .calendario-celda[data-fuera='true'] > * {
   opacity: 0.38;
@@ -570,8 +608,8 @@ a.contador:hover {
   font-weight: 600;
 }
 .calendario-celda[data-hoy='true'] .calendario-numero {
-  background: var(--mantine-color-violeta-6);
-  box-shadow: 0 0 0 3px var(--mantine-color-violeta-1);
+  background: var(--mantine-color-azul-6);
+  box-shadow: 0 0 0 3px var(--mantine-color-azul-light);
   color: #fff;
 }
 .calendario-evento {
@@ -592,7 +630,7 @@ a.contador:hover {
 }
 .calendario-evento:hover {
   transform: translateX(2px);
-  box-shadow: 0 1px 5px rgba(40, 23, 50, 0.15);
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.15);
 }
 .calendario-entrega {
   border-left-color: var(--mantine-color-red-6);
@@ -620,6 +658,7 @@ a.contador:hover {
  * --------------------------------------------------------------------- */
 .entorno-tercerizados {
   --superficie-borde: #cfd4de;
+  --entorno-hoja: #f5f6f9;
   background: #e3e6ed;
   border-radius: 18px;
   padding: 0 0 20px;
@@ -627,7 +666,7 @@ a.contador:hover {
 }
 
 .entorno-tercerizados .entorno-cabecera {
-  background: linear-gradient(135deg, #1f2533 0%, #2c3447 100%);
+  background: #1f2533;
   color: #fff;
   padding: 18px 20px;
   margin-bottom: 18px;
@@ -638,7 +677,17 @@ a.contador:hover {
 }
 
 .entorno-tercerizados .mantine-Paper-root {
-  background: #f5f6f9;
+  background: var(--entorno-hoja);
+}
+
+/* En oscuro, el entorno sigue siendo un escalón más azul pizarra que la azul negra. */
+:root[data-mantine-color-scheme='dark'] .entorno-tercerizados {
+  --superficie-borde: #2b3242;
+  --entorno-hoja: #1a1f2a;
+  background: #141820;
+}
+:root[data-mantine-color-scheme='dark'] .entorno-tercerizados .entorno-cabecera {
+  background: #232a3a;
 }
 
 @media (max-width: 48em) {
@@ -670,13 +719,20 @@ a.contador:hover {
   margin-bottom: var(--mantine-spacing-md);
   padding: 10px 16px;
   border-radius: 12px;
-  background: repeating-linear-gradient(
-    135deg,
-    #fff4d6 0 14px,
-    #ffe9a8 14px 28px
-  );
+  background: repeating-linear-gradient(135deg, #fff4d6 0 14px, #ffe9a8 14px 28px);
   color: #6b4a00;
   font-size: 14px;
   text-align: center;
   box-shadow: 0 2px 10px rgba(107, 74, 0, 0.15);
+}
+
+/*
+ * Cambio entre modo claro y oscuro: un fundido corto de toda la pantalla
+ * (View Transitions), en vez de un salto de colores. Con reducción de
+ * movimiento no hay transición (layout.tsx no la pide).
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 260ms;
+  animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
 }

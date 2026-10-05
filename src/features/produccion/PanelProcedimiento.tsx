@@ -62,7 +62,7 @@ export function PanelProcedimiento({
             <IconListNumbers size={20} />
             <Text fw={600}>Procedimiento</Text>
             {vigente ? (
-              <Badge variant="light" color="violeta" radius="sm">
+              <Badge variant="light" color="azul" radius="sm">
                 Versión {vigente.version}
               </Badge>
             ) : null}
@@ -239,7 +239,7 @@ export function MasInformacion({ formulaId }: { formulaId: string }) {
     <Stack gap="xs">
       <Button
         variant="light"
-        color="violeta"
+        color="azul"
         size="md"
         leftSection={<IconInfoCircle size={18} />}
         rightSection={

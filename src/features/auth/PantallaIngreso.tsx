@@ -4,8 +4,6 @@ import {
   Anchor,
   Box,
   Button,
-  Center,
-  Group,
   Paper,
   PasswordInput,
   Stack,
@@ -101,8 +99,7 @@ export function PantallaIngreso() {
     <Box
       style={{
         minHeight: '100dvh',
-        background:
-          'radial-gradient(1100px 600px at 15% -10%, #3a2447 0%, #1a0e22 55%, #14091b 100%)',
+        background: 'var(--app-fondo)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -111,21 +108,22 @@ export function PantallaIngreso() {
     >
       <Stack gap="lg" w="100%" maw={420} className="entrada">
         {MODO_PRACTICA ? <CartelPractica /> : null}
-        <Center>
-          <Group gap="sm">
-            <Marca size={72} />
-            <div>
-              <Text c="#fff" fw={800} fz={24} lh={1.1} style={{ letterSpacing: 0.5 }}>
-                NAIL SHOW
-              </Text>
-              <Text c="#c9b3d1" fz={10} fw={600} style={{ letterSpacing: 1.6 }}>
-                SISTEMA DE TRAZABILIDAD · BPF
-              </Text>
-            </div>
-          </Group>
-        </Center>
+        <Stack align="center" gap={6}>
+          <Marca size={96} />
+          <Title order={1} ta="center" mt={10}>
+            Trazabilidad
+          </Title>
+          <Text c="dimmed" ta="center">
+            Nail Show SRL
+          </Text>
+        </Stack>
 
-        <Paper p="xl" radius="lg" shadow="xl">
+        <Paper
+          p="xl"
+          withBorder
+          shadow="sm"
+          style={{ borderColor: 'var(--superficie-borde)' }}
+        >
           <Stack gap="xs" mb="lg">
             <Title order={2}>{modo === 'ingreso' ? 'Ingresar' : 'Crear cuenta'}</Title>
             <Text size="sm" c="dimmed">
@@ -178,18 +176,12 @@ export function PantallaIngreso() {
               ) : null}
 
               {aviso ? (
-                <Alert color="violeta" variant="light" radius="md">
+                <Alert color="azul" variant="light" radius="md">
                   {aviso}
                 </Alert>
               ) : null}
 
-              <Button
-                type="submit"
-                loading={enviando}
-                fullWidth
-                variant="gradient"
-                gradient={{ from: 'violeta.7', to: 'rosa.6', deg: 135 }}
-              >
+              <Button type="submit" loading={enviando} fullWidth mt={4}>
                 {modo === 'ingreso' ? 'Ingresar' : 'Crear cuenta'}
               </Button>
             </Stack>
@@ -212,7 +204,7 @@ export function PantallaIngreso() {
           </Text>
         </Paper>
 
-        <Text size="xs" c="#8b679d" ta="center">
+        <Text size="xs" c="dimmed" ta="center">
           Todo lo que se registre acá queda auditado con autor, momento y valor anterior.
         </Text>
       </Stack>
