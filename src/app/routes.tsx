@@ -33,6 +33,7 @@ import { PaginaCuentasClientes } from '@/features/administracion/PaginaCuentasCl
 import { PaginaSolicitudesPago } from '@/features/administracion/PaginaSolicitudesPago';
 import { PaginaReportes } from '@/features/administracion/PaginaReportes';
 import { PaginaPrecios } from '@/features/comercial/PaginaPrecios';
+import { PaginaCostos } from '@/features/costos/PaginaCostos';
 import { PaginaPlanificacion } from '@/features/produccion/Planificacion';
 import { PaginaVisibilidad } from '@/features/usuarios/PaginaVisibilidad';
 import { PaginaOrdenes } from '@/features/produccion/PaginaOrdenes';
@@ -74,6 +75,7 @@ export function AppRoutes() {
       <Route path="/compras" element={<PaginaComprasPendientes />} />
       <Route path="/clientes" element={<PaginaClientes />} />
       <Route path="/precios" element={<PaginaPrecios />} />
+      <Route path="/costos" element={<PaginaCostos />} />
       <Route path="/facturas" element={<PaginaFacturas />} />
       <Route path="/administracion" element={<PaginaAdministracion />} />
       <Route path="/tesoreria" element={<PaginaTesoreria />} />

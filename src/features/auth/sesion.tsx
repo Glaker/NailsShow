@@ -12,6 +12,10 @@ import { supabase } from '@/lib/supabase';
 import type { Database } from '@/lib/database.types';
 
 export type Rol = Database['core']['Enums']['rol_enum'];
+
+// Puente: FINANZAS entra con 20261009120000. Al correr `npm run db:types` con
+// esa migración aplicada, el cast sobra y se reemplaza por el literal.
+export const FINANZAS = 'FINANZAS' as Rol;
 export type Sector = Database['core']['Enums']['sector_enum'];
 
 /**

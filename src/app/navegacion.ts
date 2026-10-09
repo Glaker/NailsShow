@@ -25,9 +25,10 @@ import {
   IconFileCertificate,
   IconClipboardText,
   IconRosetteDiscountCheck,
+  IconCoin,
   type Icon,
 } from '@tabler/icons-react';
-import { useSesion, type Rol } from '@/features/auth/sesion';
+import { FINANZAS, useSesion, type Rol } from '@/features/auth/sesion';
 import { useVisibilidad, type VisibilidadRow } from '@/lib/consultasVisibilidad';
 
 export interface ItemNavegacion {
@@ -220,6 +221,15 @@ export const NAVEGACION: ItemNavegacion[] = [
     roles: ['ADMINISTRACION', 'GERENCIA', 'GERENCIA_PRODUCCION', 'VENTAS'],
   },
   {
+    // Módulo de costos (D-38): Finanzas, Gerencia, Administración y
+    // Gerencia de Producción. Los operarios no ven costos.
+    ruta: '/costos',
+    etiqueta: 'Costos',
+    etiquetaCorta: 'Costos',
+    icono: IconCoin,
+    roles: [FINANZAS, 'GERENCIA', 'ADMINISTRACION', 'GERENCIA_PRODUCCION'],
+  },
+  {
     ruta: '/reportes',
     etiqueta: 'Reportes',
     etiquetaCorta: 'Reportes',
@@ -303,6 +313,7 @@ export const ROLES_CONFIGURABLES: Rol[] = [
   'GERENCIA',
   'ENCARGADA_STOCK',
   'VENTAS',
+  FINANZAS,
 ];
 
 /** Lo que el código dice por defecto: sin `roles`, la ven todos. */

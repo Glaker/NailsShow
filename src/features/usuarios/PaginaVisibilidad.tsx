@@ -11,7 +11,7 @@ import {
 } from '@mantine/core';
 import { IconInfoCircle } from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
-import { useTieneRol, type Rol } from '@/features/auth/sesion';
+import { FINANZAS, useTieneRol, type Rol } from '@/features/auth/sesion';
 import { etiquetaEnum } from '@/lib/formato';
 import { useFijarVisibilidad, useVisibilidad } from '@/lib/consultasVisibilidad';
 import {
@@ -29,6 +29,7 @@ const QUIEN: Partial<Record<Rol, string>> = {
   ENCARGADA_STOCK: 'Silveira',
   ADMINISTRACION: 'Diego',
   DIRECCION_TECNICA: 'DT',
+  [FINANZAS]: 'Gaby',
 };
 
 /**

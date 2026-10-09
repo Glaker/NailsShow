@@ -1,6 +1,6 @@
 # Estado del proyecto y plan — handoff entre sesiones
 
-Última actualización: 2026-09-30.
+Última actualización: 2026-10-09 (módulo de costos al final del archivo).
 Este archivo es el punto de entrada de cada sesión nueva. Las reglas permanentes
 están en `CLAUDE.md`; acá va el estado y el plan, que cambian.
 
@@ -1835,3 +1835,60 @@ Pruebas nuevas: PGlite `probar_ventas_central.mjs` (23), `probar_bloqueo_lote_pt
 - DT conserva Auditoría. Fase B aprobada; frenar al terminarla.
 - Animaciones: excepción pedida a «nada de animaciones decorativas» (§6), sin
   rebote, apagadas con reducción de movimiento.
+
+
+---
+
+## Módulo de costos, rentabilidad y gerencia (2026-10-09) — LEER PRIMERO
+
+Pedido: `PROMPT_MODULO_COSTOS` (seis fases). Plan aprobado el 2026-10-09 con
+respuestas y agregados (ver docs/DECISIONES_ABIERTAS.md: R-10, D-38 a D-46).
+Rama **`costos-fase-1`** (sale de `origin/main`; el `main` local está viejo).
+**Nada aplicado a ninguna base.** La aplicación la hace el usuario, primero en
+el proyecto de práctica (`node scripts/practica/armar_practica.mjs <ref>`), y
+recién después `db push` a la real. El usuario pidió seguir con las fases
+siguientes sin esperar revisión entre fases; un commit por fase en la rama, sin
+push.
+
+Reglas de reparto del pedido: migraciones, RLS, cálculos y lo fiscal en la
+sesión principal; búsquedas (`explorador`), tests (`corredor-de-pruebas`) y
+pantallas repetitivas (`armador-de-pantallas`) en subagentes Haiku;
+`revisor-sql` antes de mostrar cada migración. El hook `.claude/hooks/guardas.mjs`
+no deja mover archivos a `supabase/migrations` por shell: las migraciones nuevas
+se escriben con Write (o con el generador, en el caso de la apertura).
+
+### Fase 1 — hecha, sin aplicar
+
+| Migración | Qué |
+| --- | --- |
+| `20261009120000_core_rol_finanzas` | `FINANZAS` en `core.rol_enum` (solo, por el ADD VALUE) |
+| `…120100_core_nombre_nazarena` | «Nazarena Bakás» (por email) |
+| `…120200_gmp_contenido_neto_producto` | `gmp.productos.contenido_neto` + `unidad_contenido` (dato de rótulo, no precio) |
+| `…120300_comercial_costos` | `costos_lote`, `costos_accesorios`, `costos_referencia`, `parametros_costo`, `minutos_producto`, `series_macro`, `avisos_costo`; vistas `v_costos_lote(_unitario)`, `v_costo_referencia`, `v_parametros_costo`, `v_conciliacion_recepcion`, `v_costo_producto`; `costos_productos(uuid[])`, `costo_producto(uuid)`, `formula_para_costo(uuid)`, `importe_neto_ars`, `convertir_cantidad` |
+| `…120400_carga_costos_apertura` | generada por `scripts/apertura/generar_costos_apertura.mjs` (587 códigos; supuestos en D-42) |
+
+Front: `src/features/costos/` (Insumos, Lotes, Recepciones, Productos, Avisos,
+Parámetros), costo opcional por lote en `FormularioRecepcion`, `/costos` en el
+menú, Finanzas entra a Costos. `src/lib/moneda.ts` (conversión única pesos /
+dólares / pesos constantes) y `src/lib/consultasCostos.ts`.
+**Tipos puente:** las tablas nuevas se leen sin tipos (`sinTipos()` en
+`consultasCostos.ts`) y `FINANZAS` es una constante con cast en `sesion.tsx`.
+Después de aplicar: `npm run db:types` y reemplazarlos.
+
+Pruebas: PGlite `probar_costos.mjs` (37) y `probar_datos_practica.mjs` (5,
+incluye la siembra de costos); Vitest `moneda.test.ts`, `consultasCostos.test.ts`.
+Datos de ejemplo: `scripts/practica/datos_practica_costos.sql` (un bloque por
+fase; lo carga `armar_practica.mjs`).
+
+Datos reales que condicionan (consultados el 2026-10-09): 1 fórmula VIGENTE y
+46 BORRADOR (D-39); unidades del catálogo `g`, `kg`, `ml`, `UNIDAD`; 0
+recepciones y 0 egresos de tesorería sin pago en la base real.
+
+Abiertas del módulo: D-39, D-42 (confirmar con Finanzas antes de aplicar la
+carga de apertura), D-45 (importes de compra visibles para todos).
+Pendientes del pedido que esperan datos: emails de Gabriel, Virginia, Jorge y
+Agustina (invitaciones); logo para el PDF (`public/marca-nailshow.png`, falta
+confirmar fondo transparente).
+
+PGlite en esta máquina: correr las suites **de a una**; con dos en paralelo V8
+se queda sin memoria («Fatal process out of memory: Zone»).

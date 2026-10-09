@@ -8,7 +8,7 @@ Cuando una se resuelve, se mueve a «Resueltas» con fecha y quién decidió —
 historial importa: el control de cambios de GAMP 5 exige poder reconstruir por
 qué el sistema hace lo que hace.
 
-Última actualización: 2026-09-22.
+Última actualización: 2026-10-09.
 
 ---
 
@@ -507,6 +507,9 @@ indirectos?
 **Mientras tanto.** Sin stock valorizado; el resultado mensual es de gestión
 y no tiene costo de lo vendido.
 **Decide.** Gerencia, con el estudio contable.
+**Respondida por R-10 (2026-10-09):** costo del lote cargado en la recepción
+(identificación específica); producto terminado = materiales según fórmula +
+mano de obra.
 
 ### D-37 · Tres emisores de factura sobre un mismo stock
 
@@ -542,7 +545,144 @@ Certificados: `AFIP_CERT_<CUIT>`/`AFIP_KEY_<CUIT>` por emisor, o
 IVA y cuentas corrientes por emisor.
 **Decide.** Gerencia, con el estudio contable.
 
+## Abiertas — módulo de costos (2026-10-09)
+
+### D-39 · Con qué fórmula se costea el granel
+
+**Contexto.** Al 2026-10-09 la base tiene 1 fórmula `VIGENTE` y 46 en
+`BORRADOR`. Exigir la vigente dejaría casi todos los productos sin costo.
+**Supuesto adoptado.** `comercial.formula_para_costo`: la vigente; si no hay,
+la última no dada de baja (entre variedades, la de vigencia más reciente). La
+pantalla dice con qué estado de fórmula se calculó cada producto. Es costeo
+de gestión: no libera ni aprueba nada.
+**Pregunta.** ¿Alcanza, o el costo de un producto con fórmula en borrador
+tiene que figurar como «sin costo»?
+**Decide.** Finanzas con Dirección Técnica.
+
+### D-42 · Cómo se lee el costo de la planilla de apertura
+
+**Contexto.** `05 INVENTARIO NAIL SHOW FABRICA.xlsx` trae «FECHA ACT»,
+«COSTO U$D», «COSTO $» y «Unitario», sin decir sobre qué unidad ni si llevan
+IVA. Se cargan con `scripts/apertura/generar_costos_apertura.mjs`
+(587 códigos con costo, 49 renglones sin).
+**Supuestos adoptados (a confirmar con Finanzas antes de aplicar):**
+1. El costo es **neto de IVA**.
+2. El «Unitario» es por **kilogramo** en los insumos que el catálogo mide en
+   g o kg, por **litro** en los que mide en ml y por **unidad** en los que
+   mide en UNIDAD. (Ej.: fragancia 135FRA1, $54.870 → $54,87 el g.)
+3. Si hay «COSTO U$D», la moneda original es dólares y el tipo de cambio es el
+   implícito de la planilla (COSTO $ / COSTO U$D). Se guardan los dos.
+4. Código repetido: rige el renglón con la fecha de costo más reciente.
+5. Los lotes de apertura sin costo en la planilla los completa Finanzas desde
+   Costos › Lotes (origen APERTURA).
+**Si algún supuesto es falso** se corrige el script y se genera una migración
+nueva de rectificación; la migración de carga no se edita.
+**Decide.** Finanzas (Gabriel Lundin).
+
+### D-45 · Los importes de compra ya son visibles para todos los roles
+
+**Contexto.** Lo encontró la revisión de la migración de costos (2026-10-09).
+`comercial.comprobantes_proveedor` (neto, IVA y total de cada factura de
+proveedor) se lee con `core.rol() is not null` desde 20260929100000, a
+propósito («consulta para todos los roles»): la lista de recepciones les
+muestra a operarios y Calidad si el comprobante está cargado. Con eso
+cualquier rol puede deducir el precio de compra, aunque las tablas de costos
+nuevas sí estén cerradas. `gmp.recepciones.monto` también es legible por
+todos, pero está vacío (0 filas con monto al 2026-10-09) y nada lo usa.
+**Por qué no se cambió en la Fase 1.** Cortar las filas haría que la
+recepción muestre «sin cargar» a un operario y que se cargue un comprobante
+duplicado. Lo correcto es separar: el operario ve tipo y número; los importes,
+sólo los roles de costos.
+**Propuesta.** Migración aparte: política de SELECT de
+`comprobantes_proveedor` restringida a ADMINISTRACION, GERENCIA,
+GERENCIA_PRODUCCION, FINANZAS (y el Administrador del sistema), más una vista
+`v_comprobantes_recepcion` con sólo tipo y número para los demás.
+**Mismo hallazgo que** `PENDIENTES.md` #5 y `docs/AUDITORIA_ADMIN.md` R7: es
+uno solo, registrado tres veces; se cierra junto.
+**Cuándo.** Propuesto como primer trabajo después de la Fase 6 del módulo de
+costos, porque toca pantallas de recepción y de Administración ya en uso.
+Mientras no se haga, contradice D-38 en el dato más directo: el precio de
+compra.
+**Decide.** Gerencia.
+
 ## Resueltas
+
+### R-10 · Costeo por identificación específica — 2026-10-09
+
+**Reemplaza R-02** (promedio ponderado móvil, provisorio) **y responde D-36.**
+**Resolución** del usuario (módulo de costos, 2026-10-09): cada lote de
+insumo ya está identificado, así que el stock se valoriza por
+**identificación específica**: saldo del lote × costo unitario del lote
+(`comercial.costos_lote`, lo que efectivamente se pagó, inmutable). El
+**costo de referencia** para costear productos es otra cosa y se resuelve por
+prioridad: precio manual de Finanzas vigente → último lote recibido →
+planilla de apertura (`comercial.v_costo_referencia`). La prioridad de
+Finanzas nunca reescribe lo pagado.
+**Alcance.** Es un **costeo de gestión**: sirve para conocer el costo real y
+fijar precios. La **valuación contable** del inventario (y si coincide o no con
+este criterio) la valida el contador; mientras no lo haga, las pantallas de
+resultado dicen «resultado de gestión, no fiscal».
+**Fuente única del costo de un lote:** `comercial.costos_lote`. No lo son
+`gmp.recepciones.monto` ni el comprobante del proveedor, que sólo se concilia
+contra los lotes (D-44).
+
+### D-38 · Quién ve y quién carga costos — 2026-10-09, aprobada
+
+**Amplía §3.3 del alcance** («Ver costos, márgenes y rentabilidad»: ADM y GG).
+- Rol nuevo **FINANZAS** (Gabriel Lundin): lee todo lo económico; único que
+  fija costo de referencia, costo hora, umbral, margen mínimo y series macro.
+- **GERENCIA** (Virginia Arleo, Jorge Bakás): lee todo; carga otros gastos y
+  usa el cotizador (fases 3 y 5).
+- **GERENCIA_PRODUCCION** (Nazarena Bakás): ve costos, carga el costo del
+  lote al recibir, minutos por unidad y cotizaciones.
+- **ADMINISTRACION** (Diego): ve costos y carga costos de lote (ya lo
+  habilitaba §3.3); importación y exportación en la Fase 6.
+- **VENTAS** (Matías, Agustina), **OPERARIO**, **CONTROL_CALIDAD** y
+  **ENCARGADA_STOCK**: no ven costos.
+**Dónde está.** Políticas de `20261009120300`. Excepción conocida: D-45.
+
+### D-40 · Costos accesorios por recepción — 2026-10-09, aprobada
+
+Flete, seguro, aranceles y despachante se cargan por recepción
+(`comercial.costos_accesorios`) y se prorratean **por valor** entre los lotes
+con costo de esa recepción: `costo_i = precio_i + accesorios × precio_i /
+Σ precio_j`. Cada lote guarda además moneda, importe original y tipo de
+cambio a la fecha de la compra.
+
+### D-41 · Aviso de variación del precio de compra — 2026-10-09, aprobada
+
+Cuando un lote recibido difiere del costo de referencia **manual** de
+Finanzas más que el umbral (5 % por defecto, editable), se genera un aviso.
+La variación es **real**: `(1 + nominal) / (1 + IPC acumulado) − 1`, con el
+IPC entre el mes del precio de referencia y el del lote. Sin IPC cargado se
+compara la nominal y el aviso lo dice. Ninguno de los dos valores gana en
+silencio. Se compara el precio del lote sin accesorios.
+
+### D-43 · Compras y gastos sin comprobante — 2026-10-09, aprobada
+
+Se cargan igual, con comprobante `SIN_COMPROBANTE`: sin crédito fiscal, el
+importe entero es costo. Nunca se bloquean ni se desalientan; se muestran con
+etiqueta visible y filtro propio, y Finanzas ve el porcentaje del costo del
+período que está sin comprobante. Factura B, C o IVA no discriminado: tampoco
+hay crédito fiscal, el total es costo. Sólo la factura A discrimina IVA
+recuperable (`comercial.importe_neto_ars`). La recepción en `gmp` sigue
+exigiendo proveedor identificado y registro de recepción.
+
+### D-44 · Conciliación de lotes contra el comprobante — 2026-10-09, aprobada
+
+`comercial.v_conciliacion_recepcion`: suma de netos de los lotes de una
+recepción contra el neto de sus facturas (en B y C, el total), menos las
+notas de crédito no anuladas. Aviso si difiere más de $1 o hay lotes sin
+costo. No se aplica a compras sin factura.
+
+### D-46 · Fuente única del resultado: comercial.gastos — 2026-10-09, aprobada
+
+El resultado económico sale de `comercial.gastos` (Fase 3); tesorería queda
+como caja. **Histórico:** al 2026-10-09 no hay ningún egreso de tesorería sin
+pago asociado en la base (consulta del 2026-10-09: 0 filas), así que **no hay
+nada que migrar**: la fecha de corte es la puesta en servicio de la Fase 3, y
+desde ahí `v_resultado_mensual` deja de contar egresos de tesorería como gasto.
+
 
 ### R-09 · Lote en el producto terminado y RN-51 — 2026-09-30
 
@@ -585,7 +725,7 @@ con los registros R.20.2.1 v01 y con I.20.5 v03. Corresponde corregir I.20.1.
 La regla RN-04 se implementa además en la base como función determinista y
 columna generada.
 
-### R-02 · Método de costeo — 2026-09-04, provisorio
+### R-02 · Método de costeo — 2026-09-04, provisorio — REEMPLAZADA por R-10 (2026-10-09)
 
 **Resolución.** Promedio ponderado móvil (`PPP`) como valor por defecto, con
 `metodo_costeo` por artículo para permitir excepciones.

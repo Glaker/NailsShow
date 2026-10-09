@@ -9,6 +9,18 @@
 -- hay certificados ni función de facturación, ARCA no se entera.
 -- ---------------------------------------------------------------------------
 
+-- GUARDA: esta carga es sólo para la base de PRÁCTICA. La base real tiene la
+-- cuenta de Nazarena (naza@nailshow.com); la de práctica no (sus cuentas de
+-- arranque son las de la reconstrucción). Corrida por error contra la real,
+-- crearía registros regulados que no se pueden borrar (invariante 1).
+do $guarda$
+begin
+  if exists (select 1 from core.usuarios where email = 'naza@nailshow.com') then
+    raise exception 'ALTO: esta base parece la REAL (tiene la cuenta de Nazarena). Los datos de práctica no se cargan acá.';
+  end if;
+end;
+$guarda$;
+
 select set_config('request.jwt.claims', (
   select json_build_object(
     'sub', id, 'usuario_id', id, 'rol', 'ADMINISTRADOR_SISTEMA',

@@ -119,6 +119,8 @@ console.log('Hook de JWT encendido.');
 
 // 3. Datos inventados.
 await sql(readFileSync(path.join(AQUI, 'datos_practica.sql'), 'utf8'));
+// Módulo de costos: un bloque por fase, cada uno se saltea si ya está cargado.
+await sql(readFileSync(path.join(AQUI, 'datos_practica_costos.sql'), 'utf8'));
 console.log('Datos de práctica listos.');
 
 // 4. Lo que va en el despliegue de práctica (la clave es la pública, para el navegador).

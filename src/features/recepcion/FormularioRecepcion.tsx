@@ -41,6 +41,20 @@ import {
 import { fechaISO, numero } from '@/lib/formato';
 import { useAvisosCompra, useVincularCompras } from '@/lib/consultasComercial';
 import { discriminaIva, useRegistrarComprobanteProveedor } from '@/lib/consultasCompras';
+import { useTieneRol } from '@/features/auth/sesion';
+import {
+  ROLES_CARGAN_COSTO_LOTE,
+  UNIDADES_COSTO,
+  comprobanteDeRecepcion,
+  useCargarCostosLote,
+  useCostosReferencia,
+} from '@/lib/consultasCostos';
+import {
+  CamposCosto,
+  COSTO_VACIO,
+  costoCompleto,
+  type ValorCosto,
+} from '@/features/costos/CamposCosto';
 
 /*
  * Esquema derivado de las restricciones reales de la base. La aplicación
@@ -62,6 +76,9 @@ const esquemaLote = z.object({
   protocolo_recibido: z.boolean(),
   peso_pigmento_kg: z.number().nonnegative().nullable(),
   contenedores_limpiados: z.boolean(),
+  /* Costo del lote (comercial.costos_lote). Opcional: si queda vacío se carga
+     después desde Costos › Lotes. Lo valida la base, no este esquema. */
+  costo: z.custom<ValorCosto>(),
 });
 
 /* Comprobante del proveedor (RN-65, 20260929100000). Mismas reglas que los
@@ -128,6 +145,7 @@ const LOTE_VACIO = {
   protocolo_recibido: false,
   peso_pigmento_kg: null,
   contenedores_limpiados: false,
+  costo: { ...COSTO_VACIO, cantidad: null },
 };
 
 interface Props {
@@ -141,6 +159,11 @@ export function FormularioRecepcion({ onListo }: Props) {
   const avisos = useAvisosCompra();
   const vincular = useVincularCompras();
   const registrarComprobante = useRegistrarComprobanteProveedor();
+  /* El costo lo cargan Gerencia de Producción, Administración y Finanzas
+     (D-38). Un operario que recibe no lo ve: se completa después. */
+  const cargaCosto = useTieneRol(...ROLES_CARGAN_COSTO_LOTE);
+  const referencias = useCostosReferencia();
+  const cargarCostos = useCargarCostosLote();
   /** Compras pendientes que llegaron con esta recepción: id → llegó completa. */
   const [compras, setCompras] = useState<Record<string, boolean>>({});
 
@@ -280,6 +303,31 @@ export function FormularioRecepcion({ onListo }: Props) {
         importe_total: conIva ? (c.neto ?? 0) + (c.iva ?? 0) + (c.otros ?? 0) : c.total,
       })
       .catch(() => {});
+
+    // El costo de cada lote va a comercial (fuente única del costo, R-10). El
+    // comprobante sale del de la recepción. Los lotes vuelven en el orden en
+    // que se insertaron. Si falla, se avisa y se carga desde Costos › Lotes.
+    if (cargaCosto) {
+      const costos = valores.lotes.flatMap((l, i) => {
+        const lote = lotes[i];
+        if (!lote || !costoCompleto(l.costo)) return [];
+        return [
+          {
+            lote_insumo_id: lote.id,
+            tipo_comprobante: comprobanteDeRecepcion(c.tipo),
+            importe: l.costo.importe!,
+            incluye_iva: l.costo.incluye_iva,
+            alicuota_iva: l.costo.alicuota_iva,
+            moneda: l.costo.moneda,
+            tipo_cambio: l.costo.tipo_cambio ?? 1,
+            cantidad: l.costo.cantidad!,
+            unidad: l.costo.unidad,
+            fecha_costo: fechaFactura,
+          },
+        ];
+      });
+      await cargarCostos.mutateAsync(costos).catch(() => {});
+    }
 
     // Cada compra elegida se vincula con el primer lote de su insumo.
     const vinculos = Object.entries(compras).flatMap(([avisoId, completa]) => {
@@ -439,6 +487,9 @@ export function FormularioRecepcion({ onListo }: Props) {
                             `lotes.${i}.unidad`,
                             elegido.unidad_medida ?? '',
                           );
+                          const u = elegido.unidad_medida ?? '';
+                          if (UNIDADES_COSTO.includes(u))
+                            form.setFieldValue(`lotes.${i}.costo.unidad`, u);
                         }
                       }}
                     />
@@ -578,6 +629,31 @@ export function FormularioRecepcion({ onListo }: Props) {
                       />
                     </Stack>
                   </Grid.Col>
+                  {cargaCosto ? (
+                    <Grid.Col span={12}>
+                      <Divider
+                        my="xs"
+                        label="Costo (opcional: si no lo sabés ahora, se carga después en Costos)"
+                        labelPosition="left"
+                      />
+                      <CamposCosto
+                        valor={{
+                          ...lote.costo,
+                          tipo_comprobante: comprobanteDeRecepcion(
+                            form.values.comprobante.tipo,
+                          ),
+                        }}
+                        onChange={(v) => form.setFieldValue(`lotes.${i}.costo`, v)}
+                        unidadCatalogo={insumo?.unidad_medida ?? null}
+                        referencia={
+                          (referencias.data ?? []).find(
+                            (r) => r.insumo_id === lote.insumo_id,
+                          ) ?? null
+                        }
+                        comprobanteFijo
+                      />
+                    </Grid.Col>
+                  ) : null}
                 </Grid>
               </Paper>
             );
