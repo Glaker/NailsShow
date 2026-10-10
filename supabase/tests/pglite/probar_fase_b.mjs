@@ -19,13 +19,15 @@ await prueba('B1: la transferencia se anula entera y los dos saldos vuelven', as
 await rechaza('B1: no se anula dos veces', `select comercial.anular_transferencia('${grupo}', 'otra vez')`, /ya está anulada/);
 
 // B2 y B3
-await prueba('B2/B3: un egreso anulado no es gasto del resultado ni flujo bruto', async () => {
+// Desde 20261009140000 (D-46) el resultado toma los gastos de comercial.gastos:
+// ningún egreso de tesorería cuenta como gasto, anulado o no.
+await prueba('B2/B3: un egreso de tesorería no es gasto del resultado; el anulado tampoco es flujo bruto', async () => {
   const m = (await uno(`insert into comercial.movimientos_fondos (cuenta_id, tipo, importe, concepto) values ($1,'EGRESO',-1000,'Librería') returning id`, [bco])).id;
   await q(`insert into comercial.movimientos_fondos (cuenta_id, tipo, importe, concepto) values ($1,'EGRESO',-300,'Limpieza')`, [bco]);
   await q(`select comercial.anular_movimiento_fondos($1, 'era de otro mes')`, [m]);
   const r = await uno(`select otros_egresos from comercial.v_resultado_mensual where periodo = date_trunc('month', current_date)::date`);
   const c = await uno(`select ingresos, egresos, neto from comercial.v_cash_flow_real where cuenta_id=$1 and periodo = date_trunc('month', current_date)::date`, [bco]);
-  if (N(r.otros_egresos) !== 300 || N(c.ingresos) !== 100000 || N(c.egresos) !== 300 || N(c.neto) !== 99700) throw new Error(JSON.stringify({ r, c }));
+  if (N(r?.otros_egresos) !== 0 || N(c.ingresos) !== 100000 || N(c.egresos) !== 300 || N(c.neto) !== 99700) throw new Error(JSON.stringify({ r, c }));
 });
 
 // B5

@@ -81,6 +81,11 @@ await prueba('práctica, Fase 3: 12 meses facturados y el resultado cruza el pun
   const pierde = r.filter((x) => Number(x.resultado) < 0).length;
   if (r.length < 12 || gana === 0 || pierde === 0) throw new Error(JSON.stringify(r.map((x) => [x.mes, x.facturacion, x.resultado])));
 });
+await prueba('práctica, Fase 5: una cotización emitida con ZnO para un potencial y otra interna', async () => {
+  const r = await q(`select estado, destino, foto from comercial.cotizaciones order by creado_en`);
+  if (r.length !== 2 || r[0].estado !== 'EMITIDA' || r[0].destino !== 'POTENCIAL' || r[1].destino !== 'INTERNO') throw new Error(JSON.stringify(r.map((x) => [x.estado, x.destino])));
+  if (JSON.stringify(r[0].foto.pdf).includes('ZnO')) throw new Error('composición en el PDF');
+});
 await prueba('la siembra de práctica se niega a correr en una base con la cuenta real de Nazarena', async () => {
   await db.exec('reset role');
   await db.exec('savepoint g');

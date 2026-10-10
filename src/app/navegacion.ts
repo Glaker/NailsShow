@@ -28,6 +28,8 @@ import {
   IconCoin,
   IconChartLine,
   IconChartHistogram,
+  IconCalculator,
+  IconPresentation,
   type Icon,
 } from '@tabler/icons-react';
 import { FINANZAS, useSesion, type Rol } from '@/features/auth/sesion';
@@ -246,6 +248,22 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiquetaCorta: 'Eficiencia',
     icono: IconChartHistogram,
     roles: [FINANZAS, 'GERENCIA', 'ADMINISTRACION'],
+  },
+  {
+    // Cotizador (Fase 5 de costos, D-52).
+    ruta: '/cotizaciones',
+    etiqueta: 'Cotizaciones',
+    etiquetaCorta: 'Cotizar',
+    icono: IconCalculator,
+    roles: [FINANZAS, 'GERENCIA', 'GERENCIA_PRODUCCION'],
+  },
+  {
+    // Vista de gerencia: pocos números, grandes (Fase 5 de costos).
+    ruta: '/gerencia',
+    etiqueta: 'Resumen de gerencia',
+    etiquetaCorta: 'Resumen',
+    icono: IconPresentation,
+    roles: [FINANZAS, 'GERENCIA'],
   },
   {
     ruta: '/reportes',

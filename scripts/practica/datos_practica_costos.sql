@@ -338,3 +338,50 @@ begin
   raise notice 'Costos de práctica (Fase 3): % facturas en 12 meses.', n;
 end;
 $$;
+
+-- ===========================================================================
+-- Fase 5: dos cotizaciones de ejemplo, una emitida para un cliente potencial
+-- (con un insumo escrito a mano, óxido de zinc) y otra de uso interno.
+-- ===========================================================================
+do $$
+declare
+  pot  uuid;
+  c1   uuid;
+  c2   uuid;
+  prod uuid;
+begin
+  if exists (select 1 from comercial.cotizaciones) then
+    raise notice 'Costos de práctica (Fase 5) ya cargados.';
+    return;
+  end if;
+  insert into comercial.clientes_potenciales (razon_social, contacto)
+  values ('Spa del Bosque (práctica)', 'Laura — 221 555-0101') returning id into pot;
+
+  insert into comercial.cotizaciones (titulo, contenido_cantidad, contenido_unidad, cantidad_cotizada, destino,
+                                      cliente_potencial_id, minutos_por_unidad, fija, margen_objetivo, vigencia_dias,
+                                      observaciones)
+  values ('Protector solar para manos 60 g', 60, 'g', 500, 'POTENCIAL', pot, 2.5, 'MARGEN', 0.35, 7,
+          'Entrega a 15 días de confirmado el pedido.')
+  returning id into c1;
+  insert into comercial.cotizacion_lineas (cotizacion_id, orden, tipo, nombre, cantidad, unidad, precio,
+                                           cantidad_presentacion, unidad_presentacion, incluye_iva, alicuota_iva)
+  values (c1, 1, 'NUEVO', 'Óxido de zinc (ZnO)', 6, 'g', 12000, 500, 'g', true, 21),
+         (c1, 2, 'NUEVO', 'Base crema', 52, 'g', 9800, 1, 'kg', true, 21);
+  -- El pote se cotizó por unidad: presentación de 1 unidad.
+  insert into comercial.cotizacion_lineas (cotizacion_id, orden, tipo, nombre, cantidad, unidad, precio,
+                                           cantidad_presentacion, unidad_presentacion, incluye_iva)
+  values (c1, 3, 'NUEVO', 'Pote 60 g con tapa', 1, 'unidad', 420, 1, 'unidad', false);
+  insert into comercial.cotizacion_lineas (cotizacion_id, orden, tipo, nombre, cantidad, unidad, precio, incluye_iva)
+  values (c1, 4, 'LIBRE', 'Flete al cliente', 1, 'unidad', 35, false);
+  perform comercial.emitir_cotizacion(c1);
+
+  -- Uso interno, partiendo de un producto de ejemplo.
+  select id into prod from gmp.productos where contenido_neto is not null order by codigo_interno limit 1;
+  insert into comercial.cotizaciones (titulo, destino, fija, margen_objetivo, vigencia_dias)
+  values ('Revisión de precio (uso interno)', 'INTERNO', 'MARGEN', 0.4, 7) returning id into c2;
+  if prod is not null then
+    perform comercial.lineas_desde_producto(c2, prod);
+  end if;
+  raise notice 'Costos de práctica (Fase 5): 2 cotizaciones.';
+end;
+$$;

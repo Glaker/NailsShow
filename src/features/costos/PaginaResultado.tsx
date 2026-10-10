@@ -1,4 +1,4 @@
-import { Alert, Badge, Paper, SimpleGrid, Skeleton, Stack, Table, Text, Title } from '@mantine/core';
+import { Alert, Badge, Group, Paper, SimpleGrid, Skeleton, Stack, Table, Text, Title } from '@mantine/core';
 import { IconAlertTriangle, IconChartLine, IconScale, IconTargetArrow, IconTrendingUp } from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { TarjetaIndicador } from '@/components/TarjetaIndicador';
@@ -7,6 +7,7 @@ import { Vacio } from '@/components/Vacio';
 import { numero } from '@/lib/formato';
 import { equilibrio, useResultadoGestion, type ResultadoMes } from '@/lib/consultasCostos';
 import { useVistaMoneda } from './vistaMoneda';
+import { Exportar } from '@/components/Exportar';
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const etiquetaMes = (iso: string) => `${MESES[Number(iso.slice(5, 7)) - 1]}-${iso.slice(2, 4)}`;
@@ -74,7 +75,16 @@ export function PaginaResultado() {
       <EncabezadoPagina
         titulo="Resultado"
         descripcion={`Resultado de gestión, no fiscal: lo valida el estudio contable. Montos ${leyenda}.`}
-        acciones={<Badge variant="light" color="gray">Gestión, no fiscal</Badge>}
+        acciones={
+          <Group gap="xs">
+            <Badge variant="light" color="gray">Gestión, no fiscal</Badge>
+            <Exportar
+              archivo="resultado_de_gestion"
+              encabezados={['mes', 'facturacion', 'costo_variable', 'margen_contribucion_pct', 'costos_fijos', 'nomina_produccion', 'mano_de_obra_no_absorbida', 'gastos_operativos', 'amortizaciones', 'costos_totales', 'resultado', 'facturacion_equilibrio', 'gastos_sin_comprobante']}
+              filas={(resultado.data ?? []).map((r) => [r.mes, r.facturacion, r.costo_variable, r.margen_contribucion_pct, r.costos_fijos, r.nomina_produccion, r.mano_de_obra_no_absorbida, r.gastos_operativos, r.amortizaciones, r.costos_totales, r.resultado, r.facturacion_equilibrio, r.gastos_sin_comprobante])}
+            />
+          </Group>
+        }
       />
 
       {incompletos.length ? (

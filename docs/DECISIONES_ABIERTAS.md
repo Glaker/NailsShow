@@ -624,6 +624,63 @@ regla.
 
 ## Resueltas
 
+### D-54 · Importación y exportación — 2026-10-09, adoptada
+
+- **Sin dependencia nueva.** El `.xlsx` se lee y se escribe con un módulo
+  propio (`src/lib/xlsx.ts`): un `.xlsx` es un zip de XML y el navegador ya trae
+  la descompresión (`DecompressionStream`). Alcance: la primera hoja y sus
+  valores. Si algún día hay que leer planillas arbitrarias (varias hojas,
+  fórmulas, zip64), ahí se justifica una biblioteca.
+- **Importación estricta.** Plantilla fija por sección, descargable desde «Más
+  información» con su estructura. La planilla tiene que traer exactamente esos
+  encabezados (el orden da igual); si no, se rechaza con el motivo. Vista
+  previa renglón por renglón (crear, actualizar, error). Con un solo error no
+  se importa nada: se corrige la planilla y se vuelve a subir.
+- **Una transacción y registro.** Al confirmar, la función de la plantilla
+  vuelve a validar en la base y escribe todo junto; `comercial.importaciones`
+  guarda plantilla, nombre y SHA-256 del archivo, los renglones y quién y
+  cuándo. El archivo no se sube: el hash es el que calculó el navegador.
+- **Primera plantilla:** costos de materias primas (precio de referencia de
+  Finanzas). La importa Finanzas, porque es quien puede fijar ese precio;
+  Administración (Diego) exporta. Las demás plantillas se definen cuando
+  lleguen los ejemplos.
+- **Exportar:** Excel de la tabla de la sección, y PDF con la impresión del
+  navegador (los gráficos salen tal cual), en Costos › Insumos, Resultado y
+  Eficiencia.
+
+### D-52 · Criterios del cotizador — 2026-10-09, adoptada
+
+- **Quién cotiza:** Finanzas, Gerencia y Gerencia de Producción (el pedido
+  nombra a Gaby, Virginia, Jorge y Nazarena). Cada uno ve las suyas; Finanzas
+  y Gerencia ven todas, con el desglose. Administración y Ventas no cotizan.
+- **Merma:** `cantidad / (1 − merma)`, la definición que la base ya usaba
+  (20260917120000) y que usa el panel de producto. El pedido escribía
+  `× (1 + merma)`; con 10 % la diferencia es 1,111 contra 1,10. Se eligió la
+  de la base para que copiar un producto al cotizador cueste lo mismo que en
+  su panel.
+- **Neto y mostrado:** la cotización trabaja en neto (costo, margen, precio).
+  El PDF muestra el precio «más IVA» (el neto) o «con IVA incluido» (neto ×
+  1,21). El redondeo va sobre el número que lee el cliente; con precio fijado
+  se escribe el precio mostrado y se le saca el IVA para el margen.
+- **IVA de los precios cargados a mano:** se descuenta sólo si es recuperable
+  (factura A); un precio de monotributista o sin factura va entero como costo,
+  igual que en el resto del módulo (D-43).
+- **Costo libre:** importe × cantidad (por defecto 1).
+- **Volumen:** se guardan las dos cosas, contenido por unidad (60 g) y
+  cantidad cotizada (unidades del pedido); el PDF muestra las que haya.
+- **Vigencia:** 7 días por defecto, configurable por Finanzas.
+- **Margen mínimo:** advierte y pide justificación, no bloquea.
+- **Numeración:** contador propio por año (`comercial.contadores`, RN-55).
+- **Insumo nuevo:** vive en la cotización; «Proponer para el catálogo» deja
+  una solicitud a Dirección Técnica y no toca `gmp`.
+
+### D-53 · Clientes potenciales — 2026-10-09, adoptada
+
+Tabla propia `comercial.clientes_potenciales` (razón social, CUIT y contacto
+opcionales), separada del padrón de facturación (`comercial.clientes`, que
+exige documento y condición frente al IVA). Cuando el potencial compra, se lo
+da de alta como cliente y se enlaza (`cliente_id`), sin volver a escribirlo.
+
 ### D-50 · Pareto y eficiencia: criterios de la Fase 4 — 2026-10-09, adoptada
 
 - **Pareto ABC** sobre la facturación neta por producto (`factura_renglones`,

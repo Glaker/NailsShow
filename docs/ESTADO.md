@@ -1908,6 +1908,28 @@ resultado, Pareto, matriz) con paleta validada (`--serie-1..4`).
 Pruebas: `probar_panel_producto` (11), `probar_resultado` (15),
 `probar_pareto` (8), `probar_datos_practica` (8).
 
-**Fase 5 (cotizador):** migración escrita en
-`supabase/tests/pglite/en_preparacion/` (las pruebas no la cargan), sin probar
-ni revisar. Falta front, vista de gerencia y PDF. **Fase 6:** sin empezar.
+### Fases 5 y 6 — hechas, sin aplicar (2026-10-09)
+
+| Migración | Qué |
+| --- | --- |
+| `20261009160000_comercial_cotizador` | cotizaciones y líneas, contador correlativo (RN-55), clientes potenciales, emitir/anular/duplicar, PDF desde la foto (D-52, D-53) |
+| `…170000_comercial_importaciones` | registro de importaciones con hash y `importar_costos_referencia` (una transacción, D-54) |
+
+Front: `/cotizaciones` (historial), `/cotizaciones/:id` (editor con cálculo en
+vivo, `src/lib/cotizador.ts`), `/cotizaciones/:id/pdf` (A4, sin costos: lo
+prueba `CotizacionPdf.test.tsx`), `/gerencia` (resumen). Importar y exportar:
+`src/lib/xlsx.ts` (sin dependencia), `src/lib/importacion.ts`, componentes
+`ImportarExcel` y `Exportar`; plantilla de costos de materias primas en
+Costos › Insumos; exportación en Insumos, Resultado y Eficiencia.
+Pruebas: `probar_cotizador` (25), `probar_importaciones` (12),
+`probar_datos_practica` (9, incluye 2 cotizaciones de ejemplo).
+
+**Para aplicar (el usuario):** primero en práctica
+(`node scripts/practica/armar_practica.mjs <ref>`), después `db push` a la real,
+`npm run db:types` y sacar los puentes (`sinTipos()` en `consultasCostos.ts` y
+`consultasCotizador.ts`, la constante `FINANZAS` con cast en `sesion.tsx`).
+Confirmar con Finanzas D-42 (lectura de la planilla de apertura) antes de
+aplicar `…120400`. Verificar en el proyecto alojado que `postgres` tenga
+BYPASSRLS (lo necesitan `siguiente_numero`, `fn_aviso_variacion` y
+`fn_factura_renglones`; PGlite corre como superusuario y no lo prueba).
+Faltan las invitaciones (emails de Gabriel, Virginia, Jorge y Agustina).

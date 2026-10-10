@@ -37,6 +37,10 @@ import { PaginaCostos } from '@/features/costos/PaginaCostos';
 import { PanelProducto } from '@/features/costos/PanelProducto';
 import { PaginaResultado } from '@/features/costos/PaginaResultado';
 import { PaginaEficiencia } from '@/features/costos/PaginaEficiencia';
+import { PaginaCotizaciones } from '@/features/costos/PaginaCotizaciones';
+import { PaginaCotizacion } from '@/features/costos/PaginaCotizacion';
+import { PaginaCotizacionPdf } from '@/features/costos/PaginaCotizacionPdf';
+import { PaginaGerencia } from '@/features/costos/PaginaGerencia';
 import { PaginaPlanificacion } from '@/features/produccion/Planificacion';
 import { PaginaVisibilidad } from '@/features/usuarios/PaginaVisibilidad';
 import { PaginaOrdenes } from '@/features/produccion/PaginaOrdenes';
@@ -82,6 +86,10 @@ export function AppRoutes() {
       <Route path="/costos/producto/:id" element={<PanelProducto />} />
       <Route path="/resultado" element={<PaginaResultado />} />
       <Route path="/eficiencia" element={<PaginaEficiencia />} />
+      <Route path="/cotizaciones" element={<PaginaCotizaciones />} />
+      <Route path="/cotizaciones/:id" element={<PaginaCotizacion />} />
+      <Route path="/cotizaciones/:id/pdf" element={<PaginaCotizacionPdf />} />
+      <Route path="/gerencia" element={<PaginaGerencia />} />
       <Route path="/facturas" element={<PaginaFacturas />} />
       <Route path="/administracion" element={<PaginaAdministracion />} />
       <Route path="/tesoreria" element={<PaginaTesoreria />} />

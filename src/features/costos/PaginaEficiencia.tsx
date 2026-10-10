@@ -9,6 +9,7 @@ import { numero } from '@/lib/formato';
 import { useParametrosCosto, usePareto } from '@/lib/consultasCostos';
 import { TablaAlertasPrecio, TablaPreciosProveedor, TablaRotacion } from './TablasEficiencia';
 import { useVistaMoneda } from './vistaMoneda';
+import { Exportar } from '@/components/Exportar';
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
 const pct = (v: number) => `${numero(v * 100, 1)} %`;
@@ -44,16 +45,24 @@ export function PaginaEficiencia() {
         titulo="Eficiencia"
         descripcion="Qué productos explican la facturación (Pareto ABC), cuánto deja cada uno, y dónde está la plata parada en stock."
         acciones={
-          <SegmentedControl
-            value={meses}
-            onChange={setMeses}
-            data={[
-              { label: 'Último mes', value: '1' },
-              { label: '3 meses', value: '3' },
-              { label: '6 meses', value: '6' },
-              { label: '12 meses', value: '12' },
-            ]}
-          />
+          <Group gap="xs">
+            <SegmentedControl
+              className="no-imprimir"
+              value={meses}
+              onChange={setMeses}
+              data={[
+                { label: 'Último mes', value: '1' },
+                { label: '3 meses', value: '3' },
+                { label: '6 meses', value: '6' },
+                { label: '12 meses', value: '12' },
+              ]}
+            />
+            <Exportar
+              archivo={`pareto_${desde.slice(0, 7)}_${hasta.slice(0, 7)}`}
+              encabezados={['clase', 'codigo', 'producto', 'unidades', 'facturacion', 'participacion', 'acumulado', 'costo_variable', 'margen', 'margen_pct']}
+              filas={(pareto.data ?? []).map((f) => [f.clase, f.codigo_interno, f.producto, f.unidades, f.facturacion, f.participacion, f.acumulado, f.costo_variable, f.margen, f.margen_pct])}
+            />
+          </Group>
         }
       />
 

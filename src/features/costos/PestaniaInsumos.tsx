@@ -33,6 +33,10 @@ import {
   type Moneda,
 } from '@/lib/consultasCostos';
 import { numOrNull, pesosUnitario } from './comun';
+import { ImportarExcel } from '@/components/ImportarExcel';
+import { Exportar } from '@/components/Exportar';
+import { PLANTILLA_COSTOS_MP, type ContextoCostos } from '@/lib/importacion';
+import { ROLES_IMPORTAN, useImportarCostosReferencia } from '@/lib/consultasCostos';
 import { BadgeOrigen } from './BadgeOrigen';
 
 export function PestaniaInsumos() {
@@ -42,6 +46,8 @@ export function PestaniaInsumos() {
   const [texto, setTexto] = useDebouncedState('', 250);
   const [soloSin, setSoloSin] = useState(false);
   const [fijando, setFijando] = useState<CostoReferencia | null>(null);
+  const importa = useTieneRol(...ROLES_IMPORTAN);
+  const importar = useImportarCostosReferencia();
 
   const filas = referencia.data ?? [];
   const sinCosto = filas.filter((f) => f.costo_unitario_ars === null).length;
@@ -56,6 +62,10 @@ export function PestaniaInsumos() {
     );
 
   if (referencia.isLoading) return <Skeleton h={300} />;
+
+  const contexto: ContextoCostos = {
+    insumos: new Map(filas.map((f) => [f.codigo_interno, { unidad: f.unidad_medida, tieneManual: f.costo_manual !== null }])),
+  };
 
   const darDeBaja = (f: CostoReferencia) => {
     const ayer = new Date();
@@ -94,6 +104,25 @@ export function PestaniaInsumos() {
         >
           Sin costo ({sinCosto})
         </Button>
+        <Group gap="xs" className="no-imprimir">
+          {/* Importa Finanzas (la base lo exige); Administración exporta. */}
+          {puede ? (
+            <ImportarExcel
+              plantilla={PLANTILLA_COSTOS_MP}
+              contexto={contexto}
+              onConfirmar={({ renglones, archivo, hash }) =>
+                importar.mutateAsync({ archivo, hash, filas: renglones.map((r) => r.datos) })
+              }
+            />
+          ) : null}
+          {importa || puede ? (
+            <Exportar
+              archivo="costos_de_referencia"
+              encabezados={['codigo', 'insumo', 'unidad', 'costo_unitario_neto', 'origen', 'fecha', 'manual', 'ultimo_lote', 'apertura']}
+              filas={visibles.map((f) => [f.codigo_interno, f.nombre, f.unidad_medida, f.costo_unitario_ars, f.origen, f.fecha, f.costo_manual, f.costo_ultimo_lote, f.costo_apertura])}
+            />
+          ) : null}
+        </Group>
       </Group>
 
       {filas.length === 0 ? (

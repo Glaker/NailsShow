@@ -211,6 +211,17 @@ textarea {
     size: A6 landscape;
     margin: 8mm;
   }
+
+  /* La cotización va en A4 vertical: página con nombre, no pisa la del rótulo. */
+  .hoja-cotizacion {
+    page: cotizacion;
+    max-width: none !important;
+  }
+
+  @page cotizacion {
+    size: A4 portrait;
+    margin: 15mm;
+  }
 }
 
 /* --------------------------------------------------------------------- *

@@ -1192,3 +1192,29 @@ export function useAlertasPrecio() {
       ).map((f) => numeros<AlertaPrecio>(f, ['precio_neto', 'costo_unitario', 'margen_pct'])),
   });
 }
+
+// ---------------------------------------------------------------------------
+// Fase 6: importación (20261009170000)
+// ---------------------------------------------------------------------------
+
+export const ROLES_IMPORTAN: Rol[] = [FINANZAS, 'ADMINISTRACION'];
+
+export function useImportarCostosReferencia() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { archivo: string; hash: string; filas: Record<string, unknown>[] }) => {
+      const r = await sinTipos().rpc('importar_costos_referencia', {
+        p_archivo: v.archivo,
+        p_hash: v.hash,
+        p_filas: v.filas,
+      });
+      if (r.error) throw r.error as Error;
+      return r.data as number;
+    },
+    onSuccess: (n) => {
+      invalidarCostos(qc);
+      avisarExito(`${n} costos de referencia importados. Quedó registrado quién, cuándo y el hash del archivo.`);
+    },
+    onError: avisarError,
+  });
+}

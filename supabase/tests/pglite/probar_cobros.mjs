@@ -10,8 +10,12 @@ const cli2 = (await uno(`insert into comercial.clientes (razon_social, condicion
 // Facturas autorizadas cargadas como superusuario (el circuito de emisión se prueba aparte).
 await db.exec('reset role');
 const ped = (await uno(`insert into comercial.pedidos (numero, cliente, cliente_id, creado_por) values ('F-1','Ana',$1,(select id from core.usuarios where email='diego@x')) returning id`, [cli])).id;
+// Cada factura con el renglón de su pedido: desde 20261009140000 la base toma la
+// foto de lo facturado al emitir y exige que cuadre con el neto (D-49).
+const prodF = (await uno(`select id from gmp.productos where activo order by codigo_interno limit 1`)).id;
 const fac = async (numero, total, dias, ambiente = 'PRODUCCION', clienteId = cli, pedido = ped) =>
-  (await uno(`insert into comercial.facturas (pedido_id, cliente_id, ambiente, cuit_emisor, tipo, codigo_arca, punto_venta, numero, fecha, receptor_doc_tipo, receptor_doc_numero, receptor_condicion_iva, importe_neto, importe_iva, importe_total, alicuotas, estado, cae, cae_vencimiento, respuesta_arca, resuelta_en, emitida_por)
+  (await q(`insert into comercial.pedido_renglones (pedido_id, producto_id, cantidad, precio_unitario) values ($1,$2,1,$3)`, [pedido, prodF, total]),
+  await uno(`insert into comercial.facturas (pedido_id, cliente_id, ambiente, cuit_emisor, tipo, codigo_arca, punto_venta, numero, fecha, receptor_doc_tipo, receptor_doc_numero, receptor_condicion_iva, importe_neto, importe_iva, importe_total, alicuotas, estado, cae, cae_vencimiento, respuesta_arca, resuelta_en, emitida_por)
    values ($1,$2,$3,'20409378472','B',6,1,$4,current_date - $5::int,96,'30111222',5,$6,0,$6,'[]','AUTORIZADA','12345678901234',current_date+10,'{}',now(),(select id from core.usuarios where email='diego@x')) returning id`, [pedido, clienteId, ambiente, numero, dias, total])).id;
 const ped2 = (await uno(`insert into comercial.pedidos (numero, cliente, cliente_id, creado_por) values ('F-2','Ana',$1,(select id from core.usuarios where email='diego@x')) returning id`, [cli])).id;
 const ped3 = (await uno(`insert into comercial.pedidos (numero, cliente, cliente_id, creado_por) values ('F-3','Beto',$1,(select id from core.usuarios where email='diego@x')) returning id`, [cli2])).id;
@@ -57,7 +61,8 @@ await prueba('ventas y resultado del mes (sin homologación)', async () => {
   if (total !== 2300) throw new Error(JSON.stringify(v));
   const r = await q(`select * from comercial.v_resultado_mensual`);
   const res = r.reduce((a, x) => a + N(x.resultado), 0);
-  if (res !== 2300 - 300) throw new Error(JSON.stringify(r));
+  // D-46 (20261009140000): los egresos de tesorería ya no son gasto del resultado.
+  if (res !== 2300) throw new Error(JSON.stringify(r));
 });
 await como('op@x');
 await prueba('un operario no ve cobros ni saldos de clientes', async () => {
