@@ -145,10 +145,12 @@ export const PLANTILLA_COSTOS_MP: Plantilla<ContextoCostos> = {
   titulo: 'Costos de materias primas',
   archivo: 'plantilla_costos_materias_primas.xlsx',
   descripcion:
-    'Un precio de referencia por renglón, neto de IVA. Carga un precio nuevo para cada insumo (el anterior queda en el historial); no cambia lo que se pagó en cada lote.',
+    'Un precio de referencia por renglón, con o sin IVA (la base guarda el neto). Carga un precio nuevo para cada insumo (el anterior queda en el historial); no cambia lo que se pagó en cada lote. En líquidos y polvos, cantidad y unidad son las de la presentación de compra (D-42).',
   columnas: [
     { clave: 'codigo_insumo', tipo: 'texto', requerida: true, descripcion: 'Código interno del insumo, como en el catálogo', ejemplo: '101ESE' },
-    { clave: 'importe', tipo: 'numero', requerida: true, descripcion: 'Precio NETO (sin IVA) de la presentación', ejemplo: 12000 },
+    { clave: 'importe', tipo: 'numero', requerida: true, descripcion: 'Precio de la presentación', ejemplo: 12000 },
+    { clave: 'incluye_iva', tipo: 'texto', requerida: false, descripcion: 'Si el importe trae IVA (vacío = NO)', ejemplo: 'NO', valores: ['SI', 'NO'] },
+    { clave: 'alicuota', tipo: 'numero', requerida: false, descripcion: 'Alícuota de IVA; sólo si incluye_iva es SI', ejemplo: null },
     { clave: 'cantidad', tipo: 'numero', requerida: true, descripcion: 'Cantidad de la presentación', ejemplo: 500 },
     { clave: 'unidad', tipo: 'texto', requerida: true, descripcion: 'Unidad de la presentación', ejemplo: 'g', valores: ['g', 'kg', 'ml', 'l', 'UNIDAD'] },
     { clave: 'moneda', tipo: 'texto', requerida: true, descripcion: 'Moneda del importe', ejemplo: 'ARS', valores: ['ARS', 'USD'] },
@@ -161,6 +163,9 @@ export const PLANTILLA_COSTOS_MP: Plantilla<ContextoCostos> = {
     const ins = ctx.insumos.get(String(f.codigo_insumo));
     if (!ins) errores.push(`no existe el insumo «${String(f.codigo_insumo)}» en el catálogo`);
     if (typeof f.importe === 'number' && f.importe <= 0) errores.push('el importe tiene que ser mayor que cero');
+    if (f.incluye_iva === 'SI' && ![10.5, 21, 27].includes(f.alicuota as number))
+      errores.push('con IVA incluido va la alícuota (10,5, 21 o 27)');
+    if (f.incluye_iva !== 'SI' && f.alicuota !== null) errores.push('la alícuota va sólo si incluye_iva es SI');
     if (typeof f.cantidad === 'number' && f.cantidad <= 0) errores.push('la cantidad tiene que ser mayor que cero');
     if (f.moneda === 'USD' && !(typeof f.tipo_cambio === 'number' && f.tipo_cambio > 0))
       errores.push('en dólares hace falta el tipo de cambio');

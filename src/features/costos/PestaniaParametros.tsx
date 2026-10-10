@@ -13,14 +13,14 @@ import {
   Text,
   TextInput,
 } from '@mantine/core';
-import { MonthPickerInput } from '@mantine/dates';
+import { DateInput, MonthPickerInput } from '@mantine/dates';
 import { useForm } from '@mantine/form';
 import { zod4Resolver } from 'mantine-form-zod-resolver';
 import { z } from 'zod';
 import { IconAdjustments, IconChartLine } from '@tabler/icons-react';
 import { Vacio } from '@/components/Vacio';
 import { FINANZAS, useTieneRol } from '@/features/auth/sesion';
-import { fechaISO, numero } from '@/lib/formato';
+import { fecha, fechaISO, numero } from '@/lib/formato';
 import {
   useCargarParametros,
   useCargarSerie,
@@ -104,6 +104,14 @@ export function PestaniaParametros() {
             </Text>
             <Text fw={700}>{etiquetaTipoCambio(p?.serie_tipo_cambio)}</Text>
           </div>
+          <div>
+            <Text size="xs" c="dimmed">
+              Corte de la apertura
+            </Text>
+            <Text fw={700} ff="monospace">
+              {p ? fecha(p.corte_apertura) : '—'}
+            </Text>
+          </div>
         </SimpleGrid>
       </Paper>
 
@@ -131,6 +139,7 @@ type ValoresParametros = {
   vigencia: number | null;
   corte_a: number | null;
   corte_b: number | null;
+  corte_apertura: string | null;
   motivo: string;
 };
 
@@ -150,6 +159,7 @@ const esquemaParametros = z.object({
     .min(1, 'Tiene que ser al menos 1 día'),
   corte_a: z.number({ error: 'Falta el corte A' }).gt(0).lt(100),
   corte_b: z.number({ error: 'Falta el corte B' }).gt(0).lt(100),
+  corte_apertura: z.string({ error: 'Falta la fecha de corte' }).regex(/^d{4}-d{2}-d{2}$/, 'Falta la fecha de corte'),
   motivo: z.string(),
 }).refine((v) => (v.corte_a ?? 0) < (v.corte_b ?? 0), {
   path: ['corte_b'],
@@ -168,6 +178,7 @@ function FormularioParametros({ parametros }: { parametros: ParametrosCosto }) {
       vigencia: parametros.vigencia_cotizacion_dias,
       corte_a: parametros.corte_a * 100,
       corte_b: parametros.corte_b * 100,
+      corte_apertura: parametros.corte_apertura?.slice(0, 10) ?? null,
       motivo: '',
     },
     validate: zod4Resolver(esquemaParametros),
@@ -183,6 +194,7 @@ function FormularioParametros({ parametros }: { parametros: ParametrosCosto }) {
             vigencia_cotizacion_dias: v.vigencia ?? 0,
             corte_a: (v.corte_a ?? 80) / 100,
             corte_b: (v.corte_b ?? 95) / 100,
+            corte_apertura: v.corte_apertura,
             motivo: v.motivo.trim() || null,
           }),
         )}
@@ -257,6 +269,14 @@ function FormularioParametros({ parametros }: { parametros: ParametrosCosto }) {
               value={form.values.corte_b ?? ''}
               onChange={(x) => form.setFieldValue('corte_b', numOrNull(x))}
               error={form.errors.corte_b}
+            />
+            <DateInput
+              label="Corte de la apertura"
+              description="Antes de esta fecha, o sin fecha: desactualizado"
+              valueFormat="DD/MM/YYYY"
+              value={form.values.corte_apertura}
+              onChange={(x) => form.setFieldValue('corte_apertura', x)}
+              error={form.errors.corte_apertura}
             />
           </SimpleGrid>
           <Group align="flex-end" wrap="wrap">

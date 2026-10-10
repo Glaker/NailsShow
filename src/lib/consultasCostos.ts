@@ -136,6 +136,29 @@ export interface CostoReferencia {
   ultimo_lote_fecha: string | null;
   costo_apertura: number | null;
   apertura_fecha: string | null;
+  /** D-42: fecha anterior al corte o sin fecha. Vale como provisorio. */
+  desactualizado: boolean | null;
+  /** D-42: por qué un insumo de la planilla de apertura quedó sin costo. */
+  pendiente: string | null;
+  /** D-42: apertura en dólares, convertida con este tipo de cambio de la serie. */
+  tipo_cambio_aplicado: number | null;
+  tipo_cambio_mes: string | null;
+}
+
+/** Un insumo pendiente de la planilla de apertura, para el Excel a completar (D-42). */
+export interface CostoPendiente {
+  insumo_id: string;
+  codigo_interno: string;
+  nombre: string;
+  unidad_medida: string | null;
+  pendiente: string;
+  importe: number | null;
+  moneda: Moneda | null;
+  cantidad: number | null;
+  unidad: string | null;
+  fecha_costo: string | null;
+  peso_planilla: string | null;
+  detalle: string | null;
 }
 
 export interface CostoLote {
@@ -249,6 +272,8 @@ export interface ParametrosCosto {
   /** Cortes del Pareto (Fase 4). */
   corte_a: number;
   corte_b: number;
+  /** D-42: antes de esta fecha (o sin fecha) el costo figura DESACTUALIZADO. */
+  corte_apertura: string;
 }
 
 export type SerieMacro = 'IPC' | 'TC_A3500_PROMEDIO' | 'TC_A3500_CIERRE';
@@ -311,8 +336,32 @@ export function useCostosReferencia() {
           'costo_manual',
           'costo_ultimo_lote',
           'costo_apertura',
+          'tipo_cambio_aplicado',
         ]),
       ),
+  });
+}
+
+export function useCostosPendientes() {
+  return useQuery({
+    queryKey: ['costos', 'pendientes'],
+    queryFn: async () =>
+      (
+        await leer<Record<string, unknown>[]>(
+          sinTipos().from('v_costos_pendientes').select('*').order('codigo_interno'),
+        )
+      ).map((f) => numeros<CostoPendiente>(f, ['importe', 'cantidad'])),
+  });
+}
+
+/** Tipo de cambio con que se convierten los costos de apertura en dólares (D-42). */
+export function useTipoCambioActivo() {
+  return useQuery({
+    queryKey: ['costos', 'tipo-cambio-activo'],
+    queryFn: async () => {
+      const [f] = await leer<Record<string, unknown>[]>(sinTipos().from('v_tipo_cambio_activo').select('*'));
+      return f ? numeros<{ serie: SerieMacro; mes: string; valor: number; es_provisorio: boolean }>(f, ['valor']) : null;
+    },
   });
 }
 
@@ -604,6 +653,9 @@ export function useFijarCostoReferencia() {
     mutationFn: async (r: {
       insumo_id: string;
       importe: number;
+      /** D-42: se puede tipear con IVA; la base guarda el neto aparte. */
+      incluye_iva: boolean;
+      alicuota_iva: number | null;
       cantidad: number;
       unidad: string;
       moneda: Moneda;
@@ -614,7 +666,11 @@ export function useFijarCostoReferencia() {
     }) => {
       const { error } = await sinTipos()
         .from('costos_referencia')
-        .insert({ ...r, tipo_cambio: r.moneda === 'ARS' ? 1 : r.tipo_cambio });
+        .insert({
+          ...r,
+          alicuota_iva: r.incluye_iva ? r.alicuota_iva : null,
+          tipo_cambio: r.moneda === 'ARS' ? 1 : r.tipo_cambio,
+        });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -653,6 +709,7 @@ export function useCargarParametros() {
       vigencia_cotizacion_dias: number;
       corte_a?: number;
       corte_b?: number;
+      corte_apertura?: string | null;
       motivo: string | null;
     }) => {
       const { error } = await sinTipos().from('parametros_costo').insert(p);

@@ -27,6 +27,7 @@ import {
   margenSobrePrecio,
   sensibilidad,
   useCostosProducto,
+  useCostosReferencia,
   useDesgloseProducto,
   useFotosCosto,
   useHistoriaPrecios,
@@ -63,6 +64,7 @@ export function PanelProducto() {
   const { id = null } = useParams();
   const desglose = useDesgloseProducto(id);
   const productos = useCostosProducto();
+  const referencia = useCostosReferencia();
   const fotos = useFotosCosto(id);
   const precios = useHistoriaPrecios(id, 12);
   const stockPt = useStockValorizadoPt();
@@ -85,6 +87,14 @@ export function PanelProducto() {
   const filas = useMemo(() => desglose.data ?? [], [desglose.data]);
   const total = filas.reduce((s, f) => s + (f.subtotal ?? 0), 0);
   const faltantes = filas.filter((f) => f.falta);
+  // D-42: qué parte del costo se apoya en precios anteriores al corte o sin fecha.
+  const desactualizados = new Set(
+    (referencia.data ?? []).filter((r) => r.desactualizado).map((r) => r.insumo_id),
+  );
+  const sobreDesactualizados = filas
+    .filter((f) => f.insumo_id && desactualizados.has(f.insumo_id))
+    .reduce((s, f) => s + (f.subtotal ?? 0), 0);
+  const partDesactualizada = total > 0 ? sobreDesactualizados / total : 0;
   const producto = (productos.data ?? []).find((p) => p.producto_id === id);
 
   const torta = useMemo(() => {
@@ -203,6 +213,11 @@ export function PanelProducto() {
         {producto?.formula_estado && producto.formula_estado !== 'VIGENTE' ? (
           <Badge color="yellow" variant="light">
             costeado con fórmula en {producto.formula_estado.toLowerCase().replace(/_/g, ' ')}
+          </Badge>
+        ) : null}
+        {partDesactualizada > 0 ? (
+          <Badge color="orange" variant="outline">
+            {pct(partDesactualizada)} del costo sobre precios desactualizados
           </Badge>
         ) : null}
         {faltantes.length ? (

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Badge,
   Button,
   Group,
   Modal,
@@ -9,6 +10,7 @@ import {
   Select,
   Skeleton,
   Stack,
+  Switch,
   Table,
   Text,
   TextInput,
@@ -19,14 +21,16 @@ import { modals } from '@mantine/modals';
 import { useForm } from '@mantine/form';
 import { zod4Resolver } from 'mantine-form-zod-resolver';
 import { z } from 'zod';
-import { IconCoin, IconSearch } from '@tabler/icons-react';
+import { IconCoin, IconFileDownload, IconSearch } from '@tabler/icons-react';
 import { Vacio } from '@/components/Vacio';
 import { FINANZAS, useTieneRol } from '@/features/auth/sesion';
 import { fecha, fechaISO, numero } from '@/lib/formato';
 import {
   UNIDADES_COSTO,
   convertirCantidad,
+  useCostosPendientes,
   useCostosReferencia,
+  useTipoCambioActivo,
   useDarDeBajaReferencia,
   useFijarCostoReferencia,
   type CostoReferencia,
@@ -36,6 +40,7 @@ import { numOrNull, pesosUnitario } from './comun';
 import { ImportarExcel } from '@/components/ImportarExcel';
 import { Exportar } from '@/components/Exportar';
 import { PLANTILLA_COSTOS_MP, type ContextoCostos } from '@/lib/importacion';
+import { descargarXlsx, type Celda } from '@/lib/xlsx';
 import { ROLES_IMPORTAN, useImportarCostosReferencia } from '@/lib/consultasCostos';
 import { BadgeOrigen } from './BadgeOrigen';
 
@@ -44,16 +49,16 @@ export function PestaniaInsumos() {
   const puede = useTieneRol(FINANZAS);
   const baja = useDarDeBajaReferencia();
   const [texto, setTexto] = useDebouncedState('', 250);
-  const [soloSin, setSoloSin] = useState(false);
+  const [filtro, setFiltro] = useState<Filtro>('todos');
   const [fijando, setFijando] = useState<CostoReferencia | null>(null);
   const importa = useTieneRol(...ROLES_IMPORTAN);
   const importar = useImportarCostosReferencia();
 
   const filas = referencia.data ?? [];
-  const sinCosto = filas.filter((f) => f.costo_unitario_ars === null).length;
+  const cuenta = (x: Filtro) => filas.filter(FILTROS[x].pasa).length;
   const busqueda = texto.trim().toLowerCase();
   const visibles = filas
-    .filter((f) => !soloSin || f.costo_unitario_ars === null)
+    .filter(FILTROS[filtro].pasa)
     .filter(
       (f) =>
         !busqueda ||
@@ -97,13 +102,18 @@ export function PestaniaInsumos() {
           onChange={(e) => setTexto(e.currentTarget.value)}
           w={{ base: '100%', sm: 340 }}
         />
-        <Button
-          size="md"
-          variant={soloSin ? 'filled' : 'default'}
-          onClick={() => setSoloSin(!soloSin)}
-        >
-          Sin costo ({sinCosto})
-        </Button>
+        <Group gap="xs">
+          {(['sin', 'pendientes', 'desactualizados'] as const).map((x) => (
+            <Button
+              key={x}
+              size="md"
+              variant={filtro === x ? 'filled' : 'default'}
+              onClick={() => setFiltro(filtro === x ? 'todos' : x)}
+            >
+              {FILTROS[x].etiqueta} ({cuenta(x)})
+            </Button>
+          ))}
+        </Group>
         <Group gap="xs" className="no-imprimir">
           {/* Importa Finanzas (la base lo exige); Administración exporta. */}
           {puede ? (
@@ -115,11 +125,12 @@ export function PestaniaInsumos() {
               }
             />
           ) : null}
+          {importa || puede ? <ExcelPendientes /> : null}
           {importa || puede ? (
             <Exportar
               archivo="costos_de_referencia"
-              encabezados={['codigo', 'insumo', 'unidad', 'costo_unitario_neto', 'origen', 'fecha', 'manual', 'ultimo_lote', 'apertura']}
-              filas={visibles.map((f) => [f.codigo_interno, f.nombre, f.unidad_medida, f.costo_unitario_ars, f.origen, f.fecha, f.costo_manual, f.costo_ultimo_lote, f.costo_apertura])}
+              encabezados={['codigo', 'insumo', 'unidad', 'costo_unitario_neto', 'origen', 'fecha', 'desactualizado', 'pendiente', 'manual', 'ultimo_lote', 'apertura']}
+              filas={visibles.map((f) => [f.codigo_interno, f.nombre, f.unidad_medida, f.costo_unitario_ars, f.origen, f.fecha, f.desactualizado === null ? null : f.desactualizado ? 'SI' : 'NO', f.pendiente, f.costo_manual, f.costo_ultimo_lote, f.costo_apertura])}
             />
           ) : null}
         </Group>
@@ -138,7 +149,7 @@ export function PestaniaInsumos() {
           <Vacio
             icono={IconSearch}
             titulo="Ningún insumo coincide"
-            descripcion="Probá con otro texto o quitá el filtro de sin costo."
+            descripcion="Probá con otro texto o quitá el filtro."
           />
         </Paper>
       ) : (
@@ -178,14 +189,26 @@ export function PestaniaInsumos() {
                           </Text>
                         </>
                       ) : (
-                        <Text size="sm" c="dimmed">
-                          sin costo
+                        <Text size="sm" c={f.pendiente ? 'orange' : 'dimmed'}>
+                          {f.pendiente ? `Pendiente: ${f.pendiente.toLowerCase()}` : 'sin costo'}
                         </Text>
                       )}
                       <Origenes fila={f} />
+                      {f.tipo_cambio_aplicado !== null ? (
+                        <Text size="xs" c="dimmed">
+                          Dólares a $ {numero(f.tipo_cambio_aplicado, 2)} (A3500 {fecha(f.tipo_cambio_mes).slice(3)})
+                        </Text>
+                      ) : null}
                     </Table.Td>
                     <Table.Td>
-                      <BadgeOrigen origen={f.origen} />
+                      <Group gap={6}>
+                        <BadgeOrigen origen={f.origen} />
+                        {f.desactualizado ? (
+                          <Badge color="orange" variant="outline">
+                            Desactualizado
+                          </Badge>
+                        ) : null}
+                      </Group>
                     </Table.Td>
                     <Table.Td>{fecha(f.fecha)}</Table.Td>
                     {puede ? (
@@ -222,6 +245,51 @@ export function PestaniaInsumos() {
 
       <ModalFijarPrecio fila={fijando} onCerrar={() => setFijando(null)} />
     </Stack>
+  );
+}
+
+type Filtro = 'todos' | 'sin' | 'pendientes' | 'desactualizados';
+const FILTROS: Record<Filtro, { etiqueta: string; pasa: (f: CostoReferencia) => boolean }> = {
+  todos: { etiqueta: 'Todos', pasa: () => true },
+  sin: { etiqueta: 'Sin costo', pasa: (f) => f.costo_unitario_ars === null },
+  pendientes: { etiqueta: 'Pendientes', pasa: (f) => f.pendiente !== null },
+  desactualizados: { etiqueta: 'Desactualizados', pasa: (f) => f.desactualizado === true },
+};
+
+/**
+ * Excel de pendientes de la planilla de apertura (D-42), con las columnas
+ * exactas de la plantilla: se completa (cantidad y unidad de la presentación,
+ * o el precio en la unidad del catálogo) y se reimporta.
+ */
+function ExcelPendientes() {
+  const pendientes = useCostosPendientes();
+  const tc = useTipoCambioActivo();
+  const lista = pendientes.data ?? [];
+  if (lista.length === 0) return null;
+  const descargar = () => {
+    const columnas = PLANTILLA_COSTOS_MP.columnas.map((c) => c.clave);
+    const filas: Celda[][] = lista.map((p) => {
+      const peso = p.peso_planilla ? ` (PESO en la planilla: ${p.peso_planilla})` : '';
+      const v: Record<string, Celda> = {
+        codigo_insumo: p.codigo_interno,
+        importe: p.importe,
+        incluye_iva: 'NO',
+        alicuota: null,
+        cantidad: p.cantidad,
+        unidad: p.unidad,
+        moneda: p.moneda,
+        tipo_cambio: p.moneda === 'USD' ? (tc.data?.valor ?? null) : null,
+        vigente_desde: p.fecha_costo,
+        motivo: `Apertura: ${p.pendiente.toLowerCase()}${peso}${p.detalle ? ` · ${p.detalle}` : ''}`,
+      };
+      return columnas.map((c) => v[c] ?? null);
+    });
+    descargarXlsx([columnas, ...filas], 'pendientes_costos_apertura.xlsx', 'Pendientes');
+  };
+  return (
+    <Button variant="light" color="orange" leftSection={<IconFileDownload size={18} />} onClick={descargar}>
+      Excel de pendientes ({lista.length})
+    </Button>
   );
 }
 
@@ -262,6 +330,8 @@ function ModalFijarPrecio({
 
 type ValoresFijar = {
   importe: number | null;
+  incluye_iva: boolean;
+  alicuota_iva: string;
   cantidad: number | null;
   unidad: string;
   moneda: Moneda;
@@ -274,6 +344,8 @@ type ValoresFijar = {
 const esquemaFijar = z
   .object({
     importe: z.number({ error: 'Falta el importe' }).positive('El importe tiene que ser mayor que cero'),
+    incluye_iva: z.boolean(),
+    alicuota_iva: z.enum(['10.5', '21', '27']),
     cantidad: z.number({ error: 'Falta la cantidad' }).positive('La cantidad tiene que ser mayor que cero'),
     unidad: z.string().min(1, 'Falta la unidad'),
     moneda: z.enum(['ARS', 'USD']),
@@ -299,6 +371,8 @@ function FormularioFijar({ fila, onListo }: { fila: CostoReferencia; onListo: ()
     mode: 'controlled',
     initialValues: {
       importe: null,
+      incluye_iva: false,
+      alicuota_iva: '21',
       cantidad: 1,
       unidad: fila.unidad_medida ?? 'UNIDAD',
       moneda: 'ARS',
@@ -311,7 +385,8 @@ function FormularioFijar({ fila, onListo }: { fila: CostoReferencia; onListo: ()
   });
   const v = form.values;
   const tc = v.moneda === 'ARS' ? 1 : (v.tipo_cambio ?? 0);
-  const totalArs = v.importe !== null && tc > 0 ? v.importe * tc : null;
+  const neto = v.importe !== null && v.incluye_iva ? v.importe / (1 + Number(v.alicuota_iva) / 100) : v.importe;
+  const totalArs = neto !== null && tc > 0 ? neto * tc : null;
   const enUnidadCatalogo =
     v.cantidad && v.unidad && fila.unidad_medida
       ? convertirCantidad(v.cantidad, v.unidad, fila.unidad_medida)
@@ -326,6 +401,8 @@ function FormularioFijar({ fila, onListo }: { fila: CostoReferencia; onListo: ()
           {
             insumo_id: fila.insumo_id,
             importe: x.importe ?? 0,
+            incluye_iva: x.incluye_iva,
+            alicuota_iva: x.incluye_iva ? Number(x.alicuota_iva) : null,
             cantidad: x.cantidad ?? 0,
             unidad: x.unidad,
             moneda: x.moneda,
@@ -340,7 +417,8 @@ function FormularioFijar({ fila, onListo }: { fila: CostoReferencia; onListo: ()
     >
       <Stack gap="md">
         <Text size="sm" c="dimmed">
-          Precio neto, sin IVA. No cambia lo que se pagó en cada lote.
+          El precio de la presentación, con o sin IVA: se guarda el neto. No cambia lo que se pagó en cada
+          lote.
         </Text>
         <Group grow align="flex-start" wrap="wrap">
           <NumberInput
@@ -355,7 +433,7 @@ function FormularioFijar({ fila, onListo }: { fila: CostoReferencia; onListo: ()
             error={form.errors.importe}
           />
           <NumberInput
-            label="Cantidad"
+            label="Cantidad de la presentación"
             min={0}
             decimalScale={4}
             decimalSeparator=","
@@ -370,6 +448,33 @@ function FormularioFijar({ fila, onListo }: { fila: CostoReferencia; onListo: ()
             onChange={(x) => x && form.setFieldValue('unidad', x)}
             allowDeselect={false}
           />
+        </Group>
+        <Group align="flex-end" wrap="wrap">
+          <Switch
+            size="lg"
+            label="El importe incluye IVA"
+            checked={v.incluye_iva}
+            onChange={(e) => form.setFieldValue('incluye_iva', e.currentTarget.checked)}
+          />
+          {v.incluye_iva ? (
+            <Select
+              label="Alícuota"
+              data={[
+                { value: '21', label: '21 %' },
+                { value: '10.5', label: '10,5 %' },
+                { value: '27', label: '27 %' },
+              ]}
+              value={v.alicuota_iva}
+              onChange={(x) => x && form.setFieldValue('alicuota_iva', x)}
+              allowDeselect={false}
+              w={120}
+            />
+          ) : null}
+          {v.incluye_iva && neto !== null ? (
+            <Text size="sm">
+              Neto: <b>{v.moneda === 'USD' ? 'U$D' : '$'} {numero(neto, 2)}</b>
+            </Text>
+          ) : null}
         </Group>
         <div>
           <Text size="sm" fw={500} mb={6}>

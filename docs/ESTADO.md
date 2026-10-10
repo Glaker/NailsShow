@@ -1,6 +1,6 @@
 # Estado del proyecto y plan — handoff entre sesiones
 
-Última actualización: 2026-10-09 (módulo de costos al final del archivo).
+Última actualización: 2026-10-10 (módulo de costos al final del archivo; D-42 resuelta).
 Este archivo es el punto de entrada de cada sesión nueva. Las reglas permanentes
 están en `CLAUDE.md`; acá va el estado y el plan, que cambian.
 
@@ -1884,8 +1884,8 @@ Datos reales que condicionan (consultados el 2026-10-09): 1 fórmula VIGENTE y
 46 BORRADOR (D-39); unidades del catálogo `g`, `kg`, `ml`, `UNIDAD`; 0
 recepciones y 0 egresos de tesorería sin pago en la base real.
 
-Abiertas del módulo: D-39, D-42 (confirmar con Finanzas antes de aplicar la
-carga de apertura), D-45 (importes de compra visibles para todos).
+Abiertas del módulo: D-39, D-45 (importes de compra visibles para todos).
+D-42 resuelta el 2026-10-10 (ver «Planilla de apertura según D-42» más abajo).
 Pendientes del pedido que esperan datos: emails de Gabriel, Virginia, Jorge y
 Agustina (invitaciones); logo para el PDF (`public/marca-nailshow.png`, falta
 confirmar fondo transparente).
@@ -1928,8 +1928,28 @@ Pruebas: `probar_cotizador` (25), `probar_importaciones` (12),
 (`node scripts/practica/armar_practica.mjs <ref>`), después `db push` a la real,
 `npm run db:types` y sacar los puentes (`sinTipos()` en `consultasCostos.ts` y
 `consultasCotizador.ts`, la constante `FINANZAS` con cast en `sesion.tsx`).
-Confirmar con Finanzas D-42 (lectura de la planilla de apertura) antes de
-aplicar `…120400`. Verificar en el proyecto alojado que `postgres` tenga
+Verificar en el proyecto alojado que `postgres` tenga
 BYPASSRLS (lo necesitan `siguiente_numero`, `fn_aviso_variacion` y
 `fn_factura_renglones`; PGlite corre como superusuario y no lo prueba).
 Faltan las invitaciones (emails de Gabriel, Virginia, Jorge y Agustina).
+
+### Planilla de apertura según D-42 — hecha, sin aplicar (2026-10-10)
+
+Respuestas de Finanzas sobre la planilla (D-42, en «Resueltas»). Las cargas
+`…120400` y `…120410` siguen en la historia (commiteadas: no se tocan) y las
+corrige la migración nueva por rectificación.
+
+| Migración | Qué |
+| --- | --- |
+| `20261010120000_comercial_costos_d42` | IVA en `costos_referencia` (`incluye_iva`, `alicuota_iva`, `importe_neto`), `corte_apertura` en parámetros (2025-01-01 por defecto), apertura en dólares sin tipo de cambio propio y anulación por rectificación en `costos_lote`, `v_tipo_cambio_activo`, `costos_apertura_pendientes`, `v_costo_referencia` con `desactualizado` y `pendiente`, `v_costos_pendientes`, importación con IVA |
+| `…120100_rectifica_costos_apertura_d42` | generada por `scripts/apertura/generar_costos_apertura.mjs` (lee `inventario_apertura_unidades.csv`, que sale de `unidades_peso.mjs`: la unidad de PESO está en el formato de la celda) |
+
+Front: Costos › Insumos con filtros «Pendientes» y «Desactualizados», etiqueta
+DESACTUALIZADO, tipo de cambio aplicado y botón «Excel de pendientes» (formato
+de la plantilla, para completar y reimportar); precio manual con o sin IVA;
+plantilla de importación con `incluye_iva` y `alicuota`; corte de la apertura
+en Parámetros; el panel de producto dice qué porcentaje del costo se apoya en
+precios desactualizados.
+Pruebas: `probar_apertura_d42` (26).
+Para que costeen los renglones en dólares hace falta cargar el tipo de cambio
+A3500 en Parámetros › Series macro.

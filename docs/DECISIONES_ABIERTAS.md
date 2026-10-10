@@ -559,26 +559,6 @@ de gestión: no libera ni aprueba nada.
 tiene que figurar como «sin costo»?
 **Decide.** Finanzas con Dirección Técnica.
 
-### D-42 · Cómo se lee el costo de la planilla de apertura
-
-**Contexto.** `05 INVENTARIO NAIL SHOW FABRICA.xlsx` trae «FECHA ACT»,
-«COSTO U$D», «COSTO $» y «Unitario», sin decir sobre qué unidad ni si llevan
-IVA. Se cargan con `scripts/apertura/generar_costos_apertura.mjs`
-(587 códigos con costo, 49 renglones sin).
-**Supuestos adoptados (a confirmar con Finanzas antes de aplicar):**
-1. El costo es **neto de IVA**.
-2. El «Unitario» es por **kilogramo** en los insumos que el catálogo mide en
-   g o kg, por **litro** en los que mide en ml y por **unidad** en los que
-   mide en UNIDAD. (Ej.: fragancia 135FRA1, $54.870 → $54,87 el g.)
-3. Si hay «COSTO U$D», la moneda original es dólares y el tipo de cambio es el
-   implícito de la planilla (COSTO $ / COSTO U$D). Se guardan los dos.
-4. Código repetido: rige el renglón con la fecha de costo más reciente.
-5. Los lotes de apertura sin costo en la planilla los completa Finanzas desde
-   Costos › Lotes (origen APERTURA).
-**Si algún supuesto es falso** se corrige el script y se genera una migración
-nueva de rectificación; la migración de carga no se edita.
-**Decide.** Finanzas (Gabriel Lundin).
-
 ### D-45 · Los importes de compra ya son visibles para todos los roles
 
 **Contexto.** Lo encontró la revisión de la migración de costos (2026-10-09).
@@ -623,6 +603,105 @@ regla.
 **Decide.** Finanzas con Administración.
 
 ## Resueltas
+
+### D-42 · Cómo se lee el costo de la planilla de apertura — 2026-10-10, resuelta
+
+**Contexto.** `05 INVENTARIO NAIL SHOW FABRICA.xlsx` (sha256 `6957d867…89ec`)
+trae «PESO», «CANTIDAD», «FECHA ACT», «COSTO U$D», «COSTO $» y «Unitario» sin
+decir sobre qué unidad ni si llevan IVA. Los supuestos del 2026-10-09 (unitario
+por kg o litro, tipo de cambio implícito) quedan **reemplazados** por las
+respuestas de Finanzas (Gabriel Lundin):
+
+1. **IVA.** Los importes de la planilla son **netos**. Toda carga de costo
+   (recepción, costo de referencia manual, cotizador, plantilla de
+   importación) acepta el importe con o sin IVA (`incluye_iva` SI/NO más
+   alícuota) y lo normaliza a neto.
+2. **«Unitario» de líquidos y polvos = precio de la presentación de compra**,
+   no por kg ni por litro. Precio base = unitario / cantidad de la
+   presentación. La cantidad y la unidad salen de «PESO» (la unidad está en el
+   formato de la celda: «1 kg.», «45 gr.», «0,06 lts.»).
+   - Si PESO no trae cantidad y unidad claras, el insumo queda **pendiente:
+     falta cantidad de la presentación**. No entra al costeo y sus productos
+     muestran «costo incompleto».
+   - Los pendientes salen en un Excel con el formato de la plantilla de
+     importación, para completarlos y reimportarlos (vista previa, una
+     transacción).
+   - La cantidad de la presentación es **obligatoria** para líquidos y polvos
+     en la recepción y en el cotizador.
+   - Insumos en UNIDAD: el «Unitario» ya es por unidad (COSTO $ / CANTIDAD).
+3. **Vigencia.** Fecha de corte de la apertura: **2025-01-01**, guardada en
+   `comercial.parametros_costo` con vigencia y editable por Finanzas. Un costo
+   APERTURA anterior al corte, **o sin fecha**, lleva la etiqueta
+   DESACTUALIZADO y sigue sirviendo como valor provisorio. El panel de
+   producto muestra qué porcentaje de su costo se apoya en costos
+   desactualizados, y la lista de insumos permite filtrarlos. Si Finanzas
+   confirma que un costo viejo sigue vigente, lo carga como costo de
+   referencia manual.
+4. **Renglones en dólares.** Se guarda el monto en USD y su fecha. No se usa
+   «COSTO $», porque los tipos de cambio implícitos de la planilla no son
+   coherentes. Se convierte con el tipo de cambio activo de la serie y la
+   pantalla muestra cuál se aplicó.
+
+Lo demás de la versión anterior sigue igual. Si un código está repetido, rige
+el renglón con la fecha de costo más reciente. Los lotes de apertura sin costo
+los completa Finanzas desde Costos › Lotes.
+
+**Recuento de la planilla (2026-10-10, antes de cargar).** Hay 650 renglones:
+- **Fuera del catálogo** (herramientas, mobiliario, etc.): 237. No se cargan.
+- **En el catálogo sin costo:** 13.
+- **A cargar:** 400.
+  - **Leídos solos:** 386. Son 317 en UNIDAD y 69 líquidos o polvos con PESO
+    claro.
+    - De esos 69, 37 están en litros o ml pero el catálogo los mide en
+      gramos, y el insumo no tiene densidad. Son 27 acrílicos de 60 ml, 7
+      fragancias de 1000 ml, MP top coat, adhesivo foil y extracto de aloe.
+      Quedan pendientes hasta que se cargue la densidad o se cambie la
+      presentación a gramos.
+  - **Pendientes por falta de cantidad:** 14. PESO está vacío, o solo dice
+    «Plancha» o no tiene unidad: cremas 364 a 372, 378ACE, 387MO, 450RES,
+    192ALOE, 192ENM, 192REM, 198ACNS y 198ACE.
+  - **Por fecha:** 58 vigentes (2025-01-01 o después), 176 anteriores al
+    corte y 166 sin fecha (uno con fecha imposible, 4835). En total, 342 van
+    a llevar la etiqueta DESACTUALIZADO.
+  - **En dólares:** 184.
+
+**Migraciones.** `20261009120400_carga_costos_apertura` y
+`20261009120410_rectifica_costos_apertura` se generaron con los supuestos
+viejos. Están commiteadas y una migración escrita no se edita (CLAUDE.md §6),
+así que no se borran: las corrige `20261010120100_rectifica_costos_apertura_d42`
+con filas que rectifican (`rectifica_a`) y dicen por qué. El esquema nuevo está
+en `20261010120000_comercial_costos_d42`.
+
+**Criterios fijados al implementar** (no los cubría la respuesta de Finanzas;
+revisar con Gaby):
+- **Tipo de cambio activo:** el último mes cargado de la serie A3500; en el
+  mismo mes, el de cierre antes que el promedio (`v_tipo_cambio_activo`). Sin
+  serie cargada, los costos en dólares quedan pendientes por falta de tipo de
+  cambio.
+- **Dólares sin CANTIDAD:** el monto en dólares es el de una presentación,
+  igual que hace la planilla con el «Unitario» cuando falta CANTIDAD (pasa en
+  todos los renglones sin CANTIDAD que traen «Unitario» y COSTO $: son iguales).
+- **Dólares a revisar:** si el tipo de cambio implícito contra el «Unitario»
+  en pesos cae fuera de 300..3000 $/U$D, el monto en dólares no se carga y el
+  insumo queda pendiente con ese motivo. Son 106LIQ (22.125 $/U$D), 137ET
+  (5.789), 240, 241, 242 (1 $/U$D: son pesos) y 354 (5.535). De los seis, sólo
+  106LIQ y 137ET están en el catálogo. Cargarlos convertidos daría costos de
+  millones de pesos por unidad.
+- **Sin densidad:** los 37 de litros sobre catálogo en gramos se cargan con su
+  presentación tal cual y quedan pendientes solos («sin densidad»). En cuanto
+  Dirección Técnica cargue la densidad, costean sin tocar nada más.
+- **DESACTUALIZADO** marca sólo costos APERTURA. Un precio manual de Finanzas
+  confirma el costo y no lleva la marca, aunque su vigencia sea vieja.
+- **Excel de pendientes:** Costos › Insumos, con las columnas de la plantilla
+  de importación. Los renglones en dólares salen con el tipo de cambio activo
+  ya escrito; al reimportarlos, el precio manual queda con ese tipo de cambio
+  fijo.
+- **No se rectifica lo que cargó Finanzas a mano:** la corrección sólo toca
+  costos cuyo autor y motivo son los de la carga de la planilla, y sólo de
+  códigos que la planilla trae.
+- Lotes de apertura en el proyecto de práctica, después de la migración:
+  206 rectificados, 16 anulados (14 por falta de cantidad y 2 por dólares a
+  revisar), 16 pendientes, 37 sin densidad.
 
 ### D-54 · Importación y exportación — 2026-10-09, adoptada
 

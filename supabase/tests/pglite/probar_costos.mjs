@@ -12,16 +12,23 @@ const cerca = (a, b, tol = 1e-6) => Math.abs(N(a) - b) <= tol;
 await invariantes();
 
 await como('gaby@x');
-await prueba('apertura: envase en USD, unitario y moneda original guardados', async () => {
+// Apertura según D-42 (20261010120100): el detalle está en probar_apertura_d42.
+await prueba('apertura: envase en USD, monto en dólares y fecha guardados, sin tipo de cambio propio', async () => {
   const c = await uno(`select * from comercial.v_costos_lote_unitario where codigo_interno='080ENV' and origen='APERTURA'`);
-  // Planilla: U$D 323 / $497.420 por 1000 unidades → $497,42 la unidad, TC 1540.
-  if (c.moneda !== 'USD' || N(c.tipo_cambio) !== 1540 || !cerca(c.costo_unitario_ars, 497.42, 0.01) || c.fecha_costo === null)
+  // Planilla: U$D 323 por 1000 unidades → U$D 0,323 la unidad; se convierte con la serie.
+  if (c.moneda !== 'USD' || !cerca(c.importe, 0.323) || c.tipo_cambio !== null || c.fecha_costo === null)
     throw new Error(JSON.stringify(c));
 });
-await prueba('apertura: materia prima en ml toma el unitario de la planilla por litro', async () => {
-  const r = await uno(`select * from comercial.v_costo_referencia where codigo_interno='101ESE'`);
-  // $17.700 el litro → $17,70 el ml, origen APERTURA.
-  if (r.origen !== 'APERTURA' || !cerca(r.costo_unitario_ars, 17.7)) throw new Error(JSON.stringify(r));
+await prueba('apertura: materia prima en ml, precio de la presentación (1 l) convertido con la serie', async () => {
+  await db.exec('savepoint tc');
+  try {
+    await q(`insert into comercial.series_macro (serie, mes, valor, fuente) values ('TC_A3500_CIERRE', '2026-09-01', 1500, 'BCRA')`);
+    const r = await uno(`select * from comercial.v_costo_referencia where codigo_interno='101ESE'`);
+    // U$D 12 la presentación de 1 l × 1500 → $18 el ml, origen APERTURA.
+    if (r.origen !== 'APERTURA' || !cerca(r.costo_unitario_ars, 18)) throw new Error(JSON.stringify(r));
+  } finally {
+    await db.exec('rollback to savepoint tc');
+  }
 });
 
 await prueba('operario y ventas no ven costos', async () => {
@@ -200,11 +207,17 @@ await prueba('v_costo_producto recorre todos los productos activos', async () =>
 });
 
 // Segunda revisión (20261009120310 y 120410).
-await prueba('apertura rectificada: 111ENV en pesos y 135FRA6 sin fecha, mismo neto', async () => {
+// 120410 pasó 111ENV a pesos (con la cuenta vieja el dólar implícito daba
+// 0,66); con CANTIDAD da 661 $/U$D y D-42 lo vuelve a dólares, rectificando.
+await prueba('apertura rectificada: 111ENV en dólares sobre la fila de 120410; 135FRA6 sin fecha', async () => {
   await como('gaby@x');
-  const e = await uno(`select moneda, fecha_costo, precio_neto_ars from comercial.v_costos_lote where codigo_interno='111ENV' and origen='APERTURA'`);
+  const e = await uno(`
+    select v.moneda, v.tipo_cambio, o.moneda as antes from comercial.v_costos_lote v
+      join comercial.costos_lote n on n.id = v.id
+      join comercial.costos_lote o on o.id = n.rectifica_a
+     where v.codigo_interno='111ENV' and v.origen='APERTURA'`);
   const f = await uno(`select moneda, fecha_costo from comercial.v_costos_lote where codigo_interno='135FRA6' and origen='APERTURA'`);
-  if (!e || e.moneda !== 'ARS' || Math.abs(N(e.precio_neto_ars) - 183.9185) > 0.01) throw new Error(JSON.stringify(e));
+  if (!e || e.moneda !== 'USD' || e.tipo_cambio !== null || e.antes !== 'ARS') throw new Error(JSON.stringify(e));
   if (!f || f.fecha_costo !== null) throw new Error(JSON.stringify(f));
 });
 await como('naza@x');
