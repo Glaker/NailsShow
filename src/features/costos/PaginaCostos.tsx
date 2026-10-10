@@ -1,22 +1,26 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Tabs } from '@mantine/core';
 import {
   IconAdjustments,
   IconBell,
+  IconBuildingWarehouse,
   IconCoin,
   IconPackage,
   IconReceipt,
+  IconReceipt2,
   IconTruckDelivery,
 } from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { FINANZAS, useTieneRol } from '@/features/auth/sesion';
-import { useAvisosCosto } from '@/lib/consultasCostos';
+import { useAvisosCosto, useTomarFotoCostos } from '@/lib/consultasCostos';
 import { PestaniaInsumos } from './PestaniaInsumos';
 import { PestaniaLotes } from './PestaniaLotes';
 import { PestaniaRecepciones } from './PestaniaRecepciones';
 import { PestaniaProductos } from './PestaniaProductos';
+import { PestaniaStock } from './PestaniaStock';
 import { PestaniaAvisos } from './PestaniaAvisos';
 import { PestaniaParametros } from './PestaniaParametros';
+import { PestaniaGastos } from './PestaniaGastos';
 
 /** Pestaña de avisos con el contador de no vistos. Sólo se monta para quien la ve. */
 function EtiquetaAvisos() {
@@ -28,6 +32,10 @@ function EtiquetaAvisos() {
 export function PaginaCostos() {
   const [vista, setVista] = useState<string | null>('insumos');
   const puedeAvisos = useTieneRol(FINANZAS, 'GERENCIA');
+  // La foto del mes (D-47) se toma al abrir costos: valoriza el stock de
+  // producto terminado y arma la historia mensual sin tarea programada.
+  const { mutate: fotografiar } = useTomarFotoCostos();
+  useEffect(() => fotografiar(), [fotografiar]);
 
   return (
     <>
@@ -49,6 +57,12 @@ export function PaginaCostos() {
           <Tabs.Tab value="productos" leftSection={<IconPackage size={17} />}>
             Productos
           </Tabs.Tab>
+          <Tabs.Tab value="stock" leftSection={<IconBuildingWarehouse size={17} />}>
+            Stock valorizado
+          </Tabs.Tab>
+          <Tabs.Tab value="gastos" leftSection={<IconReceipt2 size={17} />}>
+            Gastos
+          </Tabs.Tab>
           {puedeAvisos ? (
             <Tabs.Tab value="avisos" leftSection={<IconBell size={17} />}>
               <EtiquetaAvisos />
@@ -69,6 +83,12 @@ export function PaginaCostos() {
         </Tabs.Panel>
         <Tabs.Panel value="productos">
           <PestaniaProductos />
+        </Tabs.Panel>
+        <Tabs.Panel value="stock">
+          <PestaniaStock />
+        </Tabs.Panel>
+        <Tabs.Panel value="gastos">
+          <PestaniaGastos />
         </Tabs.Panel>
         {puedeAvisos ? (
           <Tabs.Panel value="avisos">

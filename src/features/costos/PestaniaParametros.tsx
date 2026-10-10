@@ -129,6 +129,8 @@ type ValoresParametros = {
   umbral: number | null;
   margen: number | null;
   vigencia: number | null;
+  corte_a: number | null;
+  corte_b: number | null;
   motivo: string;
 };
 
@@ -146,7 +148,12 @@ const esquemaParametros = z.object({
     .number({ error: 'Falta la vigencia' })
     .int('Son días enteros')
     .min(1, 'Tiene que ser al menos 1 día'),
+  corte_a: z.number({ error: 'Falta el corte A' }).gt(0).lt(100),
+  corte_b: z.number({ error: 'Falta el corte B' }).gt(0).lt(100),
   motivo: z.string(),
+}).refine((v) => (v.corte_a ?? 0) < (v.corte_b ?? 0), {
+  path: ['corte_b'],
+  message: 'El corte B tiene que ser mayor que el A',
 });
 
 /** Cada guardado es una versión nueva; los umbrales se ingresan en % y se guardan como fracción. */
@@ -159,6 +166,8 @@ function FormularioParametros({ parametros }: { parametros: ParametrosCosto }) {
       umbral: parametros.umbral_variacion * 100,
       margen: parametros.margen_minimo * 100,
       vigencia: parametros.vigencia_cotizacion_dias,
+      corte_a: parametros.corte_a * 100,
+      corte_b: parametros.corte_b * 100,
       motivo: '',
     },
     validate: zod4Resolver(esquemaParametros),
@@ -172,6 +181,8 @@ function FormularioParametros({ parametros }: { parametros: ParametrosCosto }) {
             umbral_variacion: (v.umbral ?? 0) / 100,
             margen_minimo: (v.margen ?? 0) / 100,
             vigencia_cotizacion_dias: v.vigencia ?? 0,
+            corte_a: (v.corte_a ?? 80) / 100,
+            corte_b: (v.corte_b ?? 95) / 100,
             motivo: v.motivo.trim() || null,
           }),
         )}
@@ -222,6 +233,30 @@ function FormularioParametros({ parametros }: { parametros: ParametrosCosto }) {
               value={form.values.vigencia ?? ''}
               onChange={(x) => form.setFieldValue('vigencia', numOrNull(x))}
               error={form.errors.vigencia}
+            />
+            <NumberInput
+              label="Pareto: clase A hasta"
+              description="% acumulado de la facturación"
+              suffix=" %"
+              decimalScale={1}
+              decimalSeparator=","
+              min={1}
+              max={99}
+              value={form.values.corte_a ?? ''}
+              onChange={(x) => form.setFieldValue('corte_a', numOrNull(x))}
+              error={form.errors.corte_a}
+            />
+            <NumberInput
+              label="Pareto: clase B hasta"
+              description="el resto es C"
+              suffix=" %"
+              decimalScale={1}
+              decimalSeparator=","
+              min={1}
+              max={99}
+              value={form.values.corte_b ?? ''}
+              onChange={(x) => form.setFieldValue('corte_b', numOrNull(x))}
+              error={form.errors.corte_b}
             />
           </SimpleGrid>
           <Group align="flex-end" wrap="wrap">

@@ -34,6 +34,9 @@ import { PaginaSolicitudesPago } from '@/features/administracion/PaginaSolicitud
 import { PaginaReportes } from '@/features/administracion/PaginaReportes';
 import { PaginaPrecios } from '@/features/comercial/PaginaPrecios';
 import { PaginaCostos } from '@/features/costos/PaginaCostos';
+import { PanelProducto } from '@/features/costos/PanelProducto';
+import { PaginaResultado } from '@/features/costos/PaginaResultado';
+import { PaginaEficiencia } from '@/features/costos/PaginaEficiencia';
 import { PaginaPlanificacion } from '@/features/produccion/Planificacion';
 import { PaginaVisibilidad } from '@/features/usuarios/PaginaVisibilidad';
 import { PaginaOrdenes } from '@/features/produccion/PaginaOrdenes';
@@ -76,6 +79,9 @@ export function AppRoutes() {
       <Route path="/clientes" element={<PaginaClientes />} />
       <Route path="/precios" element={<PaginaPrecios />} />
       <Route path="/costos" element={<PaginaCostos />} />
+      <Route path="/costos/producto/:id" element={<PanelProducto />} />
+      <Route path="/resultado" element={<PaginaResultado />} />
+      <Route path="/eficiencia" element={<PaginaEficiencia />} />
       <Route path="/facturas" element={<PaginaFacturas />} />
       <Route path="/administracion" element={<PaginaAdministracion />} />
       <Route path="/tesoreria" element={<PaginaTesoreria />} />

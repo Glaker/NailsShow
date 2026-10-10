@@ -1892,3 +1892,22 @@ confirmar fondo transparente).
 
 PGlite en esta máquina: correr las suites **de a una**; con dos en paralelo V8
 se queda sin memoria («Fatal process out of memory: Zone»).
+
+### Fases 2, 3 y 4 — hechas, sin aplicar (2026-10-09)
+
+| Migración | Qué |
+| --- | --- |
+| `20261009130000_comercial_panel_producto` | foto mensual del costo (`fotos_costo_producto`, sin cron: D-47), `historia_precios`, stock valorizado de insumos y PT, sello de `cargado_en` en precios |
+| `…140000_comercial_gastos_y_resultado` | `factura_renglones` (D-49, con backfill), `categorias_gasto`, `gastos`, amortizaciones, `v_resultado_gestion` (equilibrio D-48), `v_resultado_mensual` toma gastos (D-46) |
+| `…150000_comercial_pareto_y_eficiencia` | parámetros «último no nulo» + cortes del Pareto, `pareto()`, rotación, precios por proveedor, alertas de precio (D-50) |
+
+Front: panel por producto (`/costos/producto/:id`), pestañas Stock y Gastos,
+`/resultado` (inicio de Finanzas) y `/eficiencia`; selector global de moneda en
+la barra (`vistaMoneda.tsx`); gráficos SVG propios (líneas, barras pareadas,
+resultado, Pareto, matriz) con paleta validada (`--serie-1..4`).
+Pruebas: `probar_panel_producto` (11), `probar_resultado` (15),
+`probar_pareto` (8), `probar_datos_practica` (8).
+
+**Fase 5 (cotizador):** migración escrita en
+`supabase/tests/pglite/en_preparacion/` (las pruebas no la cargan), sin probar
+ni revisar. Falta front, vista de gerencia y PDF. **Fase 6:** sin empezar.

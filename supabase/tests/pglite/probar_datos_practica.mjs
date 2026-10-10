@@ -68,6 +68,19 @@ await prueba('costos de práctica: series, insumos con compras, aviso y producto
       || pr.length < 3 || !pr.every((x) => N(x.costo_unitario) > 0))
     throw new Error(JSON.stringify({ s, o, av, sc, pr }));
 });
+await prueba('práctica, Fase 2: 12 meses de costo y precios por banda en los productos de ejemplo', async () => {
+  const f = await uno(`select count(distinct mes)::int meses, count(distinct producto_id)::int productos from comercial.fotos_costo_producto`);
+  const p = await uno(`select producto_id from comercial.fotos_costo_producto limit 1`);
+  const h = await q(`select banda, count(*)::int n from comercial.historia_precios($1, 12) group by banda`, [p.producto_id]);
+  if (f.meses !== 11 || f.productos < 3 || h.length !== 3 || !h.every((x) => x.n === 12)) throw new Error(JSON.stringify({ f, h }));
+});
+await prueba('práctica, Fase 3: 12 meses facturados y el resultado cruza el punto de equilibrio', async () => {
+  await db.exec(`select set_config('request.jwt.claims', json_build_object('rol','FINANZAS','roles',json_build_array('FINANZAS'),'usuario_id',(select id from core.usuarios where email='verificacion@nailshow.com.ar'),'role','authenticated')::text, false)`);
+  const r = await q(`select mes, facturacion, resultado from comercial.v_resultado_gestion where facturacion > 0`);
+  const gana = r.filter((x) => Number(x.resultado) > 0).length;
+  const pierde = r.filter((x) => Number(x.resultado) < 0).length;
+  if (r.length < 12 || gana === 0 || pierde === 0) throw new Error(JSON.stringify(r.map((x) => [x.mes, x.facturacion, x.resultado])));
+});
 await prueba('la siembra de práctica se niega a correr en una base con la cuenta real de Nazarena', async () => {
   await db.exec('reset role');
   await db.exec('savepoint g');

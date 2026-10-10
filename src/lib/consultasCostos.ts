@@ -246,6 +246,9 @@ export interface ParametrosCosto {
   serie_tipo_cambio: string;
   cargado_por: string | null;
   cargado_en: string | null;
+  /** Cortes del Pareto (Fase 4). */
+  corte_a: number;
+  corte_b: number;
 }
 
 export type SerieMacro = 'IPC' | 'TC_A3500_PROMEDIO' | 'TC_A3500_CIERRE';
@@ -453,6 +456,8 @@ export function useParametrosCosto() {
         'umbral_variacion',
         'margen_minimo',
         'vigencia_cotizacion_dias',
+        'corte_a',
+        'corte_b',
       ]);
     },
   });
@@ -646,6 +651,8 @@ export function useCargarParametros() {
       umbral_variacion: number;
       margen_minimo: number;
       vigencia_cotizacion_dias: number;
+      corte_a?: number;
+      corte_b?: number;
       motivo: string | null;
     }) => {
       const { error } = await sinTipos().from('parametros_costo').insert(p);
@@ -745,5 +752,443 @@ export function useMarcarAvisoVisto() {
     },
     onSuccess: () => invalidarCostos(qc),
     onError: avisarError,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Fase 2: panel por producto (20261009130000)
+// ---------------------------------------------------------------------------
+
+export interface FotoCosto {
+  mes: string;
+  producto_id: string;
+  costo_unitario: number | null;
+  granel: number | null;
+  acondicionamiento: number | null;
+  mano_de_obra: number | null;
+  faltantes: number;
+  formula_estado: string | null;
+}
+
+export type Banda = 'CONSUMIDOR_FINAL' | 'MAYORISTA' | 'MAYORISTA_PROMO';
+
+export const ETIQUETA_BANDA: Record<Banda, string> = {
+  CONSUMIDOR_FINAL: 'Consumidor final',
+  MAYORISTA: 'Mayorista',
+  MAYORISTA_PROMO: 'Mayorista con promoción',
+};
+
+export interface PrecioHistorico {
+  mes: string;
+  banda: Banda;
+  precio_neto: number;
+}
+
+export interface StockInsumoValorizado {
+  lote_insumo_id: string;
+  insumo_id: string;
+  codigo_interno: string;
+  insumo: string;
+  tipo: string;
+  deposito_id: string;
+  saldo: number;
+  unidad: string;
+  unidad_medida: string | null;
+  saldo_unidad_catalogo: number | null;
+  costo_unitario_ars: number | null;
+  origen_costo: string | null;
+  valor_ars: number | null;
+}
+
+export interface StockPtValorizado {
+  deposito_id: string;
+  deposito: string;
+  producto_id: string;
+  producto: string;
+  saldo: number;
+  retenido: number;
+  costo_unitario: number | null;
+  faltantes: number | null;
+  valor_ars: number | null;
+}
+
+/**
+ * Toma (o actualiza) la foto del mes en curso. La llama el panel al abrirse:
+ * así la historia mensual se arma sola sin una tarea programada (D-47).
+ */
+export function useTomarFotoCostos() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await sinTipos().rpc('tomar_foto_costos');
+      if (error) throw error as Error;
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['costos', 'fotos'] }),
+  });
+}
+
+export function useFotosCosto(productoId: string | null) {
+  return useQuery({
+    queryKey: ['costos', 'fotos', productoId],
+    enabled: !!productoId,
+    queryFn: async () =>
+      (
+        await leer<Record<string, unknown>[]>(
+          sinTipos()
+            .from('fotos_costo_producto')
+            .select('mes, producto_id, costo_unitario, granel, acondicionamiento, mano_de_obra, faltantes, formula_estado')
+            .eq('producto_id', productoId!)
+            .order('mes'),
+        )
+      ).map((f) =>
+        numeros<FotoCosto>(f, ['costo_unitario', 'granel', 'acondicionamiento', 'mano_de_obra', 'faltantes']),
+      ),
+  });
+}
+
+export function useHistoriaPrecios(productoId: string | null, meses = 12) {
+  return useQuery({
+    queryKey: ['costos', 'precios', productoId, meses],
+    enabled: !!productoId,
+    queryFn: async () =>
+      (
+        await leer<Record<string, unknown>[]>(
+          sinTipos().rpc('historia_precios', { p_producto_id: productoId, p_meses: meses }),
+        )
+      ).map((f) => numeros<PrecioHistorico>(f, ['precio_neto'])),
+  });
+}
+
+export function useStockValorizadoInsumos() {
+  return useQuery({
+    queryKey: ['costos', 'stock-insumos'],
+    queryFn: async () =>
+      (
+        await leer<Record<string, unknown>[]>(
+          sinTipos().from('v_stock_valorizado_insumos').select('*').order('codigo_interno'),
+        )
+      ).map((f) =>
+        numeros<StockInsumoValorizado>(f, [
+          'saldo',
+          'saldo_unidad_catalogo',
+          'costo_unitario_ars',
+          'valor_ars',
+        ]),
+      ),
+  });
+}
+
+export function useStockValorizadoPt() {
+  return useQuery({
+    queryKey: ['costos', 'stock-pt'],
+    staleTime: 60_000,
+    queryFn: async () =>
+      (
+        await leer<Record<string, unknown>[]>(
+          sinTipos().from('v_stock_valorizado_pt').select('*').order('producto'),
+        )
+      ).map((f) =>
+        numeros<StockPtValorizado>(f, ['saldo', 'retenido', 'costo_unitario', 'faltantes', 'valor_ars']),
+      ),
+  });
+}
+
+/** Margen sobre el precio (el del punto de equilibrio): m = (P − C) / P. */
+export const margenSobrePrecio = (precio: number, costo: number) =>
+  precio > 0 ? (precio - costo) / precio : null;
+
+/**
+ * Sensibilidad: si un componente que pesa `subtotal` en un costo `total` sube
+ * `variacion` (fracción), el costo total sube subtotal × variación / total.
+ */
+export const sensibilidad = (subtotal: number, total: number, variacion: number) =>
+  total > 0 ? (subtotal * variacion) / total : 0;
+
+// ---------------------------------------------------------------------------
+// Fase 3: gastos y resultado de gestión (20261009140000)
+// ---------------------------------------------------------------------------
+
+export type ClaseGasto = 'FIJO' | 'OPERATIVO' | 'INVERSION';
+
+export const ETIQUETA_CLASE: Record<ClaseGasto, string> = {
+  FIJO: 'Costo fijo',
+  OPERATIVO: 'Gasto operativo',
+  INVERSION: 'Inversión',
+};
+
+export interface CategoriaGasto {
+  id: string;
+  nombre: string;
+  clase: ClaseGasto;
+  es_nomina_produccion: boolean;
+  activa: boolean;
+}
+
+export interface Gasto {
+  id: string;
+  categoria_id: string;
+  categoria: string;
+  clase: ClaseGasto;
+  es_nomina_produccion: boolean;
+  mes: string;
+  fecha: string;
+  descripcion: string;
+  tipo_comprobante: Comprobante;
+  importe: number;
+  moneda: Moneda;
+  tipo_cambio: number;
+  importe_neto_ars: number;
+  vida_util_meses: number | null;
+  comprobante_url: string | null;
+  cargado_por: string;
+  cargado_en: string;
+}
+
+export interface ResultadoMes {
+  mes: string;
+  facturacion: number;
+  costo_variable: number;
+  margen_contribucion: number;
+  margen_contribucion_pct: number | null;
+  costos_fijos: number;
+  nomina_produccion: number;
+  mano_de_obra_vendida: number;
+  mano_de_obra_no_absorbida: number;
+  gastos_operativos: number;
+  amortizaciones: number;
+  costos_estructura: number;
+  /** Para el equilibrio: fijos + nómina + operativos + amortizaciones (D-48). */
+  estructura_equilibrio: number;
+  margen_sin_mano_de_obra: number;
+  costos_totales: number;
+  resultado: number;
+  facturacion_equilibrio: number | null;
+  gastos_sin_comprobante: number;
+  productos_sin_costo: number;
+  productos_costo_incompleto: number;
+}
+
+export const ROLES_CARGAN_GASTOS: Rol[] = [FINANZAS, 'GERENCIA', 'ADMINISTRACION', 'GERENCIA_PRODUCCION'];
+
+export function useCategoriasGasto() {
+  return useQuery({
+    queryKey: ['costos', 'categorias'],
+    queryFn: async () =>
+      leer<CategoriaGasto[]>(sinTipos().from('categorias_gasto').select('*').order('clase').order('nombre')),
+  });
+}
+
+export function useGastos() {
+  return useQuery({
+    queryKey: ['costos', 'gastos'],
+    queryFn: async () =>
+      (
+        await leer<Record<string, unknown>[]>(
+          sinTipos().from('v_gastos').select('*').order('mes', { ascending: false }).order('cargado_en', { ascending: false }),
+        )
+      ).map((f) => numeros<Gasto>(f, ['importe', 'tipo_cambio', 'importe_neto_ars', 'vida_util_meses'])),
+  });
+}
+
+export function useCargarGasto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (g: {
+      categoria_id: string;
+      mes: string;
+      descripcion: string;
+      tipo_comprobante: Comprobante;
+      importe: number;
+      incluye_iva: boolean | null;
+      alicuota_iva: number | null;
+      moneda: Moneda;
+      tipo_cambio: number;
+      vida_util_meses: number | null;
+      comprobante_url: string | null;
+      rectifica_a?: string | null;
+      motivo?: string | null;
+    }) => {
+      const { error } = await sinTipos().from('gastos').insert(filaCosto(g));
+      if (error) throw error as Error;
+    },
+    onSuccess: (_d, g) => {
+      invalidarCostos(qc);
+      avisarExito(g.rectifica_a ? 'Gasto corregido. El anterior queda en el historial.' : 'Gasto cargado.');
+    },
+    onError: avisarError,
+  });
+}
+
+export function useResultadoGestion() {
+  return useQuery({
+    queryKey: ['costos', 'resultado'],
+    queryFn: async () =>
+      (
+        await leer<Record<string, unknown>[]>(sinTipos().from('v_resultado_gestion').select('*').order('mes'))
+      ).map((f) =>
+        numeros<ResultadoMes>(f, [
+          'facturacion',
+          'costo_variable',
+          'margen_contribucion',
+          'margen_contribucion_pct',
+          'costos_fijos',
+          'nomina_produccion',
+          'mano_de_obra_vendida',
+          'mano_de_obra_no_absorbida',
+          'gastos_operativos',
+          'amortizaciones',
+          'costos_estructura',
+          'estructura_equilibrio',
+          'margen_sin_mano_de_obra',
+          'costos_totales',
+          'resultado',
+          'facturacion_equilibrio',
+          'gastos_sin_comprobante',
+          'productos_sin_costo',
+          'productos_costo_incompleto',
+        ]),
+      ),
+  });
+}
+
+/**
+ * Punto de equilibrio multiproducto: costos de estructura / margen de
+ * contribución %. Misma cuenta que v_resultado_gestion; acá se usa para
+ * recalcularlo en la moneda que se elige (dólares o pesos constantes).
+ */
+export function equilibrio(facturacion: number, margenContribucion: number, estructura: number): number | null {
+  if (facturacion <= 0 || margenContribucion <= 0) return null;
+  return estructura / (margenContribucion / facturacion);
+}
+
+// ---------------------------------------------------------------------------
+// Fase 4: Pareto ABC y eficiencia (20261009150000)
+// ---------------------------------------------------------------------------
+
+export interface FilaPareto {
+  producto_id: string;
+  codigo_interno: string;
+  producto: string;
+  unidades: number;
+  facturacion: number;
+  participacion: number;
+  acumulado: number;
+  clase: 'A' | 'B' | 'C';
+  costo_variable: number | null;
+  margen: number | null;
+  margen_pct: number | null;
+  costo_incompleto: boolean;
+}
+
+export interface RotacionInsumo {
+  insumo_id: string;
+  codigo_interno: string;
+  insumo: string;
+  unidad_medida: string | null;
+  saldo: number | null;
+  valor_ars: number | null;
+  lotes_sin_costo: number;
+  consumo_90d: number;
+  consumo_diario: number;
+  dias_de_stock: number | null;
+  rotacion_anual: number | null;
+}
+
+export interface PrecioProveedor {
+  insumo_id: string;
+  codigo_interno: string;
+  insumo: string;
+  unidad_medida: string | null;
+  proveedor_id: string;
+  proveedor: string;
+  compras: number;
+  ultima_compra: string | null;
+  ultimo_precio: number | null;
+  precio_promedio_hoy: number | null;
+  precio_minimo_hoy: number | null;
+}
+
+export interface AlertaPrecio {
+  producto_id: string;
+  codigo_interno: string;
+  producto: string;
+  banda: Banda;
+  precio_neto: number;
+  costo_unitario: number;
+  margen_pct: number;
+  alerta: 'BAJO_COSTO' | 'BAJO_MARGEN_MINIMO';
+  costo_incompleto: boolean;
+}
+
+export function usePareto(desde: string, hasta: string) {
+  return useQuery({
+    queryKey: ['costos', 'pareto', desde, hasta],
+    queryFn: async () =>
+      (
+        await leer<Record<string, unknown>[]>(
+          sinTipos().rpc('pareto', { p_desde: desde, p_hasta: hasta }),
+        )
+      ).map((f) =>
+        numeros<FilaPareto>(f, [
+          'unidades',
+          'facturacion',
+          'participacion',
+          'acumulado',
+          'costo_variable',
+          'margen',
+          'margen_pct',
+        ]),
+      ),
+  });
+}
+
+export function useRotacionInsumos() {
+  return useQuery({
+    queryKey: ['costos', 'rotacion'],
+    queryFn: async () =>
+      (
+        await leer<Record<string, unknown>[]>(
+          sinTipos().from('v_rotacion_insumos').select('*').order('valor_ars', { ascending: false, nullsFirst: false }),
+        )
+      ).map((f) =>
+        numeros<RotacionInsumo>(f, [
+          'saldo',
+          'valor_ars',
+          'lotes_sin_costo',
+          'consumo_90d',
+          'consumo_diario',
+          'dias_de_stock',
+          'rotacion_anual',
+        ]),
+      ),
+  });
+}
+
+export function usePreciosProveedor() {
+  return useQuery({
+    queryKey: ['costos', 'precios-proveedor'],
+    queryFn: async () =>
+      (
+        await leer<Record<string, unknown>[]>(
+          sinTipos().from('v_precios_proveedor').select('*').order('codigo_interno'),
+        )
+      ).map((f) =>
+        numeros<PrecioProveedor>(f, [
+          'compras',
+          'ultimo_precio',
+          'precio_promedio_hoy',
+          'precio_minimo_hoy',
+        ]),
+      ),
+  });
+}
+
+export function useAlertasPrecio() {
+  return useQuery({
+    queryKey: ['costos', 'alertas-precio'],
+    queryFn: async () =>
+      (
+        await leer<Record<string, unknown>[]>(sinTipos().from('v_alertas_precio').select('*').order('margen_pct'))
+      ).map((f) => numeros<AlertaPrecio>(f, ['precio_neto', 'costo_unitario', 'margen_pct'])),
   });
 }

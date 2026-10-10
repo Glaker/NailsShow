@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Badge,
   Button,
@@ -194,6 +195,11 @@ export function PestaniaProductos() {
         centered
         size="xl"
       >
+        {abierto ? (
+          <Button component={Link} to={`/costos/producto/${abierto.producto_id}`} variant="light" mb="md">
+            Ver panel del producto (gráficos, precios y stock)
+          </Button>
+        ) : null}
         {abierto ? (
           <DesgloseProducto
             producto={abierto}

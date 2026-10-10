@@ -43,10 +43,21 @@
   --app-barra-activa: rgba(0, 0, 0, 0.07);
   --app-barra-activa-texto: #1d1d1f;
   --app-desplazamiento: #c7c7cc;
+  /* Series de los gráficos de costos, en orden fijo (validadas con el
+     verificador de paletas: banda de luminosidad, croma, daltonismo y
+     contraste contra la superficie). Ninguna es de las reservadas de I.20.2. */
+  --serie-1: #0071e3;
+  --serie-2: #e8590c;
+  --serie-3: #1098ad;
+  --serie-4: #ae3ec9;
 }
 
 :root[data-mantine-color-scheme='dark'] {
   --app-fondo: #000000;
+  --serie-1: #2997ff;
+  --serie-2: #e8590c;
+  --serie-3: #1098ad;
+  --serie-4: #be4bdb;
   --superficie-borde: #2c2c2e;
   --superficie-tenue: #161618;
   --app-barra: #121214;
@@ -735,4 +746,14 @@ a.contador:hover {
 ::view-transition-new(root) {
   animation-duration: 260ms;
   animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* Texto sólo para lectores de pantalla (tablas de los gráficos). */
+.solo-lector {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }

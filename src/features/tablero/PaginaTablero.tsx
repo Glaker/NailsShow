@@ -40,7 +40,7 @@ import {
 import { COLORES_ESTADO_ROTULO } from '@/app/theme';
 import { diasHasta, fecha, numero } from '@/lib/formato';
 import { FINANZAS, useSesion } from '@/features/auth/sesion';
-import { PaginaCostos } from '@/features/costos/PaginaCostos';
+import { PaginaResultado } from '@/features/costos/PaginaResultado';
 import { InicioPedidos } from '@/features/produccion/Planificacion';
 import { PaginaAdministracion } from '@/features/administracion/PaginaAdministracion';
 import { PaginaArmado } from '@/features/ventas/PaginaArmado';
@@ -73,8 +73,8 @@ function TarjetaPanel({
  */
 export function PaginaTablero() {
   const { claims } = useSesion();
-  // Finanzas entra a Costos hasta que la Fase 3 traiga el tablero de resultado.
-  if (claims?.rol === FINANZAS) return <PaginaCostos />;
+  // Finanzas entra al resultado de gestión (gráfico principal de la Fase 3).
+  if (claims?.rol === FINANZAS) return <PaginaResultado />;
   switch (claims?.rol) {
     case 'ADMINISTRACION':
       return <PaginaAdministracion />;

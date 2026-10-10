@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { resolverVariables, theme } from './theme';
 import { ProveedorSesion } from '@/features/auth/sesion';
+import { ProveedorVistaMoneda } from '@/features/costos/vistaMoneda';
 
 /**
  * Proveedores de la aplicación.
@@ -42,7 +43,9 @@ export function Providers({ children }: { children: ReactNode }) {
       <ModalsProvider>
         <ProveedorSesion>
           <QueryClientProvider client={queryClient}>
-            <BrowserRouter>{children}</BrowserRouter>
+            <ProveedorVistaMoneda>
+              <BrowserRouter>{children}</BrowserRouter>
+            </ProveedorVistaMoneda>
           </QueryClientProvider>
         </ProveedorSesion>
       </ModalsProvider>

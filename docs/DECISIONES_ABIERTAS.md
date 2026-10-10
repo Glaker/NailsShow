@@ -605,7 +605,86 @@ Mientras no se haga, contradice D-38 en el dato más directo: el precio de
 compra.
 **Decide.** Gerencia.
 
+### D-51 · Compras y gastos en el «resultado mensual» de Administración
+
+**Contexto.** Desde la Fase 3, `comercial.v_resultado_mensual` (Reportes de
+Administración) resta las compras (comprobantes de proveedor) y los gastos de
+`comercial.gastos` (D-46). `comprobantes_proveedor` admite comprobantes de
+servicios sin recepción: si la luz, el estudio contable o una máquina se
+cargan en Cuentas de proveedores **y** además como gasto, en ese reporte
+cuentan dos veces (la máquina, entera en compras y además amortizada).
+`v_resultado_gestion` (el resultado del módulo de costos) no usa compras y no
+tiene este problema.
+**Propuesta.** Un `gastos.comprobante_proveedor_id` opcional, y excluir de
+«compras» los comprobantes que ya están imputados a un gasto. O decidir que el
+reporte de Administración muestre sólo compras de mercadería.
+**Mientras tanto.** El comentario de la vista lo advierte; no se inventa la
+regla.
+**Decide.** Finanzas con Administración.
+
 ## Resueltas
+
+### D-50 · Pareto y eficiencia: criterios de la Fase 4 — 2026-10-09, adoptada
+
+- **Pareto ABC** sobre la facturación neta por producto (`factura_renglones`,
+  D-49) del período elegido. Cortes configurables por Finanzas (80 % y 95 %
+  por defecto). Un producto que cruza un corte queda en la clase de abajo del
+  corte (el que completa el 80 % es A).
+- **Un solo eje** en la curva de Pareto: barras de participación y acumulado,
+  ambos en porcentaje. Nunca dos escalas.
+- **Margen** del producto = (facturación − costo de lo vendido con la foto del
+  mes) / facturación. Sin costo completo no se muestra margen: no se inventa.
+- **Rotación y días de stock**: consumo de producción de los últimos 90 días
+  (`SALIDA_CONSUMO_PRODUCCION`); días = saldo / consumo diario; rotación anual
+  = consumo anualizado / saldo. Capital inmovilizado = saldo × costo del lote.
+- **Precios por proveedor**: precio unitario neto de cada compra, sin
+  accesorios; promedio y mínimo llevados a pesos de hoy con el IPC.
+- **Agregadas** (el pedido invitaba a proponer): alerta de banda de precio por
+  debajo del costo y alerta de margen por debajo del mínimo de Finanzas.
+
+### D-48 · Mano de obra sin contarla dos veces — 2026-10-09, adoptada
+
+**Pedido.** Costos fijos sólo con sueldos no productivos, más una línea «mano
+de obra no absorbida» = nómina de producción − mano de obra asignada a
+productos.
+**Resolución.** La nómina de producción se carga como gasto en su categoría
+(«Nómina de producción», `es_nomina_produccion`), que no suma como costo fijo.
+La mano de obra asignada es la que va en el costo de lo **vendido** del mes
+(unidades facturadas × mano de obra unitaria de la foto del mes). No absorbida
+= nómina − asignada. Así la nómina entra una sola vez y completa: una parte en
+el costo de lo vendido y el resto como estructura. Si un mes se vende más mano
+de obra de la que se pagó (se vendió stock de meses anteriores), la no
+absorbida sale negativa y se muestra así, sin taparla. Sin nómina cargada, la
+línea queda en cero (no se supone).
+**Revisar** con Finanzas si prefiere asignar sobre lo **producido** (órdenes
+terminadas) en vez de lo vendido.
+
+### D-49 · Renglones de factura — 2026-10-09, adoptada
+
+`comercial.factura_renglones` es la foto por producto de lo facturado, tomada
+al emitir con la misma cuenta que `comercial.preparar_factura` (en una venta,
+lo despachado; si no, lo pedido; en factura C el total con IVA, porque no hay
+débito fiscal). La nota de crédito copia los renglones de su factura (la NC es
+siempre por el total). El Pareto y el costo de lo vendido salen de acá, no de
+`pedido_renglones`. Lo emitido antes de la migración se completó con la misma
+cuenta. El redondeo por renglón puede diferir en centavos del neto de la
+factura, que se redondea por alícuota.
+
+### D-47 · Foto mensual del costo sin tarea programada — 2026-10-09, adoptada
+
+**Contexto.** El pedido exige una foto mensual del costo de cada producto
+para que la historia no se reescriba cuando cambia un precio. Una tarea
+programada (`pg_cron`) correría como `postgres`, y
+`core.es_escritura_privilegiada` marca como anomalía toda escritura que no
+venga de `authenticated` (CLAUDE.md §5): sería una anomalía por mes, a
+propósito, que entrenaría a ignorar la vista de escrituras privilegiadas.
+**Resolución.** `comercial.tomar_foto_costos()` (SECURITY INVOKER) toma o
+actualiza la foto del mes en curso con la sesión de quien abre el panel de un
+producto. Un mes cerrado no se modifica (trigger). Sólo se reescribe lo que
+cambió, para no llenar la auditoría. Si en un mes nadie abrió costos, ese mes
+queda sin foto y el gráfico lo muestra como hueco: no se inventa.
+**Revisar** si Finanzas prefiere una foto garantizada aunque sea con rol
+dedicado (§5), aceptando la anomalía mensual documentada.
 
 ### R-10 · Costeo por identificación específica — 2026-10-09
 

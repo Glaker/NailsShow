@@ -37,6 +37,7 @@ import { useSesion } from '@/features/auth/sesion';
 import { etiquetaEnum } from '@/lib/formato';
 import { SUPERFICIE } from './theme';
 import { MODO_PRACTICA } from '@/lib/practica';
+import { SelectorMoneda } from '@/features/costos/vistaMoneda';
 
 /** Cartel fijo de la app de práctica: datos inventados, nada se factura. */
 export function CartelPractica() {
@@ -213,6 +214,9 @@ function ContenidoBarra({ onNavegar }: { onNavegar?: (() => void) | undefined })
       </ScrollArea>
 
       <Box p="sm">
+        <Box mb="sm" px={4}>
+          <SelectorMoneda />
+        </Box>
         <TarjetaUsuario />
       </Box>
     </Stack>
@@ -351,6 +355,11 @@ export function Layout({ children }: { children: ReactNode }) {
               <Burger opened={panelAbierto} onClick={panel.toggle} size="sm" />
             </Group>
           </Group>
+        ) : null}
+        {esMovil ? (
+          <Box mb="md" className="no-imprimir">
+            <SelectorMoneda compacto />
+          </Box>
         ) : null}
 
         {/* La clave por ruta repite la entrada suave en cada cambio de pantalla. */}

@@ -26,6 +26,8 @@ import {
   IconClipboardText,
   IconRosetteDiscountCheck,
   IconCoin,
+  IconChartLine,
+  IconChartHistogram,
   type Icon,
 } from '@tabler/icons-react';
 import { FINANZAS, useSesion, type Rol } from '@/features/auth/sesion';
@@ -228,6 +230,22 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiquetaCorta: 'Costos',
     icono: IconCoin,
     roles: [FINANZAS, 'GERENCIA', 'ADMINISTRACION', 'GERENCIA_PRODUCCION'],
+  },
+  {
+    // Resultado de gestión y punto de equilibrio (Fase 3 de costos).
+    ruta: '/resultado',
+    etiqueta: 'Resultado',
+    etiquetaCorta: 'Resultado',
+    icono: IconChartLine,
+    roles: [FINANZAS, 'GERENCIA', 'ADMINISTRACION'],
+  },
+  {
+    // Pareto ABC y herramientas de eficiencia (Fase 4 de costos).
+    ruta: '/eficiencia',
+    etiqueta: 'Eficiencia',
+    etiquetaCorta: 'Eficiencia',
+    icono: IconChartHistogram,
+    roles: [FINANZAS, 'GERENCIA', 'ADMINISTRACION'],
   },
   {
     ruta: '/reportes',
