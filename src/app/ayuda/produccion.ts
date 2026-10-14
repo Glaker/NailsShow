@@ -18,6 +18,9 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
         'En «Resumen de pedidos» tocá el número de un pedido para abrirlo.',
         'Abajo hay un Gantt de las próximas dos semanas y un calendario del mes. Acá solo se miran: para mover algo andá a «Planificación».',
         'Al final están las «Tareas de planta», las mismas que ven los operarios. Si la pesada la hacés vos, tocá «Hacer» en esa tarjeta y completala como ellos.',
+        'Asignar es opcional: en cada tarjeta elegí la persona en «Para todos» si querés que sea de alguien. Sin asignar, la ven todos.',
+        '«Nueva tarea» te deja pedir lo que quieras («Poner etiquetas a…»), para alguien o para todos.',
+        'Cuando alguien termina, aparece un puntito rojo al lado de «Tablero» y el aviso «Terminaron»: ahí podés tocar «Asignarle otra tarea» o «Visto».',
       ],
       VENTAS: [
         'Ves los pedidos en curso: cuántos hay, cuántos están en producción, cuántos faltan planificar y cuántos tienen la entrega vencida.',
@@ -49,12 +52,14 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
         'Las tarjetas de arriba te muestran cuántos lotes hay en cada estado y cuántos recibidos esperan su rótulo.',
       ],
       OPERARIO: [
-        'Ves tus tareas de planta: por cada orden que abrió Gerencia de Producción, el próximo paso (pesada, elaboración o fraccionamiento).',
-        'Elegí una y tocá «Hacer».',
+        'Ves tus tareas de planta: por cada orden que abrió Gerencia de Producción, el próximo paso (pesada, elaboración o fraccionamiento), más las tareas que te pidió («Poner etiquetas a…»). Las marcadas «Para todos» las puede hacer cualquiera; las que tienen tu nombre son tuyas.',
+        'Elegí una y tocá «Hacer». Desde ese momento el sistema anota la hora de inicio: no la tenés que escribir.',
         'Contestá las verificaciones previas (área limpia, balanza, vestimenta según protocolo…). Si alguna da «No», anotá el desvío en observaciones.',
         'Completá lo que pide el POE: en la pesada, cuánto pesaste de cada materia prima, el lote y la balanza; en la elaboración, cada paso con su hora y equipo; en el fraccionamiento, envases, horarios y canastas.',
-        'Tocá «Registrar (realizó)»: ese es tu ok y queda en el batch record a tu nombre. Después lo controla otra persona.',
-        'Cuando terminás un paso, aparece el siguiente de esa orden.',
+        'Horarios, fechas, tu nombre y el número de pesada los completa el sistema (dicen «automático»). Al agregar un paso nuevo se cierra la hora del anterior.',
+        'Tocá «Listo, hecho»: ese es tu ok y queda en el batch record a tu nombre. A Producción le llega el aviso.',
+        'En las tareas libres tocá «Empezar» al arrancar y «Listo» al terminar.',
+        'Si dos hicieron la misma etapa, vale la primera que se registró: al segundo le aparece quién la hizo. Si la hicieron entre varios, la carga uno solo.',
       ],
       ADMINISTRADOR_SISTEMA: [
         'Ves el tablero general del circuito de insumos, en modo lectura.',

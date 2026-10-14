@@ -2024,3 +2024,22 @@ hay lotes en análisis.
 - El menú del operario queda solo con el Tablero (sin pedidos, órdenes,
   fórmulas, stock ni lotes). Se reabre por rol en «Quién ve qué». Eso incluye
   la recepción de mercadería: si la hacen operarios, hay que habilitarla ahí.
+
+### Tareas de planta, asignación opcional y horarios automáticos (2026-10-14, APLICADO)
+
+Migraciones `20261014180000_gmp_tareas_planta`, `…180100_gmp_tareas_aviso_terminada`
+y `…180200_gmp_tareas_calidad_cierra`.
+- `gmp.tareas_planta`: tarea de etapa (orden + etapa) o libre (texto de
+  Producción). Asignar es opcional; sin asignación la ven todos. Inicio, fin
+  y «visto» los pone la base. Registrar una etapa de planta termina su tarea.
+- `fn_op_etapa`: si dos registran la misma etapa vale la primera; el segundo
+  recibe «Esta etapa ya la registró X a las HH:MM».
+- Front: horarios (inicio/fin encadenados), fechas, nombre de quien registra y
+  número de pesada son automáticos y de solo lectura
+  (`completarAutomaticos` / `agregarRenglon` en `etapasOrden.ts`, con tests).
+  El inicio sale de cuando se tocó «Hacer».
+- Producción: «Nueva tarea», selector «Para todos / persona» en cada tarjeta,
+  aviso «Terminaron» con «Asignarle otra tarea» / «Visto», y puntito rojo en
+  «Tablero» del menú.
+- Tareas de a varios: las carga uno solo (pedido del codirector).
+Probado en la base real en transacciones revertidas.

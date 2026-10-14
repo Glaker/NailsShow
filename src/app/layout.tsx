@@ -33,6 +33,27 @@ import {
 } from '@tabler/icons-react';
 import { Marca } from '@/components/Marca';
 import { ROLES_CATALOGOS, useItemsVisibles, type ItemNavegacion } from './navegacion';
+import { useAvisosTareas } from '@/lib/consultasTareas';
+
+/** Puntito de aviso: planta terminó tareas que Producción no vio (Tablero). */
+function PuntoAviso({ ruta }: { ruta: string }) {
+  const n = useAvisosTareas().length;
+  if (ruta !== '/' || n === 0) return null;
+  return (
+    <span
+      role="status"
+      aria-label={`${n} ${n === 1 ? 'tarea terminada' : 'tareas terminadas'} sin ver`}
+      style={{
+        width: 9,
+        height: 9,
+        borderRadius: '50%',
+        background: 'var(--mantine-color-estadoRechazado-6)',
+        flexShrink: 0,
+        marginLeft: 'auto',
+      }}
+    />
+  );
+}
 import { useSesion } from '@/features/auth/sesion';
 import { etiquetaEnum } from '@/lib/formato';
 import { SUPERFICIE } from './theme';
@@ -71,6 +92,7 @@ function ItemLateral({
     >
       <Icono size={20} stroke={1.6} />
       <span>{item.etiqueta}</span>
+      <PuntoAviso ruta={item.ruta} />
     </EnlaceRuta>
   );
 }
@@ -264,6 +286,7 @@ function BarraInferior({ onAbrirMenu }: { onAbrirMenu: () => void }) {
               >
                 <Icono size={21} stroke={activo ? 2 : 1.6} />
                 <span>{item.etiquetaCorta}</span>
+                <PuntoAviso ruta={item.ruta} />
               </EnlaceRuta>
             );
           })}

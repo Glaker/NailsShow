@@ -59,7 +59,9 @@ import { useDictaminarGranel, useRegistrosAnalisis } from '@/lib/consultasAnalis
 import { FichaAnalisis, FormularioAnalisis } from '@/features/calidad/RegistroAnalisis';
 import { MasInformacion } from './PanelProcedimiento';
 import {
+  agregarRenglon,
   COLOR_ESTADO_ORDEN,
+  completarAutomaticos,
   CONFIG_ETAPAS,
   unidadesRecuento,
   type Columna,
@@ -362,13 +364,21 @@ export function EditorEtapa({
   etapa,
   registrada,
   onListo,
+  inicio = null,
+  etiquetaRegistrar = 'Registrar (realizó)',
 }: {
   orden: OrdenProduccion;
   etapa: EtapaOrden;
   registrada: EtapaRegistrada | null;
   onListo: () => void;
+  /** Cuándo se empezó la tarea (lo registró la base). Sin él, al abrir. */
+  inicio?: string | null;
+  etiquetaRegistrar?: string;
 }) {
   const config = CONFIG_ETAPAS[etapa];
+  const { claims } = useSesion();
+  const [abiertoEn] = useState(() => new Date());
+  const empezo = inicio ? new Date(inicio) : abiertoEn;
   const guardar = useGuardarEtapa();
   const equipos = useEquipos();
   const pesada = usePesadaTeorica(
@@ -505,6 +515,7 @@ export function EditorEtapa({
               titulo={t.titulo}
               columnas={t.columnas}
               filas={(d[t.clave] as Fila[] | undefined) ?? []}
+              primerInicio={empezo}
               equipos={(equipos.data ?? []).map((e) => ({
                 value: e.codigo,
                 label: `${e.codigo} · ${e.nombre}`,
@@ -646,14 +657,19 @@ export function EditorEtapa({
                 ordenId: orden.id,
                 etapa,
                 ...(registrada ? { id: registrada.id } : {}),
-                datos: d,
+                // Horarios, fechas, nombre y número de pesada: el sistema.
+                datos: completarAutomaticos(config, d, {
+                  ahora: new Date(),
+                  inicio: empezo,
+                  nombre: claims?.nombre ?? '',
+                }),
                 observaciones: obs.trim() || null,
               },
               { onSuccess: onListo },
             )
           }
         >
-          {registrada ? 'Guardar corrección' : 'Registrar (realizó)'}
+          {registrada ? 'Guardar corrección' : etiquetaRegistrar}
         </Button>
       </Group>
     </Stack>
@@ -675,6 +691,25 @@ function Campo({
 }) {
   const etiqueta = compacto ? undefined : columna.titulo;
   const aria = columna.titulo;
+  if (columna.auto) {
+    // Lo completa el sistema (pedido del 2026-10-14): no se tipea.
+    return (
+      <Stack gap={2}>
+        {etiqueta ? (
+          <Text size="sm" fw={500}>
+            {etiqueta}
+          </Text>
+        ) : null}
+        <Text
+          size="sm"
+          {...(valor === null || valor === '' ? { c: 'dimmed' } : {})}
+          aria-label={aria}
+        >
+          {valor === null || valor === '' ? 'automático' : String(valor)}
+        </Text>
+      </Stack>
+    );
+  }
   switch (columna.tipo) {
     case 'numero':
       return (
@@ -762,14 +797,15 @@ function EditorTabla({
   filas,
   equipos,
   onCambiar,
+  primerInicio,
 }: {
   titulo: string;
   columnas: Columna[];
   filas: Fila[];
   equipos: { value: string; label: string }[];
   onCambiar: (f: Fila[]) => void;
+  primerInicio: Date;
 }) {
-  const vacia = Object.fromEntries(columnas.map((c) => [c.clave, null])) as Fila;
   return (
     <Stack gap={6}>
       <Group justify="space-between">
@@ -780,7 +816,9 @@ function EditorTabla({
           size="compact-sm"
           variant="light"
           leftSection={<IconPlus size={14} />}
-          onClick={() => onCambiar([...filas, vacia])}
+          onClick={() =>
+            onCambiar(agregarRenglon(columnas, filas, new Date(), primerInicio) as Fila[])
+          }
         >
           Agregar renglón
         </Button>

@@ -8832,6 +8832,65 @@ export type Database = {
           },
         ]
       }
+      tareas_planta: {
+        Row: {
+          anulada: boolean
+          asignada_a: string | null
+          creada_en: string
+          creada_por: string
+          descripcion: string | null
+          etapa: Database["gmp"]["Enums"]["etapa_orden_enum"] | null
+          id: string
+          iniciada_en: string | null
+          iniciada_por: string | null
+          orden_id: string | null
+          terminada_en: string | null
+          terminada_por: string | null
+          visto_en: string | null
+          visto_por: string | null
+        }
+        Insert: {
+          anulada?: boolean
+          asignada_a?: string | null
+          creada_en?: string
+          creada_por?: string
+          descripcion?: string | null
+          etapa?: Database["gmp"]["Enums"]["etapa_orden_enum"] | null
+          id?: string
+          iniciada_en?: string | null
+          iniciada_por?: string | null
+          orden_id?: string | null
+          terminada_en?: string | null
+          terminada_por?: string | null
+          visto_en?: string | null
+          visto_por?: string | null
+        }
+        Update: {
+          anulada?: boolean
+          asignada_a?: string | null
+          creada_en?: string
+          creada_por?: string
+          descripcion?: string | null
+          etapa?: Database["gmp"]["Enums"]["etapa_orden_enum"] | null
+          id?: string
+          iniciada_en?: string | null
+          iniciada_por?: string | null
+          orden_id?: string | null
+          terminada_en?: string | null
+          terminada_por?: string | null
+          visto_en?: string | null
+          visto_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tareas_planta_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_produccion"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       terceros: {
         Row: {
           activo: boolean
@@ -9196,6 +9255,14 @@ export type Database = {
         Args: { p_id: string; p_vigencia?: string }
         Returns: undefined
       }
+      asignar_etapa: {
+        Args: {
+          p_etapa: Database["gmp"]["Enums"]["etapa_orden_enum"]
+          p_orden_id: string
+          p_usuario: string
+        }
+        Returns: undefined
+      }
       calcular_lote: {
         Args: {
           p_formula_id: string
@@ -9348,6 +9415,35 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      empezar_etapa: {
+        Args: {
+          p_etapa: Database["gmp"]["Enums"]["etapa_orden_enum"]
+          p_orden_id: string
+        }
+        Returns: {
+          anulada: boolean
+          asignada_a: string | null
+          creada_en: string
+          creada_por: string
+          descripcion: string | null
+          etapa: Database["gmp"]["Enums"]["etapa_orden_enum"] | null
+          id: string
+          iniciada_en: string | null
+          iniciada_por: string | null
+          orden_id: string | null
+          terminada_en: string | null
+          terminada_por: string | null
+          visto_en: string | null
+          visto_por: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tareas_planta"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      empezar_tarea: { Args: { p_id: string }; Returns: undefined }
       faltantes_liberacion: {
         Args: { p_id: string }
         Returns: {
@@ -9378,6 +9474,7 @@ export type Database = {
       }
       lote_consumible: { Args: { p_lote_id: string }; Returns: boolean }
       lote_despachable: { Args: { p_lote_id: string }; Returns: boolean }
+      marcar_tarea_vista: { Args: { p_id: string }; Returns: undefined }
       nueva_version_especificacion: {
         Args: { p_id: string; p_motivo: string }
         Returns: string
@@ -9446,6 +9543,7 @@ export type Database = {
         Args: { p_cantidad: number; p_id: string; p_unidades: number }
         Returns: undefined
       }
+      terminar_tarea: { Args: { p_id: string }; Returns: undefined }
     }
     Enums: {
       aprobacion_proveedor_enum: "PENDIENTE" | "APROBADO" | "RECHAZADO"
