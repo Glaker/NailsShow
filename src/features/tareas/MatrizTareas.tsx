@@ -3,7 +3,6 @@ import {
   Badge,
   Button,
   Group,
-  Paper,
   Popover,
   SegmentedControl,
   Stack,
@@ -142,29 +141,45 @@ export function MatrizTareas() {
   };
 
   return (
-    <Stack gap="md">
-      <Group justify="space-between" wrap="wrap">
-        <SegmentedControl
-          value={filtro}
-          onChange={(v) => setFiltro(v as 'todas' | 'mias')}
-          data={[
-            { value: 'todas', label: 'Todas' },
-            { value: 'mias', label: 'Solo las mías' },
-          ]}
-        />
-        <Button
-          leftSection={<IconPlus size={18} />}
-          onClick={() => setCargando((v) => !v)}
+    <Stack gap="sm" h="100%">
+      {/* Una sola franja arriba: la matriz se lleva el resto de la pantalla. */}
+      <Group justify="space-between" wrap="nowrap" gap="sm">
+        <Group gap="md" wrap="nowrap" style={{ minWidth: 0 }}>
+          <SegmentedControl
+            size="xs"
+            value={filtro}
+            onChange={(v) => setFiltro(v as 'todas' | 'mias')}
+            data={[
+              { value: 'todas', label: 'Todas' },
+              { value: 'mias', label: 'Solo las mías' },
+            ]}
+          />
+          <Text size="xs" c="dimmed" truncate visibleFrom="sm">
+            Tocá un pin para ver la tarea. Arrastralo para moverlo.
+          </Text>
+        </Group>
+        <Popover
+          opened={cargando}
+          onChange={setCargando}
+          position="bottom-end"
+          shadow="md"
+          width={340}
+          trapFocus
         >
-          Nueva tarea
-        </Button>
+          <Popover.Target>
+            <Button
+              size="sm"
+              leftSection={<IconPlus size={16} />}
+              onClick={() => setCargando((v) => !v)}
+            >
+              Nueva tarea
+            </Button>
+          </Popover.Target>
+          <Popover.Dropdown>
+            <NuevaTarea onListo={() => setCargando(false)} />
+          </Popover.Dropdown>
+        </Popover>
       </Group>
-
-      <Text size="sm" c="dimmed">
-        Tocá un pin para ver la tarea y quién la asignó. Arrastralo para moverlo a donde quieras.
-      </Text>
-
-      {cargando ? <NuevaTarea onListo={() => setCargando(false)} /> : null}
 
       <div
         ref={tablero}
@@ -321,65 +336,69 @@ function NuevaTarea({ onListo }: { onListo: () => void }) {
   const [compartida, setCompartida] = useState(true);
   const [donde, setDonde] = useState<(typeof CUADRANTES)[number]['clave']>('hacer');
   return (
-    <Paper withBorder p="md" style={{ borderColor: 'var(--superficie-borde)' }}>
-      <Stack gap="sm">
-        <TextInput
-          label="Tarea"
-          placeholder="Llamar al proveedor de envases…"
-          maxLength={120}
-          value={titulo}
-          onChange={(e) => setTitulo(e.currentTarget.value)}
-          data-autofocus
-        />
-        <Textarea
-          label="Detalle (opcional)"
-          autosize
-          minRows={1}
-          value={detalle}
-          onChange={(e) => setDetalle(e.currentTarget.value)}
-        />
-        <Group gap="md" wrap="wrap">
-          <SegmentedControl
-            value={compartida ? 'comun' : 'propia'}
-            onChange={(v) => setCompartida(v === 'comun')}
-            data={[
-              { value: 'comun', label: 'Común (la ven todos)' },
-              { value: 'propia', label: 'Propia (solo yo)' },
-            ]}
-          />
-          <SegmentedControl
-            value={donde}
-            onChange={(v) => setDonde(v as typeof donde)}
-            data={CUADRANTES.map((c) => ({ value: c.clave, label: c.titulo }))}
-          />
-        </Group>
-        <Group justify="flex-end">
-          <Button variant="subtle" color="gray" onClick={onListo}>
-            Cancelar
-          </Button>
-          <Button
-            disabled={!titulo.trim()}
-            loading={crear.isPending}
-            onClick={() => {
-              const c = CUADRANTES.find((q) => q.clave === donde)!;
-              // Un poco de dispersión para que no caigan todas en el mismo lugar.
-              const j = () => (Math.random() - 0.5) * 0.16;
-              crear.mutate(
-                {
-                  titulo: titulo.trim(),
-                  detalle: detalle.trim() || null,
-                  compartida,
-                  pos_x: limitar(c.x + j()),
-                  pos_y: limitar(c.y + j()),
-                },
-                { onSuccess: onListo },
-              );
-            }}
-          >
-            Clavar en la matriz
-          </Button>
-        </Group>
-      </Stack>
-    </Paper>
+    <Stack gap="xs">
+      <TextInput
+        size="sm"
+        label="Tarea"
+        placeholder="Llamar al proveedor de envases…"
+        maxLength={120}
+        value={titulo}
+        onChange={(e) => setTitulo(e.currentTarget.value)}
+        data-autofocus
+      />
+      <Textarea
+        size="sm"
+        label="Detalle (opcional)"
+        autosize
+        minRows={1}
+        maxRows={3}
+        value={detalle}
+        onChange={(e) => setDetalle(e.currentTarget.value)}
+      />
+      <SegmentedControl
+        size="xs"
+        fullWidth
+        value={compartida ? 'comun' : 'propia'}
+        onChange={(v) => setCompartida(v === 'comun')}
+        data={[
+          { value: 'comun', label: 'Común' },
+          { value: 'propia', label: 'Solo yo' },
+        ]}
+      />
+      <SegmentedControl
+        size="xs"
+        fullWidth
+        value={donde}
+        onChange={(v) => setDonde(v as typeof donde)}
+        data={CUADRANTES.map((c) => ({ value: c.clave, label: c.titulo }))}
+      />
+      <Group justify="flex-end" gap="xs">
+        <Button size="sm" variant="subtle" color="gray" onClick={onListo}>
+          Cancelar
+        </Button>
+        <Button
+          size="sm"
+          disabled={!titulo.trim()}
+          loading={crear.isPending}
+          onClick={() => {
+            const c = CUADRANTES.find((q) => q.clave === donde)!;
+            // Un poco de dispersión para que no caigan todas en el mismo lugar.
+            const j = () => (Math.random() - 0.5) * 0.16;
+            crear.mutate(
+              {
+                titulo: titulo.trim(),
+                detalle: detalle.trim() || null,
+                compartida,
+                pos_x: limitar(c.x + j()),
+                pos_y: limitar(c.y + j()),
+              },
+              { onSuccess: onListo },
+            );
+          }}
+        >
+          Clavar
+        </Button>
+      </Group>
+    </Stack>
   );
 }

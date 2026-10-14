@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { ActionIcon, Button, Modal, Text, Tooltip } from '@mantine/core';
-import { useMediaQuery } from '@mantine/hooks';
 import { IconPinned } from '@tabler/icons-react';
 import { useSesion } from '@/features/auth/sesion';
 import { MatrizTareas } from './MatrizTareas';
@@ -13,7 +12,6 @@ import { MatrizTareas } from './MatrizTareas';
 export function BotonTareas({ compacto = false }: { compacto?: boolean }) {
   const { claims } = useSesion();
   const [abierta, setAbierta] = useState(false);
-  const movil = useMediaQuery('(max-width: 48em)');
   if (!claims?.rol || claims.rol === 'OPERARIO') return null;
 
   return (
@@ -47,8 +45,8 @@ export function BotonTareas({ compacto = false }: { compacto?: boolean }) {
             Tareas
           </Text>
         }
-        size="min(1280px, 96vw)"
-        fullScreen={Boolean(movil)}
+        fullScreen
+        styles={{ body: { height: 'calc(100dvh - 64px)', paddingBottom: 16 } }}
       >
         {abierta ? <MatrizTareas /> : null}
       </Modal>

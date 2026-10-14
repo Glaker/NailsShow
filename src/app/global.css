@@ -786,7 +786,9 @@ a.contador:hover {
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
-  height: clamp(480px, 68vh, 880px);
+  /* Ocupa todo lo que deja la franja de arriba (pantalla completa). */
+  flex: 1;
+  min-height: 420px;
   border: 1px solid var(--superficie-borde);
   border-radius: 14px;
   background: var(--mantine-color-body);
