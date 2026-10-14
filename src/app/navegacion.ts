@@ -57,7 +57,11 @@ export interface ItemNavegacion {
  * se abren desde el menú del usuario (`/catalogos`). La calculadora y «qué
  * lleva cada producto» viven dentro de Fórmulas.
  */
-const PRODUCCION: Rol[] = ['GERENCIA_PRODUCCION', 'OPERARIO', 'GERENCIA'];
+/*
+ * Los operarios no están: ven solo sus tareas de planta en el Tablero
+ * (pedido del 2026-10-14). Se les puede abrir una pantalla en «Quién ve qué».
+ */
+const PRODUCCION: Rol[] = ['GERENCIA_PRODUCCION', 'GERENCIA'];
 
 export const NAVEGACION: ItemNavegacion[] = [
   {

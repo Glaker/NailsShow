@@ -17,6 +17,7 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
         'Ves tus pedidos pendientes: cuántos hay, cuántos están en producción, cuántos faltan planificar y cuántos tienen la entrega vencida.',
         'En «Resumen de pedidos» tocá el número de un pedido para abrirlo.',
         'Abajo hay un Gantt de las próximas dos semanas y un calendario del mes. Acá solo se miran: para mover algo andá a «Planificación».',
+        'Al final están las «Tareas de planta», las mismas que ven los operarios. Si la pesada la hacés vos, tocá «Hacer» en esa tarjeta y completala como ellos.',
       ],
       VENTAS: [
         'Ves los pedidos en curso: cuántos hay, cuántos están en producción, cuántos faltan planificar y cuántos tienen la entrega vencida.',
@@ -48,9 +49,12 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
         'Las tarjetas de arriba te muestran cuántos lotes hay en cada estado y cuántos recibidos esperan su rótulo.',
       ],
       OPERARIO: [
-        'Ves el tablero general del circuito de insumos: cuántos lotes hay en cuarentena, aprobados, recibidos sin rotular y recepciones del mes.',
-        'Tocá «Sin rotular» para ir a los lotes recién recibidos que todavía no tienen rótulo de estado.',
-        'Tocá un insumo de la lista de cuarentena para ver su ficha.',
+        'Ves tus tareas de planta: por cada orden que abrió Gerencia de Producción, el próximo paso (pesada, elaboración o fraccionamiento).',
+        'Elegí una y tocá «Hacer».',
+        'Contestá las verificaciones previas (área limpia, balanza, vestimenta según protocolo…). Si alguna da «No», anotá el desvío en observaciones.',
+        'Completá lo que pide el POE: en la pesada, cuánto pesaste de cada materia prima, el lote y la balanza; en la elaboración, cada paso con su hora y equipo; en el fraccionamiento, envases, horarios y canastas.',
+        'Tocá «Registrar (realizó)»: ese es tu ok y queda en el batch record a tu nombre. Después lo controla otra persona.',
+        'Cuando terminás un paso, aparece el siguiente de esa orden.',
       ],
       ADMINISTRADOR_SISTEMA: [
         'Ves el tablero general del circuito de insumos, en modo lectura.',

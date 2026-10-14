@@ -318,6 +318,25 @@ function useInvalidarOrden() {
   };
 }
 
+/**
+ * Órdenes abiertas con las etapas ya registradas: de acá salen las tareas de
+ * planta (la clave cuelga de 'ordenes' para refrescarse al guardar una etapa).
+ */
+export function useOrdenesAbiertasConEtapas() {
+  return useQuery({
+    queryKey: ['ordenes', 'abiertas-con-etapas'],
+    queryFn: async () => {
+      const { data, error } = await gmp()
+        .from('ordenes_produccion')
+        .select('*, op_etapas(etapa)')
+        .eq('estado', 'ABIERTA')
+        .order('jornada');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 export function useAbrirOrden() {
   const inv = useInvalidarOrden();
   return useMutation({

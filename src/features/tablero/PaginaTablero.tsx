@@ -45,6 +45,7 @@ import { InicioPedidos } from '@/features/produccion/Planificacion';
 import { PaginaAdministracion } from '@/features/administracion/PaginaAdministracion';
 import { PaginaArmado } from '@/features/ventas/PaginaArmado';
 import { TableroDT } from './TableroDT';
+import { TareasProduccion } from '@/features/produccion/TareasProduccion';
 
 function TarjetaPanel({
   titulo,
@@ -81,7 +82,21 @@ export function PaginaTablero() {
     case 'DIRECCION_TECNICA':
       return <TableroDT />;
     case 'GERENCIA_PRODUCCION':
-      return <InicioPedidos />;
+      // La pesada suele hacerla ella: tiene las mismas tareas que planta.
+      return (
+        <Stack gap="xl">
+          <InicioPedidos />
+          <Stack gap="sm">
+            <Title order={2}>Tareas de planta</Title>
+            <Text c="dimmed">
+              Lo mismo que ven los operarios. Podés hacer vos la pesada u otra etapa.
+            </Text>
+            <TareasProduccion titulo={false} />
+          </Stack>
+        </Stack>
+      );
+    case 'OPERARIO':
+      return <TareasProduccion />;
     case 'VENTAS':
       return <InicioPedidos descripcion="Así vienen los pedidos." />;
     case 'ENCARGADA_STOCK':

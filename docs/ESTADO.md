@@ -2008,3 +2008,19 @@ proveedores con puntaje.
 Probado en la base real dentro de una transacción revertida (granel y
 rectificación). El camino de aprobar un lote de insumo no se pudo probar: no
 hay lotes en análisis.
+
+### Rol de operario: tareas de planta (2026-10-14, solo front)
+
+- El Tablero del OPERARIO es «Tareas de producción»
+  (`src/features/produccion/TareasProduccion.tsx`): por cada orden ABIERTA, el
+  próximo paso de planta (PESADA → ELABORACION → FRACCIONAMIENTO), con el
+  editor de etapa de la orden (verificaciones de área y vestimenta, pesadas,
+  pasos, recuento). «Registrar (realizó)» es su ok y va al batch record.
+- Muestreos, controles y contramuestra no aparecen: son de Calidad
+  (I.50.4, I.60.12). La base no cambió: un operario todavía podría
+  registrarlos desde la orden si se le abre esa pantalla.
+- Gerencia de Producción ve las mismas tareas al pie de su inicio (hace la
+  pesada).
+- El menú del operario queda solo con el Tablero (sin pedidos, órdenes,
+  fórmulas, stock ni lotes). Se reabre por rol en «Quién ve qué». Eso incluye
+  la recepción de mercadería: si la hacen operarios, hay que habilitarla ahí.

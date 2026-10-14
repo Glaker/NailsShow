@@ -357,7 +357,7 @@ function Dato({ t, children }: { t: string; children: React.ReactNode }) {
 
 /* ----------------------------- Editor de etapa ---------------------------- */
 
-function EditorEtapa({
+export function EditorEtapa({
   orden,
   etapa,
   registrada,
