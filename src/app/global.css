@@ -850,7 +850,7 @@ a.contador:hover {
 }
 .pin-cuerpo {
   transform-origin: 50% 100%;
-  filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.18));
   transition:
     transform 160ms ease,
     filter 160ms ease;
@@ -877,7 +877,7 @@ a.contador:hover {
 }
 .pin-levantado .pin-cuerpo {
   transform: translateY(-8px) rotate(-14deg) scale(1.12);
-  filter: drop-shadow(4px 10px 4px rgba(0, 0, 0, 0.25));
+  filter: drop-shadow(2px 8px 6px rgba(0, 0, 0, 0.16));
 }
 
 /* Clavado: baja de golpe y rebota apenas, como un pin en el corcho. */

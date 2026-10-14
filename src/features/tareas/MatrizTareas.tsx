@@ -58,6 +58,7 @@ const limitar = (v: number) => Math.min(0.98, Math.max(0.02, v));
 /** La punta de la aguja queda 26 px debajo de donde se agarra la cabeza. */
 const AGUJA = 26;
 
+/** Pin plano: cabeza lisa del color de la persona, punto blanco y aguja fina. */
 function Pin({ color, alto = 30 }: { color: string; alto?: number }) {
   return (
     <svg
@@ -67,27 +68,9 @@ function Pin({ color, alto = 30 }: { color: string; alto?: number }) {
       aria-hidden
       style={{ display: 'block' }}
     >
-      <defs>
-        <radialGradient id={`brillo-${color.slice(1)}`} cx="35%" cy="30%" r="70%">
-          <stop offset="0%" stopColor="#fff" stopOpacity="0.7" />
-          <stop offset="45%" stopColor={color} stopOpacity="1" />
-          <stop offset="100%" stopColor={color} stopOpacity="1" />
-        </radialGradient>
-      </defs>
-      {/* Aguja */}
-      <path d="M12 17 L12 29" stroke="#8a8f98" strokeWidth="1.6" strokeLinecap="round" />
-      {/* Cuerpo del pin: cabeza, cuello y base */}
-      <ellipse cx="12" cy="17" rx="6.5" ry="2.2" fill={color} />
-      <rect x="9" y="9" width="6" height="8" fill={color} />
-      <circle cx="12" cy="8" r="7.5" fill={`url(#brillo-${color.slice(1)})`} />
-      <circle
-        cx="12"
-        cy="8"
-        r="7.5"
-        fill="none"
-        stroke="rgba(0,0,0,0.25)"
-        strokeWidth="0.8"
-      />
+      <path d="M12 15 L12 29" stroke="#495057" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="12" cy="9" r="8" fill={color} />
+      <circle cx="12" cy="9" r="2.6" fill="#fff" fillOpacity="0.9" />
     </svg>
   );
 }
