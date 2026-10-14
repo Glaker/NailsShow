@@ -1990,3 +1990,21 @@ completo (PG.60.4), devoluciones, cosmetovigilancia, calibraciones,
 registros de análisis R.50.5.1/6.1/10.1, CC de PT importado, muestras de
 archivo, estabilidad, capacitación, auditoría interna y evaluación de
 proveedores con puntaje.
+
+### Registros de análisis (2026-10-14, APLICADO)
+
+`20261014170000_gmp_registros_analisis` y `…170100_gmp_granel_envasa_y_libera_dt`
+(la segunda corrige a la primera: el envasado no espera al granel).
+- `gmp.registros_analisis`: R.50.5.1 (insumo), R.50.6.1 (semielaborado = lote
+  de insumo tipo SEMIELABORADO) y R.50.10.1 (granel de una orden). Numeración
+  NNN/AAAA por registro, sin huecos. No se editan: se rectifican.
+- Aprobar o rechazar un lote exige su registro con ese dictamen
+  (`gmp.dictaminar_lote_insumo`: registro + rótulo en una transacción).
+- Granel: `gmp.dictaminar_granel` registra el R.50.10.1 y la etapa CC_GRANEL.
+  Producción fracciona sin esperarlo; `liberar_orden` exige granel aprobado.
+- `gmp.v_analisis_pendientes`: tablero de DT.
+- Batch record: R.50.10.1 completo en su etapa y tabla de análisis de cada
+  insumo consumido.
+Probado en la base real dentro de una transacción revertida (granel y
+rectificación). El camino de aprobar un lote de insumo no se pudo probar: no
+hay lotes en análisis.

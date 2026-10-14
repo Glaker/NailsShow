@@ -7192,6 +7192,24 @@ export type Database = {
         }
         Relationships: []
       }
+      contadores_analisis: {
+        Row: {
+          anio: number
+          registro: string
+          ultimo: number
+        }
+        Insert: {
+          anio: number
+          registro: string
+          ultimo?: number
+        }
+        Update: {
+          anio?: number
+          registro?: string
+          ultimo?: number
+        }
+        Relationships: []
+      }
       contadores_orden: {
         Row: {
           anio: number
@@ -8660,6 +8678,93 @@ export type Database = {
           },
         ]
       }
+      registros_analisis: {
+        Row: {
+          aprobado: boolean
+          conclusiones: string
+          controlo_en: string
+          controlo_por: string
+          descripcion: string
+          fecha: string
+          id: string
+          lote_insumo_id: string | null
+          motivo: string | null
+          numero: string
+          orden_id: string | null
+          rectifica_a: string | null
+          registro: string
+          tamano_muestra: string
+        }
+        Insert: {
+          aprobado: boolean
+          conclusiones: string
+          controlo_en?: string
+          controlo_por?: string
+          descripcion: string
+          fecha?: string
+          id?: string
+          lote_insumo_id?: string | null
+          motivo?: string | null
+          numero: string
+          orden_id?: string | null
+          rectifica_a?: string | null
+          registro: string
+          tamano_muestra: string
+        }
+        Update: {
+          aprobado?: boolean
+          conclusiones?: string
+          controlo_en?: string
+          controlo_por?: string
+          descripcion?: string
+          fecha?: string
+          id?: string
+          lote_insumo_id?: string | null
+          motivo?: string | null
+          numero?: string
+          orden_id?: string | null
+          rectifica_a?: string | null
+          registro?: string
+          tamano_muestra?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registros_analisis_lote_insumo_id_fkey"
+            columns: ["lote_insumo_id"]
+            isOneToOne: false
+            referencedRelation: "lotes_insumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registros_analisis_lote_insumo_id_fkey"
+            columns: ["lote_insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_lotes_insumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registros_analisis_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_produccion"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registros_analisis_rectifica_a_fkey"
+            columns: ["rectifica_a"]
+            isOneToOne: true
+            referencedRelation: "registros_analisis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registros_analisis_rectifica_a_fkey"
+            columns: ["rectifica_a"]
+            isOneToOne: true
+            referencedRelation: "v_registros_analisis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rotulos: {
         Row: {
           color: string | null
@@ -8759,6 +8864,18 @@ export type Database = {
       }
     }
     Views: {
+      v_analisis_pendientes: {
+        Row: {
+          descripcion: string | null
+          desde: string | null
+          lote_insumo_id: string | null
+          orden_id: string | null
+          referencia: string | null
+          registro: string | null
+          tipo: string | null
+        }
+        Relationships: []
+      }
       v_bloqueos_lote: {
         Row: {
           bloqueado_en: string | null
@@ -8929,6 +9046,64 @@ export type Database = {
         }
         Relationships: []
       }
+      v_registros_analisis: {
+        Row: {
+          aprobado: boolean | null
+          conclusiones: string | null
+          controlo_en: string | null
+          controlo_nombre: string | null
+          controlo_por: string | null
+          descripcion: string | null
+          fecha: string | null
+          id: string | null
+          lote_insumo_id: string | null
+          lote_interno: string | null
+          motivo: string | null
+          numero: string | null
+          orden_id: string | null
+          rectifica_a: string | null
+          registro: string | null
+          tamano_muestra: string | null
+          vigente: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registros_analisis_lote_insumo_id_fkey"
+            columns: ["lote_insumo_id"]
+            isOneToOne: false
+            referencedRelation: "lotes_insumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registros_analisis_lote_insumo_id_fkey"
+            columns: ["lote_insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_lotes_insumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registros_analisis_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_produccion"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registros_analisis_rectifica_a_fkey"
+            columns: ["rectifica_a"]
+            isOneToOne: true
+            referencedRelation: "registros_analisis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registros_analisis_rectifica_a_fkey"
+            columns: ["rectifica_a"]
+            isOneToOne: true
+            referencedRelation: "v_registros_analisis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_tablero: {
         Row: {
           insumos_activos: number | null
@@ -9009,6 +9184,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      analisis_vigente: {
+        Args: { p_lote: string; p_orden: string }
+        Returns: boolean
+      }
       anular_orden: {
         Args: { p_id: string; p_motivo: string }
         Returns: undefined
@@ -9078,6 +9257,70 @@ export type Database = {
           p_categoria: Database["gmp"]["Enums"]["categoria_muestreo_enum"]
         }
         Returns: Database["gmp"]["Enums"]["destino_muestra_enum"]
+      }
+      dictaminar_granel: {
+        Args: {
+          p_aprobado: boolean
+          p_conclusiones: string
+          p_descripcion: string
+          p_motivo?: string
+          p_orden_id: string
+          p_rectifica_a?: string
+          p_tamano: string
+        }
+        Returns: {
+          aprobado: boolean
+          conclusiones: string
+          controlo_en: string
+          controlo_por: string
+          descripcion: string
+          fecha: string
+          id: string
+          lote_insumo_id: string | null
+          motivo: string | null
+          numero: string
+          orden_id: string | null
+          rectifica_a: string | null
+          registro: string
+          tamano_muestra: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "registros_analisis"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      dictaminar_lote_insumo: {
+        Args: {
+          p_aprobado: boolean
+          p_conclusiones: string
+          p_descripcion: string
+          p_lote_id: string
+          p_tamano: string
+        }
+        Returns: {
+          aprobado: boolean
+          conclusiones: string
+          controlo_en: string
+          controlo_por: string
+          descripcion: string
+          fecha: string
+          id: string
+          lote_insumo_id: string | null
+          motivo: string | null
+          numero: string
+          orden_id: string | null
+          rectifica_a: string | null
+          registro: string
+          tamano_muestra: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "registros_analisis"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       emitir_rotulo_lote_insumo: {
         Args: {

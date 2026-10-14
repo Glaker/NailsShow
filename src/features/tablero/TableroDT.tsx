@@ -18,6 +18,7 @@ import { useSesion } from '@/features/auth/sesion';
 import { useLotes, useProductos } from '@/lib/consultas';
 import { useOrdenes } from '@/lib/consultasOrdenes';
 import { fecha, numero } from '@/lib/formato';
+import { useAnalisisPendientes } from '@/lib/consultasAnalisis';
 
 /**
  * Tablero de Dirección Técnica (pedido del 2026-10-01): cuánto y qué espera su
@@ -29,6 +30,7 @@ export function TableroDT() {
   const cuarentena = useLotes({ estado: 'CUARENTENA' });
   const analisis = useLotes({ estado: 'EN_ANALISIS' });
   const ordenes = useOrdenes();
+  const pendientes = useAnalisisPendientes();
   const productos = useProductos();
   const insumos = [...(cuarentena.data ?? []), ...(analisis.data ?? [])];
   const porLiberar = (ordenes.data ?? []).filter((o) => o.estado === 'TERMINADA');
@@ -94,6 +96,49 @@ export function TableroDT() {
         <Skeleton h={260} radius="lg" />
       ) : (
         <>
+          <Paper
+            withBorder
+            p="lg"
+            radius="lg"
+            className="entrada"
+            style={{ borderColor: 'var(--superficie-borde)' }}
+          >
+            <Title order={3}>Análisis pendientes · {(pendientes.data ?? []).length}</Title>
+            <Text size="sm" c="dimmed" mb="sm">
+              Lotes en análisis y graneles que Producción ya elaboró. Producción puede
+              envasar igual; sin el registro aprobado el lote no se libera.
+            </Text>
+            {(pendientes.data ?? []).length === 0 ? (
+              <Vacio icono={IconFlask} titulo="No hay análisis pendientes" />
+            ) : (
+              <Stack gap={0}>
+                {(pendientes.data ?? []).map((x, i) => (
+                  <Group
+                    key={(x.lote_insumo_id ?? x.orden_id) + String(i)}
+                    justify="space-between"
+                    wrap="nowrap"
+                    className="fila-resumen"
+                    style={{ '--i': i }}
+                  >
+                    <Text size="sm" truncate>
+                      <Anchor
+                        component={Link}
+                        to={x.orden_id ? `/ordenes/${x.orden_id}` : `/lotes/${x.lote_insumo_id}`}
+                        fw={700}
+                      >
+                        {x.descripcion}
+                      </Anchor>{' '}
+                      · {x.referencia}
+                    </Text>
+                    <Badge variant="light" color="estadoEnAnalisis">
+                      {x.tipo === 'GRANEL' ? 'granel' : 'lote'} · {x.registro}
+                    </Badge>
+                  </Group>
+                ))}
+              </Stack>
+            )}
+          </Paper>
+
           <Paper
             withBorder
             p="lg"

@@ -118,12 +118,13 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
       CONTROL_CALIDAD: [
         'Con el lote en cuarentena, tocá «Registrar muestreo». Completá las verificaciones previas y la cantidad tomada. Al guardar se emite la etiqueta de la muestra y el lote pasa a muestreado.',
         'Con el lote muestreado, tocá «Enviar a análisis». Se emite el rótulo gris.',
-        'Con el lote en análisis, tocá «Aprobar» (rótulo verde) o «Rechazar» (rótulo rojo). Antes de confirmar te muestra qué pasa.',
+        'Con el lote en análisis, tocá «Aprobar» o «Rechazar»: se abre el registro de análisis (R.50.5.1, o R.50.6.1 si es semielaborado). Completá tamaño de la muestra, descripción y conclusiones y tocá «Registrar análisis y dictamen». El registro y el rótulo (verde o rojo) se hacen juntos.',
+        'El registro queda siempre visible en la ficha del lote, en «Registro de análisis».',
         'En «Bloqueos» podés tocar «Bloquear lote para despacho» con un motivo y un fundamento. Levantar un bloqueo lo hace solo Dirección Técnica.',
       ],
       DIRECCION_TECNICA: [
         'Con el lote en cuarentena, tocá «Registrar muestreo» y completá las verificaciones. Se emite la etiqueta de la muestra.',
-        'Con el lote muestreado, «Enviar a análisis». Con el lote en análisis, «Aprobar» o «Rechazar».',
+        'Con el lote muestreado, «Enviar a análisis». Con el lote en análisis, «Aprobar» o «Rechazar», que abren el registro de análisis (R.50.5.1 o R.50.6.1).',
         'En «Bloqueos» podés bloquear el lote para despacho con motivo y fundamento, y levantar un bloqueo con «Levantar» (pide el motivo).',
         'En «Existencia» podés registrar movimientos de stock y anular uno (se genera el inverso).',
       ],
@@ -265,7 +266,8 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
         'Mientras la orden esté abierta, «Anular» la cierra con motivo.',
       ],
       CONTROL_CALIDAD: [
-        'Tus etapas son «Control de calidad de producto a granel» y «de producto terminado». Tocá «Registrar» y cargá los resultados contra la especificación.',
+        'Granel: en «Control de calidad de producto a granel» tocá «Analizar granel (R.50.10.1)», completá el registro y el dictamen. Producción puede envasar antes; el lote no se libera sin este registro aprobado. Te aparece en «Análisis pendientes» del tablero.',
+        'Producto terminado: en «Control de calidad de producto terminado» tocá «Registrar» y cargá los resultados contra la especificación.',
         'Después tocá «Controlar» para cerrar la etapa. Lo ideal es que sea otra persona la que controle.',
         'Podés registrar también las etapas de producción, igual que el resto.',
       ],

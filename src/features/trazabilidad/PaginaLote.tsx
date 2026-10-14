@@ -44,6 +44,9 @@ import {
 import { fecha, fechaHora, numero } from '@/lib/formato';
 import { useSesion, type Rol } from '@/features/auth/sesion';
 import { imprimirRotulo } from '@/features/rotulos/imprimir';
+import { useState } from 'react';
+import { useDictaminarLote, useRegistrosAnalisis } from '@/lib/consultasAnalisis';
+import { FichaAnalisis, FormularioAnalisis } from '@/features/calidad/RegistroAnalisis';
 
 /**
  * Transiciones ofrecidas en pantalla.
@@ -123,6 +126,10 @@ export function PaginaLote() {
   const emitir = useEmitirRotulo();
   const { claims } = useSesion();
   const [muestreoAbierto, modalMuestreo] = useDisclosure(false);
+  const analisis = useRegistrosAnalisis({ loteId: id });
+  const dictaminar = useDictaminarLote();
+  /* Aprobar o rechazar abre el registro de análisis (I.50.5, I.50.6). */
+  const [dictamen, setDictamen] = useState<boolean | null>(null);
 
   if (lote.isLoading) {
     return <Skeleton h={420} radius="lg" />;
@@ -147,9 +154,12 @@ export function PaginaLote() {
   );
   const listaMuestreos = muestreos.data ?? [];
   /* Lote marcado SOLO EJEMPLO (bloqueo vigente con motivo EJEMPLO). */
-  const ejemplo = (bloqueos.data ?? []).some((b) => b.motivo === 'EJEMPLO' && !b.levantado);
+  const ejemplo = (bloqueos.data ?? []).some(
+    (b) => b.motivo === 'EJEMPLO' && !b.levantado,
+  );
   const imprimir = (cual: 'rotulo' | 'muestra') =>
     imprimirRotulo(document.querySelector<HTMLElement>(`[data-rotulo="${cual}"]`));
+  const registroAnalisis = l.insumo_tipo === 'SEMIELABORADO' ? 'R.50.6.1' : 'R.50.5.1';
   const puedeMuestrear =
     estado === 'CUARENTENA' &&
     (roles.includes('CONTROL_CALIDAD') || roles.includes('DIRECCION_TECNICA'));
@@ -241,7 +251,11 @@ export function PaginaLote() {
                 )
               }
               loading={emitir.isPending}
-              onClick={() => confirmarTransicion(t.destino, t.etiqueta, t.nota)}
+              onClick={() =>
+                t.destino === 'APROBADO' || t.destino === 'RECHAZADO'
+                  ? setDictamen(t.destino === 'APROBADO')
+                  : confirmarTransicion(t.destino, t.etiqueta, t.nota)
+              }
             >
               {t.etiqueta}
             </Button>
@@ -337,6 +351,32 @@ export function PaginaLote() {
                   </Badge>
                 ) : null}
               </Group>
+            </Paper>
+
+            <Paper
+              withBorder
+              p="lg"
+              style={{ borderColor: 'var(--superficie-borde)' }}
+              className="no-imprimir"
+            >
+              <Title order={3} mb="md">
+                Registro de análisis · {registroAnalisis}
+              </Title>
+              {(analisis.data ?? []).length === 0 ? (
+                <Text size="sm" c="dimmed">
+                  {estado === 'SALDO_APERTURA' ||
+                  estado === 'APROBADO' ||
+                  estado === 'RECHAZADO'
+                    ? 'Este lote se dictaminó antes de que el registro de análisis fuera obligatorio (2026-10-14).'
+                    : 'Todavía sin análisis. Se completa al aprobar o rechazar el lote, cuando está en análisis.'}
+                </Text>
+              ) : (
+                <Stack gap="sm">
+                  {(analisis.data ?? []).map((r) => (
+                    <FichaAnalisis key={r.id} r={r} />
+                  ))}
+                </Stack>
+              )}
             </Paper>
 
             <PanelBloqueos loteId={loteId} />
@@ -502,6 +542,26 @@ export function PaginaLote() {
           </Stack>
         </Grid.Col>
       </Grid>
+
+      <Modal
+        opened={dictamen !== null}
+        onClose={() => setDictamen(null)}
+        title={<Text fw={700}>Control de calidad · {registroAnalisis}</Text>}
+        size="lg"
+      >
+        {dictamen !== null ? (
+          <FormularioAnalisis
+            registro={registroAnalisis}
+            objeto={`${l.insumo_nombre ?? ''} · ${l.numero_registro_interno ?? ''} · lote ${l.lote_proveedor ?? ''} · ${l.proveedor ?? ''}`}
+            aprobadoInicial={dictamen}
+            cargando={dictaminar.isPending}
+            onCancelar={() => setDictamen(null)}
+            onGuardar={(d) =>
+              dictaminar.mutate({ loteId, ...d }, { onSuccess: () => setDictamen(null) })
+            }
+          />
+        ) : null}
+      </Modal>
 
       <Modal
         opened={muestreoAbierto}

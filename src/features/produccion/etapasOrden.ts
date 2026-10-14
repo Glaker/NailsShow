@@ -96,7 +96,7 @@ export const CONFIG_ETAPAS: Record<EtapaOrden, ConfigEtapa> = {
       { clave: 'hora', titulo: 'Hora', tipo: 'hora' },
     ],
   },
-  CC_GRANEL: { dictamen: { registro: 'R.50.9.1' } },
+  CC_GRANEL: { dictamen: { registro: 'R.50.10.1' } },
   FRACCIONAMIENTO: {
     area: 'Área de envasado',
     tablas: [

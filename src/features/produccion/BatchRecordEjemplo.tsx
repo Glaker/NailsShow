@@ -1,10 +1,7 @@
 import { Alert } from '@mantine/core';
 import { IconInfoCircle } from '@tabler/icons-react';
-import type {
-  EspecParametro,
-  EtapaOrden,
-  EtapaRegistrada,
-} from '@/lib/consultasOrdenes';
+import type { EspecParametro, EtapaOrden, EtapaRegistrada } from '@/lib/consultasOrdenes';
+import type { RegistroAnalisis } from '@/lib/consultasAnalisis';
 import { DocumentoBatchRecord, type Espec } from './BatchRecord';
 
 /*
@@ -46,23 +43,64 @@ function etapa(
   };
 }
 
-const sí = (n: number) => Object.fromEntries(Array.from({ length: n }, (_, i) => [i, true]));
+const sí = (n: number) =>
+  Object.fromEntries(Array.from({ length: n }, (_, i) => [i, true]));
 
 const ETAPAS: EtapaRegistrada[] = [
   etapa('PESADA', OPERARIO, '08:30', {
     verificaciones: sí(5),
     pesadas: [
-      { componente: 'Aceite de jojoba', lote: 'MP-0412 · 0001/2026', cantidad: 2.4, balanza: 'BAL-01', registro: 1, realizo: 'Operario de ejemplo' },
-      { componente: 'Aceite de almendras', lote: 'MP-0398 · 0002/2026', cantidad: 2.4, balanza: 'BAL-01', registro: 2, realizo: 'Operario de ejemplo' },
-      { componente: 'Tocoferol acetato', lote: 'MP-0377 · 0003/2026', cantidad: 0.1, balanza: 'BAL-02', registro: 3, realizo: 'Operario de ejemplo' },
-      { componente: 'Fragancia Amor', lote: 'MP-0450 · 0004/2026', cantidad: 0.05, balanza: 'BAL-02', registro: 4, realizo: 'Operario de ejemplo' },
+      {
+        componente: 'Aceite de jojoba',
+        lote: 'MP-0412 · 0001/2026',
+        cantidad: 2.4,
+        balanza: 'BAL-01',
+        registro: 1,
+        realizo: 'Operario de ejemplo',
+      },
+      {
+        componente: 'Aceite de almendras',
+        lote: 'MP-0398 · 0002/2026',
+        cantidad: 2.4,
+        balanza: 'BAL-01',
+        registro: 2,
+        realizo: 'Operario de ejemplo',
+      },
+      {
+        componente: 'Tocoferol acetato',
+        lote: 'MP-0377 · 0003/2026',
+        cantidad: 0.1,
+        balanza: 'BAL-02',
+        registro: 3,
+        realizo: 'Operario de ejemplo',
+      },
+      {
+        componente: 'Fragancia Amor',
+        lote: 'MP-0450 · 0004/2026',
+        cantidad: 0.05,
+        balanza: 'BAL-02',
+        registro: 4,
+        realizo: 'Operario de ejemplo',
+      },
     ],
   }),
   etapa('ELABORACION', OPERARIO, '09:15', {
     verificaciones: sí(4),
     proceso: [
-      { operario: 'Operario de ejemplo', hora_inicio: '09:15', paso: 'Mezcla de aceites base', equipo: 'AGI-01', hora_fin: '09:40' },
-      { operario: 'Operario de ejemplo', hora_inicio: '09:40', paso: 'Incorporación de tocoferol y fragancia', equipo: 'AGI-01', hora_fin: '09:55' },
+      {
+        operario: 'Operario de ejemplo',
+        hora_inicio: '09:15',
+        paso: 'Mezcla de aceites base',
+        equipo: 'AGI-01',
+        hora_fin: '09:40',
+      },
+      {
+        operario: 'Operario de ejemplo',
+        hora_inicio: '09:40',
+        paso: 'Incorporación de tocoferol y fragancia',
+        equipo: 'AGI-01',
+        hora_fin: '09:55',
+      },
     ],
   }),
   etapa('MUESTREO_GRANEL', CC, '10:00', {
@@ -77,7 +115,14 @@ const ETAPAS: EtapaRegistrada[] = [
       { insumo: 'Frasco gotero 15 ml', codigo: 'ENV-015', cantidad: 330 },
       { insumo: 'Pincel para aceite', codigo: 'PIN-ACE', cantidad: 330 },
     ],
-    proceso: [{ operario: 'Operario de ejemplo', hora_inicio: '11:00', balanza: 'BAL-03', hora_fin: '13:10' }],
+    proceso: [
+      {
+        operario: 'Operario de ejemplo',
+        hora_inicio: '11:00',
+        balanza: 'BAL-03',
+        hora_fin: '13:10',
+      },
+    ],
     canastas: 11,
     por_canasta: 30,
   }),
@@ -98,10 +143,16 @@ const ETAPAS: EtapaRegistrada[] = [
     fecha: '01/10/2026',
     envases: 2,
   }),
-  etapa('REVISION', DT, '16:00', {
-    no_conformidades: 'Ninguna',
-    rotulos_adjuntos: true,
-  }, 'Documentación completa.'),
+  etapa(
+    'REVISION',
+    DT,
+    '16:00',
+    {
+      no_conformidades: 'Ninguna',
+      rotulos_adjuntos: true,
+    },
+    'Documentación completa.',
+  ),
 ];
 
 const parametro = (
@@ -128,12 +179,110 @@ const ESPEC = {
   especificacion: { codigo_poe: 'I-E.50.28', version: '00' },
   formula: [],
   parametros: [
-    parametro('p1', 1, { nombre: 'Aspecto', grupo: 'ORGANOLEPTICO', tipo_criterio: 'VALOR_TEXTO', valor_texto: 'Líquido oleoso, límpido' }),
-    parametro('p2', 2, { nombre: 'Color', grupo: 'ORGANOLEPTICO', tipo_criterio: 'CONTRA_PATRON', valor_texto: 'Según patrón' }),
-    parametro('p3', 3, { nombre: 'Olor', grupo: 'ORGANOLEPTICO', tipo_criterio: 'CONTRA_PATRON', valor_texto: 'Característico según patrón' }),
-    parametro('p4', 4, { nombre: 'Densidad', grupo: 'FISICOQUIMICO', tipo_criterio: 'RANGO', valor_min: 0.9, valor_max: 0.95, unidad: 'g/ml' }),
+    parametro('p1', 1, {
+      nombre: 'Aspecto',
+      grupo: 'ORGANOLEPTICO',
+      tipo_criterio: 'VALOR_TEXTO',
+      valor_texto: 'Líquido oleoso, límpido',
+    }),
+    parametro('p2', 2, {
+      nombre: 'Color',
+      grupo: 'ORGANOLEPTICO',
+      tipo_criterio: 'CONTRA_PATRON',
+      valor_texto: 'Según patrón',
+    }),
+    parametro('p3', 3, {
+      nombre: 'Olor',
+      grupo: 'ORGANOLEPTICO',
+      tipo_criterio: 'CONTRA_PATRON',
+      valor_texto: 'Característico según patrón',
+    }),
+    parametro('p4', 4, {
+      nombre: 'Densidad',
+      grupo: 'FISICOQUIMICO',
+      tipo_criterio: 'RANGO',
+      valor_min: 0.9,
+      valor_max: 0.95,
+      unidad: 'g/ml',
+    }),
   ],
 } as unknown as Espec;
+
+function analisis(
+  registro: string,
+  numero: string,
+  descripcion: string,
+  extra: Partial<RegistroAnalisis> = {},
+): RegistroAnalisis {
+  return {
+    id: `an-${numero}`,
+    registro,
+    numero,
+    fecha: '2026-09-28',
+    lote_insumo_id: null,
+    orden_id: null,
+    tamano_muestra: '50 g',
+    descripcion,
+    conclusiones: 'Cumple con lo esperado. Se aprueba.',
+    aprobado: true,
+    rectifica_a: null,
+    motivo: null,
+    controlo_por: CC,
+    controlo_en: a('10:30'),
+    controlo_nombre: 'Control de Calidad (ejemplo)',
+    lote_interno: null,
+    vigente: true,
+    ...extra,
+  };
+}
+
+const GRANEL = analisis(
+  'R.50.10.1',
+  '001/2026',
+  'Líquido oleoso, límpido, rosado suave, olor característico según patrón. Sin partículas extrañas.',
+  {
+    fecha: DIA,
+    tamano_muestra: '100 ml',
+    conclusiones: 'Densidad 0,92 g/ml, dentro de especificación. Se aprueba el granel.',
+  },
+);
+
+const INSUMOS = [
+  {
+    lote_interno: '0001/2026',
+    articulo: 'Aceite de jojoba',
+    registro: analisis(
+      'R.50.5.1',
+      '014/2026',
+      'Líquido amarillo claro, límpido, sin olor extraño.',
+    ),
+  },
+  {
+    lote_interno: '0002/2026',
+    articulo: 'Aceite de almendras',
+    registro: analisis('R.50.5.1', '015/2026', 'Líquido amarillo pálido, límpido.'),
+  },
+  {
+    lote_interno: '0003/2026',
+    articulo: 'Tocoferol acetato',
+    registro: analisis('R.50.5.1', '016/2026', 'Líquido viscoso, incoloro.'),
+  },
+  {
+    lote_interno: '0004/2026',
+    articulo: 'Fragancia Amor',
+    registro: analisis('R.50.5.1', '017/2026', 'Líquido incoloro, olor según patrón.'),
+  },
+  {
+    lote_interno: '0005/2026',
+    articulo: 'Frasco gotero 15 ml',
+    registro: analisis(
+      'R.50.5.1',
+      '018/2026',
+      'Envases sin fisuras ni suciedad; cierre correcto.',
+      { tamano_muestra: '13 unidades' },
+    ),
+  },
+];
 
 export function BatchRecordEjemplo() {
   return (
@@ -167,7 +316,10 @@ export function BatchRecordEjemplo() {
           motivo_cierre: null,
         }}
         etapas={ETAPAS}
-        producto={{ nombre: 'Aceite para cutículas y uñas Amor 15 ml', codigo_interno: '378' }}
+        producto={{
+          nombre: 'Aceite para cutículas y uñas Amor 15 ml',
+          codigo_interno: '378',
+        }}
         formula={{ version: '01', codigo_me: 'ME.40.32' }}
         procedimiento={{
           version: 1,
@@ -183,6 +335,8 @@ export function BatchRecordEjemplo() {
           </p>
         }
         volver={{ a: '/liberacion', texto: 'Volver a liberación' }}
+        analisisGranel={GRANEL}
+        analisisInsumos={INSUMOS}
       />
     </>
   );

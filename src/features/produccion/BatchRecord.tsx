@@ -16,6 +16,12 @@ import {
   type OrdenProduccion,
 } from '@/lib/consultasOrdenes';
 import { MarcaEjemplo } from '@/components/MarcaEjemplo';
+import {
+  useAnalisisPorLoteInterno,
+  useRegistrosAnalisis,
+  type RegistroAnalisis,
+} from '@/lib/consultasAnalisis';
+import { useTrazabilidadOrden } from '@/lib/consultasOrdenes';
 import { CONFIG_ETAPAS, unidadesRecuento } from './etapasOrden';
 import { TrazabilidadOrden } from './TrazabilidadOrden';
 
@@ -112,6 +118,46 @@ function Resultados({ d, espec }: { d: Datos; espec: NonNullable<Espec> }) {
             </tr>
           );
         })}
+      </tbody>
+    </table>
+  );
+}
+
+/** R.50.10.1 del granel, completo, dentro de su etapa. */
+function AnalisisImpreso({ r }: { r: RegistroAnalisis | null }) {
+  if (!r)
+    return (
+      <p>
+        <b>R.50.10.1:</b> sin registrar.
+      </p>
+    );
+  return (
+    <table>
+      <tbody>
+        <tr>
+          <th>
+            {r.registro} N° {r.numero}
+          </th>
+          <td>Fecha: {fecha(r.fecha)}</td>
+          <td>Controló: {r.controlo_nombre ?? ''}</td>
+          <td>APROBADO: {r.aprobado ? 'SÍ' : 'NO'}</td>
+        </tr>
+        <tr>
+          <th>Tamaño de la muestra</th>
+          <td colSpan={3}>{r.tamano_muestra}</td>
+        </tr>
+        <tr>
+          <th>Descripción de la muestra</th>
+          <td colSpan={3} style={{ whiteSpace: 'pre-wrap' }}>
+            {r.descripcion}
+          </td>
+        </tr>
+        <tr>
+          <th>Observaciones / conclusiones</th>
+          <td colSpan={3} style={{ whiteSpace: 'pre-wrap' }}>
+            {r.conclusiones}
+          </td>
+        </tr>
       </tbody>
     </table>
   );
@@ -245,8 +291,21 @@ export function BatchRecord() {
   const o = orden.data?.orden;
   const procedimientos = useProcedimientos(o?.formula_id);
   const espec = useEspecificacionCompleta(o?.especificacion_id);
+  const granel = useRegistrosAnalisis({ ordenId: id });
+  const traza = useTrazabilidadOrden(id);
+  const porLote = useAnalisisPorLoteInterno();
 
-  if (orden.isLoading || !o) return <Skeleton h={500} />;
+  if (orden.isLoading || !o || traza.isLoading || porLote.isLoading)
+    return <Skeleton h={500} />;
+  const vistos = new Set<string>();
+  const insumos = (traza.data ?? [])
+    .filter((f) => f.sentido === 'INSUMO' && f.lote_interno)
+    .filter((f) => !vistos.has(f.lote_interno!) && vistos.add(f.lote_interno!))
+    .map((f) => ({
+      lote_interno: f.lote_interno!,
+      articulo: f.articulo ?? '',
+      registro: porLote.data?.get(f.lote_interno!) ?? null,
+    }));
   const producto = (productos.data ?? []).find((p) => p.id === o.producto_id);
   const formula = (formulas.data ?? []).find((f) => f.id === o.formula_id);
   const proc = (procedimientos.data ?? []).find(
@@ -264,6 +323,8 @@ export function BatchRecord() {
       quien={(uid) => (uid ? (nomina.data?.get(uid) ?? '') : '')}
       trazabilidad={<TrazabilidadOrden ordenId={o.id} impreso />}
       volver={{ a: `/ordenes/${o.id}`, texto: 'Volver a la orden' }}
+      analisisGranel={(granel.data ?? []).find((r) => r.vigente) ?? null}
+      analisisInsumos={insumos}
     />
   );
 }
@@ -293,6 +354,14 @@ export interface PropsDocumento {
   quien: Quien;
   trazabilidad: ReactNode;
   volver: { a: string; texto: string };
+  /** R.50.10.1 vigente del granel. */
+  analisisGranel: RegistroAnalisis | null;
+  /** Cada lote de insumo o semielaborado consumido, con su R.50.5.1 / R.50.6.1. */
+  analisisInsumos: {
+    lote_interno: string;
+    articulo: string;
+    registro: RegistroAnalisis | null;
+  }[];
   /** Documento de demostración: marca de agua y aviso. */
   ejemplo?: boolean;
 }
@@ -308,6 +377,8 @@ export function DocumentoBatchRecord({
   quien,
   trazabilidad,
   volver,
+  analisisGranel,
+  analisisInsumos,
   ejemplo = false,
 }: PropsDocumento) {
   const etapas = new Map(lista.map((e) => [e.etapa, e]));
@@ -377,15 +448,53 @@ export function DocumentoBatchRecord({
           </>
         ) : null}
 
+        <h2>Control de calidad de insumos y semielaborados utilizados</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Insumo</th>
+              <th>N° registro / lote</th>
+              <th>Registro de análisis</th>
+              <th>Fecha</th>
+              <th>Controló</th>
+              <th>Aprobado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {analisisInsumos.length === 0 ? (
+              <tr>
+                <td colSpan={6}>Sin consumos de insumos registrados en el lote.</td>
+              </tr>
+            ) : (
+              analisisInsumos.map((x) => (
+                <tr key={x.lote_interno}>
+                  <td>{x.articulo}</td>
+                  <td>{x.lote_interno}</td>
+                  <td>
+                    {x.registro
+                      ? `${x.registro.registro} N° ${x.registro.numero}`
+                      : 'Sin registro en el sistema (anterior al 14/10/2026 o saldo de apertura)'}
+                  </td>
+                  <td>{x.registro ? fecha(x.registro.fecha) : ''}</td>
+                  <td>{x.registro?.controlo_nombre ?? ''}</td>
+                  <td>{x.registro ? (x.registro.aprobado ? 'Sí' : 'No') : ''}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+
         {ETAPAS.filter((x) => x.etapa !== 'REVISION').map((x) => (
-          <Seccion
-            key={x.etapa}
-            etapa={x.etapa}
-            titulo={x.titulo}
-            e={etapas.get(x.etapa)}
-            espec={espec}
-            quien={quien}
-          />
+          <div key={x.etapa}>
+            <Seccion
+              etapa={x.etapa}
+              titulo={x.titulo}
+              e={etapas.get(x.etapa)}
+              espec={espec}
+              quien={quien}
+            />
+            {x.etapa === 'CC_GRANEL' ? <AnalisisImpreso r={analisisGranel} /> : null}
+          </div>
         ))}
 
         <h2>Revisión de documentación del lote (batch record)</h2>

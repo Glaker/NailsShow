@@ -55,6 +55,8 @@ import {
   type OrdenProduccion,
 } from '@/lib/consultasOrdenes';
 import { TrazabilidadOrden } from './TrazabilidadOrden';
+import { useDictaminarGranel, useRegistrosAnalisis } from '@/lib/consultasAnalisis';
+import { FichaAnalisis, FormularioAnalisis } from '@/features/calidad/RegistroAnalisis';
 import { MasInformacion } from './PanelProcedimiento';
 import {
   COLOR_ESTADO_ORDEN,
@@ -90,6 +92,9 @@ export function PaginaOrden() {
   const controlar = useControlarEtapa();
   const [editando, setEditando] = useState<EtapaOrden | null>(null);
   const [cierre, setCierre] = useState<'terminar' | 'liberar' | 'anular' | null>(null);
+  const analisisGranel = useRegistrosAnalisis({ ordenId: id });
+  const dictaminarGranel = useDictaminarGranel();
+  const [analizando, setAnalizando] = useState(false);
 
   if (orden.isLoading) return <Skeleton h={400} />;
   if (!orden.data) {
@@ -179,6 +184,13 @@ export function PaginaOrden() {
           const habilitada =
             etapa === 'REVISION' ? abierta || o.estado === 'TERMINADA' : abierta;
           const puedeEsta = calidad ? esCalidad : puedeRegistrar;
+          /* El granel se controla con su R.50.10.1 (I.50.10): un botón que
+             registra el análisis y el dictamen. Producción no espera para
+             envasar; la liberación sí lo exige. */
+          const esGranel = etapa === 'CC_GRANEL';
+          const granelVigente = esGranel
+            ? (analisisGranel.data ?? []).find((x) => x.vigente)
+            : undefined;
           return (
             <Paper
               key={etapa}
@@ -225,13 +237,23 @@ export function PaginaOrden() {
                       misma persona
                     </Badge>
                   ) : null}
-                  {habilitada && puedeEsta && !controlada ? (
+                  {esGranel && habilitada && puedeEsta && !controlada ? (
+                    <Button size="compact-md" onClick={() => setAnalizando(true)}>
+                      {granelVigente
+                        ? 'Corregir análisis'
+                        : 'Analizar granel (R.50.10.1)'}
+                    </Button>
+                  ) : null}
+                  {habilitada &&
+                  puedeEsta &&
+                  !controlada &&
+                  !(esGranel && granelVigente) ? (
                     <Button
                       size="compact-md"
                       variant="light"
                       onClick={() => setEditando(etapa)}
                     >
-                      {r ? 'Corregir' : 'Registrar'}
+                      {esGranel ? 'No aplica' : r ? 'Corregir' : 'Registrar'}
                     </Button>
                   ) : null}
                   {habilitada && puedeEsta && r && !controlada && claims?.usuario_id ? (
@@ -251,6 +273,16 @@ export function PaginaOrden() {
                   ) : null}
                 </Group>
               </Group>
+              {esGranel && granelVigente ? (
+                <Stack mt="sm">
+                  <FichaAnalisis r={granelVigente} />
+                </Stack>
+              ) : esGranel && !r && abierta ? (
+                <Text size="sm" c="estadoCuarentena.8" mt="xs">
+                  Pendiente de análisis por Calidad o Dirección Técnica. Se puede envasar
+                  igual; el lote no se libera sin este registro aprobado.
+                </Text>
+              ) : null}
             </Paper>
           );
         })}
@@ -271,6 +303,34 @@ export function PaginaOrden() {
             etapa={editando}
             registrada={porEtapa.get(editando) ?? null}
             onListo={() => setEditando(null)}
+          />
+        ) : null}
+      </Modal>
+      <Modal
+        opened={analizando}
+        onClose={() => setAnalizando(false)}
+        title={<Text fw={700}>Control de calidad del granel · R.50.10.1</Text>}
+        size="lg"
+      >
+        {analizando ? (
+          <FormularioAnalisis
+            registro="R.50.10.1"
+            objeto={`${producto?.nombre ?? ''} · lote ${o.numero_lote} · vence ${o.vencimiento_texto}`}
+            rectifica={Boolean((analisisGranel.data ?? []).find((x) => x.vigente))}
+            cargando={dictaminarGranel.isPending}
+            onCancelar={() => setAnalizando(false)}
+            onGuardar={(d) => {
+              const previo = (analisisGranel.data ?? []).find((x) => x.vigente);
+              dictaminarGranel.mutate(
+                {
+                  ordenId: o.id,
+                  ...d,
+                  rectificaA: previo?.id ?? null,
+                  motivo: previo ? d.motivo : null,
+                },
+                { onSuccess: () => setAnalizando(false) },
+              );
+            }}
           />
         ) : null}
       </Modal>
