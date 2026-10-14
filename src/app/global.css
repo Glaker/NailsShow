@@ -776,3 +776,132 @@ a.contador:hover {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/*
+ * «Tareas»: matriz de Eisenhower. La matriz es una superficie limpia, igual al
+ * resto de la app; lo que tiene aire de pizarra son los pines.
+ */
+.matriz-tareas {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  height: clamp(480px, 68vh, 880px);
+  border: 1px solid var(--superficie-borde);
+  border-radius: 14px;
+  background: var(--mantine-color-body);
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+.matriz-cuadrante {
+  padding: 12px 16px 0 34px;
+  pointer-events: none;
+}
+.matriz-hacer {
+  border-right: 1px solid var(--superficie-borde);
+  border-bottom: 1px solid var(--superficie-borde);
+  background: color-mix(in srgb, var(--mantine-color-estadoRechazado-5) 5%, transparent);
+}
+.matriz-planificar {
+  border-bottom: 1px solid var(--superficie-borde);
+  background: color-mix(in srgb, var(--mantine-color-azul-5) 5%, transparent);
+}
+.matriz-delegar {
+  border-right: 1px solid var(--superficie-borde);
+  background: color-mix(in srgb, var(--mantine-color-estadoCuarentena-5) 5%, transparent);
+}
+
+.matriz-eje {
+  position: absolute;
+  font-size: 11px;
+  color: var(--mantine-color-dimmed);
+  pointer-events: none;
+}
+.matriz-eje-x {
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.matriz-eje-y {
+  left: 14px;
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  white-space: nowrap;
+}
+
+/* El pin: la punta de la aguja va en (left, top). */
+.pin-tarea {
+  position: absolute;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  transform: translate(-12px, -100%);
+  cursor: grab;
+  transition:
+    left 420ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    top 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  z-index: 1;
+  outline: none;
+}
+.pin-tarea:focus-visible .pin-etiqueta {
+  box-shadow: 0 0 0 2px var(--mantine-color-azul-5);
+}
+.pin-cuerpo {
+  transform-origin: 50% 100%;
+  filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, 0.3));
+  transition:
+    transform 160ms ease,
+    filter 160ms ease;
+}
+.pin-etiqueta {
+  max-width: 180px;
+  padding: 2px 7px;
+  margin-top: 1px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  line-height: 1.35;
+  background: var(--mantine-color-body);
+  border: 1px solid var(--superficie-borde);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Levantado: se despega, se inclina y la sombra cae lejos. */
+.pin-levantado {
+  cursor: grabbing;
+  transition: none;
+  z-index: 3;
+}
+.pin-levantado .pin-cuerpo {
+  transform: translateY(-8px) rotate(-14deg) scale(1.12);
+  filter: drop-shadow(4px 10px 4px rgba(0, 0, 0, 0.25));
+}
+
+/* Clavado: baja de golpe y rebota apenas, como un pin en el corcho. */
+.pin-clavado .pin-cuerpo {
+  animation: pin-clavar 420ms cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes pin-clavar {
+  0% {
+    transform: translateY(-10px) rotate(-14deg) scale(1.12);
+  }
+  55% {
+    transform: translateY(1px) rotate(2deg) scale(0.96, 1.04);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pin-tarea,
+  .pin-cuerpo {
+    transition: none;
+  }
+  .pin-clavado .pin-cuerpo {
+    animation: none;
+  }
+}

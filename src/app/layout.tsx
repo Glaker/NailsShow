@@ -34,6 +34,7 @@ import {
 import { Marca } from '@/components/Marca';
 import { ROLES_CATALOGOS, useItemsVisibles, type ItemNavegacion } from './navegacion';
 import { useAvisosTareas } from '@/lib/consultasTareas';
+import { BotonTareas } from '@/features/tareas/BotonTareas';
 
 /** Puntito de aviso: planta terminó tareas que Producción no vio (Tablero). */
 function PuntoAviso({ ruta }: { ruta: string }) {
@@ -237,6 +238,9 @@ function ContenidoBarra({ onNavegar }: { onNavegar?: (() => void) | undefined })
 
       <Box p="sm">
         <Box mb="sm" px={4}>
+          <BotonTareas />
+        </Box>
+        <Box mb="sm" px={4}>
           <SelectorMoneda />
         </Box>
         <TarjetaUsuario />
@@ -370,6 +374,7 @@ export function Layout({ children }: { children: ReactNode }) {
               </Text>
             </Group>
             <Group gap="xs" wrap="nowrap">
+              <BotonTareas compacto />
               {claims?.rol ? (
                 <Badge variant="light" color="azul">
                   {etiquetaEnum(claims.rol)}

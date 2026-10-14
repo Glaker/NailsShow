@@ -4013,6 +4013,54 @@ export type Database = {
           },
         ]
       }
+      tareas_equipo: {
+        Row: {
+          archivada: boolean
+          compartida: boolean
+          creada_en: string
+          creada_por: string
+          detalle: string | null
+          hecha_en: string | null
+          hecha_por: string | null
+          id: string
+          movida_en: string | null
+          movida_por: string | null
+          pos_x: number
+          pos_y: number
+          titulo: string
+        }
+        Insert: {
+          archivada?: boolean
+          compartida?: boolean
+          creada_en?: string
+          creada_por?: string
+          detalle?: string | null
+          hecha_en?: string | null
+          hecha_por?: string | null
+          id?: string
+          movida_en?: string | null
+          movida_por?: string | null
+          pos_x?: number
+          pos_y?: number
+          titulo: string
+        }
+        Update: {
+          archivada?: boolean
+          compartida?: boolean
+          creada_en?: string
+          creada_por?: string
+          detalle?: string | null
+          hecha_en?: string | null
+          hecha_por?: string | null
+          id?: string
+          movida_en?: string | null
+          movida_por?: string | null
+          pos_x?: number
+          pos_y?: number
+          titulo?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       v_ajustes_a_investigar: {

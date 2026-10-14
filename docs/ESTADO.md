@@ -2043,3 +2043,14 @@ y `…180200_gmp_tareas_calidad_cierra`.
   «Tablero» del menú.
 - Tareas de a varios: las carga uno solo (pedido del codirector).
 Probado en la base real en transacciones revertidas.
+
+### «Tareas»: matriz de Eisenhower del equipo (2026-10-14, APLICADO)
+
+`20261014190000_comercial_tareas_equipo`. Botón «Tareas» al pie del menú
+lateral (y en la barra del teléfono), para todos menos operarios; abre la
+matriz en grande. Pines de color por persona (`src/features/tareas/colores.ts`,
+por nombre de pila: Eliseo azul marino, Diego negro, Mati amarillo, Agustina
+magenta, Naza turquesa, Virginia violeta, Anabella verde, el resto por
+paleta). Común (la ven y la mueven todos) o propia. Mover: cualquiera que la
+vea; texto y «Sacar»: quien la cargó. «Hecha» la cierra. No se borra.
+Refresca cada 20 s.
