@@ -83,51 +83,46 @@ const esquemaLote = z.object({
 
 /* Comprobante del proveedor (RN-65, 20260929100000). Mismas reglas que los
    CHECK de comercial.comprobantes_proveedor. */
-const esquemaComprobante = z
+const esquemaComprobante = z.object({
+  tipo: z.enum(['FACTURA_A', 'FACTURA_B', 'FACTURA_C', 'SIN_FACTURA']),
+  punto_venta: z.number().int().min(1).max(99999).nullable(),
+  numero: z.number().int().min(1).max(99999999).nullable(),
+  fecha: z.date().nullable(),
+  neto: z.number().nonnegative().nullable(),
+  iva: z.number().nonnegative().nullable(),
+  otros: z.number().nonnegative().nullable(),
+  total: z.number().nonnegative().nullable(),
+});
+
+const esquemaRecepcion = z
   .object({
-    tipo: z.enum(['FACTURA_A', 'FACTURA_B', 'FACTURA_C', 'SIN_FACTURA']),
-    punto_venta: z.number().int().min(1).max(99999).nullable(),
-    numero: z.number().int().min(1).max(99999999).nullable(),
-    fecha: z.date().nullable(),
-    neto: z.number().nonnegative().nullable(),
-    iva: z.number().nonnegative().nullable(),
-    otros: z.number().nonnegative().nullable(),
-    total: z.number().nonnegative().nullable(),
+    proveedor_id: z.string().min(1, 'Elegí el proveedor'),
+    /* El comprobante es opcional en la recepción (20261014130000): si no se
+       carga, le queda pendiente a Administración. */
+    con_comprobante: z.boolean(),
+    comprobante: esquemaComprobante,
+    proveedor_nuevo: z.boolean(),
+    /* Opcional: hay proveedores que entregan sin remito. */
+    numero_remito: z.string(),
+    coincide_con_pedido: z.boolean(),
+    observaciones: z.string(),
+    rotularEnCuarentena: z.boolean(),
+    lotes: z.array(esquemaLote).min(1, 'Cargá al menos un lote'),
   })
-  .superRefine((c, ctx) => {
-    if (c.tipo === 'SIN_FACTURA') return;
-    if (c.punto_venta === null)
-      ctx.addIssue({
-        code: 'custom',
-        path: ['punto_venta'],
-        message: 'Falta el punto de venta',
-      });
-    if (c.numero === null)
-      ctx.addIssue({ code: 'custom', path: ['numero'], message: 'Falta el número' });
+  .superRefine((v, ctx) => {
+    const c = v.comprobante;
+    if (!v.con_comprobante || c.tipo === 'SIN_FACTURA') return;
+    const falta = (campo: string, message: string) =>
+      ctx.addIssue({ code: 'custom', path: ['comprobante', campo], message });
+    if (c.punto_venta === null) falta('punto_venta', 'Falta el punto de venta');
+    if (c.numero === null) falta('numero', 'Falta el número');
     if (c.tipo === 'FACTURA_A') {
-      if (c.neto === null)
-        ctx.addIssue({
-          code: 'custom',
-          path: ['neto'],
-          message: 'Falta el neto gravado',
-        });
-      if (c.iva === null)
-        ctx.addIssue({ code: 'custom', path: ['iva'], message: 'Falta el IVA' });
+      if (c.neto === null) falta('neto', 'Falta el neto gravado');
+      if (c.iva === null) falta('iva', 'Falta el IVA');
     } else if (!c.total) {
-      ctx.addIssue({ code: 'custom', path: ['total'], message: 'Falta el total' });
+      falta('total', 'Falta el total');
     }
   });
-
-const esquemaRecepcion = z.object({
-  proveedor_id: z.string().min(1, 'Elegí el proveedor'),
-  comprobante: esquemaComprobante,
-  proveedor_nuevo: z.boolean(),
-  numero_remito: z.string().trim().min(1, 'Falta el número de remito'),
-  coincide_con_pedido: z.boolean(),
-  observaciones: z.string(),
-  rotularEnCuarentena: z.boolean(),
-  lotes: z.array(esquemaLote).min(1, 'Cargá al menos un lote'),
-});
 
 type ValoresRecepcion = z.infer<typeof esquemaRecepcion>;
 
@@ -162,6 +157,9 @@ export function FormularioRecepcion({ onListo }: Props) {
   /* El costo lo cargan Gerencia de Producción, Administración y Finanzas
      (D-38). Un operario que recibe no lo ve: se completa después. */
   const cargaCosto = useTieneRol(...ROLES_CARGAN_COSTO_LOTE);
+  /* Dirección Técnica recibe material pero no ve la parte fiscal: el
+     comprobante lo carga Administración (pedido del 2026-10-14). */
+  const veComprobante = !useTieneRol('DIRECCION_TECNICA');
   const referencias = useCostosReferencia();
   const cargarCostos = useCargarCostosLote();
   /** Compras pendientes que llegaron con esta recepción: id → llegó completa. */
@@ -172,6 +170,7 @@ export function FormularioRecepcion({ onListo }: Props) {
     initialValues: {
       proveedor_id: '',
       proveedor_nuevo: false,
+      con_comprobante: false,
       comprobante: {
         tipo: 'FACTURA_A',
         punto_venta: null,
@@ -262,7 +261,7 @@ export function FormularioRecepcion({ onListo }: Props) {
     const { recepcion, lotes } = await crear.mutateAsync({
       proveedor_id: valores.proveedor_id,
       proveedor_nuevo: valores.proveedor_nuevo,
-      numero_remito: valores.numero_remito.trim(),
+      numero_remito: valores.numero_remito.trim() || null,
       coincide_con_pedido: valores.coincide_con_pedido,
       observaciones: valores.observaciones.trim() || null,
       rotularEnCuarentena: valores.rotularEnCuarentena,
@@ -284,25 +283,29 @@ export function FormularioRecepcion({ onListo }: Props) {
     });
 
     // La recepción física ya quedó; el comprobante es un registro aparte
-    // (RN-65). Si falla, se avisa y se puede cargar después.
+    // (RN-65). Si no se carga o falla, le queda a Administración en
+    // «Facturas por cargar».
     const c = valores.comprobante;
+    const conComprobante = veComprobante && valores.con_comprobante;
     const sinFactura = c.tipo === 'SIN_FACTURA';
     const conIva = discriminaIva(c.tipo);
-    const fechaFactura = sinFactura ? null : fechaISO(c.fecha);
-    await registrarComprobante
-      .mutateAsync({
-        proveedor_id: valores.proveedor_id,
-        recepcion_id: recepcion.id,
-        tipo: c.tipo,
-        punto_venta: sinFactura ? null : c.punto_venta,
-        numero: sinFactura ? null : c.numero,
-        ...(fechaFactura ? { fecha: fechaFactura } : {}),
-        importe_neto: conIva ? c.neto : null,
-        importe_iva: conIva ? c.iva : null,
-        importe_otros: conIva ? c.otros : null,
-        importe_total: conIva ? (c.neto ?? 0) + (c.iva ?? 0) + (c.otros ?? 0) : c.total,
-      })
-      .catch(() => {});
+    const fechaFactura = conComprobante && !sinFactura ? fechaISO(c.fecha) : null;
+    if (conComprobante) {
+      await registrarComprobante
+        .mutateAsync({
+          proveedor_id: valores.proveedor_id,
+          recepcion_id: recepcion.id,
+          tipo: c.tipo,
+          punto_venta: sinFactura ? null : c.punto_venta,
+          numero: sinFactura ? null : c.numero,
+          ...(fechaFactura ? { fecha: fechaFactura } : {}),
+          importe_neto: conIva ? c.neto : null,
+          importe_iva: conIva ? c.iva : null,
+          importe_otros: conIva ? c.otros : null,
+          importe_total: conIva ? (c.neto ?? 0) + (c.iva ?? 0) + (c.otros ?? 0) : c.total,
+        })
+        .catch(() => {});
+    }
 
     // El costo de cada lote va a comercial (fuente única del costo, R-10). El
     // comprobante sale del de la recepción. Los lotes vuelven en el orden en
@@ -314,7 +317,9 @@ export function FormularioRecepcion({ onListo }: Props) {
         return [
           {
             lote_insumo_id: lote.id,
-            tipo_comprobante: comprobanteDeRecepcion(c.tipo),
+            tipo_comprobante: conComprobante
+              ? comprobanteDeRecepcion(c.tipo)
+              : l.costo.tipo_comprobante,
             importe: l.costo.importe!,
             incluye_iva: l.costo.incluye_iva,
             alicuota_iva: l.costo.alicuota_iva,
@@ -361,7 +366,7 @@ export function FormularioRecepcion({ onListo }: Props) {
               </Grid.Col>
               <Grid.Col span={{ base: 12, sm: 5 }}>
                 <TextInput
-                  label="N° de remito"
+                  label="N° de remito (opcional)"
                   placeholder="0001-00012345"
                   {...form.getInputProps('numero_remito')}
                 />
@@ -404,9 +409,12 @@ export function FormularioRecepcion({ onListo }: Props) {
 
           <Divider />
 
-          <ComprobanteDelProveedor form={form} />
-
-          <Divider />
+          {veComprobante ? (
+            <>
+              <ComprobanteDelProveedor form={form} />
+              <Divider />
+            </>
+          ) : null}
 
           <Group justify="space-between">
             <Title order={4}>Lotes recibidos</Title>
@@ -637,12 +645,16 @@ export function FormularioRecepcion({ onListo }: Props) {
                         labelPosition="left"
                       />
                       <CamposCosto
-                        valor={{
-                          ...lote.costo,
-                          tipo_comprobante: comprobanteDeRecepcion(
-                            form.values.comprobante.tipo,
-                          ),
-                        }}
+                        valor={
+                          form.values.con_comprobante
+                            ? {
+                                ...lote.costo,
+                                tipo_comprobante: comprobanteDeRecepcion(
+                                  form.values.comprobante.tipo,
+                                ),
+                              }
+                            : lote.costo
+                        }
                         onChange={(v) => form.setFieldValue(`lotes.${i}.costo`, v)}
                         unidadCatalogo={insumo?.unidad_medida ?? null}
                         referencia={
@@ -650,7 +662,7 @@ export function FormularioRecepcion({ onListo }: Props) {
                             (r) => r.insumo_id === lote.insumo_id,
                           ) ?? null
                         }
-                        comprobanteFijo
+                        comprobanteFijo={form.values.con_comprobante}
                       />
                     </Grid.Col>
                   ) : null}
@@ -794,11 +806,24 @@ function ComprobanteDelProveedor({
 }: {
   form: UseFormReturnType<ValoresRecepcion>;
 }) {
-  const c = form.values.comprobante;
-  const conIva = discriminaIva(c.tipo);
   return (
     <Stack gap="md">
       <Title order={4}>Comprobante del proveedor</Title>
+      <Switch
+        label="Cargar la factura ahora"
+        description="Opcional. Si no la cargás, a Administración le queda pendiente en «Facturas por cargar»."
+        {...form.getInputProps('con_comprobante', { type: 'checkbox' })}
+      />
+      {form.values.con_comprobante ? <DatosComprobante form={form} /> : null}
+    </Stack>
+  );
+}
+
+function DatosComprobante({ form }: { form: UseFormReturnType<ValoresRecepcion> }) {
+  const c = form.values.comprobante;
+  const conIva = discriminaIva(c.tipo);
+  return (
+    <>
       <SegmentedControl
         fullWidth
         data={[
@@ -898,6 +923,6 @@ function ComprobanteDelProveedor({
           )}
         </Grid>
       )}
-    </Stack>
+    </>
   );
 }

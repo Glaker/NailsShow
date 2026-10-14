@@ -323,7 +323,8 @@ export interface LoteNuevo {
 export interface RecepcionNueva {
   proveedor_id: string;
   proveedor_nuevo: boolean;
-  numero_remito: string;
+  /** Opcional desde 20261014130000: null si llegó sin remito. */
+  numero_remito: string | null;
   coincide_con_pedido: boolean;
   observaciones: string | null;
   lotes: LoteNuevo[];
@@ -764,6 +765,7 @@ export const TEXTO_MOTIVO_BLOQUEO: Record<MotivoBloqueo, string> = {
   INVESTIGACION: 'En investigación',
   VENCIMIENTO: 'Vencido',
   DECISION_DIRECCION_TECNICA: 'Decisión de Dirección Técnica',
+  EJEMPLO: 'Solo ejemplo (carga de prueba)',
 };
 
 /** Existencia consolidada por artículo: la vista de reposición. */

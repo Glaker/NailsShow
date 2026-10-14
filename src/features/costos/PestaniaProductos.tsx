@@ -23,9 +23,11 @@ import { Vacio } from '@/components/Vacio';
 import { useTieneRol } from '@/features/auth/sesion';
 import { numero } from '@/lib/formato';
 import {
+  ROLES_COSTO_PLANILLA,
   ROLES_CONTENIDO_NETO,
   ROLES_MINUTOS,
   useCargarContenidoNeto,
+  useCargarCostoPlanilla,
   useCargarMinutos,
   useCostosProducto,
   useDesgloseProducto,
@@ -115,7 +117,10 @@ export function PestaniaProductos() {
           />
         </Paper>
       ) : (
-        <Paper withBorder style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}>
+        <Paper
+          withBorder
+          style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}
+        >
           <Table.ScrollContainer minWidth={1000}>
             <Table verticalSpacing="sm" highlightOnHover>
               <Table.Thead>
@@ -173,7 +178,12 @@ export function PestaniaProductos() {
                       {p.mano_de_obra !== null ? pesos(p.mano_de_obra) : '—'}
                     </Table.Td>
                     <Table.Td ta="right" ff="monospace" fw={700}>
-                      {p.costo_unitario !== null ? pesos(p.costo_unitario) : '—'}
+                      {p.costo_vigente !== null ? pesos(p.costo_vigente) : '—'}
+                      {p.fuente_costo === 'PLANILLA' ? (
+                        <Text size="xs" c="dimmed" ff="inherit" fw={400}>
+                          de planilla
+                        </Text>
+                      ) : null}
                     </Table.Td>
                   </Table.Tr>
                 ))}
@@ -196,7 +206,12 @@ export function PestaniaProductos() {
         size="xl"
       >
         {abierto ? (
-          <Button component={Link} to={`/costos/producto/${abierto.producto_id}`} variant="light" mb="md">
+          <Button
+            component={Link}
+            to={`/costos/producto/${abierto.producto_id}`}
+            variant="light"
+            mb="md"
+          >
             Ver panel del producto (gráficos, precios y stock)
           </Button>
         ) : null}
@@ -212,7 +227,12 @@ export function PestaniaProductos() {
 }
 
 function EstadoFormula({ estado }: { estado: string | null }) {
-  if (estado === null) return <Badge color="gray" variant="light">sin fórmula</Badge>;
+  if (estado === null)
+    return (
+      <Badge color="gray" variant="light">
+        sin fórmula
+      </Badge>
+    );
   if (estado === 'VIGENTE') return null;
   return (
     <Badge color="yellow" variant="light">
@@ -245,7 +265,10 @@ function DesgloseProducto({
           descripcion="El producto no tiene una fórmula con componentes costeables."
         />
       ) : (
-        <Paper withBorder style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}>
+        <Paper
+          withBorder
+          style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}
+        >
           <Table.ScrollContainer minWidth={960}>
             <Table verticalSpacing="sm">
               <Table.Thead>
@@ -278,7 +301,9 @@ function DesgloseProducto({
                       ) : null}
                     </Table.Td>
                     <Table.Td ta="right" ff="monospace">
-                      {c.cantidad !== null ? `${numero(c.cantidad, 4)} ${c.unidad ?? ''}` : '—'}
+                      {c.cantidad !== null
+                        ? `${numero(c.cantidad, 4)} ${c.unidad ?? ''}`
+                        : '—'}
                     </Table.Td>
                     <Table.Td ta="right" ff="monospace">
                       {c.merma !== null ? `${numero(c.merma * 100, 2)} %` : '—'}
@@ -313,8 +338,14 @@ function DesgloseProducto({
       )}
 
       <Text fw={700}>
-        Costo unitario del producto: {producto.costo_unitario !== null ? pesos(producto.costo_unitario) : 'sin calcular'}
+        Costo calculado:{' '}
+        {producto.costo_unitario !== null
+          ? pesos(producto.costo_unitario)
+          : 'sin calcular'}
+        {producto.faltantes > 0 ? ' (incompleto)' : ''}
       </Text>
+
+      <CostoPlanilla producto={producto} />
 
       {puedeContenido ? <FormularioContenido producto={producto} /> : null}
       {puedeMinutos ? (
@@ -453,6 +484,106 @@ function FormularioMinutos({
           </Group>
         </Stack>
       </form>
+    </Paper>
+  );
+}
+
+/**
+ * Costo de planilla (D-56): el de la hoja C.T. o el que fijó Finanzas. Rige
+ * mientras el calculado esté incompleto. Finanzas lo reemplaza con motivo; el
+ * anterior queda en el historial.
+ */
+function CostoPlanilla({ producto }: { producto: CostoProducto }) {
+  const puede = useTieneRol(...ROLES_COSTO_PLANILLA);
+  const cargar = useCargarCostoPlanilla();
+  const [cvd, setCvd] = useState<number | null>(producto.planilla_cvd);
+  const [mod, setMod] = useState<number | null>(producto.planilla_mod);
+  const [cvi, setCvi] = useState<number | null>(producto.planilla_cvi);
+  const [motivo, setMotivo] = useState('');
+  const total = (cvd ?? 0) + (mod ?? 0) + (cvi ?? 0);
+  const reemplaza = producto.planilla_id !== null;
+  const valido = total > 0 && (!reemplaza || motivo.trim().length >= 3);
+  const n = (v: string | number) => (v === '' ? null : Number(v));
+
+  return (
+    <Paper withBorder p="md" style={{ borderColor: 'var(--superficie-borde)' }}>
+      <Stack gap="sm">
+        <Group justify="space-between">
+          <Text fw={700}>
+            Costo de planilla:{' '}
+            {producto.costo_planilla !== null
+              ? pesos(producto.costo_planilla)
+              : 'sin cargar'}
+          </Text>
+          {producto.fuente_costo === 'PLANILLA' ? (
+            <Badge variant="light">es el que se usa ahora</Badge>
+          ) : null}
+        </Group>
+        <Text size="xs" c="dimmed">
+          {producto.planilla_fuente ?? 'Sin costo de planilla.'} Se usa mientras el costo
+          calculado esté incompleto. Lo cambia Finanzas.
+        </Text>
+        {puede ? (
+          <>
+            <Group grow>
+              <NumberInput
+                label="Materiales (C.V.D.)"
+                min={0}
+                decimalScale={2}
+                value={cvd ?? ''}
+                onChange={(v) => setCvd(n(v))}
+              />
+              <NumberInput
+                label="Mano de obra (M.O.D.)"
+                min={0}
+                decimalScale={2}
+                value={mod ?? ''}
+                onChange={(v) => setMod(n(v))}
+              />
+              <NumberInput
+                label="Indirectos (C.V.I.)"
+                min={0}
+                decimalScale={2}
+                value={cvi ?? ''}
+                onChange={(v) => setCvi(n(v))}
+              />
+            </Group>
+            {reemplaza ? (
+              <TextInput
+                label="Motivo del cambio"
+                placeholder="Precio actualizado, error en la planilla…"
+                value={motivo}
+                onChange={(e) => setMotivo(e.currentTarget.value)}
+              />
+            ) : null}
+            <Group justify="space-between">
+              <Text size="sm">Total {pesos(total)}</Text>
+              <Button
+                disabled={!valido}
+                loading={cargar.isPending}
+                onClick={() =>
+                  cargar.mutate({
+                    producto_id: producto.producto_id,
+                    cvd,
+                    mod,
+                    cvi,
+                    reemplaza_a: producto.planilla_id,
+                    motivo: motivo.trim() || null,
+                  })
+                }
+              >
+                Guardar costo
+              </Button>
+            </Group>
+          </>
+        ) : producto.costo_planilla !== null ? (
+          <Text size="sm">
+            Materiales {pesos(producto.planilla_cvd ?? 0)} · mano de obra{' '}
+            {pesos(producto.planilla_mod ?? 0)} · indirectos{' '}
+            {pesos(producto.planilla_cvi ?? 0)}
+          </Text>
+        ) : null}
+      </Stack>
     </Paper>
   );
 }

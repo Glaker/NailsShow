@@ -545,6 +545,48 @@ Certificados: `AFIP_CERT_<CUIT>`/`AFIP_KEY_<CUIT>` por emisor, o
 IVA y cuentas corrientes por emisor.
 **Decide.** Gerencia, con el estudio contable.
 
+## Abiertas — 2026-10-14
+
+### D-55 · Especificaciones cargadas en borrador: qué revisar antes de aprobar
+
+**Contexto.** `20261014140000` cargó en BORRADOR las 18 especificaciones que
+existen como documento con requisitos (I-E.50.11 a .17 polvos, .25 líquido
+acrílico, .26/.27/.28 cremas y aceite por variedad, .31 gel paint). Ninguna
+quedó aprobada: aprobar es un acto de DT.
+**Preguntas para DT.**
+- Ningún documento fuente está firmado (Emitió/Revisó/Aprobó vacíos).
+- Polvos: los archivos dicen I-E.40.x; se cargaron con la numeración I-E.50.11
+  a .17 que citan los ME.40.x. ¿Correcto? Solo traen requisitos
+  organolépticos y la fórmula como cantidades de una tanda, sin rangos.
+- Vida útil: Dark cover pink y Blanco shimmer no la declaran; se cargó 36
+  meses (provisorio D-19).
+- Densidad de cremas y aceites sin unidad en el documento: se cargó g/ml.
+- Gel paint (I-E.50.31): los códigos del fabricante no se vinculan a los
+  colores del catálogo.
+- Natural, EzFlow, Ferrite, Blanco saturado y French Nail Show no se cargaron:
+  sus documentos no tienen requisitos. Faltan los documentos de I-E.50.18 a
+  .23, .29, .33 y .34, que citan los ME.
+- Ninguna fórmula apunta todavía a su especificación, y la liberación no lo
+  exige. ¿Se exige?
+**Decide.** Dirección Técnica.
+
+### D-56 · Costo de producto de la planilla C.T. como punto de partida
+
+**Pedido** del codirector técnico (2026-10-14): usar la hoja C.T. de
+`05 INVENTARIO NAIL SHOW FABRICA(4).xlsx` como costo inicial, modificable por
+Finanzas.
+**Resolución.** `comercial.costos_producto_planilla` (C.V.D. + M.O.D. + C.V.I.
+por unidad, append-only: Finanzas lo reemplaza con motivo desde Costos ›
+Productos). `v_costo_producto.costo_vigente` = el calculado si está completo;
+si no, el de planilla (`fuente_costo`). Se cargaron 301; no entraron 82
+renglones sin C.V.D. (solo mano de obra o indirectos), 104 en cero y 10
+fuera del catálogo.
+**Límite conocido.** El panel de producto, la foto mensual, el resultado y el
+cotizador siguen usando el costo calculado; solo la lista de Costos ›
+Productos y su desglose muestran el de planilla.
+**Revisar** con Finanzas si esos también deben tomar el de planilla mientras
+el calculado esté incompleto.
+
 ## Abiertas — módulo de costos (2026-10-09)
 
 ### D-39 · Con qué fórmula se costea el granel

@@ -46,6 +46,7 @@ import { PaginaVisibilidad } from '@/features/usuarios/PaginaVisibilidad';
 import { PaginaOrdenes } from '@/features/produccion/PaginaOrdenes';
 import { PaginaOrden } from '@/features/produccion/PaginaOrden';
 import { BatchRecord } from '@/features/produccion/BatchRecord';
+import { BatchRecordEjemplo } from '@/features/produccion/BatchRecordEjemplo';
 import { PaginaEspecificaciones } from '@/features/produccion/PaginaEspecificaciones';
 
 /**
@@ -70,6 +71,7 @@ export function AppRoutes() {
       <Route path="/producto-terminado" element={<RedirigirAStock vista="fabrica" />} />
       <Route path="/calculadora-lote" element={<RedirigirACalculadora />} />
       <Route path="/liberacion" element={<PaginaLiberacion />} />
+      <Route path="/liberacion/ejemplo" element={<BatchRecordEjemplo />} />
       <Route path="/ordenes" element={<PaginaOrdenes />} />
       <Route path="/ordenes/:id" element={<PaginaOrden />} />
       <Route path="/ordenes/:id/batch-record" element={<BatchRecord />} />

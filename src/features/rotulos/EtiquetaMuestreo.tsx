@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Box, Group, Paper, Stack, Text } from '@mantine/core';
 import QRCode from 'qrcode';
 import type { MuestreoVista } from '@/lib/consultas';
+import { MarcaEjemplo } from '@/components/MarcaEjemplo';
 import { fechaHora, numero } from '@/lib/formato';
 
 function Campo({ etiqueta, valor }: { etiqueta: string; valor: string }) {
@@ -29,7 +30,14 @@ function Campo({ etiqueta, valor }: { etiqueta: string; valor: string }) {
  * esto identifica una muestra. Pintarla de amarillo diría algo que el POE no
  * dijo, y en planta el color es justamente lo que se lee de lejos.
  */
-export function EtiquetaMuestreo({ muestreo }: { muestreo: MuestreoVista }) {
+export function EtiquetaMuestreo({
+  muestreo,
+  ejemplo = false,
+}: {
+  muestreo: MuestreoVista;
+  /** Lote bloqueado como EJEMPLO: lleva la marca de agua. */
+  ejemplo?: boolean;
+}) {
   const [qr, setQr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -57,8 +65,14 @@ export function EtiquetaMuestreo({ muestreo }: { muestreo: MuestreoVista }) {
       className="hoja-rotulo"
       radius="md"
       p={0}
-      style={{ border: '3px solid #495057', overflow: 'hidden', background: '#fff' }}
+      style={{
+        border: '3px solid #495057',
+        overflow: 'hidden',
+        background: '#fff',
+        position: 'relative',
+      }}
     >
+      {ejemplo ? <MarcaEjemplo tamano={22} /> : null}
       <Group
         justify="space-between"
         px="md"

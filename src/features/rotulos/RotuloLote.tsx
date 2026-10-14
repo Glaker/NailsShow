@@ -5,6 +5,7 @@ import type { LoteVista, Rotulo } from '@/lib/consultas';
 import { fecha, fechaHora } from '@/lib/formato';
 import { TEXTO_ESTADO } from '@/components/InsigniaEstado';
 import type { Database } from '@/lib/database.types';
+import { MarcaEjemplo } from '@/components/MarcaEjemplo';
 
 type EstadoCalidad = Database['gmp']['Enums']['estado_calidad_enum'];
 
@@ -43,6 +44,8 @@ function Campo({ etiqueta, valor }: { etiqueta: string; valor: string }) {
 interface Props {
   lote: LoteVista;
   rotulo: Rotulo;
+  /** Lote bloqueado como EJEMPLO: lleva la marca de agua. */
+  ejemplo?: boolean;
 }
 
 /**
@@ -54,7 +57,7 @@ interface Props {
  * cartel pegado en un tambor en una entrada de trazabilidad consultable desde
  * el teléfono, sin tipear un número de veinte caracteres con guantes puestos.
  */
-export function RotuloLote({ lote, rotulo }: Props) {
+export function RotuloLote({ lote, rotulo, ejemplo = false }: Props) {
   const [qr, setQr] = useState<string | null>(null);
   const estado = rotulo.estado;
   const tinta = TINTA[estado];
@@ -88,8 +91,10 @@ export function RotuloLote({ lote, rotulo }: Props) {
         border: `3px solid ${tinta.borde}`,
         overflow: 'hidden',
         background: '#fff',
+        position: 'relative',
       }}
     >
+      {ejemplo ? <MarcaEjemplo /> : null}
       <Group
         justify="space-between"
         px="md"

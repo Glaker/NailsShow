@@ -168,7 +168,7 @@ export function PaginaRecepciones() {
                       </Table.Td>
                       <Table.Td>
                         <Group gap={6} wrap="nowrap">
-                          <Text size="sm">{r.numero_remito}</Text>
+                          <Text size="sm">{r.numero_remito ?? 'Sin remito'}</Text>
                           {!r.coincide_con_pedido ? (
                             <Tooltip label="No coincide con lo pedido (I.20.1 paso 2)">
                               <IconAlertTriangle

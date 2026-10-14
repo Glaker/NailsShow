@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Button, Group, Skeleton } from '@mantine/core';
 import { IconArrowLeft, IconPrinter } from '@tabler/icons-react';
@@ -12,7 +13,9 @@ import {
   useOrden,
   type EtapaOrden,
   type EtapaRegistrada,
+  type OrdenProduccion,
 } from '@/lib/consultasOrdenes';
+import { MarcaEjemplo } from '@/components/MarcaEjemplo';
 import { CONFIG_ETAPAS, unidadesRecuento } from './etapasOrden';
 import { TrazabilidadOrden } from './TrazabilidadOrden';
 
@@ -21,7 +24,7 @@ import { TrazabilidadOrden } from './TrazabilidadOrden';
  * imprime en blanco y negro); al imprimir solo queda visible el documento.
  */
 const CSS = `
-.br { background: #fff; color: #111; font: 11px/1.35 Arial, Helvetica, sans-serif; max-width: 820px; margin: 0 auto; padding: 24px; border: 1px solid #ccc; }
+.br { position: relative; background: #fff; color: #111; font: 11px/1.35 Arial, Helvetica, sans-serif; max-width: 820px; margin: 0 auto; padding: 24px; border: 1px solid #ccc; }
 .br h1 { font-size: 15px; margin: 0; text-align: center; }
 .br h2 { font-size: 12px; margin: 14px 0 4px; text-transform: uppercase; border-bottom: 1px solid #111; }
 .br table { width: 100%; border-collapse: collapse; margin: 4px 0; }
@@ -32,14 +35,14 @@ const CSS = `
 @media print {
   body * { visibility: hidden !important; }
   .br, .br * { visibility: visible !important; }
-  .br { position: absolute; left: 0; top: 0; border: 0; max-width: none; width: 100%; padding: 0; }
+  .br { position: absolute !important; left: 0; top: 0; border: 0; max-width: none; width: 100%; padding: 0; }
   @page { size: A4; margin: 14mm; }
 }
 `;
 
-type Quien = (uid: string | null | undefined) => string;
+export type Quien = (uid: string | null | undefined) => string;
 type Datos = Record<string, unknown>;
-type Espec = ReturnType<typeof useEspecificacionCompleta>['data'];
+export type Espec = ReturnType<typeof useEspecificacionCompleta>['data'];
 
 const marca = (v: boolean) => (v ? 'X' : '');
 
@@ -244,16 +247,73 @@ export function BatchRecord() {
   const espec = useEspecificacionCompleta(o?.especificacion_id);
 
   if (orden.isLoading || !o) return <Skeleton h={500} />;
-  const etapas = new Map((orden.data?.etapas ?? []).map((e) => [e.etapa, e]));
   const producto = (productos.data ?? []).find((p) => p.id === o.producto_id);
   const formula = (formulas.data ?? []).find((f) => f.id === o.formula_id);
-  const registro = formula?.codigo_me
-    ? `R.${formula.codigo_me.replace(/^ME\./, '').replace(/\.$/, '')}.1`
-    : 'R.40.x.1';
   const proc = (procedimientos.data ?? []).find(
     (p) => p.version === o.procedimiento_version,
   );
-  const quien: Quien = (uid) => (uid ? (nomina.data?.get(uid) ?? '') : '');
+
+  return (
+    <DocumentoBatchRecord
+      orden={o}
+      etapas={orden.data?.etapas ?? []}
+      producto={producto ?? null}
+      formula={formula ?? null}
+      procedimiento={proc ?? null}
+      espec={espec.data}
+      quien={(uid) => (uid ? (nomina.data?.get(uid) ?? '') : '')}
+      trazabilidad={<TrazabilidadOrden ordenId={o.id} impreso />}
+      volver={{ a: `/ordenes/${o.id}`, texto: 'Volver a la orden' }}
+    />
+  );
+}
+
+export interface PropsDocumento {
+  orden: Pick<
+    OrdenProduccion,
+    | 'numero'
+    | 'numero_lote'
+    | 'vencimiento_texto'
+    | 'estado'
+    | 'presentacion_texto'
+    | 'cantidad_teorica'
+    | 'unidad'
+    | 'jornada'
+    | 'cantidad_obtenida'
+    | 'unidades_obtenidas'
+    | 'liberada_por'
+    | 'liberada_en'
+    | 'motivo_cierre'
+  >;
+  etapas: EtapaRegistrada[];
+  producto: { nombre: string | null; codigo_interno: string | null } | null;
+  formula: { version: string | null; codigo_me: string | null } | null;
+  procedimiento: { version: number; texto: string } | null;
+  espec: Espec;
+  quien: Quien;
+  trazabilidad: ReactNode;
+  volver: { a: string; texto: string };
+  /** Documento de demostración: marca de agua y aviso. */
+  ejemplo?: boolean;
+}
+
+/** El documento, separado de la carga de datos para poder mostrar un ejemplo. */
+export function DocumentoBatchRecord({
+  orden: o,
+  etapas: lista,
+  producto,
+  formula,
+  procedimiento: proc,
+  espec,
+  quien,
+  trazabilidad,
+  volver,
+  ejemplo = false,
+}: PropsDocumento) {
+  const etapas = new Map(lista.map((e) => [e.etapa, e]));
+  const registro = formula?.codigo_me
+    ? `R.${formula.codigo_me.replace(/^ME./, '').replace(/.$/, '')}.1`
+    : 'R.40.x.1';
   const revision = etapas.get('REVISION');
   const dr = revision?.datos ?? {};
 
@@ -263,17 +323,18 @@ export function BatchRecord() {
       <Group mb="md" justify="space-between">
         <Button
           component={Link}
-          to={`/ordenes/${o.id}`}
+          to={volver.a}
           variant="subtle"
           leftSection={<IconArrowLeft size={18} />}
         >
-          Volver a la orden
+          {volver.texto}
         </Button>
         <Button leftSection={<IconPrinter size={18} />} onClick={() => window.print()}>
           Descargar PDF
         </Button>
       </Group>
       <div className="br">
+        {ejemplo ? <MarcaEjemplo tamano={72} /> : null}
         <table>
           <tbody>
             <tr>
@@ -322,7 +383,7 @@ export function BatchRecord() {
             etapa={x.etapa}
             titulo={x.titulo}
             e={etapas.get(x.etapa)}
-            espec={espec.data}
+            espec={espec}
             quien={quien}
           />
         ))}
@@ -352,7 +413,7 @@ export function BatchRecord() {
         <Firmas e={revision} quien={quien} />
 
         <h2>Trazabilidad del lote (anexo)</h2>
-        <TrazabilidadOrden ordenId={o.id} impreso />
+        {trazabilidad}
 
         <h2>Liberación del producto terminado al mercado</h2>
         <p>

@@ -8,6 +8,7 @@ import {
   SimpleGrid,
   Skeleton,
   Stack,
+  Table,
   Text,
 } from '@mantine/core';
 import dayjs from 'dayjs';
@@ -24,14 +25,15 @@ import {
 } from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { TarjetaIndicador } from '@/components/TarjetaIndicador';
-import { diasHasta } from '@/lib/formato';
+import { diasHasta, fecha } from '@/lib/formato';
+import { useRecepcionesSinComprobante } from '@/lib/consultasCompras';
+import { ModalComprobante } from './PaginaCuentasProveedores';
 import { useVolumenes } from '@/lib/consultasFlujo';
 import { GraficoFlujo } from './GraficoFlujo';
 import { GraficoTorta } from './GraficoTorta';
 import {
   pesos,
   useCashFlowProyectado,
-  useComprasTrazadas,
   useIvaMensual,
   useSaldosClientes,
   useSaldosFondos,
@@ -51,7 +53,7 @@ export function PaginaAdministracion() {
   const solicitudes = useSolicitudesPago();
   const iva = useIvaMensual();
   const proyectado = useCashFlowProyectado();
-  const compras = useComprasTrazadas();
+  const sinComprobante = useRecepcionesSinComprobante();
 
   const cargando = [
     proveedores,
@@ -60,7 +62,7 @@ export function PaginaAdministracion() {
     solicitudes,
     iva,
     proyectado,
-    compras,
+    sinComprobante,
   ].some((q) => q.isLoading);
   if (cargando) return <Skeleton h={320} />;
 
@@ -70,9 +72,7 @@ export function PaginaAdministracion() {
     return f.tipo !== 'COBRANZA' && d !== null && d >= 0 && d <= 7;
   });
   const pendientes = (solicitudes.data ?? []).filter((s) => s.estado === 'PENDIENTE');
-  const sinFactura = (compras.data ?? []).filter(
-    (c) => c.situacion === 'SIN_COMPROBANTE',
-  );
+  const sinFactura = sinComprobante.data ?? [];
   const diferencias = (proveedores.data ?? []).filter(
     (p) => p.diferencia_conciliacion !== null && Number(p.diferencia_conciliacion) !== 0,
   );
@@ -115,12 +115,11 @@ export function PaginaAdministracion() {
             a="/solicitudes-pago"
           />
           <TarjetaIndicador
-            etiqueta="Recepciones sin factura cargada"
+            etiqueta="Facturas por cargar"
             valor={String(sinFactura.length)}
             icono={IconFileInvoice}
-            {...(sinFactura.length > 0 ? { color: 'estadoEnAnalisis' } : {})}
-            detalle="Compras recibidas que todavía no tienen comprobante"
-            a="/reportes"
+            {...(sinFactura.length > 0 ? { color: 'estadoRechazado' } : {})}
+            detalle="Recepciones que llegaron sin comprobante cargado"
           />
           <TarjetaIndicador
             etiqueta="Diferencias con proveedores"
@@ -168,6 +167,8 @@ export function PaginaAdministracion() {
           />
         </SimpleGrid>
 
+        <FacturasPorCargar filas={sinFactura} />
+
         <GraficoFlujo />
         <Volumenes />
 
@@ -197,6 +198,68 @@ export function PaginaAdministracion() {
         </Group>
       </Stack>
     </>
+  );
+}
+
+/**
+ * Recepciones que quedaron sin comprobante (en la recepción es opcional, y
+ * Dirección Técnica ni lo ve). Sin la factura no hay crédito fiscal ni deuda
+ * en la cuenta corriente: le salta a Administración hasta que la carga.
+ */
+function FacturasPorCargar({
+  filas,
+}: {
+  filas: NonNullable<ReturnType<typeof useRecepcionesSinComprobante>['data']>;
+}) {
+  const [cargando, setCargando] = useState<(typeof filas)[number] | null>(null);
+  if (filas.length === 0) return null;
+  return (
+    <Alert
+      color="estadoRechazado"
+      variant="light"
+      icon={<IconFileInvoice size={18} />}
+      title={`Tenés ${filas.length} ${filas.length === 1 ? 'factura' : 'facturas'} por cargar`}
+    >
+      <Text size="sm" mb="sm">
+        Estas recepciones entraron sin comprobante. Cargalo para que quede el IVA
+        crédito y la deuda con el proveedor. Si de verdad vino sin factura, cargalo
+        como «Sin factura».
+      </Text>
+      <Table.ScrollContainer minWidth={560}>
+        <Table verticalSpacing="xs">
+          <Table.Tbody>
+            {filas.map((r) => (
+              <Table.Tr key={r.recepcion_id}>
+                <Table.Td>{fecha(r.fecha_hora)}</Table.Td>
+                <Table.Td>
+                  <Text size="sm" fw={600}>
+                    {r.proveedor}
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    Recepción {r.numero} · remito {r.numero_remito ?? 'no informado'}
+                    {r.registrada_por ? ` · la recibió ${r.registrada_por}` : ''}
+                  </Text>
+                </Table.Td>
+                <Table.Td ta="right">
+                  <Button size="sm" onClick={() => setCargando(r)}>
+                    Cargar factura
+                  </Button>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
+      </Table.ScrollContainer>
+      {cargando?.proveedor_id ? (
+        <ModalComprobante
+          key={cargando.recepcion_id}
+          proveedorId={cargando.proveedor_id}
+          recepcionId={cargando.recepcion_id}
+          abierto
+          onCerrar={() => setCargando(null)}
+        />
+      ) : null}
+    </Alert>
   );
 }
 

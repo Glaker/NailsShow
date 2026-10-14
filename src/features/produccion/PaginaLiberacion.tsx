@@ -110,6 +110,17 @@ export function PaginaLiberacion() {
       <EncabezadoPagina
         titulo="Liberación de lotes"
         descripcion="Producto terminado que espera tu firma, y el batch record de cada lote para descargar."
+        acciones={
+          <Button
+            component={Link}
+            to="/liberacion/ejemplo"
+            variant="default"
+            size="md"
+            leftSection={<IconFileText size={18} />}
+          >
+            Ver un lote de ejemplo
+          </Button>
+        }
       />
       {ordenes.isLoading ? (
         <Skeleton h={240} />

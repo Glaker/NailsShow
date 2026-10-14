@@ -47,11 +47,7 @@ export const ROLES_CONTENIDO_NETO: Rol[] = [
 // ---------------------------------------------------------------------------
 
 export type Comprobante =
-  | 'FACTURA_A'
-  | 'FACTURA_B'
-  | 'FACTURA_C'
-  | 'NO_DISCRIMINADO'
-  | 'SIN_COMPROBANTE';
+  'FACTURA_A' | 'FACTURA_B' | 'FACTURA_C' | 'NO_DISCRIMINADO' | 'SIN_COMPROBANTE';
 
 export const COMPROBANTES: { value: Comprobante; label: string }[] = [
   { value: 'FACTURA_A', label: 'Factura A' },
@@ -77,7 +73,9 @@ export function netoArs(
   tipoCambio: number,
 ): number {
   const neto =
-    comprobante === 'FACTURA_A' && incluyeIva ? importe / (1 + (alicuota ?? 0) / 100) : importe;
+    comprobante === 'FACTURA_A' && incluyeIva
+      ? importe / (1 + (alicuota ?? 0) / 100)
+      : importe;
   return Math.round(neto * tipoCambio * 10000) / 10000;
 }
 
@@ -244,6 +242,16 @@ export interface CostoProducto {
   costo_unitario: number | null;
   faltantes: number;
   componentes_costeados: number;
+  /** Costo de la planilla C.T. o fijado por Finanzas (D-56). */
+  planilla_id: string | null;
+  costo_planilla: number | null;
+  planilla_cvd: number | null;
+  planilla_mod: number | null;
+  planilla_cvi: number | null;
+  planilla_fuente: string | null;
+  /** El calculado si está completo; si no, el de la planilla. */
+  costo_vigente: number | null;
+  fuente_costo: 'CALCULADO' | 'PLANILLA' | null;
 }
 
 export interface ComponenteCosto {
@@ -312,7 +320,9 @@ function numeros<T>(fila: Record<string, unknown>, campos: (keyof T)[]): T {
   return out as T;
 }
 
-async function leer<T>(consulta: PromiseLike<{ data: unknown; error: unknown }>): Promise<T> {
+async function leer<T>(
+  consulta: PromiseLike<{ data: unknown; error: unknown }>,
+): Promise<T> {
   const { data, error } = await consulta;
   if (error) throw error as Error; // PostgrestError: tiene message y code, como Error
   return (data ?? []) as T;
@@ -359,8 +369,17 @@ export function useTipoCambioActivo() {
   return useQuery({
     queryKey: ['costos', 'tipo-cambio-activo'],
     queryFn: async () => {
-      const [f] = await leer<Record<string, unknown>[]>(sinTipos().from('v_tipo_cambio_activo').select('*'));
-      return f ? numeros<{ serie: SerieMacro; mes: string; valor: number; es_provisorio: boolean }>(f, ['valor']) : null;
+      const [f] = await leer<Record<string, unknown>[]>(
+        sinTipos().from('v_tipo_cambio_activo').select('*'),
+      );
+      return f
+        ? numeros<{
+            serie: SerieMacro;
+            mes: string;
+            valor: number;
+            es_provisorio: boolean;
+          }>(f, ['valor'])
+        : null;
     },
   });
 }
@@ -473,6 +492,11 @@ export function useCostosProducto() {
           'costo_unitario',
           'faltantes',
           'componentes_costeados',
+          'costo_planilla',
+          'planilla_cvd',
+          'planilla_mod',
+          'planilla_cvi',
+          'costo_vigente',
         ]),
       ),
   });
@@ -517,7 +541,9 @@ export function useMinutosProducto() {
   return useQuery({
     queryKey: ['costos', 'minutos'],
     queryFn: async () => {
-      const filas = await leer<{ producto_id: string; minutos_por_unidad: number; orden: number }[]>(
+      const filas = await leer<
+        { producto_id: string; minutos_por_unidad: number; orden: number }[]
+      >(
         sinTipos()
           .from('minutos_producto')
           .select('producto_id, minutos_por_unidad, orden')
@@ -525,7 +551,8 @@ export function useMinutosProducto() {
       );
       const mapa = new Map<string, number>();
       for (const f of filas)
-        if (!mapa.has(f.producto_id)) mapa.set(f.producto_id, Number(f.minutos_por_unidad));
+        if (!mapa.has(f.producto_id))
+          mapa.set(f.producto_id, Number(f.minutos_por_unidad));
       return mapa;
     },
   });
@@ -549,7 +576,10 @@ export function useAvisosCosto() {
     queryFn: async () =>
       (
         await leer<Record<string, unknown>[]>(
-          sinTipos().from('avisos_costo').select('*').order('creado_en', { ascending: false }),
+          sinTipos()
+            .from('avisos_costo')
+            .select('*')
+            .order('creado_en', { ascending: false }),
         )
       ).map((f) =>
         numeros<AvisoCosto>(f, [
@@ -585,7 +615,11 @@ export interface CostoLoteNuevo {
 
 /** Normaliza IVA y moneda a lo que exigen los CHECK de la tabla. */
 function filaCosto<T extends { tipo_comprobante: Comprobante; moneda: Moneda }>(
-  c: T & { incluye_iva: boolean | null; alicuota_iva: number | null; tipo_cambio: number },
+  c: T & {
+    incluye_iva: boolean | null;
+    alicuota_iva: number | null;
+    tipo_cambio: number;
+  },
 ) {
   const esA = c.tipo_comprobante === 'FACTURA_A';
   return {
@@ -604,7 +638,9 @@ export function useCargarCostosLote() {
   return useMutation({
     mutationFn: async (costos: CostoLoteNuevo[]) => {
       if (costos.length === 0) return;
-      const { error } = await sinTipos().from('costos_lote').insert(costos.map(filaCosto));
+      const { error } = await sinTipos()
+        .from('costos_lote')
+        .insert(costos.map(filaCosto));
       if (error) throw error;
     },
     onSuccess: (_d, costos) => {
@@ -640,7 +676,9 @@ export function useCargarAccesorio() {
     onSuccess: (_d, a) => {
       invalidarCostos(qc);
       avisarExito(
-        a.rectifica_a ? 'Accesorio corregido.' : 'Accesorio cargado y prorrateado entre los lotes.',
+        a.rectifica_a
+          ? 'Accesorio corregido.'
+          : 'Accesorio cargado y prorrateado entre los lotes.',
       );
     },
     onError: avisarError,
@@ -723,10 +761,42 @@ export function useCargarParametros() {
   });
 }
 
+/** Quién fija el costo de producto de planilla (D-56): Finanzas. */
+export const ROLES_COSTO_PLANILLA: Rol[] = [FINANZAS];
+
+/** Reemplaza el costo de planilla de un producto: fila nueva, la anterior queda. */
+export function useCargarCostoPlanilla() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (c: {
+      producto_id: string;
+      cvd: number | null;
+      mod: number | null;
+      cvi: number | null;
+      reemplaza_a: string | null;
+      motivo: string | null;
+    }) => {
+      const { error } = await sinTipos()
+        .from('costos_producto_planilla')
+        .insert({ ...c, fuente: 'Fijado por Finanzas' });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidarCostos(qc);
+      avisarExito('Costo del producto guardado. El anterior queda en el historial.');
+    },
+    onError: avisarError,
+  });
+}
+
 export function useCargarMinutos() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (m: { producto_id: string; minutos_por_unidad: number; motivo: string | null }) => {
+    mutationFn: async (m: {
+      producto_id: string;
+      minutos_por_unidad: number;
+      motivo: string | null;
+    }) => {
       const { error } = await sinTipos().from('minutos_producto').insert(m);
       if (error) throw error;
     },
@@ -749,11 +819,15 @@ export function useCargarContenidoNeto() {
     }) => {
       const { data, error } = await gmpSinTipos()
         .from('productos')
-        .update({ contenido_neto: c.contenido_neto, unidad_contenido: c.unidad_contenido })
+        .update({
+          contenido_neto: c.contenido_neto,
+          unidad_contenido: c.unidad_contenido,
+        })
         .eq('id', c.producto_id)
         .select('id');
       if (error) throw error;
-      if (!data?.length) throw new Error('No tenés permiso para cambiar el contenido del producto.');
+      if (!data?.length)
+        throw new Error('No tenés permiso para cambiar el contenido del producto.');
     },
     onSuccess: () => {
       invalidarCostos(qc);
@@ -893,12 +967,20 @@ export function useFotosCosto(productoId: string | null) {
         await leer<Record<string, unknown>[]>(
           sinTipos()
             .from('fotos_costo_producto')
-            .select('mes, producto_id, costo_unitario, granel, acondicionamiento, mano_de_obra, faltantes, formula_estado')
+            .select(
+              'mes, producto_id, costo_unitario, granel, acondicionamiento, mano_de_obra, faltantes, formula_estado',
+            )
             .eq('producto_id', productoId!)
             .order('mes'),
         )
       ).map((f) =>
-        numeros<FotoCosto>(f, ['costo_unitario', 'granel', 'acondicionamiento', 'mano_de_obra', 'faltantes']),
+        numeros<FotoCosto>(f, [
+          'costo_unitario',
+          'granel',
+          'acondicionamiento',
+          'mano_de_obra',
+          'faltantes',
+        ]),
       ),
   });
 }
@@ -910,7 +992,10 @@ export function useHistoriaPrecios(productoId: string | null, meses = 12) {
     queryFn: async () =>
       (
         await leer<Record<string, unknown>[]>(
-          sinTipos().rpc('historia_precios', { p_producto_id: productoId, p_meses: meses }),
+          sinTipos().rpc('historia_precios', {
+            p_producto_id: productoId,
+            p_meses: meses,
+          }),
         )
       ).map((f) => numeros<PrecioHistorico>(f, ['precio_neto'])),
   });
@@ -922,7 +1007,10 @@ export function useStockValorizadoInsumos() {
     queryFn: async () =>
       (
         await leer<Record<string, unknown>[]>(
-          sinTipos().from('v_stock_valorizado_insumos').select('*').order('codigo_interno'),
+          sinTipos()
+            .from('v_stock_valorizado_insumos')
+            .select('*')
+            .order('codigo_interno'),
         )
       ).map((f) =>
         numeros<StockInsumoValorizado>(f, [
@@ -945,7 +1033,13 @@ export function useStockValorizadoPt() {
           sinTipos().from('v_stock_valorizado_pt').select('*').order('producto'),
         )
       ).map((f) =>
-        numeros<StockPtValorizado>(f, ['saldo', 'retenido', 'costo_unitario', 'faltantes', 'valor_ars']),
+        numeros<StockPtValorizado>(f, [
+          'saldo',
+          'retenido',
+          'costo_unitario',
+          'faltantes',
+          'valor_ars',
+        ]),
       ),
   });
 }
@@ -1025,13 +1119,20 @@ export interface ResultadoMes {
   productos_costo_incompleto: number;
 }
 
-export const ROLES_CARGAN_GASTOS: Rol[] = [FINANZAS, 'GERENCIA', 'ADMINISTRACION', 'GERENCIA_PRODUCCION'];
+export const ROLES_CARGAN_GASTOS: Rol[] = [
+  FINANZAS,
+  'GERENCIA',
+  'ADMINISTRACION',
+  'GERENCIA_PRODUCCION',
+];
 
 export function useCategoriasGasto() {
   return useQuery({
     queryKey: ['costos', 'categorias'],
     queryFn: async () =>
-      leer<CategoriaGasto[]>(sinTipos().from('categorias_gasto').select('*').order('clase').order('nombre')),
+      leer<CategoriaGasto[]>(
+        sinTipos().from('categorias_gasto').select('*').order('clase').order('nombre'),
+      ),
   });
 }
 
@@ -1041,9 +1142,20 @@ export function useGastos() {
     queryFn: async () =>
       (
         await leer<Record<string, unknown>[]>(
-          sinTipos().from('v_gastos').select('*').order('mes', { ascending: false }).order('cargado_en', { ascending: false }),
+          sinTipos()
+            .from('v_gastos')
+            .select('*')
+            .order('mes', { ascending: false })
+            .order('cargado_en', { ascending: false }),
         )
-      ).map((f) => numeros<Gasto>(f, ['importe', 'tipo_cambio', 'importe_neto_ars', 'vida_util_meses'])),
+      ).map((f) =>
+        numeros<Gasto>(f, [
+          'importe',
+          'tipo_cambio',
+          'importe_neto_ars',
+          'vida_util_meses',
+        ]),
+      ),
   });
 }
 
@@ -1070,7 +1182,11 @@ export function useCargarGasto() {
     },
     onSuccess: (_d, g) => {
       invalidarCostos(qc);
-      avisarExito(g.rectifica_a ? 'Gasto corregido. El anterior queda en el historial.' : 'Gasto cargado.');
+      avisarExito(
+        g.rectifica_a
+          ? 'Gasto corregido. El anterior queda en el historial.'
+          : 'Gasto cargado.',
+      );
     },
     onError: avisarError,
   });
@@ -1081,7 +1197,9 @@ export function useResultadoGestion() {
     queryKey: ['costos', 'resultado'],
     queryFn: async () =>
       (
-        await leer<Record<string, unknown>[]>(sinTipos().from('v_resultado_gestion').select('*').order('mes'))
+        await leer<Record<string, unknown>[]>(
+          sinTipos().from('v_resultado_gestion').select('*').order('mes'),
+        )
       ).map((f) =>
         numeros<ResultadoMes>(f, [
           'facturacion',
@@ -1113,7 +1231,11 @@ export function useResultadoGestion() {
  * contribución %. Misma cuenta que v_resultado_gestion; acá se usa para
  * recalcularlo en la moneda que se elige (dólares o pesos constantes).
  */
-export function equilibrio(facturacion: number, margenContribucion: number, estructura: number): number | null {
+export function equilibrio(
+  facturacion: number,
+  margenContribucion: number,
+  estructura: number,
+): number | null {
   if (facturacion <= 0 || margenContribucion <= 0) return null;
   return estructura / (margenContribucion / facturacion);
 }
@@ -1205,7 +1327,10 @@ export function useRotacionInsumos() {
     queryFn: async () =>
       (
         await leer<Record<string, unknown>[]>(
-          sinTipos().from('v_rotacion_insumos').select('*').order('valor_ars', { ascending: false, nullsFirst: false }),
+          sinTipos()
+            .from('v_rotacion_insumos')
+            .select('*')
+            .order('valor_ars', { ascending: false, nullsFirst: false }),
         )
       ).map((f) =>
         numeros<RotacionInsumo>(f, [
@@ -1245,8 +1370,12 @@ export function useAlertasPrecio() {
     queryKey: ['costos', 'alertas-precio'],
     queryFn: async () =>
       (
-        await leer<Record<string, unknown>[]>(sinTipos().from('v_alertas_precio').select('*').order('margen_pct'))
-      ).map((f) => numeros<AlertaPrecio>(f, ['precio_neto', 'costo_unitario', 'margen_pct'])),
+        await leer<Record<string, unknown>[]>(
+          sinTipos().from('v_alertas_precio').select('*').order('margen_pct'),
+        )
+      ).map((f) =>
+        numeros<AlertaPrecio>(f, ['precio_neto', 'costo_unitario', 'margen_pct']),
+      ),
   });
 }
 
@@ -1259,7 +1388,11 @@ export const ROLES_IMPORTAN: Rol[] = [FINANZAS, 'ADMINISTRACION'];
 export function useImportarCostosReferencia() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (v: { archivo: string; hash: string; filas: Record<string, unknown>[] }) => {
+    mutationFn: async (v: {
+      archivo: string;
+      hash: string;
+      filas: Record<string, unknown>[];
+    }) => {
       const r = await sinTipos().rpc('importar_costos_referencia', {
         p_archivo: v.archivo,
         p_hash: v.hash,
@@ -1270,7 +1403,9 @@ export function useImportarCostosReferencia() {
     },
     onSuccess: (n) => {
       invalidarCostos(qc);
-      avisarExito(`${n} costos de referencia importados. Quedó registrado quién, cuándo y el hash del archivo.`);
+      avisarExito(
+        `${n} costos de referencia importados. Quedó registrado quién, cuándo y el hash del archivo.`,
+      );
     },
     onError: avisarError,
   });

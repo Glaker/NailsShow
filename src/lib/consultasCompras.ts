@@ -74,6 +74,21 @@ export const ROLES_ANULAN_COMPROBANTES = [
   'GERENCIA_PRODUCCION',
 ] as const;
 
+/** Recepciones sin comprobante vigente: «Facturas por cargar» (20261014130000). */
+export function useRecepcionesSinComprobante() {
+  return useQuery({
+    queryKey: ['comprobantes-proveedor', 'recepciones-sin'],
+    queryFn: async () => {
+      const { data, error } = await comercial()
+        .from('v_recepciones_sin_comprobante')
+        .select('*')
+        .order('fecha_hora');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 export function useComprobantesProveedor(filtro: { proveedorId?: string } = {}) {
   return useQuery({
     queryKey: ['comprobantes-proveedor', filtro.proveedorId ?? null],

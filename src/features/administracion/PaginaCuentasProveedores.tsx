@@ -410,13 +410,18 @@ const TIPOS: { value: TipoComprobanteProveedor; label: string }[] = [
   { value: 'SIN_FACTURA', label: 'Sin factura' },
 ];
 
-/** Comprobante que llega aparte de la recepción: servicio, factura tardía, NC. */
-function ModalComprobante({
+/**
+ * Comprobante que llega aparte de la recepción: servicio, factura tardía, NC.
+ * Con `recepcionId` queda vinculado a esa recepción («Facturas por cargar»).
+ */
+export function ModalComprobante({
   proveedorId,
+  recepcionId = null,
   abierto,
   onCerrar,
 }: {
   proveedorId: string;
+  recepcionId?: string | null;
   abierto: boolean;
   onCerrar: () => void;
 }) {
@@ -535,6 +540,7 @@ function ModalComprobante({
               registrar.mutate(
                 {
                   proveedor_id: proveedorId,
+                  recepcion_id: recepcionId,
                   tipo,
                   punto_venta: sinFactura ? null : aNumero(pv),
                   numero: sinFactura ? null : aNumero(num),

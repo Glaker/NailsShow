@@ -1953,3 +1953,40 @@ precios desactualizados.
 Pruebas: `probar_apertura_d42` (26).
 Para que costeen los renglones en dólares hace falta cargar el tipo de cambio
 A3500 en Parámetros › Series macro.
+
+## Tanda del 2026-10-14 — APLICADA en la base real
+
+Migraciones aplicadas a `yxpzsxkefqfuhyvslkfw` (el usuario pidió aplicar
+todo): las 14 de costos de la rama, más:
+
+| Migración | Qué |
+| --- | --- |
+| `20261014120000_alta_direccion_tecnica_titular` | Anabella Gregorini, DIRECCION_TECNICA titular |
+| `20261014130000_remito_opcional_y_facturas_por_cargar` | `numero_remito` opcional; `comercial.v_recepciones_sin_comprobante` |
+| `20261014140000_carga_especificaciones_borrador` | 18 especificaciones en BORRADOR (D-55) |
+| `20261014150000` / `…150100` | motivo de bloqueo EJEMPLO; lote ACEITE AMOR de prueba bloqueado como «SOLO EJEMPLO» |
+| `20261014160000_comercial_costo_producto_planilla` | costo de producto de la hoja C.T., 301 productos (D-56) |
+
+Front:
+- Recepción: remito opcional; «Comprobante del proveedor» oculto para DT y
+  opcional para el resto. Lo que queda sin comprobante aparece a
+  Administración en «Facturas por cargar», con «Cargar factura» por recepción.
+- «¿Cómo funciona?» en el encabezado de cada pantalla (`src/app/ayuda`), por
+  rol.
+- Rótulo: se imprime solo el elegido (antes se superponían rótulo y etiqueta
+  de muestra y salía recortado). Los lotes bloqueados como EJEMPLO llevan
+  marca de agua.
+- Liberación: «Ver un lote de ejemplo» (`/liberacion/ejemplo`), batch record
+  ficticio con marca de agua, sin datos en la base.
+- Costos › Productos: costo vigente (calculado o de planilla) y formulario de
+  Finanzas para reemplazar el de planilla.
+
+Pendiente a mano: la Factura A de $557 de la recepción de prueba (ACEITE
+AMOR) la anula Administración desde Cuentas de proveedores.
+
+Relevamiento de DT contra los POE (2026-10-14): producción y liberación
+están; faltan NC/CAPA (PG.60.18), reclamos (PG.60.3), retiro de mercado
+completo (PG.60.4), devoluciones, cosmetovigilancia, calibraciones,
+registros de análisis R.50.5.1/6.1/10.1, CC de PT importado, muestras de
+archivo, estabilidad, capacitación, auditoría interna y evaluación de
+proveedores con puntaje.

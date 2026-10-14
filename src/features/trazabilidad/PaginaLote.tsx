@@ -34,6 +34,7 @@ import { FormularioMuestreo } from '@/features/muestreo/FormularioMuestreo';
 import { PanelBloqueos } from '@/features/stock/PanelBloqueos';
 import { PanelStockLote } from '@/features/stock/PanelStockLote';
 import {
+  useBloqueosDeLote,
   useEmitirRotulo,
   useLote,
   useMuestreosDeLote,
@@ -42,6 +43,7 @@ import {
 } from '@/lib/consultas';
 import { fecha, fechaHora, numero } from '@/lib/formato';
 import { useSesion, type Rol } from '@/features/auth/sesion';
+import { imprimirRotulo } from '@/features/rotulos/imprimir';
 
 /**
  * Transiciones ofrecidas en pantalla.
@@ -117,6 +119,7 @@ export function PaginaLote() {
   const lote = useLote(id);
   const rotulos = useRotulosDeLote(id);
   const muestreos = useMuestreosDeLote(id);
+  const bloqueos = useBloqueosDeLote(id);
   const emitir = useEmitirRotulo();
   const { claims } = useSesion();
   const [muestreoAbierto, modalMuestreo] = useDisclosure(false);
@@ -143,6 +146,10 @@ export function PaginaLote() {
     t.roles.some((r) => roles.includes(r)),
   );
   const listaMuestreos = muestreos.data ?? [];
+  /* Lote marcado SOLO EJEMPLO (bloqueo vigente con motivo EJEMPLO). */
+  const ejemplo = (bloqueos.data ?? []).some((b) => b.motivo === 'EJEMPLO' && !b.levantado);
+  const imprimir = (cual: 'rotulo' | 'muestra') =>
+    imprimirRotulo(document.querySelector<HTMLElement>(`[data-rotulo="${cual}"]`));
   const puedeMuestrear =
     estado === 'CUARENTENA' &&
     (roles.includes('CONTROL_CALIDAD') || roles.includes('DIRECCION_TECNICA'));
@@ -213,7 +220,7 @@ export function PaginaLote() {
             <Button
               variant="light"
               leftSection={<IconPrinter size={18} />}
-              onClick={() => window.print()}
+              onClick={() => imprimir('rotulo')}
             >
               Imprimir rótulo
             </Button>
@@ -462,7 +469,9 @@ export function PaginaLote() {
               Rótulo vigente
             </Text>
             {rotuloVigente ? (
-              <RotuloLote lote={l} rotulo={rotuloVigente} />
+              <Box data-rotulo="rotulo">
+                <RotuloLote lote={l} rotulo={rotuloVigente} ejemplo={ejemplo} />
+              </Box>
             ) : (
               <Alert color="azul" variant="light" radius="md" className="no-imprimir">
                 Este lote todavía no tiene rótulo. Mientras no lo tenga, el material no
@@ -472,10 +481,22 @@ export function PaginaLote() {
 
             {listaMuestreos.length > 0 ? (
               <>
-                <Text fw={600} size="sm" c="dimmed" mt="sm" className="no-imprimir">
-                  Etiqueta de la muestra
-                </Text>
-                <EtiquetaMuestreo muestreo={listaMuestreos[0]!} />
+                <Group justify="space-between" mt="sm" className="no-imprimir">
+                  <Text fw={600} size="sm" c="dimmed">
+                    Etiqueta de la muestra
+                  </Text>
+                  <Button
+                    variant="subtle"
+                    size="compact-sm"
+                    leftSection={<IconPrinter size={16} />}
+                    onClick={() => imprimir('muestra')}
+                  >
+                    Imprimir etiqueta
+                  </Button>
+                </Group>
+                <Box data-rotulo="muestra">
+                  <EtiquetaMuestreo muestreo={listaMuestreos[0]!} ejemplo={ejemplo} />
+                </Box>
               </>
             ) : null}
           </Stack>
