@@ -1929,8 +1929,9 @@ Pruebas: `probar_cotizador` (25), `probar_importaciones` (12),
 `npm run db:types` y sacar los puentes (`sinTipos()` en `consultasCostos.ts` y
 `consultasCotizador.ts`, la constante `FINANZAS` con cast en `sesion.tsx`).
 Verificar en el proyecto alojado que `postgres` tenga
-BYPASSRLS (lo necesitan `siguiente_numero`, `fn_aviso_variacion` y
-`fn_factura_renglones`; PGlite corre como superusuario y no lo prueba).
+BYPASSRLS (lo necesitan `siguiente_numero`, `fn_aviso_variacion`,
+`fn_factura_renglones`, `core.giorgio_estado` y `core.giorgio_registrar`;
+PGlite corre como superusuario y no lo prueba).
 Faltan las invitaciones (emails de Gabriel, Virginia, Jorge y Agustina).
 
 ### Planilla de apertura según D-42 — hecha, sin aplicar (2026-10-10)

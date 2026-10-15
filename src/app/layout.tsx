@@ -60,6 +60,7 @@ import { etiquetaEnum } from '@/lib/formato';
 import { SUPERFICIE } from './theme';
 import { MODO_PRACTICA } from '@/lib/practica';
 import { SelectorMoneda } from '@/features/costos/vistaMoneda';
+import { Giorgio } from './giorgio/Giorgio';
 
 /** Cartel fijo de la app de práctica: datos inventados, nada se factura. */
 export function CartelPractica() {
@@ -395,6 +396,8 @@ export function Layout({ children }: { children: ReactNode }) {
           {children}
         </div>
       </AppShell.Main>
+
+      <Giorgio />
 
       {esMovil ? (
         <>

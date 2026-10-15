@@ -38,6 +38,7 @@ reconstrucción la aplica en su lugar por orden de nombre.
 | `probar_flujo.mjs` | flujo de caja diario, detalle del día y volúmenes por contraparte para el inicio de Administración |
 | `probar_ventas_central.mjs` | central de Ventas: lista 46.14 por pack, escala por monto del pedido entero, precio a mano, envío contra Calle 5 con S-xxxx para lo que falta, reserva opcional, visto bueno de stock, despacho y pago en pedido cerrado |
 | `probar_descarte.mjs` | dar de baja todo el stock de un artículo (descarte «Discontinuado» por posición) |
+| `probar_giorgio.mjs` | Giorgio: límite diario por rol, tope global con corte al 80 %, interruptor, registro append-only y a nombre propio, costo de un modelo sin precio, tokens inventados recortados (D-58 a D-60) |
 
 `probar_facturas` (sesiones anteriores) necesita el token de Afip SDK y red, y
 no está acá.

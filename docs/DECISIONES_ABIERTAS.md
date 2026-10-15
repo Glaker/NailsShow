@@ -8,7 +8,7 @@ Cuando una se resuelve, se mueve a «Resueltas» con fecha y quién decidió —
 historial importa: el control de cambios de GAMP 5 exige poder reconstruir por
 qué el sistema hace lo que hace.
 
-Última actualización: 2026-10-09.
+Última actualización: 2026-10-15.
 
 ---
 
@@ -586,6 +586,74 @@ cotizador siguen usando el costo calculado; solo la lista de Costos ›
 Productos y su desglose muestran el de planilla.
 **Revisar** con Finanzas si esos también deben tomar el de planilla mientras
 el calculado esté incompleto.
+
+## Abiertas — Giorgio, el asistente de ayuda (2026-10-15)
+
+### D-57 · Declaración de uso previsto de Giorgio — pendiente de aprobación de la Dirección Técnica
+
+**Qué es.** Un asistente de IA (modelo de Anthropic, por defecto Claude Haiku
+5.5) que responde preguntas sobre cómo se usa la app, dónde está cada cosa y
+de dónde sale cada número. Aparece en toda pantalla con sesión, salvo el
+ingreso, y no se imprime.
+**Uso previsto.** Herramienta auxiliar de ayuda. **No** crea, modifica ni
+borra registros GMP ni de ningún otro tipo; no aprueba, libera, rechaza ni
+firma; no reemplaza los POE ni los registros del sistema. Sus respuestas son
+generadas por IA, pueden contener errores y se presentan así al usuario («Giorgio
+es una IA y puede equivocarse. No es un registro oficial.»).
+**Límites, impuestos en código y no solo en el texto:**
+- Solo lectura: su única herramienta en la fase 1, `ir_a`, ofrece un botón de
+  navegación; no hay herramienta que escriba ni SQL libre.
+- Lo que lee lo lee con el token del usuario (RLS) y el contexto que recibe
+  se arma solo con las pantallas que ese rol ve.
+- Los datos que lee se le entregan marcados como datos, nunca como
+  instrucciones.
+- Límite diario por usuario y tope global diario de gasto (D-60).
+**Arquitectura.** Edge Function `giorgio`. CLAUDE.md §2 reserva las Edge
+Functions para integración fiscal y tareas programadas; esta es una tercera
+categoría, autorizada por pedido de la conducción del proyecto (2026-10-15), y
+sigue la regla de privilegios de §5: token del usuario, sin `service_role`, la
+clave de Anthropic solo como secreto (`ANTHROPIC_API_KEY`).
+**Estado.** No se afirma que el sistema esté validado. Falta la aprobación de
+esta declaración por la Dirección Técnica y la evaluación de la fase 4.
+
+### D-58 · Registro de consultas: en core, con auditoría y sin retención — 2026-10-15, adoptada
+
+**Pedido.** Registrar cada consulta (usuario, rol, ruta, pregunta, respuesta,
+modelo, tokens, herramientas, latencia, error) con retención configurable de
+12 meses.
+**Conflicto.** Toda tabla de `core` lleva el trigger genérico de auditoría
+(invariante 6), que prohíbe el DELETE: la purga es imposible, y además cada
+fila se copia en `core.auditoria`, que es append-only.
+**Resolución** (conducción del proyecto, 2026-10-15): `core.giorgio_mensajes`
+en `core`, con auditoría, **sin retención**: se guarda para siempre. Cada
+usuario ve lo suyo; el Administrador del sistema, todo.
+
+### D-59 · Quién escribe el registro de Giorgio — 2026-10-15, adoptada con límite conocido
+
+**Resolución.** Solo `core.giorgio_registrar()` (SECURITY DEFINER), que toma
+usuario y rol del JWT y estima el costo con los precios de
+`core.giorgio_config`. Ningún rol de la aplicación tiene INSERT.
+**Límite conocido.** La Edge Function corre con el token del usuario, así que
+un usuario podría llamar a la función directo y cargar consultas inventadas a
+su nombre. No le da acceso al modelo, pero suma gasto al tope global y podría
+apagar Giorgio para todos hasta la medianoche. Está acotado: los tokens se
+recortan a lo que puede gastar una consulta real, cada fila cuenta en su
+límite diario y queda a su nombre. **Para cerrarlo del todo:** un rol de base
+dedicado con JWT firmado por la función (CLAUDE.md §5), como el previsto para
+el CAE.
+
+### D-60 · Límites de uso de Giorgio — 2026-10-15, adoptada
+
+**Resolución** (conducción del proyecto, 2026-10-15):
+- Límite diario por usuario: 50 preguntas para OPERARIO, 150 para el resto
+  (con varios roles rige el mayor). Sin límite por minuto.
+- Tope global **diario** de gasto, en dólares, configurable (valor inicial
+  provisorio: USD 5). Al llegar al 80 % Giorgio se apaga solo hasta la
+  medianoche (hora de Argentina), en vez de avisar. Reemplaza al tope mensual
+  del pedido original. **Confirmar** el valor del tope.
+- Interruptor general que apaga a Giorgio sin afectar la app.
+Los valores viven en `core.giorgio_config` y los cambia el Administrador del
+sistema.
 
 ## Abiertas — módulo de costos (2026-10-09)
 

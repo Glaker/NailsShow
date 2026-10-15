@@ -1,0 +1,411 @@
+{
+  "pantallas": [
+    {
+      "ruta": "/",
+      "etiqueta": "Tablero",
+      "roles": null,
+      "queEs": "Tu pantalla de inicio. Cada rol ve lo que le toca hacer hoy, y nada más. Los números y las filas llevan directo a la pantalla donde se resuelve."
+    },
+    {
+      "ruta": "/ventas",
+      "etiqueta": "Ventas",
+      "roles": [
+        "VENTAS",
+        "ADMINISTRACION",
+        "GERENCIA"
+      ],
+      "queEs": "Es la lista de todos los pedidos mayoristas, como la planilla de antes. El monto, el descuento y lo que hay en Calle 5 salen solos."
+    },
+    {
+      "ruta": "/armado",
+      "etiqueta": "Pedidos a armar",
+      "roles": [
+        "ENCARGADA_STOCK",
+        "GERENCIA"
+      ],
+      "queEs": "Es lo único que ve la encargada de Calle 5: los pedidos que hay que preparar, con código y cantidad de cada producto. La otra pestaña es el stock de Calle 5."
+    },
+    {
+      "ruta": "/pedidos",
+      "etiqueta": "Pedidos",
+      "roles": [
+        "GERENCIA_PRODUCCION",
+        "GERENCIA",
+        "ADMINISTRACION"
+      ],
+      "queEs": "La bandeja de pedidos. Se cargan acá, Producción los revisa contra el stock y lo que falta queda anotado en compras. Arriba elegís la vista: «Tablero», «Para revisar», «En producción», «Borradores» o «Cerrados»."
+    },
+    {
+      "ruta": "/planificacion",
+      "etiqueta": "Planificación",
+      "roles": [
+        "GERENCIA_PRODUCCION",
+        "GERENCIA"
+      ],
+      "queEs": "Qué se produce cada día y cuánto dura cada pedido. Hay dos vistas: «Gantt» y «Calendario». La línea roja es la entrega comprometida."
+    },
+    {
+      "ruta": "/ordenes",
+      "etiqueta": "Órdenes de producción",
+      "roles": [
+        "GERENCIA_PRODUCCION",
+        "GERENCIA",
+        "CONTROL_CALIDAD"
+      ],
+      "queEs": "Las órdenes de producción: una por lote, con su registro de la pesada a la liberación. De cada orden sale el batch record."
+    },
+    {
+      "ruta": "/formulas",
+      "etiqueta": "Fórmulas y calculadora",
+      "roles": [
+        "GERENCIA_PRODUCCION",
+        "GERENCIA",
+        "DIRECCION_TECNICA",
+        "CONTROL_CALIDAD"
+      ],
+      "queEs": "Dos pestañas: «Fórmulas» (la fórmula maestra de cada producto, en porcentaje) y «Calculadora de lote» (cuánto pesar de cada componente para el lote que quieras)."
+    },
+    {
+      "ruta": "/stock",
+      "etiqueta": "Stock y recepciones",
+      "roles": [
+        "GERENCIA_PRODUCCION",
+        "GERENCIA",
+        "ADMINISTRACION",
+        "DIRECCION_TECNICA",
+        "CONTROL_CALIDAD"
+      ],
+      "queEs": "Todo lo de existencias en pestañas: «Insumos», «Recepciones», «Stock de seguridad», «En fábrica» y «Conteo». Cada rol ve solo las pestañas que le tocan."
+    },
+    {
+      "ruta": "/lotes",
+      "etiqueta": "Lotes de insumo",
+      "roles": [
+        "GERENCIA_PRODUCCION",
+        "GERENCIA",
+        "DIRECCION_TECNICA",
+        "CONTROL_CALIDAD"
+      ],
+      "queEs": "La lista de todos los lotes de insumo que se recibieron, con su estado de calidad y su rótulo. Sirve para buscar un lote y abrir su ficha."
+    },
+    {
+      "ruta": "/liberacion",
+      "etiqueta": "Liberación de lotes",
+      "roles": [
+        "DIRECCION_TECNICA",
+        "CONTROL_CALIDAD",
+        "GERENCIA"
+      ],
+      "queEs": "Los lotes de producto terminado que esperan la firma de Dirección Técnica, y los últimos ya resueltos. La firma se hace en la orden; desde acá la abrís o bajás el batch record."
+    },
+    {
+      "ruta": "/especificaciones",
+      "etiqueta": "Especificaciones",
+      "roles": [
+        "GERENCIA_PRODUCCION",
+        "DIRECCION_TECNICA",
+        "CONTROL_CALIDAD",
+        "GERENCIA"
+      ],
+      "queEs": "Los requisitos de cada producto (documentos I-E.50.xx): composición, almacenamiento, vida útil y los límites que tiene que cumplir. Las órdenes controlan el producto contra estas especificaciones."
+    },
+    {
+      "ruta": "/punto-venta",
+      "etiqueta": "Calle 5",
+      "roles": [
+        "GERENCIA_PRODUCCION",
+        "GERENCIA",
+        "ADMINISTRACION",
+        "VENTAS"
+      ],
+      "queEs": "Es el stock de producto terminado de Calle 5, el local. Entra lo que manda la planta y sale lo que se vende o se descarta."
+    },
+    {
+      "ruta": "/tercerizados",
+      "etiqueta": "Tercerizados",
+      "roles": [
+        "GERENCIA_PRODUCCION",
+        "GERENCIA"
+      ],
+      "queEs": "Los clientes para los que Nail Show fabrica con su propia marca. Cada uno tiene su stock, sus productos y sus pedidos, aparte de los de Nail Show."
+    },
+    {
+      "ruta": "/compras",
+      "etiqueta": "Compras pendientes",
+      "roles": [
+        "GERENCIA_PRODUCCION",
+        "ADMINISTRACION",
+        "GERENCIA"
+      ],
+      "queEs": "Lo que falta comprar para cubrir los pedidos, anotado desde la ficha de cada pedido. Hay dos vistas: «Abiertas» e «Historial»."
+    },
+    {
+      "ruta": "/facturas",
+      "etiqueta": "Facturas",
+      "roles": [
+        "ADMINISTRACION",
+        "VENTAS",
+        "GERENCIA"
+      ],
+      "queEs": "Es la lista de las facturas emitidas desde cada pedido, con su estado y el CAE. Acá solo se miran: las facturas se emiten desde el pedido."
+    },
+    {
+      "ruta": "/clientes",
+      "etiqueta": "Clientes",
+      "roles": [
+        "ADMINISTRACION",
+        "VENTAS",
+        "GERENCIA"
+      ],
+      "queEs": "Es el padrón de clientes. La condición frente al IVA de cada uno decide si se le factura A o B."
+    },
+    {
+      "ruta": "/precios",
+      "etiqueta": "Precios y descuentos",
+      "roles": [
+        "ADMINISTRACION",
+        "VENTAS",
+        "GERENCIA"
+      ],
+      "queEs": "Es donde se ven y se cambian los precios de lista (con IVA incluido), los descuentos por cliente y la escala de descuento por monto del pedido mayorista."
+    },
+    {
+      "ruta": "/administracion",
+      "etiqueta": "Administración",
+      "roles": [
+        "GERENCIA"
+      ],
+      "queEs": "Es el inicio de Administración: lo que hay que resolver hoy, ordenado por prioridad. Cada cuadro lleva a la pantalla donde se resuelve."
+    },
+    {
+      "ruta": "/cuentas-proveedores",
+      "etiqueta": "Cuentas de proveedores",
+      "roles": [
+        "ADMINISTRACION",
+        "GERENCIA"
+      ],
+      "queEs": "Es la cuenta corriente de cada proveedor: lo que se le debe, qué vence y si coincide con lo que él informa."
+    },
+    {
+      "ruta": "/cuentas-clientes",
+      "etiqueta": "Cuentas de clientes",
+      "roles": [
+        "ADMINISTRACION",
+        "GERENCIA"
+      ],
+      "queEs": "Es la cuenta corriente de cada cliente: lo facturado, lo cobrado, lo que debe y hace cuánto."
+    },
+    {
+      "ruta": "/tesoreria",
+      "etiqueta": "Tesorería",
+      "roles": [
+        "ADMINISTRACION",
+        "GERENCIA"
+      ],
+      "queEs": "Son las cajas, los bancos y las cuentas de terceros. Los pagos y cobros se registran solos; acá va lo demás."
+    },
+    {
+      "ruta": "/solicitudes-pago",
+      "etiqueta": "Solicitudes de pago",
+      "roles": [
+        "ADMINISTRACION",
+        "GERENCIA",
+        "GERENCIA_PRODUCCION",
+        "VENTAS"
+      ],
+      "queEs": "Es donde cualquier área pide un pago y Administración lo aprueba y lo paga. Queda quién pidió, quién resolvió y cuándo."
+    },
+    {
+      "ruta": "/costos",
+      "etiqueta": "Costos",
+      "roles": [
+        "FINANZAS",
+        "GERENCIA",
+        "ADMINISTRACION",
+        "GERENCIA_PRODUCCION"
+      ],
+      "queEs": "Acá se ve cuánto cuesta cada insumo y cada producto. Es costo de gestión, sin IVA: sirve para decidir, no es la valuación contable."
+    },
+    {
+      "ruta": "/resultado",
+      "etiqueta": "Resultado",
+      "roles": [
+        "FINANZAS",
+        "GERENCIA",
+        "ADMINISTRACION"
+      ],
+      "queEs": "El resultado del mes: cuánto se facturó, cuánto costó todo y cuánto hay que vender para no perder. Es resultado de gestión, no fiscal."
+    },
+    {
+      "ruta": "/eficiencia",
+      "etiqueta": "Eficiencia",
+      "roles": [
+        "FINANZAS",
+        "GERENCIA",
+        "ADMINISTRACION"
+      ],
+      "queEs": "Te muestra qué productos explican la mayor parte de la facturación, cuánto margen deja cada uno y dónde hay plata parada en stock."
+    },
+    {
+      "ruta": "/cotizaciones",
+      "etiqueta": "Cotizaciones",
+      "roles": [
+        "FINANZAS",
+        "GERENCIA",
+        "GERENCIA_PRODUCCION"
+      ],
+      "queEs": "El historial de cotizaciones. Desde acá armás una nueva, abrís una existente o buscás una emitida."
+    },
+    {
+      "ruta": "/gerencia",
+      "etiqueta": "Resumen de gerencia",
+      "roles": [
+        "FINANZAS",
+        "GERENCIA"
+      ],
+      "queEs": "Un resumen del mes con pocos números grandes: resultado, facturación, punto de equilibrio y producción."
+    },
+    {
+      "ruta": "/reportes",
+      "etiqueta": "Reportes",
+      "roles": [
+        "ADMINISTRACION",
+        "GERENCIA"
+      ],
+      "queEs": "Son los reportes de IVA, ventas, resultado, flujo de fondos y compras, armados con lo que se carga día a día."
+    },
+    {
+      "ruta": "/usuarios",
+      "etiqueta": "Usuarios",
+      "roles": [
+        "ADMINISTRADOR_SISTEMA"
+      ],
+      "queEs": "Es la lista de las personas del sistema, con su rol y su sector. Solo la ve el administrador del sistema."
+    },
+    {
+      "ruta": "/visibilidad",
+      "etiqueta": "Quién ve qué",
+      "roles": [
+        "ADMINISTRADOR_SISTEMA"
+      ],
+      "queEs": "Es una grilla de cada pantalla contra cada rol. Tildar o destildar decide qué aparece en el menú de ese rol."
+    },
+    {
+      "ruta": "/auditoria",
+      "etiqueta": "Auditoría",
+      "roles": [
+        "DIRECCION_TECNICA",
+        "GERENCIA",
+        "ADMINISTRADOR_SISTEMA"
+      ],
+      "queEs": "Es el registro de todo lo que se escribió en el sistema: quién, cuándo, y qué valor tenía antes y después. Es lo que un inspector va a pedir."
+    },
+    {
+      "ruta": "/stock?vista=insumos",
+      "etiqueta": "Stock › Insumos (materia prima)",
+      "roles": [
+        "GERENCIA_PRODUCCION",
+        "GERENCIA",
+        "CONTROL_CALIDAD"
+      ],
+      "queEs": null
+    },
+    {
+      "ruta": "/stock?vista=recepciones",
+      "etiqueta": "Stock › Recepciones",
+      "roles": [
+        "GERENCIA_PRODUCCION",
+        "GERENCIA",
+        "DIRECCION_TECNICA",
+        "CONTROL_CALIDAD"
+      ],
+      "queEs": null
+    },
+    {
+      "ruta": "/stock?vista=seguridad",
+      "etiqueta": "Stock › Stock de seguridad",
+      "roles": [
+        "GERENCIA_PRODUCCION",
+        "GERENCIA"
+      ],
+      "queEs": null
+    },
+    {
+      "ruta": "/stock?vista=fabrica",
+      "etiqueta": "Stock › En fábrica",
+      "roles": [
+        "GERENCIA_PRODUCCION",
+        "GERENCIA",
+        "ADMINISTRACION"
+      ],
+      "queEs": null
+    },
+    {
+      "ruta": "/stock?vista=conteo",
+      "etiqueta": "Stock › Conteo",
+      "roles": [
+        "GERENCIA_PRODUCCION",
+        "GERENCIA"
+      ],
+      "queEs": null
+    },
+    {
+      "ruta": "/catalogos",
+      "etiqueta": "Catálogos (productos, insumos, proveedores y depósitos)",
+      "roles": [
+        "GERENCIA_PRODUCCION",
+        "DIRECCION_TECNICA",
+        "CONTROL_CALIDAD",
+        "GERENCIA"
+      ],
+      "queEs": "Los listados maestros del sistema en cuatro pestañas: «Productos», «Insumos», «Proveedores» y «Depósitos». Todo lo demás (recepciones, órdenes) se arma sobre ellos."
+    }
+  ],
+  "subrutas": [
+    {
+      "patron": "/lotes/:id",
+      "etiqueta": "Detalle de un lote de insumo",
+      "de": "/lotes"
+    },
+    {
+      "patron": "/ordenes/:id",
+      "etiqueta": "Detalle de una orden de producción",
+      "de": "/ordenes"
+    },
+    {
+      "patron": "/ordenes/:id/batch-record",
+      "etiqueta": "Batch record de una orden",
+      "de": "/ordenes"
+    },
+    {
+      "patron": "/formulas/:id",
+      "etiqueta": "Detalle de una fórmula",
+      "de": "/formulas"
+    },
+    {
+      "patron": "/pedidos/:id",
+      "etiqueta": "Detalle de un pedido",
+      "de": "/pedidos"
+    },
+    {
+      "patron": "/costos/producto/:id",
+      "etiqueta": "Panel de costo de un producto",
+      "de": "/costos"
+    },
+    {
+      "patron": "/cotizaciones/:id",
+      "etiqueta": "Detalle de una cotización",
+      "de": "/cotizaciones"
+    },
+    {
+      "patron": "/tercerizados/:id",
+      "etiqueta": "Detalle de un tercero",
+      "de": "/tercerizados"
+    },
+    {
+      "patron": "/ventas/:id",
+      "etiqueta": "Detalle de una venta",
+      "de": "/ventas"
+    }
+  ]
+}
