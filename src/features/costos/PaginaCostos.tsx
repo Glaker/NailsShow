@@ -12,7 +12,11 @@ import {
 } from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { FINANZAS, useTieneRol } from '@/features/auth/sesion';
-import { useAvisosCosto, useTomarFotoCostos } from '@/lib/consultasCostos';
+import {
+  useAvisosCosto,
+  useTomarFotoCostos,
+  useTraerSeriesOficiales,
+} from '@/lib/consultasCostos';
 import { PestaniaInsumos } from './PestaniaInsumos';
 import { PestaniaLotes } from './PestaniaLotes';
 import { PestaniaRecepciones } from './PestaniaRecepciones';
@@ -21,6 +25,9 @@ import { PestaniaStock } from './PestaniaStock';
 import { PestaniaAvisos } from './PestaniaAvisos';
 import { PestaniaParametros } from './PestaniaParametros';
 import { PestaniaGastos } from './PestaniaGastos';
+
+/** Una corrida automática de series oficiales por sesión del navegador. */
+let seriesTraidas = false;
 
 /** Pestaña de avisos con el contador de no vistos. Sólo se monta para quien la ve. */
 function EtiquetaAvisos() {
@@ -36,6 +43,15 @@ export function PaginaCostos() {
   // producto terminado y arma la historia mensual sin tarea programada.
   const { mutate: fotografiar } = useTomarFotoCostos();
   useEffect(() => fotografiar(), [fotografiar]);
+  // Dólar e IPC oficiales: se traen solos cuando Finanzas abre costos, una vez
+  // por sesión. El botón de Parámetros fuerza otra corrida.
+  const esFinanzas = useTieneRol(FINANZAS);
+  const { mutate: traerSeries } = useTraerSeriesOficiales();
+  useEffect(() => {
+    if (!esFinanzas || seriesTraidas) return;
+    seriesTraidas = true;
+    traerSeries({ silencioso: true });
+  }, [esFinanzas, traerSeries]);
 
   return (
     <>

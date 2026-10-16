@@ -36,6 +36,7 @@ import {
   type CostoReferencia,
   type Moneda,
 } from '@/lib/consultasCostos';
+import { descripcionTc } from './CamposCosto';
 import { numOrNull, pesosUnitario } from './comun';
 import { ImportarExcel } from '@/components/ImportarExcel';
 import { Exportar } from '@/components/Exportar';
@@ -69,7 +70,12 @@ export function PestaniaInsumos() {
   if (referencia.isLoading) return <Skeleton h={300} />;
 
   const contexto: ContextoCostos = {
-    insumos: new Map(filas.map((f) => [f.codigo_interno, { unidad: f.unidad_medida, tieneManual: f.costo_manual !== null }])),
+    insumos: new Map(
+      filas.map((f) => [
+        f.codigo_interno,
+        { unidad: f.unidad_medida, tieneManual: f.costo_manual !== null },
+      ]),
+    ),
   };
 
   const darDeBaja = (f: CostoReferencia) => {
@@ -121,7 +127,11 @@ export function PestaniaInsumos() {
               plantilla={PLANTILLA_COSTOS_MP}
               contexto={contexto}
               onConfirmar={({ renglones, archivo, hash }) =>
-                importar.mutateAsync({ archivo, hash, filas: renglones.map((r) => r.datos) })
+                importar.mutateAsync({
+                  archivo,
+                  hash,
+                  filas: renglones.map((r) => r.datos),
+                })
               }
             />
           ) : null}
@@ -129,8 +139,32 @@ export function PestaniaInsumos() {
           {importa || puede ? (
             <Exportar
               archivo="costos_de_referencia"
-              encabezados={['codigo', 'insumo', 'unidad', 'costo_unitario_neto', 'origen', 'fecha', 'desactualizado', 'pendiente', 'manual', 'ultimo_lote', 'apertura']}
-              filas={visibles.map((f) => [f.codigo_interno, f.nombre, f.unidad_medida, f.costo_unitario_ars, f.origen, f.fecha, f.desactualizado === null ? null : f.desactualizado ? 'SI' : 'NO', f.pendiente, f.costo_manual, f.costo_ultimo_lote, f.costo_apertura])}
+              encabezados={[
+                'codigo',
+                'insumo',
+                'unidad',
+                'costo_unitario_neto',
+                'origen',
+                'fecha',
+                'desactualizado',
+                'pendiente',
+                'manual',
+                'ultimo_lote',
+                'apertura',
+              ]}
+              filas={visibles.map((f) => [
+                f.codigo_interno,
+                f.nombre,
+                f.unidad_medida,
+                f.costo_unitario_ars,
+                f.origen,
+                f.fecha,
+                f.desactualizado === null ? null : f.desactualizado ? 'SI' : 'NO',
+                f.pendiente,
+                f.costo_manual,
+                f.costo_ultimo_lote,
+                f.costo_apertura,
+              ])}
             />
           ) : null}
         </Group>
@@ -153,7 +187,10 @@ export function PestaniaInsumos() {
           />
         </Paper>
       ) : (
-        <Paper withBorder style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}>
+        <Paper
+          withBorder
+          style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}
+        >
           <Table.ScrollContainer minWidth={760}>
             <Table verticalSpacing="sm" highlightOnHover>
               <Table.Thead>
@@ -190,13 +227,16 @@ export function PestaniaInsumos() {
                         </>
                       ) : (
                         <Text size="sm" c={f.pendiente ? 'orange' : 'dimmed'}>
-                          {f.pendiente ? `Pendiente: ${f.pendiente.toLowerCase()}` : 'sin costo'}
+                          {f.pendiente
+                            ? `Pendiente: ${f.pendiente.toLowerCase()}`
+                            : 'sin costo'}
                         </Text>
                       )}
                       <Origenes fila={f} />
                       {f.tipo_cambio_aplicado !== null ? (
                         <Text size="xs" c="dimmed">
-                          Dólares a $ {numero(f.tipo_cambio_aplicado, 2)} (A3500 {fecha(f.tipo_cambio_mes).slice(3)})
+                          Dólares a $ {numero(f.tipo_cambio_aplicado, 2)} (A3500{' '}
+                          {fecha(f.tipo_cambio_mes).slice(3)})
                         </Text>
                       ) : null}
                     </Table.Td>
@@ -249,11 +289,17 @@ export function PestaniaInsumos() {
 }
 
 type Filtro = 'todos' | 'sin' | 'pendientes' | 'desactualizados';
-const FILTROS: Record<Filtro, { etiqueta: string; pasa: (f: CostoReferencia) => boolean }> = {
+const FILTROS: Record<
+  Filtro,
+  { etiqueta: string; pasa: (f: CostoReferencia) => boolean }
+> = {
   todos: { etiqueta: 'Todos', pasa: () => true },
   sin: { etiqueta: 'Sin costo', pasa: (f) => f.costo_unitario_ars === null },
   pendientes: { etiqueta: 'Pendientes', pasa: (f) => f.pendiente !== null },
-  desactualizados: { etiqueta: 'Desactualizados', pasa: (f) => f.desactualizado === true },
+  desactualizados: {
+    etiqueta: 'Desactualizados',
+    pasa: (f) => f.desactualizado === true,
+  },
 };
 
 /**
@@ -287,7 +333,12 @@ function ExcelPendientes() {
     descargarXlsx([columnas, ...filas], 'pendientes_costos_apertura.xlsx', 'Pendientes');
   };
   return (
-    <Button variant="light" color="orange" leftSection={<IconFileDownload size={18} />} onClick={descargar}>
+    <Button
+      variant="light"
+      color="orange"
+      leftSection={<IconFileDownload size={18} />}
+      onClick={descargar}
+    >
       Excel de pendientes ({lista.length})
     </Button>
   );
@@ -297,8 +348,12 @@ function ExcelPendientes() {
 function Origenes({ fila }: { fila: CostoReferencia }) {
   const partes = [
     fila.costo_manual !== null ? `Finanzas ${pesosUnitario(fila.costo_manual)}` : null,
-    fila.costo_ultimo_lote !== null ? `Último lote ${pesosUnitario(fila.costo_ultimo_lote)}` : null,
-    fila.costo_apertura !== null ? `Apertura ${pesosUnitario(fila.costo_apertura)}` : null,
+    fila.costo_ultimo_lote !== null
+      ? `Último lote ${pesosUnitario(fila.costo_ultimo_lote)}`
+      : null,
+    fila.costo_apertura !== null
+      ? `Apertura ${pesosUnitario(fila.costo_apertura)}`
+      : null,
   ].filter((p): p is string => p !== null);
   if (partes.length === 0) return null;
   return (
@@ -343,10 +398,14 @@ type ValoresFijar = {
 
 const esquemaFijar = z
   .object({
-    importe: z.number({ error: 'Falta el importe' }).positive('El importe tiene que ser mayor que cero'),
+    importe: z
+      .number({ error: 'Falta el importe' })
+      .positive('El importe tiene que ser mayor que cero'),
     incluye_iva: z.boolean(),
     alicuota_iva: z.enum(['10.5', '21', '27']),
-    cantidad: z.number({ error: 'Falta la cantidad' }).positive('La cantidad tiene que ser mayor que cero'),
+    cantidad: z
+      .number({ error: 'Falta la cantidad' })
+      .positive('La cantidad tiene que ser mayor que cero'),
     unidad: z.string().min(1, 'Falta la unidad'),
     moneda: z.enum(['ARS', 'USD']),
     tipo_cambio: z.number().nullable(),
@@ -356,7 +415,11 @@ const esquemaFijar = z
   })
   .superRefine((v, ctx) => {
     if (v.moneda === 'USD' && !((v.tipo_cambio ?? 0) > 0))
-      ctx.addIssue({ code: 'custom', path: ['tipo_cambio'], message: 'Falta el tipo de cambio' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['tipo_cambio'],
+        message: 'Falta el tipo de cambio',
+      });
     if (v.vigente_hasta && v.vigente_hasta < v.vigente_desde)
       ctx.addIssue({
         code: 'custom',
@@ -365,7 +428,13 @@ const esquemaFijar = z
       });
   });
 
-function FormularioFijar({ fila, onListo }: { fila: CostoReferencia; onListo: () => void }) {
+function FormularioFijar({
+  fila,
+  onListo,
+}: {
+  fila: CostoReferencia;
+  onListo: () => void;
+}) {
   const fijar = useFijarCostoReferencia();
   const form = useForm<ValoresFijar>({
     mode: 'controlled',
@@ -384,8 +453,12 @@ function FormularioFijar({ fila, onListo }: { fila: CostoReferencia; onListo: ()
     validate: zod4Resolver(esquemaFijar),
   });
   const v = form.values;
+  const tcOficial = useTipoCambioActivo().data;
   const tc = v.moneda === 'ARS' ? 1 : (v.tipo_cambio ?? 0);
-  const neto = v.importe !== null && v.incluye_iva ? v.importe / (1 + Number(v.alicuota_iva) / 100) : v.importe;
+  const neto =
+    v.importe !== null && v.incluye_iva
+      ? v.importe / (1 + Number(v.alicuota_iva) / 100)
+      : v.importe;
   const totalArs = neto !== null && tc > 0 ? neto * tc : null;
   const enUnidadCatalogo =
     v.cantidad && v.unidad && fila.unidad_medida
@@ -417,8 +490,8 @@ function FormularioFijar({ fila, onListo }: { fila: CostoReferencia; onListo: ()
     >
       <Stack gap="md">
         <Text size="sm" c="dimmed">
-          El precio de la presentación, con o sin IVA: se guarda el neto. No cambia lo que se pagó en cada
-          lote.
+          El precio de la presentación, con o sin IVA: se guarda el neto. No cambia lo que
+          se pagó en cada lote.
         </Text>
         <Group grow align="flex-start" wrap="wrap">
           <NumberInput
@@ -472,7 +545,10 @@ function FormularioFijar({ fila, onListo }: { fila: CostoReferencia; onListo: ()
           ) : null}
           {v.incluye_iva && neto !== null ? (
             <Text size="sm">
-              Neto: <b>{v.moneda === 'USD' ? 'U$D' : '$'} {numero(neto, 2)}</b>
+              Neto:{' '}
+              <b>
+                {v.moneda === 'USD' ? 'U$D' : '$'} {numero(neto, 2)}
+              </b>
             </Text>
           ) : null}
         </Group>
@@ -487,12 +563,17 @@ function FormularioFijar({ fila, onListo }: { fila: CostoReferencia; onListo: ()
               { label: 'Dólares', value: 'USD' },
             ]}
             value={v.moneda}
-            onChange={(x) => form.setFieldValue('moneda', x as Moneda)}
+            onChange={(x) => {
+              form.setFieldValue('moneda', x as Moneda);
+              if (x === 'USD' && v.tipo_cambio === null)
+                form.setFieldValue('tipo_cambio', tcOficial?.valor ?? null);
+            }}
           />
         </div>
         {v.moneda === 'USD' ? (
           <NumberInput
             label="Tipo de cambio ($ por U$D)"
+            description={descripcionTc(tcOficial)}
             min={0}
             decimalScale={4}
             thousandSeparator="."
