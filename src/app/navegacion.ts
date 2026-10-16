@@ -153,7 +153,9 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiqueta: 'Especificaciones',
     etiquetaCorta: 'Especif.',
     icono: IconFileCertificate,
-    roles: ['GERENCIA_PRODUCCION', 'DIRECCION_TECNICA', 'CONTROL_CALIDAD', 'GERENCIA'],
+    // Gerencia de Producción ya no la ve (D-ventas-pedidos-2). La escritura en
+    // la base se le quita con la migración del bloque 2.
+    roles: ['DIRECCION_TECNICA', 'CONTROL_CALIDAD', 'GERENCIA'],
   },
   {
     ruta: '/tercerizados',

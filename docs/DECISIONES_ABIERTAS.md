@@ -560,11 +560,12 @@ quien ve» habría pasado a escribir. Se lo excluye de comentar
 cargó él mismo, como cualquier solicitante. **A confirmar** por el
 usuario: si debe poder comentar, se revierte con una migración nueva.
 
-## Abiertas — 2026-10-15 (ventas, pedidos, roles y respaldos)
+## Rama ventas-pedidos (número definitivo al integrar en main)
 
-Numeradas desde D-61: la rama `giorgio` usa D-57 a D-60.
+Ventas, pedidos, roles y respaldos (2026-10-15). Número provisorio por rama
+(CLAUDE.md §6, Git).
 
-### D-61 · Agustina: producción y ventas
+### D-ventas-pedidos-1 · Agustina: producción y ventas
 **Contexto.** El modelo ya admite varios roles por usuario
 (`core.usuarios.roles_adicionales`, claim `roles`, `core.es_rol`). Agustina
 sería VENTAS con ENCARGADA_STOCK adicional («Pedidos a armar», lo que hoy hace
@@ -576,29 +577,29 @@ rol propio: se define al implementar el bloque 2.
 Silveira.
 **Decide.** Gerencia.
 
-### D-62 · Especificaciones y Gerencia de Producción — resuelta 2026-10-15
+### D-ventas-pedidos-2 · Especificaciones y Gerencia de Producción — resuelta 2026-10-15
 Sale del menú de GP y **pierde también la escritura** en
 `gmp.especificaciones` (políticas de DT y GP). Va en la migración del bloque 2.
 
-### D-63 · Vendedores nuevos: Johana, María del Rosario, Silvina Alegre
+### D-ventas-pedidos-3 · Vendedores nuevos: Johana, María del Rosario, Silvina Alegre
 Pendientes, sin reglas inventadas: lista y escala de educadores (Johana);
 comisión de mayorista Santa Fe (María del Rosario); integración o carga manual
 de Tienda Nube (Silvina). Faltan los correos y los valores del atributo que las
 distingue (canal, zona). No bloquea el bloque 3.
 **Decide.** Gerencia, en reunión.
 
-### D-64 · Pedido que vuelve a Nazarena — resuelta 2026-10-15
+### D-ventas-pedidos-4 · Pedido que vuelve a Nazarena — resuelta 2026-10-15
 Si Ventas cambia productos o cantidades después de la fecha propuesta, la fecha
 queda «a reconfirmar» y vuelve a la bandeja de GP. Si cambia solo precio,
 descuento o forma de pago, no vuelve. Mientras esté «a reconfirmar», el pedido
 no cuenta en estadísticas.
 
-### D-65 · Tope de descuento efectivo por rol — adoptada 2026-10-15
+### D-ventas-pedidos-5 · Tope de descuento efectivo por rol — adoptada 2026-10-15
 Los descuentos se encadenan (`1 − Π(1 − dᵢ)`). Superar el tope del rol **no
 bloquea**: pide autorización de GERENCIA. Los valores por rol los fija
 Finanzas y son configurables.
 
-### D-66 · Pago antes de facturar: anticipo
+### D-ventas-pedidos-6 · Pago antes de facturar: anticipo
 **Adoptado (modelo):** anticipo imputado al pedido y aplicado a la factura
 cuando se emite.
 **Abierto (fiscal):** por la Ley de IVA (art. 5), un anticipo que congela
@@ -606,12 +607,12 @@ precio puede generar el hecho imponible al cobrarse. No se implementa la
 lógica fiscal hasta que confirme el contador.
 **Decide.** Contador.
 
-### D-67 · Reproceso de mercadería devuelta desde Calle 5
+### D-ventas-pedidos-7 · Reproceso de mercadería devuelta desde Calle 5
 No existe en el sistema y el POE (RN-25) no está redactado. El bloque 5 queda
 diferido hasta que exista el POE; no se diseña el circuito antes.
 **Decide.** Dirección Técnica.
 
-### D-68 · Respaldos: destino, PITR y conservación
+### D-ventas-pedidos-8 · Respaldos: destino, PITR y conservación
 - **Destino de la copia externa:** almacenamiento a nombre de la empresa, nunca
   una cuenta personal. Cuál, a confirmar. El workflow toma el destino por
   secreto, cifra la copia y la clave queda fuera del repo.
@@ -624,11 +625,11 @@ diferido hasta que exista el POE; no se diseña el circuito antes.
   328) exige conservar la documentación comercial diez años.
 **Decide.** Dirección Técnica y contador.
 
-### D-69 · Exportación completa — adoptada 2026-10-15
+### D-ventas-pedidos-9 · Exportación completa — adoptada 2026-10-15
 Todas las tablas, incluidos costos y auditoría, solo para ADMINISTRADOR_SISTEMA
 y GERENCIA. Cada exportación queda registrada con autor y fecha.
 
-### D-70 · Foto del importe pedido y condición de estadísticas — adoptada 2026-10-15
+### D-ventas-pedidos-10 · Foto del importe pedido y condición de estadísticas — adoptada 2026-10-15
 Un pedido cuenta en las estadísticas de ventas solo cuando Nazarena propuso
 fecha para el pedido **entero** (no solo para renglones demorados) y Ventas lo
 confirmó. En ese momento se congela una foto del importe pedido (cantidades,
@@ -636,17 +637,19 @@ precios y descuentos tal como quedaron). Las ediciones posteriores cambian el
 importe enviado o facturado, nunca la foto. La foto se implementa antes de
 habilitar la edición en APROBADO.
 
-### D-71 · Rama base del trabajo
+### D-ventas-pedidos-11 · Rama base del trabajo
 `main` está 82 commits atrás de `costos-fase-1`, que es lo aplicado en la base
-real. La rama `ventas-pedidos` sale de `costos-fase-1` para que las migraciones
-nuevas partan del esquema real. Falta decidir cuándo se lleva todo a `main`
-(Vercel publica desde `main`).
+real. `herramientas`, `sesion-15-oct` y `ventas-pedidos` salen de
+`costos-fase-1` (desde `main` no compilan: les faltan archivos como
+`src/features/costos/`). `ventas-pedidos` va encima de las otras dos. Falta
+decidir cuándo se lleva todo a `main` (Vercel publica desde `main`).
 
-### D-72 · Cambios ajenos en el árbol de trabajo
-Archivos modificados sin commitear que no son de esta sesión (incluidas
-`react-doctor` y `shadcn` como dependencias de desarrollo, sin justificación,
-CLAUDE.md §7; `npm audit` da 8 avisos altos en desarrollo). Los resuelve el
-usuario.
+### D-ventas-pedidos-12 · Árbol de trabajo ordenado — resuelta 2026-10-15
+Los cambios sin commitear eran del usuario, de otras sesiones: quedaron en
+`herramientas` (sesión A) y `sesion-15-oct` (sesión B), un commit por tema.
+Siguen sin commitear, a decisión del usuario: `react-doctor`, `shadcn`, el
+script `doctor` y la clave `intent` de `package.json`; `AGENTS.md`;
+`.claude/skills/`; `.impeccable/review/`; `react-doctor.yml`.
 
 ## Abiertas — 2026-10-14
 
