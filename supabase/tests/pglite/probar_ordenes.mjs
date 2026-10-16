@@ -15,7 +15,7 @@ const f = await uno(`insert into gmp.formulas_fabricacion (producto_id, version,
 await como('naza@x');
 let esp;
 await prueba('Producción redacta una especificación en borrador', async () => {
-  esp = (await uno(`insert into gmp.especificaciones (codigo_poe, version, denominacion, vida_util_meses) values ('I-E.50.25','00','LIQUIDO ACRILICO',24) returning id`)).id;
+  esp = (await uno(`insert into gmp.especificaciones (codigo_poe, version, denominacion, vida_util_meses) values ('I-E.PRUEBA','00','LIQUIDO ACRILICO',24) returning id`)).id;
   await q(`insert into gmp.espec_formula (especificacion_id, orden, componente, porcentaje_min, porcentaje_max) values ($1,1,'Ethyl Methacrylate',90,95)`, [esp]);
   await q(`insert into gmp.espec_parametros (especificacion_id, orden, nombre, grupo, tipo_criterio, valor_min, valor_max, unidad) values ($1,1,'Densidad','FISICOQUIMICO','RANGO',0.91,0.92,'g/ml')`, [esp]);
   await q(`insert into gmp.espec_parametros (especificacion_id, orden, nombre, grupo, tipo_criterio, valor_min, unidad) values ($1,2,'Volátiles','FISICOQUIMICO','MINIMO',95,'%')`, [esp]);
@@ -76,7 +76,11 @@ await rechaza('una etapa controlada no se modifica', `update gmp.op_etapas set d
 await rechaza('no se termina sin fraccionamiento', `select gmp.terminar_orden('${op.id}', 199, 1000)`, /fraccionamiento/);
 const registrar = async (etapa, quien, datos = {}) => {
   await como(quien);
-  await q(`insert into gmp.op_etapas (orden_id, etapa, datos) values ($1,$2,$3)`, [op.id, etapa, JSON.stringify(datos)]);
+  // El control del granel se registra con su R.50.10.1 (20261014170000).
+  if (etapa === 'CC_GRANEL')
+    await q(`select gmp.dictaminar_granel($1, '100 g', 'Granel homogéneo', 'Conforme', $2)`, [op.id, datos.aprobado]);
+  else
+    await q(`insert into gmp.op_etapas (orden_id, etapa, datos) values ($1,$2,$3)`, [op.id, etapa, JSON.stringify(datos)]);
   await como(quien === 'naza@x' ? 'op@x' : 'naza@x');
   if (etapa === 'CC_GRANEL' || etapa === 'CC_PT' || etapa === 'REVISION') await como(DT);
   await q(`update gmp.op_etapas set controlo_por=core.usuario_actual(), controlo_en=now() where orden_id=$1 and etapa=$2`, [op.id, etapa]);

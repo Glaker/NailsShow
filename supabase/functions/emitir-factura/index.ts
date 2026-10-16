@@ -16,6 +16,10 @@
  *   secretos: AFIP_CERT_<CUIT> y AFIP_KEY_<CUIT> por emisor, o AFIP_CERT y
  *   AFIP_KEY si hay uno solo o los demás delegaron el servicio (D-37). En
  *   homologación no hacen falta.
+ * - ARCA_REGISTRO_CLAVE: la misma clave que Vault guarda como
+ *   «arca_registro_clave». fijar_numero_factura y registrar_resultado_factura
+ *   la exigen, así que el número y el CAE solo los escribe esta función, nunca
+ *   una llamada suelta desde el navegador (20261016120000). El usuario no la ve.
  *
  * Qué decide la base y qué la función:
  * - La base (comercial.preparar_factura) valida el pedido, elige A, B o C (RN-57),
@@ -100,6 +104,10 @@ Deno.serve(async (req) => {
     },
   );
 
+  // Sin la clave no se puede registrar nada: se corta antes de preparar.
+  const clave = Deno.env.get('ARCA_REGISTRO_CLAVE');
+  if (!clave) return json({ error: 'Falta el secreto ARCA_REGISTRO_CLAVE de la función.' }, 500);
+
   // 1. La base prepara (o devuelve la pendiente, si es un reintento).
   const prep = entrada.nota_credito_de
     ? await db.rpc('preparar_nota_credito', {
@@ -123,6 +131,7 @@ Deno.serve(async (req) => {
       p_solicitud: solicitud,
       p_respuesta: respuesta,
       p_error_envio: errorEnvio,
+      p_clave: clave,
     });
     if (r.error)
       return json(
@@ -188,6 +197,7 @@ Deno.serve(async (req) => {
   const fijar = await db.rpc('fijar_numero_factura', {
     p_factura_id: f.factura_id,
     p_numero: numero,
+    p_clave: clave,
   });
   if (fijar.error) return registrar(null, null, fijar.error.message);
 

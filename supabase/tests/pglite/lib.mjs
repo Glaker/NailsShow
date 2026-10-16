@@ -1,4 +1,6 @@
 import { reconstruir } from './reconstruir.mjs';
+// Clave de prueba de la emisión ARCA: la misma que siembra andamio.sql en el Vault simulado.
+export const CLAVE_ARCA = 'clave-de-prueba-arca-0123456789abcdef';
 export async function banco() {
   const db = await reconstruir({ silencioso: true });
   const q = async (s, p) => (await db.query(s, p)).rows;
@@ -24,7 +26,20 @@ export async function banco() {
     const malas = r.filter((x) => x.cumple === false);
     if (malas.length) throw new Error(JSON.stringify(malas));
   });
+  // Atajo de preparación: deja una orden LIBERADA sin recorrer su circuito
+  // (etapas, controles, R.50.10.1), que se prueba en probar_ordenes y
+  // probar_atajos. Desde 20261016120000 el trigger exige ese circuito incluso
+  // al superusuario, así que el atajo apaga los triggers solo para este UPDATE.
+  // Firma quien tenga la sesión (usar después de como(DT)).
+  const liberarAtajo = async (orden) => {
+    await db.exec('reset role');
+    await db.exec('set session_replication_role = replica');
+    await db.query(`update gmp.ordenes_produccion set estado='LIBERADA',
+      terminada_por=core.usuario_actual(), terminada_en=now(),
+      liberada_por=core.usuario_actual(), liberada_en=now() where id=$1`, [orden]);
+    await db.exec('set session_replication_role = origin');
+  };
   const fin = () => { console.log(`\n${r.ok} en verde, ${r.mal} en rojo`); process.exit(r.mal ? 1 : 0); };
   await db.exec('begin');
-  return { db, q, uno, prueba, rechaza, como, usuario, fin, invariantes };
+  return { db, q, uno, prueba, rechaza, como, usuario, fin, invariantes, liberarAtajo };
 }

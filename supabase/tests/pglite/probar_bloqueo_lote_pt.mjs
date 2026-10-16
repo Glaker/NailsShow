@@ -1,5 +1,5 @@
 import { banco } from './lib.mjs';
-const { db, q, uno, prueba, rechaza, como, usuario, fin, invariantes } = await banco();
+const { db, q, uno, prueba, rechaza, como, usuario, fin, invariantes, liberarAtajo } = await banco();
 await usuario('naza@x', 'GERENCIA_PRODUCCION');
 await usuario('silveira@x', 'ENCARGADA_STOCK', 'DEPOSITO');
 const DT = 'salta.agustin@gmail.com';
@@ -21,9 +21,7 @@ const o1 = (await uno(`insert into gmp.ordenes_produccion (formula_id, producto_
 await q(`insert into comercial.pedido_ordenes (pedido_id, orden_id) values ($1,$2)`, [p1, o1]);
 await q(`select comercial.terminar_pedido($1)`, [p1]);
 await como(DT);
-await db.exec('reset role');
-await q(`update gmp.ordenes_produccion set estado='TERMINADA', terminada_por=core.usuario_actual(), terminada_en=now() where id=$1`, [o1]);
-await q(`update gmp.ordenes_produccion set estado='LIBERADA', liberada_por=core.usuario_actual(), liberada_en=now() where id=$1`, [o1]);
+await liberarAtajo(o1);
 await como(DT);
 
 await prueba('un lote de producto terminado liberado es despachable', async () => {

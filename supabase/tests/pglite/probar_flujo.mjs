@@ -11,6 +11,9 @@ const galicia = (await uno(`insert into comercial.cuentas_fondos (nombre, tipo, 
 const cli = (await uno(`insert into comercial.clientes (razon_social, condicion_iva, tipo_documento, numero_documento) values ('Ana','CONSUMIDOR_FINAL','DNI','30111222') returning id`)).id;
 const duo = (await uno(`select id from gmp.productos where codigo_interno='DUO01'`)).id;
 await db.exec('reset role');
+// Carga como superusuario sin sesión: sin claims, el sellado de autores
+// (20261016120000) respeta el creado_por explícito, como en una migración.
+await db.exec(`select set_config('request.jwt.claims', '', false)`);
 const ped = (await uno(`insert into comercial.pedidos (numero, cliente, cliente_id, creado_por) values ('P-F','Ana',$1,(select id from core.usuarios where email='naza@x')) returning id`, [cli])).id;
 await q(`insert into comercial.pedido_renglones (pedido_id, producto_id, cantidad, precio_unitario, alicuota_iva) values ($1,$2,10,100,0)`, [ped, duo]);
 const fac = (await uno(`insert into comercial.facturas (pedido_id, cliente_id, ambiente, cuit_emisor, tipo, codigo_arca, punto_venta, numero, receptor_doc_tipo, receptor_doc_numero, receptor_condicion_iva, importe_neto, importe_iva, importe_total, alicuotas, estado, cae, cae_vencimiento, respuesta_arca, resuelta_en, emitida_por)
