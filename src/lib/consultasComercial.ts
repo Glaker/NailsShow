@@ -881,7 +881,8 @@ export function useCambiarEstadoAviso() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (a: {
-      id: string;
+      /** Una o varias: «Descartar» en lote usa el mismo motivo para todas. */
+      ids: string[];
       estado: EstadoAviso;
       usuarioId: string | null;
       nota?: string | null;
@@ -898,18 +899,22 @@ export function useCambiarEstadoAviso() {
 
       const { data, error } = await tablaComercial<{ id: string }[]>('avisos_compra')
         .update(cambios)
-        .eq('id', a.id)
+        .in('id', a.ids)
         .select('id');
       if (error) throw error;
-      if (!data || data.length === 0) {
+      if (!data || data.length < a.ids.length) {
         throw new Error(
           'No se pudo actualizar: tu usuario no tiene permiso sobre compras.',
         );
       }
     },
-    onSuccess: () => {
+    onSuccess: (_d, a) => {
       void qc.invalidateQueries({ queryKey: ['avisos-compra'] });
-      avisarExito('Compra actualizada.');
+      avisarExito(
+        a.ids.length === 1
+          ? 'Compra actualizada.'
+          : `${a.ids.length} compras actualizadas.`,
+      );
     },
     onError: avisarError,
   });

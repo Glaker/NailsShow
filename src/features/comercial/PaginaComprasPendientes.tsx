@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Button,
+  Checkbox,
   Group,
   Modal,
   Paper,
@@ -15,8 +16,8 @@ import {
 } from '@mantine/core';
 import {
   IconAlertTriangle,
-  IconCheck,
   IconListCheck,
+  IconPackageImport,
   IconShoppingCart,
   IconTruckDelivery,
 } from '@tabler/icons-react';
@@ -33,6 +34,7 @@ import {
   useNomina,
   type AvisoCompraRow,
 } from '@/lib/consultasComercial';
+import { FormularioRecepcion } from '@/features/recepcion/FormularioRecepcion';
 import { BadgeEstadoAviso } from './estadoPedido';
 
 type Vista = 'abiertas' | 'historial';
@@ -44,7 +46,10 @@ type Vista = 'abiertas' | 'historial';
  * La explosión de un pedido se recalcula cada vez que se abre; esto no. Es la
  * lista que se puede mirar el lunes para saber qué se le pidió a quién y qué
  * sigue sin pedir. El circuito es corto a propósito: por comprar → pedido al
- * proveedor → resuelto, o descartado con motivo.
+ * proveedor → «Ya llegó», que abre la recepción precargada con la compra. El
+ * lote entra en cuarentena y pasa a stock cuando Control de Calidad lo aprueba;
+ * la compra queda resuelta y vinculada al lote. O descartada con motivo, de a
+ * una o varias juntas.
  *
  * El mismo insumo puede aparecer para dos pedidos. No se suman solos porque
  * cada pedido se explotó contra el mismo disponible: la suma de los faltantes
@@ -58,9 +63,14 @@ export function PaginaComprasPendientes() {
   const nomina = useNomina();
   const cambiar = useCambiarEstadoAviso();
   const puedeActuar = useTieneRol(...ROLES_ESCRIBEN_AVISOS);
+  /* Recibe quien puede registrar la recepción (gmp.recepciones) y además
+     vincularla a la compra (comercial.vincular_recepcion_compras). */
+  const puedeRecibir = useTieneRol('GERENCIA_PRODUCCION', 'DIRECCION_TECNICA');
   const { claims } = useSesion();
   const [vista, setVista] = useState<Vista>('abiertas');
-  const [descartando, setDescartando] = useState<AvisoCompraRow | null>(null);
+  const [elegidas, setElegidas] = useState<Set<string>>(new Set());
+  const [descartando, setDescartando] = useState<AvisoCompraRow[] | null>(null);
+  const [recibiendo, setRecibiendo] = useState<AvisoCompraRow | null>(null);
   const [motivo, setMotivo] = useState('');
 
   const insumoPorId = useMemo(
@@ -105,15 +115,30 @@ export function PaginaComprasPendientes() {
     return a.creado_en.localeCompare(b.creado_en);
   });
 
-  function mover(a: AvisoCompraRow, estado: 'EN_COMPRA' | 'RESUELTO') {
-    cambiar.mutate({ id: a.id, estado, usuarioId: claims?.usuario_id ?? null });
+  const conCasillas = vista === 'abiertas' && puedeActuar;
+  // Solo cuentan las que siguen abiertas (una pudo cerrarse mientras tanto).
+  const seleccion = abiertas.filter((a) => elegidas.has(a.id));
+  const todasElegidas = abiertas.length > 0 && seleccion.length === abiertas.length;
+
+  function alternar(id: string) {
+    const nuevo = new Set(elegidas);
+    if (!nuevo.delete(id)) nuevo.add(id);
+    setElegidas(nuevo);
+  }
+
+  function pedido(a: AvisoCompraRow) {
+    cambiar.mutate({
+      ids: [a.id],
+      estado: 'EN_COMPRA',
+      usuarioId: claims?.usuario_id ?? null,
+    });
   }
 
   function descartar() {
     if (!descartando) return;
     cambiar.mutate(
       {
-        id: descartando.id,
+        ids: descartando.map((a) => a.id),
         estado: 'DESCARTADO',
         usuarioId: claims?.usuario_id ?? null,
         nota: motivo.trim(),
@@ -121,6 +146,7 @@ export function PaginaComprasPendientes() {
       {
         onSuccess: () => {
           setDescartando(null);
+          setElegidas(new Set());
           setMotivo('');
         },
       },
@@ -176,6 +202,33 @@ export function PaginaComprasPendientes() {
             style={{ alignSelf: 'flex-start' }}
           />
 
+          {conCasillas && seleccion.length > 0 ? (
+            <Group gap="sm">
+              <Text size="sm" fw={600}>
+                {seleccion.length === 1
+                  ? '1 compra elegida'
+                  : `${seleccion.length} compras elegidas`}
+              </Text>
+              <Button
+                size="md"
+                color="red"
+                variant="light"
+                onClick={() => setDescartando(seleccion)}
+              >
+                Descartar{' '}
+                {seleccion.length === 1 ? 'la elegida' : `las ${seleccion.length}`}
+              </Button>
+              <Button
+                size="md"
+                variant="subtle"
+                color="gray"
+                onClick={() => setElegidas(new Set())}
+              >
+                Quitar selección
+              </Button>
+            </Group>
+          ) : null}
+
           {filas.length === 0 ? (
             <Paper withBorder style={{ borderColor: 'var(--superficie-borde)' }}>
               <Vacio
@@ -200,13 +253,30 @@ export function PaginaComprasPendientes() {
                 <Table verticalSpacing="sm" highlightOnHover>
                   <Table.Thead>
                     <Table.Tr>
+                      {conCasillas ? (
+                        <Table.Th w={48}>
+                          <Checkbox
+                            size="md"
+                            aria-label="Elegir todas"
+                            checked={todasElegidas}
+                            indeterminate={seleccion.length > 0 && !todasElegidas}
+                            onChange={() =>
+                              setElegidas(
+                                todasElegidas
+                                  ? new Set()
+                                  : new Set(abiertas.map((a) => a.id)),
+                              )
+                            }
+                          />
+                        </Table.Th>
+                      ) : null}
                       <Table.Th>Insumo</Table.Th>
                       <Table.Th ta="right">Cantidad</Table.Th>
                       <Table.Th>Proveedor sugerido</Table.Th>
                       <Table.Th>Para el pedido</Table.Th>
                       <Table.Th>A más tardar</Table.Th>
                       <Table.Th>Estado</Table.Th>
-                      {vista === 'abiertas' && puedeActuar ? <Table.Th /> : null}
+                      {conCasillas ? <Table.Th /> : null}
                     </Table.Tr>
                   </Table.Thead>
                   <Table.Tbody>
@@ -221,6 +291,16 @@ export function PaginaComprasPendientes() {
                         a.estado === 'PENDIENTE' || a.estado === 'EN_COMPRA';
                       return (
                         <Table.Tr key={a.id}>
+                          {conCasillas ? (
+                            <Table.Td>
+                              <Checkbox
+                                size="md"
+                                aria-label="Elegir"
+                                checked={elegidas.has(a.id)}
+                                onChange={() => alternar(a.id)}
+                              />
+                            </Table.Td>
+                          ) : null}
                           <Table.Td>
                             <Text size="sm" fw={600}>
                               {insumo?.nombre ?? '(insumo)'}
@@ -298,7 +378,7 @@ export function PaginaComprasPendientes() {
                               </Text>
                             ) : null}
                           </Table.Td>
-                          {vista === 'abiertas' && puedeActuar ? (
+                          {conCasillas ? (
                             <Table.Td>
                               <Group gap="xs" wrap="nowrap" justify="flex-end">
                                 {a.estado === 'PENDIENTE' ? (
@@ -307,31 +387,33 @@ export function PaginaComprasPendientes() {
                                     variant="light"
                                     leftSection={<IconTruckDelivery size={16} />}
                                     loading={
-                                      cambiar.isPending && cambiar.variables?.id === a.id
+                                      cambiar.isPending &&
+                                      cambiar.variables?.ids.includes(a.id)
                                     }
-                                    onClick={() => mover(a, 'EN_COMPRA')}
+                                    onClick={() => pedido(a)}
                                   >
                                     Ya lo pedí
                                   </Button>
-                                ) : (
+                                ) : puedeRecibir ? (
                                   <Button
                                     size="sm"
                                     variant="light"
                                     color="estadoAprobado"
-                                    leftSection={<IconCheck size={16} />}
-                                    loading={
-                                      cambiar.isPending && cambiar.variables?.id === a.id
-                                    }
-                                    onClick={() => mover(a, 'RESUELTO')}
+                                    leftSection={<IconPackageImport size={16} />}
+                                    onClick={() => setRecibiendo(a)}
                                   >
-                                    Resuelto
+                                    Ya llegó
                                   </Button>
+                                ) : (
+                                  <Text size="xs" c="dimmed" maw={160}>
+                                    La recibe Gerencia de Producción
+                                  </Text>
                                 )}
                                 <Button
                                   size="sm"
                                   variant="subtle"
                                   color="gray"
-                                  onClick={() => setDescartando(a)}
+                                  onClick={() => setDescartando([a])}
                                 >
                                   Descartar
                                 </Button>
@@ -348,8 +430,8 @@ export function PaginaComprasPendientes() {
           )}
 
           <Text size="xs" c="dimmed">
-            Marcar «resuelto» no da entrada al stock: el material entra cuando se registra
-            su recepción, con su lote y su circuito de calidad.
+            «Ya llegó» abre la recepción con los datos de la compra. El material entra en
+            cuarentena y pasa a stock disponible cuando Control de Calidad lo aprueba.
           </Text>
         </Stack>
       )}
@@ -357,14 +439,19 @@ export function PaginaComprasPendientes() {
       <Modal
         opened={descartando !== null}
         onClose={() => setDescartando(null)}
-        title="Descartar la compra"
+        title={
+          descartando && descartando.length > 1
+            ? `Descartar ${descartando.length} compras`
+            : 'Descartar la compra'
+        }
         centered
         radius="md"
       >
         <Stack gap="md">
           <Text size="sm">
-            La compra sale de la lista de pendientes y queda en el historial con el
-            motivo.
+            {descartando && descartando.length > 1
+              ? 'Las compras salen de la lista de pendientes y quedan en el historial, todas con el mismo motivo.'
+              : 'La compra sale de la lista de pendientes y queda en el historial con el motivo.'}
           </Text>
           <Textarea
             label="Motivo"
@@ -389,6 +476,20 @@ export function PaginaComprasPendientes() {
             </Button>
           </Group>
         </Stack>
+      </Modal>
+
+      <Modal
+        opened={recibiendo !== null}
+        onClose={() => setRecibiendo(null)}
+        title={<Text fw={700}>Recibir la compra</Text>}
+        size="xl"
+      >
+        {recibiendo ? (
+          <FormularioRecepcion
+            desdeCompra={recibiendo}
+            onListo={() => setRecibiendo(null)}
+          />
+        ) : null}
       </Modal>
     </>
   );
