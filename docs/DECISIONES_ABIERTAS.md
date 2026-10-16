@@ -562,68 +562,91 @@ usuario: si debe poder comentar, se revierte con una migración nueva.
 
 ## Abiertas — 2026-10-15 (ventas, pedidos, roles y respaldos)
 
-### D-57 · Agustina: producción y ventas
+Numeradas desde D-61: la rama `giorgio` usa D-57 a D-60.
+
+### D-61 · Agustina: producción y ventas
 **Contexto.** El modelo ya admite varios roles por usuario
 (`core.usuarios.roles_adicionales`, claim `roles`, `core.es_rol`). Agustina
 sería VENTAS con ENCARGADA_STOCK adicional («Pedidos a armar», lo que hoy hace
 Silveira).
-**Preguntas.** ¿Silveira sigue con ENCARGADA_STOCK o se le quita? Tercerizados
-hoy lo ven solo GP y Gerencia: ¿se abre a todo VENTAS (también Mati) o solo a
-Agustina (haría falta un permiso por usuario, que hoy no existe)? Las cuentas de
-Agustina y Silveira todavía no están registradas.
+**Resuelto (2026-10-15):** Tercerizados se abre **solo a Agustina**, no a todo
+VENTAS. Como el menú y RLS son por rol, hace falta un permiso por usuario o un
+rol propio: se define al implementar el bloque 2.
+**Pendiente.** Si Silveira conserva ENCARGADA_STOCK. Correos de Agustina y
+Silveira.
 **Decide.** Gerencia.
 
-### D-58 · Especificaciones y Gerencia de Producción
-**Implementado:** sale del menú de GP (2026-10-15). **Pregunta.** ¿GP pierde
-también la escritura en la base (`gmp.especificaciones`, políticas de DT y GP)?
-**Decide.** Dirección Técnica.
+### D-62 · Especificaciones y Gerencia de Producción — resuelta 2026-10-15
+Sale del menú de GP y **pierde también la escritura** en
+`gmp.especificaciones` (políticas de DT y GP). Va en la migración del bloque 2.
 
-### D-59 · Vendedores nuevos: Johana, María del Rosario, Silvina Alegre
+### D-63 · Vendedores nuevos: Johana, María del Rosario, Silvina Alegre
 Pendientes, sin reglas inventadas: lista y escala de educadores (Johana);
 comisión de mayorista Santa Fe (María del Rosario); integración o carga manual
-de Tienda Nube (Silvina). Faltan los correos para crear las cuentas y los
-valores del atributo que las distingue (canal, zona).
+de Tienda Nube (Silvina). Faltan los correos y los valores del atributo que las
+distingue (canal, zona). No bloquea el bloque 3.
 **Decide.** Gerencia, en reunión.
 
-### D-60 · Pedido que vuelve a Nazarena
-Propuesta del usuario: si Ventas cambia productos o cantidades después de la
-fecha propuesta, la fecha queda «a reconfirmar» y vuelve a la bandeja de GP; si
-solo cambian precio, descuento o forma de pago, no vuelve. **A confirmar.**
+### D-64 · Pedido que vuelve a Nazarena — resuelta 2026-10-15
+Si Ventas cambia productos o cantidades después de la fecha propuesta, la fecha
+queda «a reconfirmar» y vuelve a la bandeja de GP. Si cambia solo precio,
+descuento o forma de pago, no vuelve. Mientras esté «a reconfirmar», el pedido
+no cuenta en estadísticas.
 
-### D-61 · Tope de descuento efectivo por rol
-Los descuentos se encadenan (`1 − Π(1 − dᵢ)`). Falta el tope por rol y si
-superarlo bloquea o pide autorización. **Decide.** Gerencia.
+### D-65 · Tope de descuento efectivo por rol — adoptada 2026-10-15
+Los descuentos se encadenan (`1 − Π(1 − dᵢ)`). Superar el tope del rol **no
+bloquea**: pide autorización de GERENCIA. Los valores por rol los fija
+Finanzas y son configurables.
 
-### D-62 · Pagos imputados al pedido
-Hoy los cobros (`comercial.cobros_cliente`) se imputan a **facturas**, con un
-solo medio por cobro. El pedido pide imputar al pedido, con varias partidas.
-**Pregunta.** ¿Un pago a cuenta de un pedido todavía no facturado es un anticipo
-que se imputa a la factura al emitirla? Define cómo cuadra con la cuenta
-corriente.
+### D-66 · Pago antes de facturar: anticipo
+**Adoptado (modelo):** anticipo imputado al pedido y aplicado a la factura
+cuando se emite.
+**Abierto (fiscal):** por la Ley de IVA (art. 5), un anticipo que congela
+precio puede generar el hecho imponible al cobrarse. No se implementa la
+lógica fiscal hasta que confirme el contador.
+**Decide.** Contador.
 
-### D-63 · Reproceso de mercadería devuelta desde Calle 5
-No existe nada de reproceso en el sistema (RN-25: autorización previa según POE
-específico, que no tenemos). **Pregunta.** ¿Qué POE rige, quién autoriza (DT
-titular o suplente) y si el lote reprocesado lleva número nuevo vinculado al
-original o conserva el mismo?
+### D-67 · Reproceso de mercadería devuelta desde Calle 5
+No existe en el sistema y el POE (RN-25) no está redactado. El bloque 5 queda
+diferido hasta que exista el POE; no se diseña el circuito antes.
 **Decide.** Dirección Técnica.
 
-### D-64 · Respaldos: destino, pérdida aceptable y conservación
-Destino de la copia externa; pérdida máxima aceptable (RPO) y si se contrata
-PITR (unos USD 115/mes por encima de Pro); plazo de conservación de registros
-BPF. Ver `docs/SEGURIDAD_Y_RESPALDOS.md`.
-**Decide.** Dirección (costo) y Dirección Técnica (plazo).
+### D-68 · Respaldos: destino, PITR y conservación
+- **Destino de la copia externa:** almacenamiento a nombre de la empresa, nunca
+  una cuenta personal. Cuál, a confirmar. El workflow toma el destino por
+  secreto, cifra la copia y la clave queda fuera del repo.
+- **PITR:** lo decide la Dirección con `docs/SEGURIDAD_Y_RESPALDOS.md`. La copia
+  nocturna externa va igual.
+- **Conservación propuesta:** copias diarias por 30 días, mensuales por 10
+  años, y nunca borrar datos de la base viva. Fundamento: I.60.12 retiene
+  muestras de archivo un año después del vencimiento (vida útil de 36 meses: al
+  menos cuatro años desde la fabricación); el Código Civil y Comercial (art.
+  328) exige conservar la documentación comercial diez años.
+**Decide.** Dirección Técnica y contador.
 
-### D-65 · Rama base del trabajo
+### D-69 · Exportación completa — adoptada 2026-10-15
+Todas las tablas, incluidos costos y auditoría, solo para ADMINISTRADOR_SISTEMA
+y GERENCIA. Cada exportación queda registrada con autor y fecha.
+
+### D-70 · Foto del importe pedido y condición de estadísticas — adoptada 2026-10-15
+Un pedido cuenta en las estadísticas de ventas solo cuando Nazarena propuso
+fecha para el pedido **entero** (no solo para renglones demorados) y Ventas lo
+confirmó. En ese momento se congela una foto del importe pedido (cantidades,
+precios y descuentos tal como quedaron). Las ediciones posteriores cambian el
+importe enviado o facturado, nunca la foto. La foto se implementa antes de
+habilitar la edición en APROBADO.
+
+### D-71 · Rama base del trabajo
 `main` está 82 commits atrás de `costos-fase-1`, que es lo aplicado en la base
 real. La rama `ventas-pedidos` sale de `costos-fase-1` para que las migraciones
 nuevas partan del esquema real. Falta decidir cuándo se lleva todo a `main`
 (Vercel publica desde `main`).
 
-### D-66 · Dependencias de desarrollo sin justificar
-En el árbol de trabajo aparecieron `react-doctor` y `shadcn` como dependencias
-de desarrollo, sin commit ni justificación (CLAUDE.md §7), y `npm audit`
-reporta 8 avisos altos en dependencias de desarrollo. ¿Se quedan?
+### D-72 · Cambios ajenos en el árbol de trabajo
+Archivos modificados sin commitear que no son de esta sesión (incluidas
+`react-doctor` y `shadcn` como dependencias de desarrollo, sin justificación,
+CLAUDE.md §7; `npm audit` da 8 avisos altos en desarrollo). Los resuelve el
+usuario.
 
 ## Abiertas — 2026-10-14
 

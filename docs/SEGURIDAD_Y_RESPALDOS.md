@@ -11,7 +11,7 @@ Informe para la Dirección. Borrador del 2026-10-15: lo marcado como
 | --- | --- | --- |
 | Registros de fabricación, control de calidad, liberación, stock, pedidos, clientes, facturas, cuentas corrientes, costos, tareas, auditoría | Base de datos en Supabase (servidor en San Pablo, Brasil) | Sí, según el plan contratado (ver 2) |
 | Usuarios y contraseñas (cifradas) | Misma base de datos, sección de autenticación | Sí |
-| Archivos (PDF, fotos, comprobantes escaneados) | Hoy **no hay archivos guardados** en el sistema: los registros de protocolo y de gastos solo guardan un enlace | No. Si en el futuro se suben archivos, hay que respaldarlos aparte |
+| Archivos (PDF, fotos, comprobantes escaneados) | Hoy **no hay archivos guardados** en el sistema. Dos registros admiten un enlace a un archivo externo (protocolo del lote de insumo y comprobante de gasto), y **ninguno tiene enlaces cargados** (revisado en la base real el 2026-10-15, en toda columna de texto: ningún `http`, Drive, Dropbox ni OneDrive) | No. Un archivo enlazado vive fuera de la app y ningún respaldo lo cubre: antes de que se empiecen a usar esos enlaces conviene decidir guardar los archivos dentro del sistema, donde sí se respaldan |
 | Programa (el código de la aplicación) | GitHub (cuenta personal) | No es un dato: se puede volver a publicar desde GitHub |
 | Funciones de facturación electrónica | Supabase (código en GitHub) | El código, por GitHub; los certificados no |
 | Certificados de ARCA, clave de Afip SDK | Almacén de secretos de Supabase | **No.** Deben estar también en el gestor de contraseñas de la empresa |
@@ -73,21 +73,28 @@ Propuesta:
 - La copia se **cifra antes de salir**, porque contiene datos personales de
   clientes y empleados. La clave para abrirla queda en el gestor de contraseñas
   de la empresa, en manos de dos personas.
-- La copia se guarda en un almacenamiento de la empresa, fuera de Supabase.
-  **[pendiente]** Elegir dónde. Opciones habituales: Google Drive o OneDrive de
-  la empresa, o un almacenamiento en la nube de bajo costo (unos pocos dólares
-  por mes con el tamaño actual).
-- Se conservan las copias diarias por 30 días y una por mes por más tiempo.
-  **[pendiente]** El plazo mínimo para los registros de Buenas Prácticas lo
-  define la Dirección Técnica según la normativa y el procedimiento de archivo.
+- La copia se guarda en un almacenamiento **a nombre de la empresa**, nunca en
+  una cuenta personal, fuera de Supabase. **[pendiente]** Cuál.
+- Conservación propuesta, **[pendiente]** de confirmación de la Dirección
+  Técnica y del contador:
+  - copias diarias por 30 días;
+  - una copia mensual por 10 años;
+  - los datos de la base en uso nunca se borran.
+
+  Por qué esos plazos: el procedimiento de muestras de archivo (I.60.12)
+  conserva muestras hasta un año después del vencimiento, y con una vida útil
+  de 36 meses eso da al menos cuatro años desde la fabricación. El Código Civil
+  y Comercial (art. 328) exige conservar la documentación comercial diez años.
 - Si una copia falla, llega un aviso por correo al administrador del sistema.
 - Nunca se guardan copias en el repositorio de código ni en el sistema de
   práctica.
 
 ## 5. Copia legible por cualquiera
 
-Además de la copia técnica, el administrador del sistema va a tener un botón
-para **descargar todos los datos en Excel**, una hoja por tabla, con un índice.
+Además de la copia técnica, el administrador del sistema y la Gerencia van a
+tener un botón para **descargar todos los datos en Excel**, una hoja por tabla,
+con un índice. Incluye costos y auditoría, así que cada descarga queda
+registrada con quién la hizo y cuándo.
 Así la empresa puede leer su información sin depender de Supabase ni de quien
 programó el sistema.
 
@@ -149,6 +156,7 @@ Para todas estas cuentas, y para los correos asociados:
 | 4 | Pasar Supabase y GitHub a cuentas de la empresa, con dos dueños | sin costo | Alta |
 | 5 | Segundo factor en todas las cuentas | sin costo | Alta |
 | 6 | Cambiar las claves que quedaron expuestas en sesiones de trabajo: token de Afip SDK, token de administración y contraseña de la base de Supabase, contraseña de la cuenta de verificación | sin costo | **Inmediata** |
-| 7 | Contraseñas de al menos 10 caracteres (hoy el mínimo es 6) y cierre del alta libre de cuentas | sin costo | Media |
+| 7 | Contraseñas de al menos 12 caracteres (se sube en el panel el 2026-10-15) y cierre del alta libre de cuentas | sin costo | Media |
+| 7b | Política de contenido del sitio: publicada en modo informe; tras una semana sin avisos, pasar a modo bloqueo | sin costo | Media |
 | 8 | Prueba mensual de restauración | unas horas por mes | Media |
 | 9 | Consultar al asesor legal sobre la **Ley 25.326 de Protección de Datos Personales**: la base guarda datos de clientes y empleados, y la ley puede exigir, entre otras cosas, inscribirla en el registro de la Agencia de Acceso a la Información Pública | honorarios del asesor | Media |
