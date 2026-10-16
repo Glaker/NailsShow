@@ -9581,6 +9581,11 @@ export type Database = {
         Args: { p_ambito: string; p_anio: number }
         Returns: number
       }
+      siguiente_numero_analisis: {
+        Args: { p_anio: number; p_registro: string }
+        Returns: number
+      }
+      siguiente_numero_orden: { Args: { p_anio: number }; Returns: number }
       tamano_muestra_sugerido: {
         Args: {
           p_cantidad: number
