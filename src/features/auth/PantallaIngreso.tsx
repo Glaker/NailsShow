@@ -32,7 +32,7 @@ const esquemaIngreso = z.object({
 
 const esquemaRegistro = esquemaIngreso.extend({
   nombreCompleto: z.string().trim().min(3, 'Ingresá tu nombre y apellido'),
-  password: z.string().min(6, 'Mínimo 6 caracteres'),
+  password: z.string().min(12, 'Mínimo 12 caracteres'),
 });
 
 type Modo = 'ingreso' | 'registro';
@@ -111,7 +111,7 @@ export function PantallaIngreso() {
         <Stack align="center" gap={6}>
           <Marca size={96} />
           <Title order={1} ta="center" mt={10}>
-            Trazabilidad
+            Wandel
           </Title>
           <Text c="dimmed" ta="center">
             Nail Show SRL

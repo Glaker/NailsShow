@@ -4,3 +4,4 @@ supabase/.temp
 supabase/.branches
 src/lib/database.types.ts
 package-lock.json
+supabase/functions/_shared/vendor

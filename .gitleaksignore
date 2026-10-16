@@ -1,0 +1,7 @@
+# Hallazgos de gitleaks revisados y aceptados. Una huella por línea.
+# Toda entrada nueva lleva encima el motivo, quién la revisó y la fecha.
+
+# Clave sb_publishable_ en .env.example (commit 7cb4c2a). Es la clave pública
+# del proyecto, pensada para el navegador y sujeta a RLS; no es un secreto.
+# El archivo ya no la contiene. Revisado 2026-09-29.
+7cb4c2afb5f29f003715b78e62ce9fa591892974:.env.example:generic-api-key:9

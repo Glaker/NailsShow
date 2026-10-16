@@ -39,7 +39,11 @@ import {
   type Insumo,
 } from '@/lib/consultas';
 import { fechaISO, numero } from '@/lib/formato';
-import { useAvisosCompra, useVincularCompras } from '@/lib/consultasComercial';
+import {
+  useAvisosCompra,
+  useVincularCompras,
+  type AvisoCompraRow,
+} from '@/lib/consultasComercial';
 import { discriminaIva, useRegistrarComprobanteProveedor } from '@/lib/consultasCompras';
 import { useTieneRol } from '@/features/auth/sesion';
 import {
@@ -145,9 +149,15 @@ const LOTE_VACIO = {
 
 interface Props {
   onListo: () => void;
+  /**
+   * «Ya llegó» desde Compras pendientes: la recepción arranca con el
+   * proveedor, el insumo y la cantidad de la compra, y la compra ya elegida
+   * para vincularse al lote.
+   */
+  desdeCompra?: AvisoCompraRow;
 }
 
-export function FormularioRecepcion({ onListo }: Props) {
+export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
   const proveedores = useProveedores();
   const insumos = useInsumos();
   const crear = useCrearRecepcion();
@@ -163,12 +173,18 @@ export function FormularioRecepcion({ onListo }: Props) {
   const referencias = useCostosReferencia();
   const cargarCostos = useCargarCostosLote();
   /** Compras pendientes que llegaron con esta recepción: id → llegó completa. */
-  const [compras, setCompras] = useState<Record<string, boolean>>({});
+  const [compras, setCompras] = useState<Record<string, boolean>>(
+    desdeCompra ? { [desdeCompra.id]: true } : {},
+  );
+  const insumoCompra = desdeCompra
+    ? insumos.data?.find((i) => i.id === desdeCompra.insumo_id)
+    : undefined;
+  const unidadCompra = insumoCompra?.unidad_medida ?? desdeCompra?.unidad ?? 'kg';
 
   const form = useForm<ValoresRecepcion>({
     mode: 'controlled',
     initialValues: {
-      proveedor_id: '',
+      proveedor_id: desdeCompra?.proveedor_id ?? '',
       proveedor_nuevo: false,
       con_comprobante: false,
       comprobante: {
@@ -185,7 +201,22 @@ export function FormularioRecepcion({ onListo }: Props) {
       coincide_con_pedido: true,
       observaciones: '',
       rotularEnCuarentena: true,
-      lotes: [{ ...LOTE_VACIO }],
+      lotes: [
+        desdeCompra
+          ? {
+              ...LOTE_VACIO,
+              insumo_id: desdeCompra.insumo_id,
+              cantidad_unidades: Number(desdeCompra.cantidad),
+              unidad: unidadCompra,
+              costo: {
+                ...LOTE_VACIO.costo,
+                ...(UNIDADES_COSTO.includes(unidadCompra)
+                  ? { unidad: unidadCompra }
+                  : {}),
+              },
+            }
+          : { ...LOTE_VACIO },
+      ],
     },
     validate: zod4Resolver(esquemaRecepcion),
   });

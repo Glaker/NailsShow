@@ -98,7 +98,7 @@ export function PaginaTablero() {
     case 'OPERARIO':
       return <TareasProduccion />;
     case 'VENTAS':
-      return <InicioPedidos descripcion="Así vienen los pedidos." />;
+      return <InicioPedidos descripcion="Así vienen los pedidos." soloEntregas />;
     case 'ENCARGADA_STOCK':
       return <PaginaArmado />;
     default:

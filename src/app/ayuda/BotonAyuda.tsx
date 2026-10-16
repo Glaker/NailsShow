@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { matchPath, useLocation } from 'react-router-dom';
-import { Accordion, Alert, Button, List, Modal, Stack, Text } from '@mantine/core';
+import { Alert, Button, List, Modal, Stack, Text } from '@mantine/core';
 import { IconHelpCircle, IconInfoCircle } from '@tabler/icons-react';
 import { useSesion, type Rol } from '@/features/auth/sesion';
 import type { AyudaPantalla, MapaAyuda } from './tipos';
@@ -23,28 +23,34 @@ export const NOMBRE_ROL: Record<Rol, string> = {
   FINANZAS: 'Finanzas',
 };
 
-/** La ayuda de la ruta actual, si hay. Clave = `path` de routes.tsx. */
-export function ayudaDe(pathname: string): AyudaPantalla | null {
-  const clave = Object.keys(AYUDA).find((p) => matchPath(p, pathname));
+/**
+ * La ayuda de la ruta actual, si hay. Clave = `path` de routes.tsx, o una
+ * pestaña con su propia ayuda (`/stock?vista=calle5`), que gana sobre la de
+ * la página.
+ */
+export function ayudaDe(pathname: string, search = ''): AyudaPantalla | null {
+  const vista = new URLSearchParams(search).get('vista');
+  const pestania = vista ? AYUDA[`${pathname}?vista=${vista}`] : undefined;
+  if (pestania) return pestania;
+  const clave = Object.keys(AYUDA).find(
+    (p) => !p.includes('?') && matchPath(p, pathname),
+  );
   return clave ? AYUDA[clave]! : null;
 }
 
 /**
- * «¿Cómo funciona?»: qué es la pantalla y qué hace cada rol en ella. Los roles
- * del usuario van primero y abiertos; los demás quedan plegados debajo, para
- * entender qué hace el compañero.
+ * «¿Cómo funciona?»: qué es la pantalla y qué hace en ella el usuario. Solo se
+ * muestran sus roles: los pasos de los demás sobrecargaban sin servirle.
  */
 export function BotonAyuda({ titulo }: { titulo: string }) {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const { claims } = useSesion();
   const [abierto, setAbierto] = useState(false);
-  const ayuda = ayudaDe(pathname);
+  const ayuda = ayudaDe(pathname, search);
   if (!ayuda) return null;
 
   const mios = claims?.roles ?? [];
-  const roles = (Object.keys(ayuda.porRol) as Rol[]).sort(
-    (a, b) => Number(mios.includes(b)) - Number(mios.includes(a)),
-  );
+  const roles = (Object.keys(ayuda.porRol) as Rol[]).filter((r) => mios.includes(r));
 
   return (
     <>
@@ -64,29 +70,16 @@ export function BotonAyuda({ titulo }: { titulo: string }) {
       >
         <Stack gap="md">
           <Text>{ayuda.queEs}</Text>
-          <Accordion
-            multiple
-            variant="separated"
-            defaultValue={roles.filter((r) => mios.includes(r))}
-          >
-            {roles.map((r) => (
-              <Accordion.Item key={r} value={r}>
-                <Accordion.Control>
-                  <Text fw={600}>
-                    {NOMBRE_ROL[r]}
-                    {mios.includes(r) ? ' · tu rol' : ''}
-                  </Text>
-                </Accordion.Control>
-                <Accordion.Panel>
-                  <List type="ordered" spacing="xs">
-                    {ayuda.porRol[r]!.map((paso, i) => (
-                      <List.Item key={i}>{paso}</List.Item>
-                    ))}
-                  </List>
-                </Accordion.Panel>
-              </Accordion.Item>
-            ))}
-          </Accordion>
+          {roles.map((r) => (
+            <Stack key={r} gap={6}>
+              {roles.length > 1 ? <Text fw={700}>{NOMBRE_ROL[r]}</Text> : null}
+              <List type="ordered" spacing="xs">
+                {ayuda.porRol[r]!.map((paso, i) => (
+                  <List.Item key={i}>{paso}</List.Item>
+                ))}
+              </List>
+            </Stack>
+          ))}
           {ayuda.aTener?.length ? (
             <Alert variant="light" color="gray" icon={<IconInfoCircle size={18} />}>
               <List spacing="xs">

@@ -11,6 +11,26 @@ concurrency:
 
 jobs:
   # ---------------------------------------------------------------------------
+  # Secretos: gitleaks sobre los commits del push o del PR.
+  #
+  # Es la red de seguridad del pre-commit de .githooks/: cubre al que no tiene
+  # el hook activado o lo salteó. Invariante 5 de CLAUDE.md (RN-66). Los falsos
+  # positivos revisados van en .gitleaksignore, con motivo y fecha.
+  # fetch-depth: 0 porque la acción necesita el historial para acotar el rango.
+  # ---------------------------------------------------------------------------
+  secretos:
+    name: Secretos (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ---------------------------------------------------------------------------
   # Base de datos: levanta Supabase local, aplica migraciones y corre pgTAP.
   #
   # Las pruebas pgTAP son la evidencia de calificación operacional del sistema

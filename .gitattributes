@@ -1,0 +1,2 @@
+# Bibliotecas copiadas tal cual: idénticas byte a byte (su SHA-256 está en el README).
+supabase/functions/_shared/vendor/*.mjs -text
