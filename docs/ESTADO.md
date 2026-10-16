@@ -2092,6 +2092,25 @@ Dos detalles que salieron al correr la suite:
 trigger de la tabla, no solo en la RPC. Toda columna `*_por` nueva se suma al
 trigger `trg_sellar_autores` de su tabla.
 
+### Segunda tanda: `20261016130000_seguridad_contadores_y_anulaciones_pt.sql`
+
+- **RN-51 por la puerta de la anulación.** Un movimiento de PT con
+  `anula_a_movimiento_id` salía del trigger sin control: Ventas registraba
+  como venta un lote retenido «anulando» su entrada. Ahora la anulación de PT
+  sigue las reglas de la de insumos (original existente, misma posición,
+  opuesto exacto, no se anula una anulación) y no puede ser venta ni
+  producción. Prueba: `probar_anulaciones_pt.mjs`.
+- **Contadores de OP y de análisis** (`contadores_orden`,
+  `contadores_analisis`): tenían políticas FOR ALL. Ahora solo lectura; el
+  incremento lo hacen `gmp.siguiente_numero_orden` y
+  `gmp.siguiente_numero_analisis`. Prueba: `probar_contadores.mjs`.
+- **Revisado y bien:** RN-51 en `movimientos_stock` y en el reparto por lote
+  de `movimientos_pt`; cobros, pagos, comprobantes, bloqueos, fórmulas y
+  reservas tienen sus guardas en trigger.
+- **Decisión abierta (§3.4 del alcance):** nada impide que quien realizó una
+  etapa del batch record la controle. El alcance recomienda separación
+  configurable con modo «advertencia registrada»; no está implementada.
+
 ### Despliegue (en este orden, todo junto)
 
 1. Generar la clave: `openssl rand -hex 32`.
