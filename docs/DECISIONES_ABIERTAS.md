@@ -651,6 +651,43 @@ Siguen sin commitear, a decisión del usuario: `react-doctor`, `shadcn`, el
 script `doctor` y la clave `intent` de `package.json`; `AGENTS.md`;
 `.claude/skills/`; `.impeccable/review/`; `react-doctor.yml`.
 
+### D-ventas-pedidos-13 · «Aprobado» se guarda como CONFIRMADO — a confirmar
+El plan aprobado hablaba de un estado nuevo APROBADO. En la base, el pedido de
+venta aprobado queda en el **CONFIRMADO** de siempre, porque es el estado que
+leen Calle 5, el armado, el despacho, la facturación y los S-xxxx (14
+migraciones y unas 15 partes del front). Lo nuevo es cómo se llega: solo desde
+FECHA_PROPUESTA y con foto, y eso lo controla la base (20261015130100). La
+pantalla lo muestra como «Aprobado» en los pedidos de venta. Renombrarlo
+obligaría a reescribir todo el circuito posterior sin cambiar ninguna regla.
+
+### D-ventas-pedidos-14 · Ventas confirmadas antes del circuito nuevo — abierta
+Los pedidos de venta que ya estaban CONFIRMADOS o CUMPLIDOS antes de
+20261015130100 no tienen foto y no aparecen en `comercial.v_ventas_pedidas`.
+**Pregunta.** ¿Se les toma una foto retroactiva (con qué fecha de aprobación:
+la de envío que registra la auditoría) o la estadística de importe pedido
+arranca desde la puesta en servicio?
+
+### D-ventas-pedidos-16 · Giorgio en espera de la dirección — abierta
+Suspendido hasta que la dirección decida si se paga la API. Mientras tanto: no
+se trabaja en la rama `giorgio` ni en su worktree (queda commiteada y sin
+integrar); no se crea ninguna clave de API, ningún secreto
+`ANTHROPIC_API_KEY`, ninguna Edge Function de Giorgio ni ninguna tabla de su
+registro, en ninguna base; nada de Giorgio entra en las ramas en curso.
+**Diseño acordado para cuando se retome:**
+1. Primero una capa **sin IA**: ayuda por pantalla, tarjetas de «de dónde sale
+   este número» armadas por el sistema, buscador con «Llevame a…» y preguntas
+   frecuentes por rol.
+2. Una capa **con IA, apagada**, que se activa solo si el registro de uso
+   muestra que hace falta, con tope mensual configurable.
+Las decisiones D-57 a D-60 de la rama `giorgio` se renumeran con la
+convención por rama (CLAUDE.md §6, Git) cuando se retome.
+**Decide.** Dirección.
+
+### D-ventas-pedidos-15 · Quién propone la fecha — adoptada
+Solo Gerencia de Producción (Nazarena). Gerencia no, porque la política de
+UPDATE de `comercial.pedidos` no la incluye y el pedido no pasaría a
+FECHA_PROPUESTA.
+
 ## Abiertas — 2026-10-14
 
 ### D-55 · Especificaciones cargadas en borrador: qué revisar antes de aprobar
