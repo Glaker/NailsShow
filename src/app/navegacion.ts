@@ -8,7 +8,6 @@ import {
   IconClipboardList,
   IconShoppingCart,
   IconShoppingBag,
-  IconBuildingStore,
   IconListCheck,
   IconFileInvoice,
   IconUsersGroup,
@@ -118,12 +117,19 @@ export const NAVEGACION: ItemNavegacion[] = [
     roles: [...PRODUCCION, 'DIRECCION_TECNICA', 'CONTROL_CALIDAD'],
   },
   {
-    // Recepciones, stock de seguridad, stock en fábrica y conteo son pestañas.
+    // Recepciones, stock de seguridad, en fábrica, Calle 5 y conteo son
+    // pestañas. Ventas entra sólo a la de Calle 5.
     ruta: '/stock',
     etiqueta: 'Stock y recepciones',
     etiquetaCorta: 'Stock',
     icono: IconScale,
-    roles: [...PRODUCCION, 'ADMINISTRACION', 'DIRECCION_TECNICA', 'CONTROL_CALIDAD'],
+    roles: [
+      ...PRODUCCION,
+      'ADMINISTRACION',
+      'DIRECCION_TECNICA',
+      'CONTROL_CALIDAD',
+      'VENTAS',
+    ],
     principal: true,
   },
   {
@@ -148,13 +154,6 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiquetaCorta: 'Especif.',
     icono: IconFileCertificate,
     roles: ['GERENCIA_PRODUCCION', 'DIRECCION_TECNICA', 'CONTROL_CALIDAD', 'GERENCIA'],
-  },
-  {
-    ruta: '/punto-venta',
-    etiqueta: 'Calle 5',
-    etiquetaCorta: 'Calle 5',
-    icono: IconBuildingStore,
-    roles: ['GERENCIA_PRODUCCION', 'GERENCIA', 'ADMINISTRACION', 'VENTAS'],
   },
   {
     ruta: '/tercerizados',
@@ -334,6 +333,13 @@ export const PESTANIAS: { ruta: string; etiqueta: string; de: string; roles?: Ro
       etiqueta: 'Stock › En fábrica',
       de: '/stock',
       roles: [...PRODUCCION, 'ADMINISTRACION'],
+    },
+    {
+      // El local: antes era la sección «Calle 5» (/punto-venta).
+      ruta: '/stock?vista=calle5',
+      etiqueta: 'Stock › Calle 5',
+      de: '/stock',
+      roles: ['GERENCIA_PRODUCCION', 'GERENCIA', 'ADMINISTRACION', 'VENTAS'],
     },
     {
       ruta: '/stock?vista=conteo',
