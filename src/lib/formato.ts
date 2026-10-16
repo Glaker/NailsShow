@@ -11,7 +11,12 @@ const ZONA = 'America/Argentina/Buenos_Aires';
 
 export function fecha(valor: string | Date | null | undefined): string {
   if (!valor) return '—';
-  const d = typeof valor === 'string' ? new Date(valor) : valor;
+  // Una columna `date` llega como 'YYYY-MM-DD', que JavaScript lee como
+  // medianoche UTC: en Buenos Aires es el día anterior. Se la ancla al mediodía.
+  const d =
+    typeof valor === 'string'
+      ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(valor) ? `${valor}T12:00:00` : valor)
+      : valor;
   if (Number.isNaN(d.getTime())) return '—';
   return new Intl.DateTimeFormat(LOCALE, {
     day: '2-digit',

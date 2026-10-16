@@ -871,6 +871,60 @@ export function useCargarSerie() {
   });
 }
 
+export interface ResultadoSeriesOficiales {
+  insertados: number;
+  actualizados: number;
+  dolar: { mes: string; valor: number; es_provisorio: boolean } | null;
+  ipc: { mes: string; valor: number } | null;
+  /** Una fuente que no respondió: la otra se cargó igual. */
+  errores: string[];
+}
+
+/**
+ * Dólar A3500 (BCRA) e IPC (INDEC) desde las fuentes oficiales, por la Edge
+ * Function `series-oficiales`, a nombre de quien la llama (sólo Finanzas
+ * escribe). `silencioso`: la corrida automática al abrir Costos no avisa si no
+ * hubo nada nuevo.
+ */
+export function useTraerSeriesOficiales() {
+  const qc = useQueryClient();
+  return useMutation<ResultadoSeriesOficiales, Error, { silencioso?: boolean }>({
+    mutationFn: async () => {
+      // `invoke` tipa el error como any: se lo toma como unknown.
+      const r = await supabase.functions.invoke<ResultadoSeriesOficiales>(
+        'series-oficiales',
+        { method: 'POST' },
+      );
+      const data = r.data;
+      const error: unknown = r.error;
+      if (error) {
+        const cuerpo = (await (error as { context?: Response }).context
+          ?.json()
+          .catch(() => null)) as { error?: string } | null;
+        throw new Error(cuerpo?.error ?? 'No se pudo consultar al BCRA y al INDEC.');
+      }
+      if (!data) throw new Error('La función no devolvió resultado.');
+      return data;
+    },
+    onSuccess: (r, { silencioso }) => {
+      if (r.insertados + r.actualizados > 0) invalidarCostos(qc);
+      for (const e of r.errores) avisarError(new Error(e));
+      if (silencioso && r.insertados + r.actualizados === 0) return;
+      const dolar = r.dolar
+        ? ` Dólar A3500: $ ${r.dolar.valor.toLocaleString('es-AR', { maximumFractionDigits: 2 })}.`
+        : '';
+      avisarExito(
+        r.insertados + r.actualizados > 0
+          ? `Series al día: ${r.insertados} meses nuevos, ${r.actualizados} actualizados.${dolar}`
+          : `Las series ya estaban al día.${dolar}`,
+      );
+    },
+    onError: (e, { silencioso }) => {
+      if (!silencioso) avisarError(e);
+    },
+  });
+}
+
 export function useMarcarAvisoVisto() {
   const qc = useQueryClient();
   return useMutation({
