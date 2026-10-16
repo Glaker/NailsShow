@@ -705,7 +705,14 @@ function Contador({
  * pedidos, el Gantt de las próximas dos semanas y un calendario de verdad.
  * Solo se mira: para mover algo se va a Planificación.
  */
-export function InicioPedidos({ descripcion }: { descripcion?: string }) {
+export function InicioPedidos({
+  descripcion,
+  soloEntregas = false,
+}: {
+  descripcion?: string;
+  /** Ventas (bloque 2.3): sin Gantt, y el calendario solo con las entregas. */
+  soloEntregas?: boolean;
+}) {
   const { claims } = useSesion();
   const pedidos = usePedidos();
   const [ahora] = useState(() => new Date());
@@ -812,25 +819,27 @@ export function InicioPedidos({ descripcion }: { descripcion?: string }) {
         )}
       </Paper>
 
-      <Paper
-        withBorder
-        p="lg"
-        radius="lg"
-        className="entrada"
-        style={{ borderColor: 'var(--superficie-borde)' }}
-      >
-        <Group justify="space-between" mb="sm" wrap="wrap">
-          <Title order={3}>Próximas dos semanas</Title>
-          <Text size="xs" c="dimmed">
-            Para mover o estirar algo, andá a{' '}
-            <Anchor component={Link} to="/planificacion" size="xs">
-              Planificación
-            </Anchor>
-            .
-          </Text>
-        </Group>
-        <Gantt pedidos={lista} desde={lunesDe(hoy)} dias={14} editable={false} />
-      </Paper>
+      {!soloEntregas && (
+        <Paper
+          withBorder
+          p="lg"
+          radius="lg"
+          className="entrada"
+          style={{ borderColor: 'var(--superficie-borde)' }}
+        >
+          <Group justify="space-between" mb="sm" wrap="wrap">
+            <Title order={3}>Próximas dos semanas</Title>
+            <Text size="xs" c="dimmed">
+              Para mover o estirar algo, andá a{' '}
+              <Anchor component={Link} to="/planificacion" size="xs">
+                Planificación
+              </Anchor>
+              .
+            </Text>
+          </Group>
+          <Gantt pedidos={lista} desde={lunesDe(hoy)} dias={14} editable={false} />
+        </Paper>
+      )}
 
       <Paper
         withBorder
@@ -839,7 +848,9 @@ export function InicioPedidos({ descripcion }: { descripcion?: string }) {
         className="entrada"
         style={{ borderColor: 'var(--superficie-borde)' }}
       >
-        <MesNavegable pedidos={lista} />
+        <MesNavegable
+          pedidos={soloEntregas ? lista.map((p) => ({ ...p, plan_inicio: null })) : lista}
+        />
       </Paper>
     </Stack>
   );
