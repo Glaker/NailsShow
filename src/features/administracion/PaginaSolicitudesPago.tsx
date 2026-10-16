@@ -13,23 +13,27 @@ import {
   Table,
   Text,
   TextInput,
+  Textarea,
 } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
-import { IconPlus, IconReceipt } from '@tabler/icons-react';
+import { IconMessage, IconPlus, IconReceipt } from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { Vacio } from '@/components/Vacio';
 import { useSesion, useTieneRol } from '@/features/auth/sesion';
 import { useProveedores } from '@/lib/consultas';
-import { fecha, fechaISO } from '@/lib/formato';
+import { fecha, fechaHora, fechaISO } from '@/lib/formato';
 import { useNomina } from '@/lib/consultasComercial';
 import {
   MEDIOS_PAGO,
   ROLES_ADMINISTRACION,
   pesos,
+  useComentarSolicitud,
+  useComentariosSolicitudes,
   useCrearSolicitudPago,
   usePagarSolicitudConEgreso,
   useResolverSolicitud,
   useSolicitudesPago,
+  type ComentarioSolicitud,
   type EstadoSolicitud,
   type MedioPago,
   type SolicitudPago,
@@ -48,6 +52,8 @@ const COLOR: Record<EstadoSolicitud, string> = {
  * Solicitudes de pago de todas las áreas (§2.2 del documento de
  * Administración): quién pide, qué, a quién, cuánto, cuándo vence y en qué
  * estado está. Cualquiera pide; Administración aprueba, rechaza y paga.
+ * Gerencia de Producción las ve todas. Quien ve una solicitud le puede dejar
+ * comentarios (20261015120000): Administración pregunta, el que pidió responde.
  */
 export function PaginaSolicitudesPago() {
   const solicitudes = useSolicitudesPago();
@@ -61,6 +67,11 @@ export function PaginaSolicitudesPago() {
     a: 'RECHAZADA' | 'ANULADA';
   } | null>(null);
   const [pagando, setPagando] = useState<SolicitudPago | null>(null);
+  const [comentando, setComentando] = useState<SolicitudPago | null>(null);
+  const comentarios = useComentariosSolicitudes();
+  const porSolicitud = new Map<string, ComentarioSolicitud[]>();
+  for (const c of comentarios.data ?? [])
+    porSolicitud.set(c.solicitud_id, [...(porSolicitud.get(c.solicitud_id) ?? []), c]);
   const resolver = useResolverSolicitud();
   const proveedores = useProveedores();
   const todas = solicitudes.data ?? [];
@@ -138,6 +149,13 @@ export function PaginaSolicitudesPago() {
                             {s.area.toLowerCase().replace(/_/g, ' ')}
                             {s.motivo ? ` · ${s.motivo}` : ''}
                           </Text>
+                          {porSolicitud.get(s.id)?.length ? (
+                            <Text size="xs" c="azul" mt={2} maw={280} lineClamp={2}>
+                              «{porSolicitud.get(s.id)!.at(-1)!.texto}» ·{' '}
+                              {nomina.data?.get(porSolicitud.get(s.id)!.at(-1)!.autor) ??
+                                ''}
+                            </Text>
+                          ) : null}
                         </Table.Td>
                         <Table.Td>{s.destinatario}</Table.Td>
                         <Table.Td>
@@ -157,6 +175,15 @@ export function PaginaSolicitudesPago() {
                         </Table.Td>
                         <Table.Td>
                           <Group gap={6} wrap="nowrap">
+                            <Button
+                              size="compact-sm"
+                              variant="light"
+                              color="gray"
+                              leftSection={<IconMessage size={14} />}
+                              onClick={() => setComentando(s)}
+                            >
+                              Comentarios ({porSolicitud.get(s.id)?.length ?? 0})
+                            </Button>
                             {esAdmin && s.estado === 'PENDIENTE' ? (
                               <>
                                 <Button
@@ -217,6 +244,12 @@ export function PaginaSolicitudesPago() {
       </Stack>
 
       <ModalNuevaSolicitud abierto={nueva} onCerrar={() => setNueva(false)} />
+      <ModalComentarios
+        solicitud={comentando}
+        comentarios={comentando ? (porSolicitud.get(comentando.id) ?? []) : []}
+        nombre={(id) => nomina.data?.get(id) ?? '—'}
+        onCerrar={() => setComentando(null)}
+      />
       <ModalMotivo
         abierto={resolviendo !== null}
         titulo={
@@ -356,6 +389,97 @@ function ModalNuevaSolicitud({
           </Button>
         </Group>
       </Stack>
+    </Modal>
+  );
+}
+
+/** La conversación de una solicitud: lo dicho, quién y cuándo, y un campo para sumar. */
+function ModalComentarios({
+  solicitud,
+  comentarios,
+  nombre,
+  onCerrar,
+}: {
+  solicitud: SolicitudPago | null;
+  comentarios: ComentarioSolicitud[];
+  nombre: (id: string) => string;
+  onCerrar: () => void;
+}) {
+  const comentar = useComentarSolicitud();
+  const [texto, setTexto] = useState('');
+  const { claims } = useSesion();
+  // Espejo de la política de la base (20261015120100): el Administrador del
+  // sistema ve, pero no comenta.
+  const gestiona = useTieneRol('ADMINISTRACION', 'GERENCIA', 'GERENCIA_PRODUCCION');
+  const puedeComentar = gestiona || solicitud?.solicitante === claims?.usuario_id;
+  return (
+    <Modal
+      opened={solicitud !== null}
+      onClose={onCerrar}
+      title="Comentarios"
+      centered
+      size="lg"
+    >
+      {solicitud ? (
+        <Stack gap="md">
+          <Text size="sm">
+            {solicitud.concepto} · {solicitud.destinatario} ·{' '}
+            <b>{pesos(solicitud.importe)}</b>
+          </Text>
+          {comentarios.length === 0 ? (
+            <Text size="sm" c="dimmed">
+              Todavía no hay comentarios.
+            </Text>
+          ) : (
+            <Stack gap="xs">
+              {comentarios.map((c) => (
+                <Paper
+                  key={c.id}
+                  withBorder
+                  p="sm"
+                  style={{ borderColor: 'var(--superficie-borde)' }}
+                >
+                  <Text size="xs" c="dimmed">
+                    {nombre(c.autor)} · {fechaHora(c.creado_en)}
+                  </Text>
+                  <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
+                    {c.texto}
+                  </Text>
+                </Paper>
+              ))}
+            </Stack>
+          )}
+          {puedeComentar ? (
+            <>
+              <Textarea
+                label="Nuevo comentario"
+                autosize
+                minRows={2}
+                maxLength={2000}
+                value={texto}
+                onChange={(e) => setTexto(e.currentTarget.value)}
+              />
+              <Text size="xs" c="dimmed">
+                Un comentario no se edita ni se borra: queda con tu nombre y la hora.
+              </Text>
+              <Group justify="flex-end">
+                <Button
+                  loading={comentar.isPending}
+                  disabled={!texto.trim()}
+                  onClick={() =>
+                    comentar.mutate(
+                      { solicitudId: solicitud.id, texto: texto.trim() },
+                      { onSuccess: () => setTexto('') },
+                    )
+                  }
+                >
+                  Comentar
+                </Button>
+              </Group>
+            </>
+          ) : null}
+        </Stack>
+      ) : null}
     </Modal>
   );
 }

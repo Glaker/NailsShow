@@ -545,6 +545,21 @@ Certificados: `AFIP_CERT_<CUIT>`/`AFIP_KEY_<CUIT>` por emisor, o
 IVA y cuentas corrientes por emisor.
 **Decide.** Gerencia, con el estudio contable.
 
+## Rama sesion-15-oct (número definitivo al integrar en main)
+
+### D-sesion-15-oct-1 · Comentarios en solicitudes de pago — adoptada 2026-10-15
+Pedido del usuario: Gerencia de Producción ve todas las solicitudes de pago,
+sin aprobarlas ni pagarlas, y quien ve una solicitud puede comentarla. Los
+comentarios son append-only, a nombre propio y con la hora de la base
+(20261015120000, §2.2 del documento de Administración).
+
+### D-sesion-15-oct-2 · El Administrador del sistema no comenta — provisoria
+Ve todas las solicitudes (lectura completa, §3.5), y con la regla «comenta
+quien ve» habría pasado a escribir. Se lo excluye de comentar
+(20261015120100) por ser su acceso de lectura; sí comenta una solicitud que
+cargó él mismo, como cualquier solicitante. **A confirmar** por el
+usuario: si debe poder comentar, se revierte con una migración nueva.
+
 ## Abiertas — 2026-10-14
 
 ### D-55 · Especificaciones cargadas en borrador: qué revisar antes de aprobar
