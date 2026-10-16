@@ -111,7 +111,7 @@ export function PantallaIngreso() {
         <Stack align="center" gap={6}>
           <Marca size={96} />
           <Title order={1} ta="center" mt={10}>
-            Trazabilidad
+            Wandel
           </Title>
           <Text c="dimmed" ta="center">
             Nail Show SRL
