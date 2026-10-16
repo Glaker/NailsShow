@@ -165,6 +165,11 @@ Eso quita la red de seguridad de `db reset`, así que estas reglas la reemplazan
 ### Git
 
 - Una rama por fase, un PR por entregable. El mensaje de commit cita las reglas tocadas.
+- Numeración de decisiones: en cada rama o worktree, una decisión nueva en
+  `docs/DECISIONES_ABIERTAS.md` lleva un número provisorio con el nombre de la
+  rama (`D-ventas-pedidos-1`, `D-giorgio-2`). El número definitivo `D-NN` se
+  asigna al integrar en `main`, actualizando también las citas en migraciones
+  y código. Así dos ramas en paralelo no reparten el mismo número.
 
 ## 7. Qué no hacer
 
