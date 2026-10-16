@@ -70,7 +70,7 @@ describe('reparto por rol del 2026-10-01', () => {
     const r = rutas('ADMINISTRACION');
     for (const fuera of ['/formulas', '/lotes', '/planificacion', '/tercerizados'])
       expect(r).not.toContain(fuera);
-    expect(r).toContain('/punto-venta');
+    expect(r).toContain('/stock');
   });
   it('Ventas tiene su sección y no la lista de pedidos de producción', () => {
     const r = rutas('VENTAS');

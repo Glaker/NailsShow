@@ -2,6 +2,7 @@ import { Tabs } from '@mantine/core';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import {
   IconBox,
+  IconBuildingStore,
   IconClipboardCheck,
   IconScale,
   IconShieldCheck,
@@ -9,12 +10,22 @@ import {
 } from '@tabler/icons-react';
 import { usePuedeVerPestania } from '@/app/navegacion';
 import { PaginaRecepciones } from '@/features/recepcion/PaginaRecepciones';
-import { PaginaStockFabrica } from '@/features/comercial/PaginaPuntoVenta';
+import {
+  PaginaPuntoVenta,
+  PaginaStockFabrica,
+} from '@/features/comercial/PaginaPuntoVenta';
 import { PaginaStock } from './PaginaStock';
 import { PaginaStockSeguridad } from './PaginaStockSeguridad';
 import { PaginaConteo } from './PaginaConteo';
 
-const VISTAS = ['insumos', 'recepciones', 'seguridad', 'fabrica', 'conteo'] as const;
+const VISTAS = [
+  'insumos',
+  'recepciones',
+  'seguridad',
+  'fabrica',
+  'calle5',
+  'conteo',
+] as const;
 type VistaStock = (typeof VISTAS)[number];
 
 /** Las rutas viejas siguen andando: llevan a su pestaña (`/stock?vista=…`). */
@@ -25,7 +36,7 @@ export function RedirigirAStock({ vista }: { vista: VistaStock }) {
 /**
  * Stock en una sola página (ítems 9 y 17 de la cola): lo que hay de insumos, lo
  * que entra por recepción, lo que falta para el stock de seguridad y el
- * producto terminado en fábrica. Cada pestaña es la pantalla de siempre, con
+ * producto terminado en fábrica y en Calle 5. Cada pestaña es la pantalla de siempre, con
  * sus acciones; la pestaña va en la URL para que un enlace lleve a ella. Qué
  * pestañas ve cada rol se configura en «Quién ve qué».
  */
@@ -36,6 +47,7 @@ export function PaginaStockUnificada() {
     recepciones: usePuedeVerPestania('/stock?vista=recepciones'),
     seguridad: usePuedeVerPestania('/stock?vista=seguridad'),
     fabrica: usePuedeVerPestania('/stock?vista=fabrica'),
+    calle5: usePuedeVerPestania('/stock?vista=calle5'),
     conteo: usePuedeVerPestania('/stock?vista=conteo'),
   };
   const visibles = VISTAS.filter((v) => puede[v]);
@@ -44,6 +56,8 @@ export function PaginaStockUnificada() {
     pedida && visibles.includes(pedida) ? pedida : visibles[0];
 
   if (!vista) return null;
+  // La pestaña siempre en la URL: la ayuda de Calle 5 depende de ella.
+  if (pedida !== vista) return <RedirigirAStock vista={vista} />;
 
   return (
     <Tabs
@@ -73,6 +87,11 @@ export function PaginaStockUnificada() {
             En fábrica
           </Tabs.Tab>
         ) : null}
+        {puede.calle5 ? (
+          <Tabs.Tab value="calle5" leftSection={<IconBuildingStore size={18} />}>
+            Calle 5
+          </Tabs.Tab>
+        ) : null}
         {puede.conteo ? (
           <Tabs.Tab value="conteo" leftSection={<IconClipboardCheck size={18} />}>
             Conteo
@@ -90,6 +109,7 @@ export function PaginaStockUnificada() {
       <Tabs.Panel value="fabrica">
         {puede.fabrica ? <PaginaStockFabrica /> : null}
       </Tabs.Panel>
+      <Tabs.Panel value="calle5">{puede.calle5 ? <PaginaPuntoVenta /> : null}</Tabs.Panel>
       <Tabs.Panel value="conteo">{puede.conteo ? <PaginaConteo /> : null}</Tabs.Panel>
     </Tabs>
   );
