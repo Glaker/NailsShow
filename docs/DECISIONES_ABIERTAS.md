@@ -687,6 +687,17 @@ convención por rama (CLAUDE.md §6, Git) cuando se retome.
 Solo Gerencia de Producción (Nazarena). Gerencia no, porque la política de
 UPDATE de `comercial.pedidos` no la incluye y el pedido no pasaría a
 FECHA_PROPUESTA.
+**Abierta:** quién propone fechas cuando Nazarena está ausente.
+
+### D-ventas-pedidos-17 · Gantt por producción de producto, no por pedido — pendiente
+Pedido del usuario (2026-10-16), para después del bloque 3: en el Gantt,
+Nazarena no carga un pedido entero sino **producción de un producto**, y decide
+para qué pedido va o si es para tener en el depósito. Hoy el Gantt planifica
+pedidos (`comercial.pedidos.plan_inicio`, `plan_dias`) y lo que falta de una
+venta va a Producción como un S-xxxx entero (`para_pedido_id`). **A diseñar**:
+la unidad de planificación (producción de un producto con cantidad), cómo se
+asigna a uno o varios pedidos o a stock, y cómo convive con la fecha
+comprometida del bloque 3.
 
 ## Abiertas — 2026-10-14
 
