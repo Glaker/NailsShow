@@ -21,9 +21,12 @@
  */
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
-// SheetJS desde su distribución oficial: la de npm quedó en 0.18.5, con
-// vulnerabilidades conocidas. Sólo se le da la planilla del BCRA.
-import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
+// SheetJS 0.20.3, copiado de su distribución oficial
+// (https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs): la de npm quedó en
+// 0.18.5, con vulnerabilidades conocidas, y el empaquetador de Supabase no
+// importa desde cdn.sheetjs.com. Ver _shared/vendor/README.md. Sólo se le da
+// la planilla del BCRA.
+import * as XLSX from '../_shared/vendor/xlsx-0.20.3.mjs';
 import {
   URL_A3500,
   URL_IPC,
