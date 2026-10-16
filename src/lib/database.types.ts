@@ -6435,7 +6435,7 @@ export type Database = {
         }[]
       }
       fijar_numero_factura: {
-        Args: { p_factura_id: string; p_numero: number }
+        Args: { p_clave: string; p_factura_id: string; p_numero: number }
         Returns: undefined
       }
       flujo_caja_dia: { Args: { p_fecha: string }; Returns: Json }
@@ -6450,6 +6450,7 @@ export type Database = {
           saldo_efectivo: number
         }[]
       }
+      fn_clave_arca_valida: { Args: { p_clave: string }; Returns: boolean }
       fn_factura_para_arca: { Args: { p_factura_id: string }; Returns: Json }
       formula_para_costo: {
         Args: { p_producto_id: string }
@@ -6634,7 +6635,8 @@ export type Database = {
       }
       registrar_resultado_factura: {
         Args: {
-          p_error_envio?: string
+          p_clave: string
+          p_error_envio: string
           p_factura_id: string
           p_respuesta: Json
           p_solicitud: Json
