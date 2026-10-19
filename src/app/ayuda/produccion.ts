@@ -468,6 +468,8 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
         'Tocá «Compras pendientes» para ver lo que falta comprar (el número es la cantidad de compras abiertas).',
       ],
       GERENCIA_PRODUCCION: [
+        'Arriba de todo, «Ventas esperando fecha» lista los pedidos de venta que Ventas te mandó para que comprometas cuándo salen. Tocá «Proponer fecha», poné la «Fecha del pedido entero» y, si algún producto demora más que el resto, su fecha en «Demora hasta» (la del pedido entero no puede ser anterior). Podés dejarle una nota a Ventas. Al tocar «Proponer fecha», Ventas la ve y decide si aprueba.',
+        'Si Ventas cambia productos o cantidades de un pedido al que ya le pusiste fecha, el pedido vuelve solo a «Ventas esperando fecha» para que la reconfirmes.',
         'En «Para revisar» están los pedidos enviados y todavía sin tomar. Abrí cada uno para ver si alcanza el material: la cobertura de stock se calcula al abrirlo, no en la lista.',
         'En «En producción» están los que ya tomaste.',
         'En «Tablero» ves todo lo que está en curso de un vistazo, también los de clientes tercerizados.',

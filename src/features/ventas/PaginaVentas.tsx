@@ -19,18 +19,24 @@ import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { Vacio } from '@/components/Vacio';
 import { fecha, numero } from '@/lib/formato';
 import {
+  ESTADOS_SIN_APROBAR,
   TEXTO_PAGO,
   useActualizarVenta,
   useVentas,
   type FilaVenta,
 } from '@/lib/consultasVentas';
+import { BadgeEstadoPedido } from '@/features/comercial/estadoPedido';
 
 const pesos = (n: number) => `$${numero(n, 0)}`;
 type Filtro = 'abiertos' | 'entregados' | 'todos';
 
 /** Color de la fila, como en la planilla: verde entregado y pago, naranja con algo pendiente. */
+/** Todavía no se aprobó: no reservó nada ni mandó nada a Producción (20261019120100). */
+const sinAprobar = (v: FilaVenta) =>
+  (ESTADOS_SIN_APROBAR as readonly string[]).includes(v.estado);
+
 function tono(v: FilaVenta): string | undefined {
-  if (v.estado === 'BORRADOR') return undefined;
+  if (sinAprobar(v)) return undefined;
   if (v.entregado_en && v.estado_pago === 'PAGO')
     return 'var(--mantine-color-estadoAprobado-0)';
   if (v.a_producir > 0 || v.stock_ok === false || v.pendiente > 0)
@@ -39,10 +45,14 @@ function tono(v: FilaVenta): string | undefined {
 }
 
 function Faltantes({ v }: { v: FilaVenta }) {
-  if (v.estado === 'BORRADOR')
+  if (sinAprobar(v))
     return (
       <Text size="xs" c="dimmed">
-        sin enviar
+        {v.estado === 'ESPERANDO_FECHA'
+          ? 'esperando fecha de Producción'
+          : v.estado === 'FECHA_PROPUESTA'
+            ? 'fecha propuesta: para aprobar'
+            : 'sin enviar'}
       </Text>
     );
   const partes: string[] = [];
@@ -275,10 +285,8 @@ export function PaginaVentas() {
                         <Badge color="orange" variant="light">
                           falta
                         </Badge>
-                      ) : v.estado === 'BORRADOR' ? (
-                        <Badge color="gray" variant="light">
-                          borrador
-                        </Badge>
+                      ) : sinAprobar(v) ? (
+                        <BadgeEstadoPedido estado={v.estado} esVenta />
                       ) : (
                         <Badge color="azul" variant="light">
                           a revisar

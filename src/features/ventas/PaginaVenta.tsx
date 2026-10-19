@@ -27,15 +27,20 @@ import {
 import { DateInput } from '@mantine/dates';
 import {
   IconArrowLeft,
+  IconCalendarEvent,
+  IconCircleCheck,
   IconFileInvoice,
   IconPencil,
   IconSearch,
-  IconSend,
 } from '@tabler/icons-react';
 import { useClientes } from '@/lib/consultasFacturacion';
+import { useNomina } from '@/lib/consultasComercial';
+import { useTieneRol } from '@/features/auth/sesion';
+import { BadgeEstadoPedido } from '@/features/comercial/estadoPedido';
 import { TablaEscala } from './TablaEscala';
-import { fecha, fechaISO, numero } from '@/lib/formato';
+import { fecha, fechaHora, fechaISO, numero } from '@/lib/formato';
 import {
+  ESTADOS_SIN_APROBAR,
   FORMAS_PAGO,
   TEXTO_PAGO,
   calcularVenta,
@@ -45,6 +50,8 @@ import {
   useEscalaDescuento,
   useGuardarVenta,
   useListaMayorista,
+  usePedirFecha,
+  usePropuestaFecha,
   useVenta,
   type FilaLista,
 } from '@/lib/consultasVentas';
@@ -162,6 +169,11 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
   const venta = useVenta(id ?? undefined);
   const guardar = useGuardarVenta();
   const enviar = useEnviarVenta();
+  const pedirFecha = usePedirFecha();
+  // Aprobar es de Ventas (comercial.enviar_venta, 20261019120100).
+  const puedeAprobar = useTieneRol('VENTAS', 'ADMINISTRACION');
+  const propuesta = usePropuestaFecha(id ?? undefined);
+  const nomina = useNomina();
 
   const g = datos?.venta;
   const [cliente, setCliente] = useState(g?.cliente ?? '');
@@ -195,7 +207,13 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
   const [deC5, setDeC5] = useState<Record<string, number | string>>({});
 
   const v = venta.data?.venta;
-  const editable = nuevo || v?.estado === 'BORRADOR';
+  // Circuito de 20261019120100: el pedido se edita hasta que Ventas lo
+  // aprueba. Con la fecha ya propuesta, cambiar productos o cantidades lo
+  // devuelve a Producción para reconfirmar (lo hace la base).
+  const editable =
+    nuevo || (ESTADOS_SIN_APROBAR as readonly string[]).includes(v?.estado ?? '');
+  const etapa = nuevo ? 'BORRADOR' : v!.estado;
+  const prop = etapa === 'FECHA_PROPUESTA' ? propuesta.data : null;
   const filas = useMemo(() => lista.data ?? [], [lista.data]);
   const porId = useMemo(() => new Map(filas.map((f) => [f.producto_id, f])), [filas]);
 
@@ -290,11 +308,19 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
             <Title order={1}>
               {nuevo ? 'Pedido nuevo' : `${v!.numero} · ${v!.cliente}`}
             </Title>
-            <Text c="dimmed" size="sm">
-              {nuevo
-                ? 'Escribí la cantidad en cada producto: el total y el descuento se calculan solos.'
-                : `${fecha(v!.fecha)} · ${v!.gestionado ?? ''} · ${editable ? 'borrador' : v!.estado.toLowerCase()}`}
-            </Text>
+            {nuevo ? (
+              <Text c="dimmed" size="sm">
+                Escribí la cantidad en cada producto: el total y el descuento se calculan
+                solos.
+              </Text>
+            ) : (
+              <Group gap="xs">
+                <Text c="dimmed" size="sm">
+                  {fecha(v!.fecha)} · {v!.gestionado ?? ''}
+                </Text>
+                <BadgeEstadoPedido estado={v!.estado} esVenta />
+              </Group>
+            )}
           </div>
         </Group>
         <Group gap="sm">
@@ -312,23 +338,87 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
             <>
               <Button
                 variant="default"
-                loading={guardar.isPending}
+                loading={guardar.isPending && !pedirFecha.isPending}
                 disabled={!cliente.trim()}
                 onClick={() => void guardarBorrador()}
               >
-                Guardar borrador
+                {etapa === 'BORRADOR' ? 'Guardar borrador' : 'Guardar cambios'}
               </Button>
-              <Button
-                leftSection={<IconSend size={18} />}
-                disabled={!cliente.trim() || pedidos.length === 0}
-                onClick={() => setConfirmando(true)}
-              >
-                Enviar
-              </Button>
+              {etapa === 'BORRADOR' ? (
+                <Button
+                  leftSection={<IconCalendarEvent size={18} />}
+                  disabled={!cliente.trim() || pedidos.length === 0}
+                  loading={pedirFecha.isPending}
+                  onClick={() =>
+                    void (async () => {
+                      const pid = await guardarBorrador();
+                      await pedirFecha.mutateAsync(pid);
+                    })()
+                  }
+                >
+                  Pedir fecha a Producción
+                </Button>
+              ) : null}
+              {etapa === 'FECHA_PROPUESTA' && puedeAprobar ? (
+                <Button
+                  leftSection={<IconCircleCheck size={18} />}
+                  disabled={!cliente.trim() || pedidos.length === 0}
+                  onClick={() => setConfirmando(true)}
+                >
+                  Aprobar
+                </Button>
+              ) : null}
             </>
           ) : null}
         </Group>
       </Group>
+
+      {etapa === 'ESPERANDO_FECHA' ? (
+        <Alert
+          color="azul"
+          variant="light"
+          mb="md"
+          icon={<IconCalendarEvent size={20} />}
+        >
+          Esperando que Gerencia de Producción comprometa una fecha. Mientras tanto podés
+          seguir corrigiendo el pedido.
+        </Alert>
+      ) : null}
+      {etapa === 'FECHA_PROPUESTA' && prop ? (
+        <Alert
+          color="estadoAprobado"
+          variant="light"
+          mb="md"
+          icon={<IconCalendarEvent size={20} />}
+          title={`Producción se compromete a entregarlo el ${fecha(prop.fecha_pedido)}`}
+        >
+          <Stack gap={4}>
+            <Text size="sm">
+              Lo propuso{' '}
+              {nomina.data?.get(prop.propuesta_por) ?? 'Gerencia de Producción'} el{' '}
+              {fechaHora(prop.propuesta_en)}.{prop.nota ? ` «${prop.nota}»` : ''}
+            </Text>
+            {prop.demorados.length ? (
+              <Text size="sm">
+                Demoran más:{' '}
+                {prop.demorados
+                  .map((d) => {
+                    const r = venta.data?.renglones.find((x) => x.id === d.renglon_id);
+                    const nombre = r ? (porId.get(r.producto_id)?.producto ?? '') : '';
+                    return `${nombre} (${fecha(d.fecha)})`;
+                  })
+                  .join(', ')}
+                .
+              </Text>
+            ) : null}
+            <Text size="sm" c="dimmed">
+              Si la aprobás, el pedido impacta: se reserva lo de Calle 5 y lo que falta va
+              a Producción. Si cambiás productos o cantidades, vuelve a Producción para
+              reconfirmar la fecha; precio, descuento o forma de pago no.
+            </Text>
+          </Stack>
+        </Alert>
+      ) : null}
 
       {!nuevo && !editable ? (
         <Group gap="sm" mb="md">
@@ -392,7 +482,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
           </Grid.Col>
           <Grid.Col span={{ base: 6, md: 2 }}>
             <DateInput
-              label="Entrega"
+              label={editable ? 'Entrega que pide' : 'Entrega'}
               valueFormat="DD/MM/YYYY"
               clearable
               value={entrega}
@@ -713,12 +803,19 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
       <Modal
         opened={confirmando}
         onClose={() => setConfirmando(false)}
-        title="Enviar el pedido"
+        title="Aprobar el pedido"
         centered
         size="lg"
       >
         <Stack gap="sm">
           <Text size="sm">
+            {prop ? (
+              <>
+                Se entrega el <b>{fecha(prop.fecha_pedido)}</b>, la fecha que comprometió
+                Producción. Al aprobar queda registrado el importe pedido, que es el que
+                cuenta en las estadísticas.{' '}
+              </>
+            ) : null}
             Decidí cuánto se arma de Calle 5 para este cliente (se sugiere lo disponible):
             eso queda reservado para él. Lo que falta va a Producción. El sistema no
             reparte entre clientes.
@@ -774,7 +871,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
               Volver
             </Button>
             <Button
-              leftSection={<IconSend size={18} />}
+              leftSection={<IconCircleCheck size={18} />}
               loading={guardar.isPending || enviar.isPending}
               onClick={() =>
                 void (async () => {
@@ -793,7 +890,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                 })()
               }
             >
-              Enviar
+              Aprobar
             </Button>
           </Group>
         </Stack>

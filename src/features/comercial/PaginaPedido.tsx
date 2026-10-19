@@ -140,6 +140,26 @@ const PASOS: Record<EstadoPedido, Paso[]> = {
       confirmar: { titulo: 'Cancelar el pedido', texto: TEXTO_CANCELAR },
     },
   ],
+  // Pedido de venta sin aprobar (20261019120100): la fecha la propone GP desde
+  // «Pedidos» y la aprueba Ventas desde su ficha. Acá solo se cancela.
+  ESPERANDO_FECHA: [
+    {
+      destino: 'CANCELADO',
+      etiqueta: 'Cancelar',
+      icono: IconX,
+      tipo: 'peligro',
+      confirmar: { titulo: 'Cancelar el pedido', texto: TEXTO_CANCELAR },
+    },
+  ],
+  FECHA_PROPUESTA: [
+    {
+      destino: 'CANCELADO',
+      etiqueta: 'Cancelar',
+      icono: IconX,
+      tipo: 'peligro',
+      confirmar: { titulo: 'Cancelar el pedido', texto: TEXTO_CANCELAR },
+    },
+  ],
   // Terminar no es un cambio de estado: es «Terminado», que registra lo
   // consumido y baja el stock (TerminarPedido). La base no deja llegar a
   // CUMPLIDO de otra forma.
@@ -159,6 +179,10 @@ const PASOS: Record<EstadoPedido, Paso[]> = {
 const GUIA: Record<EstadoPedido, string> = {
   BORRADOR:
     'Borrador: Producción todavía no lo tiene como pendiente. Revisá los productos y envialo cuando esté completo.',
+  ESPERANDO_FECHA:
+    'Esperando fecha: Ventas lo cargó y espera que Gerencia de Producción comprometa cuándo sale. Todavía no reservó nada ni cuenta en las estadísticas.',
+  FECHA_PROPUESTA:
+    'Fecha propuesta: Gerencia de Producción comprometió una fecha y Ventas decide si aprueba. Al aprobar, el pedido impacta.',
   CONFIRMADO:
     'Enviado a producción: está en la bandeja de Gerencia de Producción para revisar si alcanza el material y anotar lo que haya que comprar.',
   EN_PRODUCCION:

@@ -29,6 +29,7 @@ import {
 import { BadgeEntrega, BadgeEstadoPedido } from './estadoPedido';
 import { FormularioPedido } from './FormularioPedido';
 import { FaltantesConsolidados } from './FaltantesConsolidados';
+import { VentasEsperandoFecha } from './VentasEsperandoFecha';
 import { TableroPedidos, BadgePara } from './TableroPedidos';
 import { useTerceros } from '@/lib/consultasTercerizados';
 
@@ -90,6 +91,8 @@ export function PaginaPedidos() {
   const navigate = useNavigate();
   const puedeCargar = useTieneRol(...ROLES_ESCRIBEN_PEDIDOS);
   const esProduccion = useTieneRol('GERENCIA_PRODUCCION', 'DIRECCION_TECNICA');
+  // La fecha de un pedido de venta la propone solo GP (D-ventas-pedidos-15).
+  const proponeFechas = useTieneRol('GERENCIA_PRODUCCION');
   const [params, setParams] = useSearchParams();
   const [abierto, setAbierto] = useState(false);
   const angosta = useMediaQuery('(max-width: 36em)');
@@ -150,6 +153,12 @@ export function PaginaPedidos() {
           </Group>
         }
       />
+
+      {proponeFechas && pedidos.data ? (
+        <Stack mb="md">
+          <VentasEsperandoFecha pedidos={pedidos.data} />
+        </Stack>
+      ) : null}
 
       {pedidos.isLoading ? (
         <Skeleton h={220} />

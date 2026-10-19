@@ -13,6 +13,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { Database } from './database.types';
 import { comercial, core, gmp } from './supabase';
 import {
   avisarError,
@@ -25,8 +26,8 @@ import {
  * Tipos de fila (puente temporal)
  * ------------------------------------------------------------------------- */
 
-export type EstadoPedido =
-  'BORRADOR' | 'CONFIRMADO' | 'EN_PRODUCCION' | 'CUMPLIDO' | 'CANCELADO';
+/** Del enum de la base: un estado nuevo obliga a completar cada mapa por estado. */
+export type EstadoPedido = Database['comercial']['Enums']['estado_pedido_enum'];
 
 export interface PedidoRow {
   id: string;
@@ -628,6 +629,8 @@ export function useCambiarEstadoPedido() {
 
 const MENSAJE_ESTADO: Record<EstadoPedido, string> = {
   BORRADOR: 'El pedido volvió a borrador.',
+  ESPERANDO_FECHA: 'Pedido enviado a Producción para que comprometa una fecha.',
+  FECHA_PROPUESTA: 'Fecha propuesta.',
   CONFIRMADO: 'Pedido enviado a producción.',
   EN_PRODUCCION: 'Pedido en producción.',
   CUMPLIDO: 'Pedido terminado.',
