@@ -15,7 +15,26 @@ import {
   type MensajeApi,
   type RespuestaModelo,
   responder,
+  limpiarClaveApi,
 } from './giorgio';
+
+describe('clave de API', () => {
+  const buena = 'sk-ant-api03-AbC_d-123';
+  it('saca espacios, saltos de línea e invisibles pegados con la clave', () => {
+    expect(limpiarClaveApi(` \ufeff${buena}\u200b\r\n`)).toEqual({ clave: buena, problema: null });
+  });
+  it('describe un carácter inválido sin mostrar la clave', () => {
+    const r = limpiarClaveApi('sk-ant-PEGÁ-ACÁ-TU-CLAVE');
+    expect(r.problema).toContain('posición 11: U+00C1');
+    expect(r.problema).not.toContain('PEG');
+  });
+  it('avisa si falta o no tiene el prefijo de Anthropic', () => {
+    expect(limpiarClaveApi(undefined).problema).toContain('vacía');
+    expect(limpiarClaveApi('ANTHROPIC_API_KEY=sk-ant-x').problema).toContain(
+      'no empieza',
+    );
+  });
+});
 
 const ID = '3f2b8c1e-7a4d-4e2f-9b6a-1c2d3e4f5a6b';
 

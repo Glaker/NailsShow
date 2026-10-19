@@ -505,6 +505,40 @@ export function parametrosModelo(modelo: string): Record<string, unknown> {
   return { output_config: { effort: 'low' } };
 }
 
+/**
+ * La clave de API tal como va en el encabezado `x-api-key`. Al pegarla suelen
+ * colarse espacios, saltos de línea o caracteres invisibles (espacio de ancho
+ * cero, BOM): se sacan. Si queda algo que un encabezado HTTP no admite (una
+ * letra con tilde de un texto de ejemplo, por ejemplo), `problema` lo
+ * describe sin mostrar la clave: largo, prefijo y posición y código de cada
+ * carácter inválido. Va al registro para diagnosticar.
+ */
+export function limpiarClaveApi(cruda: string | undefined): {
+  clave: string;
+  problema: string | null;
+} {
+  const clave = (cruda ?? '').replace(/[\s\u200b-\u200d\u2060\ufeff]/g, '');
+  const invalidos = [...clave]
+    .map((c, i) => ({ c, i }))
+    .filter(({ c }) => !/^[\x21-\x7e]$/.test(c))
+    .map(
+      ({ c, i }) =>
+        `posición ${i + 1}: U+${c.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}`,
+    );
+  if (!clave) return { clave, problema: 'ANTHROPIC_API_KEY vacía' };
+  if (invalidos.length)
+    return {
+      clave,
+      problema: `ANTHROPIC_API_KEY con caracteres que no van en un encabezado (${clave.length} caracteres; ${invalidos.slice(0, 5).join(', ')})`,
+    };
+  if (!clave.startsWith('sk-ant-'))
+    return {
+      clave,
+      problema: `ANTHROPIC_API_KEY no empieza con «sk-ant-» (${clave.length} caracteres)`,
+    };
+  return { clave, problema: null };
+}
+
 // ---------------------------------------------------------------------------
 // Mensajes al usuario
 // ---------------------------------------------------------------------------

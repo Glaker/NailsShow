@@ -42,6 +42,7 @@ import {
   comoDatos,
   contextoPantalla,
   irA,
+  limpiarClaveApi,
   pantallasPermitidas,
   parametrosModelo,
   responder,
@@ -122,13 +123,32 @@ Deno.serve(async (req) => {
     vis.data as Excepcion[],
   );
 
-  // Sin espacios ni saltos de línea: una clave pegada con uno al final arma un
-  // encabezado inválido y el SDK lo informa como «Connection error».
-  const apiKey = Deno.env.get('ANTHROPIC_API_KEY')?.trim();
+  // Una clave con un carácter que no va en un encabezado hace que el SDK falle
+  // con «Connection error» sin llegar a la API: se limpia y, si sigue mal, no
+  // se llama y queda en el registro qué tiene (sin mostrar la clave).
+  const { clave: apiKey, problema: problemaClave } = limpiarClaveApi(
+    Deno.env.get('ANTHROPIC_API_KEY'),
+  );
   // Sin ella la base rechaza el registro (D-59): mejor no gastar en la respuesta.
   const claveRegistro = Deno.env.get('GIORGIO_CLAVE_REGISTRO');
-  if (!apiKey || !claveRegistro) {
-    console.error('Falta el secreto ANTHROPIC_API_KEY o GIORGIO_CLAVE_REGISTRO.');
+  if (problemaClave || !claveRegistro) {
+    console.error(problemaClave ?? 'Falta el secreto GIORGIO_CLAVE_REGISTRO.');
+    if (claveRegistro)
+      await db.rpc('giorgio_registrar', {
+        p_clave: claveRegistro,
+        p_ruta: ruta,
+        p_pregunta: historial.at(-1)!.texto,
+        p_respuesta: null,
+        p_modelo: Deno.env.get('GIORGIO_MODELO') || 'claude-haiku-5-5',
+        p_tokens_entrada: 0,
+        p_tokens_salida: 0,
+        p_tokens_cache_lectura: 0,
+        p_tokens_cache_escritura: 0,
+        p_herramientas: [],
+        p_iteraciones: 0,
+        p_latencia_ms: 0,
+        p_error: problemaClave,
+      });
     return json({ aviso: AVISOS.SIN_CONFIGURAR }, 503);
   }
   const experto = Deno.env.get('GIORGIO_MODELO_EXPERTO');
