@@ -11,16 +11,22 @@
  *   lista de pantallas y el registro salen de funciones que leen su JWT, y RLS
  *   aplica igual que en la app. Sin clave de servicio.
  * - La clave de Anthropic sale del secreto ANTHROPIC_API_KEY y nunca vuelve al
- *   navegador. El modelo, de GIORGIO_MODELO (por defecto claude-haiku-5-5),
- *   para cambiarlo sin desplegar.
+ *   navegador. Los modelos se configuran sin desplegar: GIORGIO_MODELO (por
+ *   defecto claude-haiku-5-5) responde primero; GIORGIO_MODELO_EXPERTO (por
+ *   defecto claude-sonnet-5-5; vacío o «no» lo apaga) atiende las preguntas
+ *   que el primero escala (D-61).
+ * - GIORGIO_CLAVE_REGISTRO es la clave que exige core.giorgio_registrar; la
+ *   base guarda solo su hash (D-59). Así un usuario no puede cargar consultas
+ *   inventadas llamando a la función de la base con su propio token.
  *
  * Qué decide quién:
  * - La base (core.giorgio_estado) decide si la persona puede preguntar:
- *   interruptor, tope global diario y límite diario por usuario (D-60).
+ *   interruptor, topes diario y mensual, límite diario por usuario (D-60).
  * - La función arma el prompt con las pantallas del usuario, corre el bucle de
- *   herramientas (máximo 4 llamadas) y registra la consulta con
- *   core.giorgio_registrar. La única herramienta, ir_a, valida la ruta contra
- *   la lista cerrada del usuario y ofrece un botón: no navega ni escribe nada.
+ *   herramientas (máximo 4 llamadas por modelo) y registra la consulta con
+ *   core.giorgio_registrar. ir_a valida la ruta contra la lista cerrada del
+ *   usuario y ofrece un botón: no navega ni escribe nada. consultar_experto
+ *   no se ejecuta: hace que la pregunta se repita con el experto.
  */
 
 import Anthropic from 'npm:@anthropic-ai/sdk@0.131.0';
@@ -28,16 +34,17 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import catalogoJson from './catalogo.json' with { type: 'json' };
 import {
   AVISOS,
+  HERRAMIENTA_EXPERTO,
   HERRAMIENTA_IR_A,
   MAX_TOKENS_SALIDA,
   armarMensajes,
   armarSistema,
   comoDatos,
   contextoPantalla,
-  ejecutarBucle,
   irA,
   pantallasPermitidas,
   parametrosModelo,
+  responder,
   sanearHistorial,
   sanearIds,
   type Catalogo,
@@ -116,13 +123,31 @@ Deno.serve(async (req) => {
   );
 
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
-  if (!apiKey) {
-    console.error('Falta el secreto ANTHROPIC_API_KEY.');
-    return json({ aviso: AVISOS.ERROR }, 503);
+  // Sin ella la base rechaza el registro (D-59): mejor no gastar en la respuesta.
+  const claveRegistro = Deno.env.get('GIORGIO_CLAVE_REGISTRO');
+  if (!apiKey || !claveRegistro) {
+    console.error('Falta el secreto ANTHROPIC_API_KEY o GIORGIO_CLAVE_REGISTRO.');
+    return json({ aviso: AVISOS.SIN_CONFIGURAR }, 503);
   }
-  const modelo = Deno.env.get('GIORGIO_MODELO') || 'claude-haiku-5-5';
+  const experto = Deno.env.get('GIORGIO_MODELO_EXPERTO');
+  const modelos = {
+    base: Deno.env.get('GIORGIO_MODELO') || 'claude-haiku-5-5',
+    experto:
+      experto === undefined
+        ? 'claude-sonnet-5-5'
+        : ['', 'no'].includes(experto)
+          ? null
+          : experto,
+  };
   const anthropic = new Anthropic({ apiKey, maxRetries: 1 });
-  const sistema = armarSistema(permitidas, catalogo.subrutas);
+  // Un prompt por modelo: solo el base sabe que puede escalar. Cada uno es
+  // fijo para un mismo conjunto de pantallas, así que cachea.
+  const sistemaBase = armarSistema(
+    permitidas,
+    catalogo.subrutas,
+    modelos.experto !== null,
+  );
+  const sistemaExperto = armarSistema(permitidas, catalogo.subrutas);
   const mensajes = armarMensajes(historial, contextoPantalla(ruta, ids));
 
   const { readable, writable } = new TransformStream<Uint8Array>();
@@ -133,23 +158,33 @@ Deno.serve(async (req) => {
       /* el navegador cortó («Detener»): no hay a quién escribirle */
     });
 
-  const responder = async () => {
+  const atender = async () => {
     const inicio = Date.now();
+    let modeloUsado = modelos.base;
     let resultado: ResultadoBucle | null = null;
     let error: string | null = null;
     try {
-      resultado = await ejecutarBucle(
+      resultado = await responder(
         mensajes,
-        async (conversacion, conHerramientas) => {
+        modelos,
+        async (modelo, conversacion, conHerramientas) => {
+          const esBase = modelo === modelos.base;
           const params = {
             model: modelo,
             max_tokens: MAX_TOKENS_SALIDA,
-            // Herramientas y sistema son fijos para un mismo conjunto de
-            // pantallas: la marca de caché cubre ambos (orden tools → system).
+            // Herramientas y sistema son fijos por modelo: la marca de caché
+            // cubre ambos (orden tools → system).
             system: [
-              { type: 'text', text: sistema, cache_control: { type: 'ephemeral' } },
+              {
+                type: 'text',
+                text: esBase ? sistemaBase : sistemaExperto,
+                cache_control: { type: 'ephemeral' },
+              },
             ],
-            tools: [HERRAMIENTA_IR_A],
+            tools:
+              esBase && modelos.experto
+                ? [HERRAMIENTA_IR_A, HERRAMIENTA_EXPERTO]
+                : [HERRAMIENTA_IR_A],
             tool_choice: { type: conHerramientas ? 'auto' : 'none' },
             messages: conversacion,
             ...parametrosModelo(modelo),
@@ -168,6 +203,10 @@ Deno.serve(async (req) => {
           if (r.boton) void emitir({ t: 'boton', ...r.boton });
           return r;
         },
+        () => {
+          modeloUsado = modelos.experto ?? modelos.base;
+          void emitir({ t: 'escalado' });
+        },
       );
       if (resultado.rechazo) await emitir({ t: 'aviso', v: AVISOS.RECHAZO });
     } catch (err) {
@@ -179,11 +218,13 @@ Deno.serve(async (req) => {
             : String(err);
       if (!req.signal.aborted) await emitir({ t: 'aviso', v: AVISOS.ERROR });
     } finally {
+      // Con escalado, todo el uso se registra al precio del experto.
       const reg = await db.rpc('giorgio_registrar', {
+        p_clave: claveRegistro,
         p_ruta: ruta,
         p_pregunta: historial.at(-1)!.texto,
         p_respuesta: resultado?.texto ?? null,
-        p_modelo: modelo,
+        p_modelo: modeloUsado,
         p_tokens_entrada: resultado?.uso.entrada ?? 0,
         p_tokens_salida: resultado?.uso.salida ?? 0,
         p_tokens_cache_lectura: resultado?.uso.cacheLectura ?? 0,
@@ -198,7 +239,7 @@ Deno.serve(async (req) => {
       await escritor.close().catch(() => {});
     }
   };
-  void responder();
+  void atender();
 
   return new Response(readable, {
     headers: {

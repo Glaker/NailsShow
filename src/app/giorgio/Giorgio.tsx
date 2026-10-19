@@ -23,6 +23,8 @@ interface Mensaje extends Turno {
   id: number;
   botones: { ruta: string; etiqueta: string }[];
   aviso?: string;
+  /** La respuesta la está dando el modelo experto (D-61). */
+  experto?: boolean;
 }
 
 /** El id de la página de detalle abierta, si hay: contexto para Giorgio. */
@@ -90,6 +92,8 @@ export function Giorgio() {
         if (e.t === 'texto') u.texto += e.v;
         else if (e.t === 'boton') u.botones = [...u.botones, e];
         else if (e.t === 'aviso') u.aviso = e.v;
+        else if (e.t === 'escalado')
+          Object.assign(u, { texto: '', botones: [], experto: true });
         return [...ms.slice(0, -1), u];
       });
     await preguntar(
@@ -279,7 +283,9 @@ export function Giorgio() {
                       <Group gap={8} c="dimmed">
                         <Loader size="xs" type="dots" />
                         <Text size="sm" c="dimmed">
-                          Giorgio está escribiendo…
+                          {m.experto
+                            ? 'Lo estoy pensando con más detalle…'
+                            : 'Giorgio está escribiendo…'}
                         </Text>
                       </Group>
                     ) : null}

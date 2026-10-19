@@ -628,7 +628,7 @@ fila se copia en `core.auditoria`, que es append-only.
 en `core`, con auditoría, **sin retención**: se guarda para siempre. Cada
 usuario ve lo suyo; el Administrador del sistema, todo.
 
-### D-59 · Quién escribe el registro de Giorgio — 2026-10-15, adoptada con límite conocido
+### D-59 · Quién escribe el registro de Giorgio — 2026-10-15, adoptada; límite cerrado 2026-10-19
 
 **Resolución.** Solo `core.giorgio_registrar()` (SECURITY DEFINER), que toma
 usuario y rol del JWT y estima el costo con los precios de
@@ -641,8 +641,18 @@ recortan a lo que puede gastar una consulta real, cada fila cuenta en su
 límite diario y queda a su nombre. **Para cerrarlo del todo:** un rol de base
 dedicado con JWT firmado por la función (CLAUDE.md §5), como el previsto para
 el CAE.
+**Actualización 2026-10-19.** Con los topes de D-60 actualizados, una fila
+inventada valía cerca de USD 1 y unas 20 apagaban Giorgio hasta fin de mes:
+el límite dejó de ser aceptable. Se cerró con una clave compartida:
+`core.giorgio_registrar` exige `p_clave`, cuyo SHA-256 debe coincidir con
+`core.giorgio_config.clave_registro_sha256`. La clave es el secreto
+`GIORGIO_CLAVE_REGISTRO` de la Edge Function; la base guarda solo el hash y
+ningún rol de la aplicación puede cambiarlo (se carga desde el editor SQL).
+Sin clave cargada, Giorgio responde «todavía no está configurado». Los
+recortes de tokens quedan como segunda barrera. El rol dedicado de §5 sigue
+siendo la alternativa si se arma para el CAE. Migración `20261019120000`.
 
-### D-60 · Límites de uso de Giorgio — 2026-10-15, adoptada
+### D-60 · Límites de uso de Giorgio — 2026-10-15, adoptada; actualizada 2026-10-19
 
 **Resolución** (conducción del proyecto, 2026-10-15):
 - Límite diario por usuario: 50 preguntas para OPERARIO, 150 para el resto
@@ -654,6 +664,34 @@ el CAE.
 - Interruptor general que apaga a Giorgio sin afectar la app.
 Los valores viven en `core.giorgio_config` y los cambia el Administrador del
 sistema.
+**Actualización 2026-10-19** (conducción del proyecto): el presupuesto de
+Giorgio es de USD 20 por mes, de los USD 40 mensuales de créditos de API.
+- Tope **mensual** de USD 20 (mes calendario, hora de Argentina): al llegar,
+  Giorgio se apaga hasta el mes siguiente.
+- El tope **diario** baja a USD 1, con el mismo corte al 80 % (USD 0,80 por
+  día): un día de mucho uso no se come el mes.
+- El costo de cada consulta es una estimación con los precios cargados; la
+  factura real es la de la consola de Anthropic.
+
+### D-61 · Haiku primero, Sonnet para las preguntas difíciles — 2026-10-19, adoptada
+
+**Pedido** (conducción del proyecto, 2026-10-19): que Giorgio use Claude
+Haiku 5.5 y pase a Claude Sonnet 5.5 en las preguntas más difíciles.
+**Resolución.** Haiku responde primero y tiene una herramienta
+`consultar_experto` que no se ejecuta: si la llama (sin escribir nada antes),
+la Edge Function repite la pregunta desde el principio con Sonnet y el panel
+descarta lo escrito. Se escala si la pregunta pide razonar en varios pasos (de
+dónde sale un número, datos de varias pantallas, comparar o interpretar) o si
+Haiku no está seguro; lo simple lo responde Haiku. Sonnet no puede volver a
+escalar. Se eligió así y no un clasificador previo para no sumar una llamada a
+cada pregunta.
+**Parámetros.** Haiku sin razonamiento y esfuerzo `low`; Sonnet con
+`between_tools` y esfuerzo `medium`. Modelos configurables sin desplegar:
+`GIORGIO_MODELO` y `GIORGIO_MODELO_EXPERTO` (vacío o «no» apaga el escalado).
+**Registro.** Una consulta escalada se registra una vez, con el modelo
+experto, y todo su uso al precio del experto (sobreestima un poco).
+**Revisar** con la evaluación de la fase 4: cuántas preguntas escala Haiku,
+si escala de más o de menos, y el costo por pregunta de cada camino.
 
 ## Abiertas — módulo de costos (2026-10-09)
 

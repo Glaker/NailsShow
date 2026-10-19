@@ -14,6 +14,7 @@ import {
   type Catalogo,
   type MensajeApi,
   type RespuestaModelo,
+  responder,
 } from './giorgio';
 
 const ID = '3f2b8c1e-7a4d-4e2f-9b6a-1c2d3e4f5a6b';
@@ -289,5 +290,95 @@ describe('bucle de herramientas con la API simulada', () => {
     await expect(
       ejecutarBucle(inicio, () => Promise.reject(new Error('529 overloaded')), ok),
     ).rejects.toThrow('529');
+  });
+});
+
+describe('escalado al modelo experto (D-61)', () => {
+  const MODELOS = { base: 'claude-haiku-5-5', experto: 'claude-sonnet-5-5' };
+  const escala: RespuestaModelo = {
+    content: [
+      {
+        type: 'tool_use',
+        id: 'e1',
+        name: 'consultar_experto',
+        input: { motivo: 'varios pasos' },
+      },
+    ],
+    stop_reason: 'tool_use',
+    usage: { input_tokens: 10, output_tokens: 5 },
+  };
+  const respuesta = (t: string): RespuestaModelo => ({
+    content: [{ type: 'text', text: t }],
+    stop_reason: 'end_turn',
+    usage: { input_tokens: 100, output_tokens: 50 },
+  });
+  const inicio: MensajeApi[] = [{ role: 'user', content: '¿de dónde sale el margen?' }];
+  const ok = () => ({ contenido: comoDatos({}), error: false });
+
+  it('si el base escala, el experto responde desde la pregunta original', async () => {
+    const llamadas: { modelo: string; mensajes: MensajeApi[] }[] = [];
+    let avisos = 0;
+    const r = await responder(
+      inicio,
+      MODELOS,
+      (modelo, mensajes) => {
+        llamadas.push({ modelo, mensajes: structuredClone(mensajes) });
+        return Promise.resolve(modelo === MODELOS.base ? escala : respuesta('Sale de…'));
+      },
+      ok,
+      () => avisos++,
+    );
+    expect(llamadas.map((l) => l.modelo)).toEqual([MODELOS.base, MODELOS.experto]);
+    expect(llamadas[1]!.mensajes).toEqual(inicio);
+    expect(avisos).toBe(1);
+    expect(r.modelo).toBe(MODELOS.experto);
+    expect(r.texto).toBe('Sale de…');
+    expect(r.uso.entrada).toBe(110);
+    expect(r.herramientas).toEqual(['consultar_experto']);
+    expect(r.iteraciones).toBe(2);
+  });
+
+  it('una pregunta simple la responde el base, sin llamar al experto', async () => {
+    const modelos: string[] = [];
+    const r = await responder(
+      inicio,
+      MODELOS,
+      (modelo) => {
+        modelos.push(modelo);
+        return Promise.resolve(respuesta('Está en Costos.'));
+      },
+      ok,
+      () => {},
+    );
+    expect(modelos).toEqual([MODELOS.base]);
+    expect(r.modelo).toBe(MODELOS.base);
+  });
+
+  it('sin experto configurado no escala', async () => {
+    const modelos: string[] = [];
+    const r = await responder(
+      inicio,
+      { base: MODELOS.base, experto: null },
+      (modelo) => {
+        modelos.push(modelo);
+        return Promise.resolve(escala);
+      },
+      ok,
+      () => {},
+    );
+    expect(modelos).toEqual([MODELOS.base]);
+    expect(r.modelo).toBe(MODELOS.base);
+  });
+
+  it('solo el prompt del base menciona consultar_experto', () => {
+    expect(armarSistema(de('VENTAS'), [], true)).toContain('consultar_experto');
+    expect(armarSistema(de('VENTAS'), [])).not.toContain('consultar_experto');
+  });
+
+  it('el experto razona con esfuerzo medium', () => {
+    expect(parametrosModelo('claude-sonnet-5-5')).toEqual({
+      thinking: { type: 'between_tools' },
+      output_config: { effort: 'medium' },
+    });
   });
 });

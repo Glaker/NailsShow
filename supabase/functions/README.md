@@ -10,11 +10,11 @@ automático de reclamos por RN-37, solicitud de CAE) se usan roles de base
 dedicados **sin BYPASSRLS**, con `GRANT EXECUTE` acotado a la función que
 necesitan.
 
-| Función | Qué hace | Secretos |
-| --- | --- | --- |
-| `emitir-factura` | factura y nota de crédito electrónica ARCA | `AFIP_SDK_ACCESS_TOKEN`, `AFIP_CERT*`, `AFIP_KEY*` |
-| `series-oficiales` | trae A3500 (BCRA) e IPC (INDEC) | — |
-| `giorgio` | asistente de ayuda (D-57), responde en streaming | `ANTHROPIC_API_KEY`; opcional `GIORGIO_MODELO` (por defecto `claude-haiku-5-5`) |
+| Función            | Qué hace                                         | Secretos                                                                                                                                                                              |
+| ------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `emitir-factura`   | factura y nota de crédito electrónica ARCA       | `AFIP_SDK_ACCESS_TOKEN`, `AFIP_CERT*`, `AFIP_KEY*`                                                                                                                                    |
+| `series-oficiales` | trae A3500 (BCRA) e IPC (INDEC)                  | —                                                                                                                                                                                     |
+| `giorgio`          | asistente de ayuda (D-57), responde en streaming | `ANTHROPIC_API_KEY`, `GIORGIO_CLAVE_REGISTRO` (D-59); opcionales `GIORGIO_MODELO` (por defecto `claude-haiku-5-5`) y `GIORGIO_MODELO_EXPERTO` (por defecto `claude-sonnet-5-5`, D-61) |
 
 La lógica pura de cada una vive en `_shared/` y se prueba con Vitest
 (`npm test`), sin Deno ni red.

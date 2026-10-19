@@ -179,14 +179,23 @@ Herramienta ir_a
 - Solo con rutas de la lista de abajo, o con páginas de detalle cuyo id conozcas por el contexto de pantalla.
 - Nunca digas que ya llevaste al usuario. Decí, por ejemplo, "Te dejo el botón para ir".`;
 
+const INSTRUCCIONES_EXPERTO = `
+
+Herramienta consultar_experto
+- Pasa la pregunta a un modelo más capaz, que responde en tu lugar.
+- Usala, sin escribir nada antes, si la pregunta pide razonar en varios pasos: de dónde sale un número, cómo se combinan datos de varias pantallas, comparar o interpretar resultados. También si no estás seguro de poder responderla bien.
+- Las preguntas simples respondelas vos: dónde está algo, para qué sirve una pantalla, llevar a una pantalla, cómo se hace un paso concreto.`;
+
 /**
  * Prompt de sistema: instrucciones fijas y las pantallas del usuario. Es
  * determinista para un mismo conjunto de pantallas, así la caché se reusa
- * entre preguntas y entre usuarios del mismo rol.
+ * entre preguntas y entre usuarios del mismo rol. `conExperto` agrega la
+ * instrucción de escalar (solo para el modelo base).
  */
 export function armarSistema(
   permitidas: PantallaCatalogo[],
   subrutas: SubrutaCatalogo[],
+  conExperto = false,
 ): string {
   const rutas = new Set(permitidas.map((p) => p.ruta));
   const pantallas = permitidas
@@ -196,7 +205,7 @@ export function armarSistema(
     .filter((s) => rutas.has(s.de))
     .map((s) => `- ${s.etiqueta}: ${s.patron}`)
     .join('\n');
-  return `${INSTRUCCIONES}
+  return `${INSTRUCCIONES}${conExperto ? INSTRUCCIONES_EXPERTO : ''}
 
 Pantallas que este usuario puede ver
 ${pantallas}
@@ -236,6 +245,23 @@ export const HERRAMIENTA_IR_A = {
       },
     },
     required: ['ruta', 'motivo'],
+    additionalProperties: false,
+  },
+} as const;
+
+/** Escalar a un modelo más capaz (D-61). No se ejecuta: corta el bucle. */
+export const HERRAMIENTA_EXPERTO = {
+  name: 'consultar_experto',
+  description:
+    'Pasa la pregunta a un modelo más capaz, que responde en tu lugar. Llamala sin escribir nada antes, ' +
+    'solo para preguntas que piden razonar en varios pasos o que no estás seguro de poder responder bien.',
+  strict: true,
+  input_schema: {
+    type: 'object',
+    properties: {
+      motivo: { type: 'string', description: 'En pocas palabras, por qué es difícil.' },
+    },
+    required: ['motivo'],
     additionalProperties: false,
   },
 } as const;
@@ -324,6 +350,8 @@ export interface ResultadoBucle {
   herramientas: string[];
   iteraciones: number;
   rechazo: boolean;
+  /** El modelo pidió pasar la pregunta al experto. */
+  escalar: boolean;
 }
 
 /**
@@ -360,6 +388,18 @@ export async function ejecutarBucle(
   const herramientas: string[] = [];
   let texto = '';
   const conversacion = [...mensajes];
+  const fin = (
+    iteraciones: number,
+    rechazo = false,
+    escalar = false,
+  ): ResultadoBucle => ({
+    texto,
+    uso,
+    herramientas,
+    iteraciones,
+    rechazo,
+    escalar,
+  });
 
   for (let i = 0; i < MAX_ITERACIONES; i++) {
     const r = await llamar(conversacion, i < MAX_ITERACIONES - 1);
@@ -369,16 +409,18 @@ export async function ejecutarBucle(
     uso.cacheEscritura += r.usage.cache_creation_input_tokens ?? 0;
     for (const b of r.content) if (b.type === 'text' && 'text' in b) texto += b.text;
 
-    if (r.stop_reason === 'refusal')
-      return { texto, uso, herramientas, iteraciones: i + 1, rechazo: true };
+    if (r.stop_reason === 'refusal') return fin(i + 1, true);
 
     const usos = r.content.filter(
       (b): b is Extract<Bloque, { type: 'tool_use' }> =>
         b.type === 'tool_use' && 'id' in b,
     );
     // Una entrada cortada por max_tokens puede parecer válida: no se ejecuta.
-    if (r.stop_reason !== 'tool_use' || usos.length === 0)
-      return { texto, uso, herramientas, iteraciones: i + 1, rechazo: false };
+    if (r.stop_reason !== 'tool_use' || usos.length === 0) return fin(i + 1);
+    if (usos.some((u) => u.name === HERRAMIENTA_EXPERTO.name)) {
+      herramientas.push(HERRAMIENTA_EXPERTO.name);
+      return fin(i + 1, false, true);
+    }
 
     conversacion.push({ role: 'assistant', content: r.content });
     const resultados = [];
@@ -394,7 +436,57 @@ export async function ejecutarBucle(
     }
     conversacion.push({ role: 'user', content: resultados });
   }
-  return { texto, uso, herramientas, iteraciones: MAX_ITERACIONES, rechazo: false };
+  return fin(MAX_ITERACIONES);
+}
+
+export interface Modelos {
+  base: string;
+  /** null: sin escalado. */
+  experto: string | null;
+}
+
+/**
+ * Responde con el modelo base y, si este pide escalar, repite la pregunta
+ * desde el principio con el experto (D-61). El experto no puede volver a
+ * escalar. Devuelve el uso de los dos y el modelo que dio la respuesta.
+ * ponytail: en el registro todo el uso se cobra al precio del experto (la
+ * parte del base es chica); sobreestima, que para los topes es lo seguro.
+ */
+export async function responder(
+  mensajes: MensajeApi[],
+  modelos: Modelos,
+  llamar: (
+    modelo: string,
+    mensajes: MensajeApi[],
+    conHerramientas: boolean,
+  ) => Promise<RespuestaModelo>,
+  herramienta: (
+    nombre: string,
+    entrada: unknown,
+  ) => ResultadoHerramienta | Promise<ResultadoHerramienta>,
+  alEscalar: () => void,
+): Promise<ResultadoBucle & { modelo: string }> {
+  const base = await ejecutarBucle(
+    mensajes,
+    (m, c) => llamar(modelos.base, m, c),
+    herramienta,
+  );
+  if (!base.escalar || !modelos.experto) return { ...base, modelo: modelos.base };
+  const experto = modelos.experto;
+  alEscalar();
+  const e = await ejecutarBucle(mensajes, (m, c) => llamar(experto, m, c), herramienta);
+  return {
+    ...e,
+    uso: {
+      entrada: base.uso.entrada + e.uso.entrada,
+      salida: base.uso.salida + e.uso.salida,
+      cacheLectura: base.uso.cacheLectura + e.uso.cacheLectura,
+      cacheEscritura: base.uso.cacheEscritura + e.uso.cacheEscritura,
+    },
+    herramientas: [...base.herramientas, ...e.herramientas],
+    iteraciones: base.iteraciones + e.iteraciones,
+    modelo: experto,
+  };
 }
 
 /**
@@ -407,8 +499,9 @@ export async function ejecutarBucle(
 export function parametrosModelo(modelo: string): Record<string, unknown> {
   if (modelo.startsWith('claude-haiku-5-5'))
     return { thinking: { type: 'disabled' }, output_config: { effort: 'low' } };
+  // Sonnet atiende las preguntas difíciles (D-61): esfuerzo medium.
   if (modelo.startsWith('claude-sonnet-5-5'))
-    return { thinking: { type: 'between_tools' }, output_config: { effort: 'low' } };
+    return { thinking: { type: 'between_tools' }, output_config: { effort: 'medium' } };
   return { output_config: { effort: 'low' } };
 }
 
@@ -419,8 +512,11 @@ export function parametrosModelo(modelo: string): Record<string, unknown> {
 export const AVISOS: Record<string, string> = {
   SIN_SESION: 'Tu sesión no tiene un rol asignado. Hablalo con quien administra la app.',
   APAGADO: 'Giorgio está apagado por ahora. La app sigue funcionando igual.',
+  SIN_CONFIGURAR:
+    'Giorgio todavía no está configurado. Avisale a quien administra la app.',
   TOPE_GLOBAL:
     'Por hoy se terminó el cupo de Giorgio para toda la empresa. Mañana vuelve.',
+  TOPE_MENSUAL: 'Este mes se terminó el cupo de Giorgio. Vuelve el mes que viene.',
   LIMITE_USUARIO: 'Llegaste al límite de preguntas de hoy. Mañana se renueva.',
   RECHAZO: 'Esa pregunta no la puedo responder. Probá preguntarla de otra forma.',
   ERROR: 'Ahora no puedo responder, probá de nuevo en un rato.',
@@ -431,4 +527,6 @@ export type Evento =
   | { t: 'texto'; v: string }
   | { t: 'boton'; ruta: string; etiqueta: string; motivo: string }
   | { t: 'aviso'; v: string }
+  /** La pregunta pasó al experto: lo escrito hasta acá se descarta. */
+  | { t: 'escalado' }
   | { t: 'fin' };

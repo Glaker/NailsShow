@@ -3,14 +3,36 @@ const { q, uno, prueba, rechaza, como, usuario, fin, invariantes } = await banco
 await usuario('operario@x', 'OPERARIO');
 await usuario('fin@x', 'FINANZAS', 'ADMINISTRACION');
 const ADMIN = 'verificacion@nailshow.com.ar';
-const registrar = (modelo = 'claude-haiku-5-5', salida = 100) =>
+const CLAVE = 'clave-de-prueba';
+const registrar = (modelo = 'claude-haiku-5-5', salida = 100, clave = CLAVE) =>
   q(
-    `select core.giorgio_registrar('/costos', '¿de dónde sale el costo?', 'Sale de…', $1, 1000, $2, 5000, 0, '{ir_a}', 2::smallint, 900, null)`,
-    [modelo, salida],
+    `select core.giorgio_registrar($3, '/costos', '¿de dónde sale el costo?', 'Sale de…', $1, 1000, $2, 5000, 0, '{ir_a}', 2::smallint, 900, null)`,
+    [modelo, salida, clave],
   );
 const estado = async () => (await uno(`select core.giorgio_estado() e`)).e;
 
 await como('operario@x');
+await prueba('sin la clave de registro cargada, Giorgio no atiende (D-59)', async () => {
+  const e = await estado();
+  if (e.permitido || e.motivo !== 'SIN_CONFIGURAR') throw new Error(JSON.stringify(e));
+});
+// El paso manual de 20261019120000: el hash se carga desde el editor SQL.
+await q(`reset role`);
+await q(
+  `update core.giorgio_config set clave_registro_sha256 = sha256(convert_to($1, 'UTF8'))`,
+  [CLAVE],
+);
+await como('operario@x');
+await rechaza(
+  'registrar sin la clave se rechaza: nadie carga consultas inventadas',
+  `select core.giorgio_registrar(null, '/', 'x', null, 'claude-sonnet-5-5', 200000, 8192, 0, 0, '{}', 1::smallint, 1, null)`,
+  /no autorizado/,
+);
+await rechaza(
+  'registrar con una clave equivocada se rechaza',
+  `select core.giorgio_registrar('adivinada', '/', 'x', null, 'claude-sonnet-5-5', 200000, 8192, 0, 0, '{}', 1::smallint, 1, null)`,
+  /no autorizado/,
+);
 await prueba('un operario puede preguntar, con 50 por día', async () => {
   const e = await estado();
   if (!e.permitido || e.limite_diario !== 50 || e.roles[0] !== 'OPERARIO')
@@ -78,12 +100,13 @@ await prueba(
   'los tokens inventados se recortan a lo que puede gastar una consulta',
   async () => {
     await q(
-      `select core.giorgio_registrar('/', 'x', null, 'claude-haiku-5-5', 2000000000, 2000000000, 0, 0, '{}', 1::smallint, 1, null)`,
+      `select core.giorgio_registrar('${CLAVE}', '/', 'x', null, 'claude-haiku-5-5', 2000000000, 2000000000, 0, 0, '{}', 1::smallint, 1, null)`,
     );
     const r = await uno(
       `select tokens_entrada, tokens_salida from core.giorgio_mensajes where tokens_salida > 1000`,
     );
-    if (r.tokens_entrada !== 100000 || r.tokens_salida !== 4096)
+    // Con escalado, hasta 8 llamadas de 1024 tokens de salida (D-61).
+    if (r.tokens_entrada !== 200000 || r.tokens_salida !== 8192)
       throw new Error(JSON.stringify(r));
   },
 );
@@ -100,6 +123,12 @@ await prueba(
 );
 
 await como(ADMIN);
+await prueba('topes de partida: USD 1 por día y USD 20 por mes (D-60)', async () => {
+  const c = await uno(
+    `select tope_diario_usd::float d, tope_mensual_usd::float m from core.giorgio_config`,
+  );
+  if (c.d !== 1 || c.m !== 20) throw new Error(JSON.stringify(c));
+});
 await prueba('el administrador ve todas las consultas', async () => {
   const n = await uno(`select count(*)::int n from core.giorgio_mensajes`);
   if (n.n !== 52) throw new Error(String(n.n));
@@ -117,9 +146,38 @@ await prueba(
     if (e.permitido || e.motivo !== 'TOPE_GLOBAL') throw new Error(JSON.stringify(e));
   },
 );
+await prueba(
+  'el gasto del mes anterior no cuenta, aunque en UTC ya sea este mes',
+  async () => {
+    await q(`reset role`);
+    // 30 minutos antes del primer día del mes en hora argentina (en UTC ya
+    // cae dentro del mes): USD 50 que no deben contar.
+    await q(`insert into core.giorgio_mensajes (preguntado_por, pregunta, costo_usd, creado_en)
+             select id, 'del mes pasado', 50,
+                    (date_trunc('month', core.giorgio_hoy()::timestamp) at time zone 'America/Argentina/Buenos_Aires')
+                      - interval '30 minutes'
+               from core.usuarios where email = 'fin@x'`);
+    await como(ADMIN);
+    await q(`update core.giorgio_config set tope_diario_usd = 100, tope_mensual_usd = 1`);
+    await como('fin@x');
+    const e = await estado();
+    if (!e.permitido) throw new Error(JSON.stringify(e));
+  },
+);
+await como(ADMIN);
+await prueba('al llegar al tope mensual se apaga hasta el mes siguiente', async () => {
+  await q(
+    `update core.giorgio_config set tope_diario_usd = 100, tope_mensual_usd = 0.01`,
+  );
+  await como('fin@x');
+  const e = await estado();
+  if (e.permitido || e.motivo !== 'TOPE_MENSUAL') throw new Error(JSON.stringify(e));
+});
 await como(ADMIN);
 await prueba('el interruptor apaga a Giorgio', async () => {
-  await q(`update core.giorgio_config set activo = false, tope_diario_usd = 100`);
+  await q(
+    `update core.giorgio_config set activo = false, tope_diario_usd = 100, tope_mensual_usd = 100`,
+  );
   await como('fin@x');
   const e = await estado();
   if (e.permitido || e.motivo !== 'APAGADO') throw new Error(JSON.stringify(e));
