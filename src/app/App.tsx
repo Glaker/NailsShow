@@ -5,6 +5,7 @@ import { AppRoutes } from './routes';
 import { useSesion } from '@/features/auth/sesion';
 import { PantallaIngreso } from '@/features/auth/PantallaIngreso';
 import { PantallaSinHabilitar } from '@/features/auth/PantallaSinHabilitar';
+import { ModalReingreso } from '@/features/auth/ModalReingreso';
 import { IntroMarca } from '@/components/IntroMarca';
 
 /**
@@ -16,7 +17,7 @@ import { IntroMarca } from '@/components/IntroMarca';
  * reemplaza al control (CLAUDE.md §6).
  */
 function Puerta() {
-  const { cargando, session, sinHabilitar } = useSesion();
+  const { cargando, session, sinHabilitar, vencida } = useSesion();
 
   if (cargando) {
     return (
@@ -26,11 +27,14 @@ function Puerta() {
     );
   }
 
-  if (!session) return <PantallaIngreso />;
+  // Sesión perdida sin «Salir»: la pantalla queda montada y se pide reingresar
+  // encima (ModalReingreso), para no perder lo escrito.
+  if (!session && !vencida) return <PantallaIngreso />;
   if (sinHabilitar) return <PantallaSinHabilitar />;
 
   return (
     <>
+      <ModalReingreso />
       <IntroMarca />
       <Layout>
         <AppRoutes />

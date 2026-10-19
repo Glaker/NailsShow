@@ -4,6 +4,8 @@ import type { EstadoAviso, EstadoPedido } from '@/lib/consultasComercial';
 
 const COLOR_ESTADO: Record<EstadoPedido, string> = {
   BORRADOR: 'gray',
+  ESPERANDO_FECHA: 'orange',
+  FECHA_PROPUESTA: 'teal',
   CONFIRMADO: 'estadoEnAnalisis',
   EN_PRODUCCION: 'azul',
   CUMPLIDO: 'estadoAprobado',
@@ -16,16 +18,28 @@ const COLOR_ESTADO: Record<EstadoPedido, string> = {
  */
 const ETIQUETA_ESTADO: Record<EstadoPedido, string> = {
   BORRADOR: 'Borrador',
+  ESPERANDO_FECHA: 'Esperando fecha',
+  FECHA_PROPUESTA: 'Fecha propuesta',
   CONFIRMADO: 'Enviado a producción',
   EN_PRODUCCION: 'En producción',
   CUMPLIDO: 'Terminado',
   CANCELADO: 'Cancelado',
 };
 
-export function BadgeEstadoPedido({ estado }: { estado: EstadoPedido }) {
+/**
+ * En un pedido de venta, CONFIRMADO es «Aprobado»: Ventas aprobó la fecha que
+ * comprometió Producción (D-ventas-pedidos-13).
+ */
+export function BadgeEstadoPedido({
+  estado,
+  esVenta = false,
+}: {
+  estado: EstadoPedido;
+  esVenta?: boolean;
+}) {
   return (
     <Badge color={COLOR_ESTADO[estado]} variant="light" radius="sm">
-      {ETIQUETA_ESTADO[estado]}
+      {esVenta && estado === 'CONFIRMADO' ? 'Aprobado' : ETIQUETA_ESTADO[estado]}
     </Badge>
   );
 }

@@ -221,7 +221,7 @@ function ContenidoBarra({ onNavegar }: { onNavegar?: (() => void) | undefined })
         <Marca size={44} />
         <div style={{ minWidth: 0 }}>
           <Text fw={650} fz={16} lh={1.15} style={{ letterSpacing: '-0.015em' }}>
-            Trazabilidad
+            Wandel
           </Text>
           <Text c={SUPERFICIE.barraTexto} fz={12.5} lh={1.3}>
             Nail Show SRL
@@ -371,7 +371,7 @@ export function Layout({ children }: { children: ReactNode }) {
             <Group gap={8} wrap="nowrap">
               <Marca size={32} />
               <Text fw={650} fz={16} style={{ letterSpacing: '-0.015em' }}>
-                Trazabilidad
+                Wandel
               </Text>
             </Group>
             <Group gap="xs" wrap="nowrap">

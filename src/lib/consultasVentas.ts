@@ -295,6 +295,7 @@ const invalidar = (qc: ReturnType<typeof useQueryClient>) => {
     'disponible-calle5',
     'calle5',
     'pendientes-despacho',
+    'propuesta-fecha',
   ])
     void qc.invalidateQueries({ queryKey: [k] });
 };
@@ -402,7 +403,94 @@ export function useGuardarVenta() {
   });
 }
 
-/** Envía el pedido: lo que Ventas toma de Calle 5 queda reservado; lo que falta va a Producción. */
+/* ---------------- Fecha comprometida (20261019120100) ------------------ */
+
+/** Estados de un pedido de venta que todavía no se aprobó: se puede editar. */
+export const ESTADOS_SIN_APROBAR = [
+  'BORRADOR',
+  'ESPERANDO_FECHA',
+  'FECHA_PROPUESTA',
+] as const;
+
+/**
+ * La propuesta vigente de Gerencia de Producción: la última del pedido. Las
+ * anteriores quedan como historial (se reemplazan, no se editan).
+ */
+export function usePropuestaFecha(pedidoId: string | undefined) {
+  return useQuery({
+    queryKey: ['propuesta-fecha', pedidoId],
+    enabled: Boolean(pedidoId),
+    queryFn: async () => {
+      const { data, error } = await comercial()
+        .from('propuestas_fecha')
+        .select(
+          'id, fecha_pedido, nota, propuesta_por, propuesta_en, demorados:propuestas_fecha_renglones(renglon_id, fecha)',
+        )
+        .eq('pedido_id', pedidoId!)
+        .order('orden', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+/** Ventas pide la fecha: el pedido pasa a la bandeja de Gerencia de Producción. */
+export function usePedirFecha() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await comercial()
+        .from('pedidos')
+        .update({ estado: 'ESPERANDO_FECHA' })
+        .eq('id', id)
+        .select('id');
+      if (error) throw error;
+      if (!data?.length)
+        throw new Error('No se pudo pedir la fecha: tu usuario no edita pedidos.');
+    },
+    onSuccess: () => {
+      invalidar(qc);
+      avisarExito('Pedido enviado a Producción para que comprometa una fecha.');
+    },
+    onError: avisarError,
+  });
+}
+
+/**
+ * Gerencia de Producción compromete la fecha del pedido entero y, si hace
+ * falta, la de los productos que demoran (comercial.proponer_fecha).
+ */
+export function useProponerFecha() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (d: {
+      id: string;
+      fecha: string;
+      nota: string | null;
+      demorados: { renglon_id: string; fecha: string }[];
+    }) => {
+      const { error } = await comercial().rpc('proponer_fecha', {
+        p_pedido_id: d.id,
+        p_fecha: d.fecha,
+        ...(d.nota ? { p_nota: d.nota } : {}),
+        p_demorados: d.demorados,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidar(qc);
+      avisarExito('Fecha propuesta. Ventas la ve para aprobar el pedido.');
+    },
+    onError: avisarError,
+  });
+}
+
+/**
+ * Aprueba el pedido con la fecha propuesta: toma la foto del importe, reserva
+ * lo que Ventas arma de Calle 5 y lo que falta va a Producción.
+ */
 export function useEnviarVenta() {
   const qc = useQueryClient();
   return useMutation({
@@ -422,8 +510,8 @@ export function useEnviarVenta() {
       invalidar(qc);
       avisarExito(
         r.pedido_stock
-          ? `Pedido enviado. Lo de Calle 5 quedó reservado; lo que falta va a Producción en ${r.pedido_stock}.`
-          : 'Pedido enviado. Todo sale de Calle 5 y quedó reservado.',
+          ? `Pedido aprobado. Lo de Calle 5 quedó reservado; lo que falta va a Producción en ${r.pedido_stock}.`
+          : 'Pedido aprobado. Todo sale de Calle 5 y quedó reservado.',
       );
     },
     onError: avisarError,

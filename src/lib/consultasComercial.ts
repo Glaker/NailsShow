@@ -13,6 +13,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { Database } from './database.types';
 import { comercial, core, gmp } from './supabase';
 import {
   avisarError,
@@ -25,8 +26,8 @@ import {
  * Tipos de fila (puente temporal)
  * ------------------------------------------------------------------------- */
 
-export type EstadoPedido =
-  'BORRADOR' | 'CONFIRMADO' | 'EN_PRODUCCION' | 'CUMPLIDO' | 'CANCELADO';
+/** Del enum de la base: un estado nuevo obliga a completar cada mapa por estado. */
+export type EstadoPedido = Database['comercial']['Enums']['estado_pedido_enum'];
 
 export interface PedidoRow {
   id: string;
@@ -628,6 +629,8 @@ export function useCambiarEstadoPedido() {
 
 const MENSAJE_ESTADO: Record<EstadoPedido, string> = {
   BORRADOR: 'El pedido volvió a borrador.',
+  ESPERANDO_FECHA: 'Pedido enviado a Producción para que comprometa una fecha.',
+  FECHA_PROPUESTA: 'Fecha propuesta.',
   CONFIRMADO: 'Pedido enviado a producción.',
   EN_PRODUCCION: 'Pedido en producción.',
   CUMPLIDO: 'Pedido terminado.',
@@ -881,7 +884,8 @@ export function useCambiarEstadoAviso() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (a: {
-      id: string;
+      /** Una o varias: «Descartar» en lote usa el mismo motivo para todas. */
+      ids: string[];
       estado: EstadoAviso;
       usuarioId: string | null;
       nota?: string | null;
@@ -898,18 +902,22 @@ export function useCambiarEstadoAviso() {
 
       const { data, error } = await tablaComercial<{ id: string }[]>('avisos_compra')
         .update(cambios)
-        .eq('id', a.id)
+        .in('id', a.ids)
         .select('id');
       if (error) throw error;
-      if (!data || data.length === 0) {
+      if (!data || data.length < a.ids.length) {
         throw new Error(
           'No se pudo actualizar: tu usuario no tiene permiso sobre compras.',
         );
       }
     },
-    onSuccess: () => {
+    onSuccess: (_d, a) => {
       void qc.invalidateQueries({ queryKey: ['avisos-compra'] });
-      avisarExito('Compra actualizada.');
+      avisarExito(
+        a.ids.length === 1
+          ? 'Compra actualizada.'
+          : `${a.ids.length} compras actualizadas.`,
+      );
     },
     onError: avisarError,
   });

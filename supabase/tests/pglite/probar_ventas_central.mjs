@@ -15,6 +15,14 @@ const renglon = (p, producto, cant) =>
 const r = (p, producto) =>
   uno(`select * from comercial.pedido_renglones where pedido_id=$1 and producto_id=$2 and not anulado`, [p, producto]);
 const fila = (p) => uno(`select * from comercial.v_ventas where id=$1`, [p]);
+// Circuito de 20261019130100: Ventas pide fecha, GP la propone y recién ahí
+// Ventas aprueba (enviar_venta). Deja la sesión de nuevo en Ventas.
+const conFecha = async (p) => {
+  await q(`update comercial.pedidos set estado='ESPERANDO_FECHA' where id=$1`, [p]);
+  await como('naza@x');
+  await q(`select comercial.proponer_fecha($1, current_date + 7)`, [p]);
+  await como('mati@x');
+};
 
 await prueba('lista 46.14: 178 productos; 80PACK es pack de 6 a $3200 la unidad', async () => {
   const n = await uno(`select count(*)::int n from comercial.v_lista_mayorista`);
@@ -59,6 +67,7 @@ await q(`select comercial.registrar_conteo_pt($1, 10, 'inicial', 'C5')`, [pack])
 await como('mati@x');
 let envio;
 await prueba('al enviar: lo que hay se reserva en Calle 5 y lo que falta va a Producción en un S-xxxx', async () => {
+  await conFecha(p1);
   envio = await uno(`select comercial.enviar_venta($1) x`, [p1]);
   await imm();
   const a = await r(p1, pack), b = await r(p1, mono);
@@ -74,6 +83,7 @@ await prueba('al enviar: lo que hay se reserva en Calle 5 y lo que falta va a Pr
 const p2 = await venta('V-2');
 await prueba('otra venta no puede tomar lo que la primera reservó', async () => {
   await renglon(p2, mono, 10);
+  await conFecha(p2);
   await q(`select comercial.enviar_venta($1)`, [p2]);
   const b = await r(p2, mono);
   const d = await uno(`select * from comercial.v_disponible_calle5 where producto_id=$1`, [mono]);
@@ -83,6 +93,7 @@ await prueba('otra venta no puede tomar lo que la primera reservó', async () =>
 });
 const p3 = await venta('V-3');
 await renglon(p3, pack, 4);
+await conFecha(p3);
 await rechaza('Ventas no toma de Calle 5 más que lo disponible', `select comercial.enviar_venta('${p3}', '[{"producto_id":"${pack}","cantidad":5}]'::jsonb)`, /disponibles/);
 await prueba('decide Ventas: de 5 disponibles toma 2 para este cliente, el resto se produce', async () => {
   await q(`select comercial.enviar_venta($1, $2::jsonb)`, [p3, JSON.stringify([{ producto_id: pack, cantidad: 2 }])]);
@@ -163,7 +174,7 @@ await prueba('Ventas carga una escala nueva y rige desde hoy; la anterior queda'
   const viejas = await uno(`select count(distinct carga)::int n from comercial.escalas_descuento`);
   if (N(a.n) !== 22 || viejas.n !== c.n) throw new Error(JSON.stringify({ c, a, viejas }));
 });
-await rechaza('un pedido enviado no se vuelve a enviar', `select comercial.enviar_venta('${p1}')`, /ya se envió/);
+await rechaza('un pedido enviado no se vuelve a enviar', `select comercial.enviar_venta('${p1}')`, /ya se envió|no tiene fecha propuesta/);
 const comun = (await uno(`insert into comercial.pedidos (numero, cliente) values ('P-9','x') returning id`)).id;
 await rechaza('solo se envían pedidos de venta', `select comercial.enviar_venta('${comun}')`, /No es un pedido de venta/);
 await como('silveira@x');

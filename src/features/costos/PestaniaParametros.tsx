@@ -17,7 +17,7 @@ import { DateInput, MonthPickerInput } from '@mantine/dates';
 import { useForm } from '@mantine/form';
 import { zod4Resolver } from 'mantine-form-zod-resolver';
 import { z } from 'zod';
-import { IconAdjustments, IconChartLine } from '@tabler/icons-react';
+import { IconAdjustments, IconChartLine, IconCloudDownload } from '@tabler/icons-react';
 import { Vacio } from '@/components/Vacio';
 import { FINANZAS, useTieneRol } from '@/features/auth/sesion';
 import { fecha, fechaISO, numero } from '@/lib/formato';
@@ -26,6 +26,7 @@ import {
   useCargarSerie,
   useParametrosCosto,
   useSeriesMacro,
+  useTraerSeriesOficiales,
   type ParametrosCosto,
   type PuntoSerieMacro,
   type SerieMacro,
@@ -34,8 +35,16 @@ import { numOrNull, pesos } from './comun';
 
 const SERIES: { value: SerieMacro; label: string; fuente: string }[] = [
   { value: 'IPC', label: 'IPC nivel general', fuente: 'INDEC' },
-  { value: 'TC_A3500_PROMEDIO', label: 'TC A3500 promedio mensual', fuente: 'BCRA Com. A 3500' },
-  { value: 'TC_A3500_CIERRE', label: 'TC A3500 cierre de mes', fuente: 'BCRA Com. A 3500' },
+  {
+    value: 'TC_A3500_PROMEDIO',
+    label: 'TC A3500 promedio mensual',
+    fuente: 'BCRA Com. A 3500',
+  },
+  {
+    value: 'TC_A3500_CIERRE',
+    label: 'TC A3500 cierre de mes',
+    fuente: 'BCRA Com. A 3500',
+  },
 ];
 
 /** La vista guarda la serie de tipo de cambio como clave; se muestra como nombre de negocio. */
@@ -49,6 +58,7 @@ export function PestaniaParametros() {
   const params = useParametrosCosto();
   const series = useSeriesMacro();
   const puede = useTieneRol(FINANZAS);
+  const traer = useTraerSeriesOficiales();
 
   if (params.isLoading || series.isLoading) return <Skeleton h={300} />;
   const p = params.data;
@@ -69,9 +79,9 @@ export function PestaniaParametros() {
               {costoHora !== null ? `${pesos(costoHora)} por hora` : 'sin cargar'}
             </Text>
             <Text size="xs" c="dimmed">
-              Costo laboral total de producción por hora productiva: sueldos + cargas sociales +
-              SAC + vacaciones, dividido por las horas efectivamente productivas. No es el sueldo
-              bruto por hora.
+              Costo laboral total de producción por hora productiva: sueldos + cargas
+              sociales + SAC + vacaciones, dividido por las horas efectivamente
+              productivas. No es el sueldo bruto por hora.
             </Text>
           </div>
           <div>
@@ -118,11 +128,27 @@ export function PestaniaParametros() {
       {puede && p ? <FormularioParametros parametros={p} /> : null}
 
       <Stack gap="sm">
-        <Text fw={600}>Series macro</Text>
+        <Group justify="space-between" align="flex-start" wrap="wrap">
+          <Text fw={600}>Series macro</Text>
+          {puede ? (
+            <Button
+              variant="light"
+              size="md"
+              leftSection={<IconCloudDownload size={18} />}
+              loading={traer.isPending}
+              onClick={() => traer.mutate({})}
+            >
+              Traer del BCRA y el INDEC
+            </Button>
+          ) : null}
+        </Group>
         <Text size="sm" c="dimmed">
-          IPC nivel general del INDEC y tipo de cambio mayorista A3500 del BCRA. El IPC del
-          último mes sale con unas dos semanas de demora: mientras no esté, los gráficos lo
-          estiman y lo marcan como provisorio.
+          IPC nivel general del INDEC y tipo de cambio mayorista A3500 del BCRA. Se traen
+          solos de las fuentes oficiales cada vez que Finanzas abre Costos: el dólar del
+          mes en curso queda provisorio (último día publicado) hasta que el mes cierra. El
+          IPC sale con unas dos semanas de demora: mientras no esté, los gráficos lo
+          estiman y lo marcan como provisorio. Un valor definitivo cargado a mano no se
+          pisa.
         </Text>
         <TablaSeries puntos={series.data ?? []} />
       </Stack>
@@ -143,28 +169,35 @@ type ValoresParametros = {
   motivo: string;
 };
 
-const esquemaParametros = z.object({
-  costo_hora: z.number({ error: 'Falta el costo hora' }).min(0, 'No puede ser negativo').nullable(),
-  umbral: z
-    .number({ error: 'Falta el umbral' })
-    .min(0, 'No puede ser negativo')
-    .max(100, 'No puede pasar de 100 %'),
-  margen: z
-    .number({ error: 'Falta el margen' })
-    .min(0, 'No puede ser negativo')
-    .max(100, 'No puede pasar de 100 %'),
-  vigencia: z
-    .number({ error: 'Falta la vigencia' })
-    .int('Son días enteros')
-    .min(1, 'Tiene que ser al menos 1 día'),
-  corte_a: z.number({ error: 'Falta el corte A' }).gt(0).lt(100),
-  corte_b: z.number({ error: 'Falta el corte B' }).gt(0).lt(100),
-  corte_apertura: z.string({ error: 'Falta la fecha de corte' }).regex(/^d{4}-d{2}-d{2}$/, 'Falta la fecha de corte'),
-  motivo: z.string(),
-}).refine((v) => (v.corte_a ?? 0) < (v.corte_b ?? 0), {
-  path: ['corte_b'],
-  message: 'El corte B tiene que ser mayor que el A',
-});
+const esquemaParametros = z
+  .object({
+    costo_hora: z
+      .number({ error: 'Falta el costo hora' })
+      .min(0, 'No puede ser negativo')
+      .nullable(),
+    umbral: z
+      .number({ error: 'Falta el umbral' })
+      .min(0, 'No puede ser negativo')
+      .max(100, 'No puede pasar de 100 %'),
+    margen: z
+      .number({ error: 'Falta el margen' })
+      .min(0, 'No puede ser negativo')
+      .max(100, 'No puede pasar de 100 %'),
+    vigencia: z
+      .number({ error: 'Falta la vigencia' })
+      .int('Son días enteros')
+      .min(1, 'Tiene que ser al menos 1 día'),
+    corte_a: z.number({ error: 'Falta el corte A' }).gt(0).lt(100),
+    corte_b: z.number({ error: 'Falta el corte B' }).gt(0).lt(100),
+    corte_apertura: z
+      .string({ error: 'Falta la fecha de corte' })
+      .regex(/^d{4}-d{2}-d{2}$/, 'Falta la fecha de corte'),
+    motivo: z.string(),
+  })
+  .refine((v) => (v.corte_a ?? 0) < (v.corte_b ?? 0), {
+    path: ['corte_b'],
+    message: 'El corte B tiene que ser mayor que el A',
+  });
 
 /** Cada guardado es una versión nueva; los umbrales se ingresan en % y se guardan como fracción. */
 function FormularioParametros({ parametros }: { parametros: ParametrosCosto }) {
@@ -333,7 +366,10 @@ function TablaSeries({ puntos }: { puntos: PuntoSerieMacro[] }) {
     );
 
   return (
-    <Paper withBorder style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}>
+    <Paper
+      withBorder
+      style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}
+    >
       <Table.ScrollContainer minWidth={560}>
         <Table verticalSpacing="sm" highlightOnHover>
           <Table.Thead>
@@ -377,9 +413,13 @@ type ValoresSerie = {
 };
 
 const esquemaSerie = z.object({
-  serie: z.enum(['IPC', 'TC_A3500_PROMEDIO', 'TC_A3500_CIERRE'], { error: 'Elegí la serie' }),
+  serie: z.enum(['IPC', 'TC_A3500_PROMEDIO', 'TC_A3500_CIERRE'], {
+    error: 'Elegí la serie',
+  }),
   mes: z.date({ error: 'Elegí el mes' }),
-  valor: z.number({ error: 'Falta el valor' }).positive('El valor tiene que ser mayor que cero'),
+  valor: z
+    .number({ error: 'Falta el valor' })
+    .positive('El valor tiene que ser mayor que cero'),
   fuente: z.string().trim().min(1, 'Falta la fuente'),
   provisorio: z.boolean(),
 });

@@ -4,7 +4,7 @@
       "ruta": "/",
       "etiqueta": "Tablero",
       "roles": null,
-      "queEs": "Tu pantalla de inicio. Cada rol ve lo que le toca hacer hoy, y nada más. Los números y las filas llevan directo a la pantalla donde se resuelve."
+      "queEs": "Tu pantalla de inicio. Cada rol ve lo que le toca hacer hoy, y nada más: los números y las filas son atajos que llevan directo a la pantalla donde se resuelve. Los datos salen de lo que se registra en el resto del sistema (lotes, órdenes, pedidos), así que cambian solos a medida que el equipo trabaja."
     },
     {
       "ruta": "/ventas",
@@ -14,7 +14,7 @@
         "ADMINISTRACION",
         "GERENCIA"
       ],
-      "queEs": "Es la lista de todos los pedidos mayoristas, como la planilla de antes. El monto, el descuento y lo que hay en Calle 5 salen solos."
+      "queEs": "Es la lista de todos los pedidos mayoristas, como la planilla de antes. Cada fila es un pedido: muestra el cliente y su número, la fecha, quién lo gestionó, la forma de pago, el número de factura, el descuento, lo que falta, la observación, el estado del pago, el destino, el importe con descuento y el estado del stock. El monto, el descuento y lo que hay en Calle 5 se calculan solos. Al tocar una fila se abre el pedido; desde ahí se envía a Calle 5 y a Producción, y después se factura y se despacha."
     },
     {
       "ruta": "/armado",
@@ -23,7 +23,7 @@
         "ENCARGADA_STOCK",
         "GERENCIA"
       ],
-      "queEs": "Es lo único que ve la encargada de Calle 5: los pedidos que hay que preparar, con código y cantidad de cada producto. La otra pestaña es el stock de Calle 5."
+      "queEs": "Es lo único que ve la encargada de Calle 5. Tiene dos pestañas. «Pedidos a armar» muestra una tarjeta por cada pedido que Ventas envió y todavía no salió completo: número, cliente, destino, fecha de entrega y una tabla con el código, el producto, cuánto hay que armar y cuánto hay en Calle 5. «Stock de Calle 5» es el stock de producto terminado del local, para contar, registrar lo que entra o sacar lo fallado. Lo que se confirma acá descuenta el stock y deja registrado el lote de cada unidad."
     },
     {
       "ruta": "/pedidos",
@@ -33,7 +33,7 @@
         "GERENCIA",
         "ADMINISTRACION"
       ],
-      "queEs": "La bandeja de pedidos. Se cargan acá, Producción los revisa contra el stock y lo que falta queda anotado en compras. Arriba elegís la vista: «Tablero», «Para revisar», «En producción», «Borradores» o «Cerrados»."
+      "queEs": "La bandeja de pedidos. Se cargan acá, Producción los revisa contra el stock y lo que falta queda anotado en compras. Arriba elegís la vista: «Tablero» (todo lo que está en curso, en columnas «Para revisar», «En producción» y terminados de los últimos 14 días), «Para revisar» (enviados y sin tomar), «En producción», «Borradores» (cargados pero no enviados) y «Cerrados» (terminados y cancelados). Las listas muestran número, cliente, cantidad de productos, cuándo se cargó, la entrega y el estado."
     },
     {
       "ruta": "/planificacion",
@@ -42,7 +42,7 @@
         "GERENCIA_PRODUCCION",
         "GERENCIA"
       ],
-      "queEs": "Qué se produce cada día y cuánto dura cada pedido. Hay dos vistas: «Gantt» y «Calendario». La línea roja es la entrega comprometida."
+      "queEs": "Qué se produce cada día y cuánto dura cada pedido. Hay dos vistas, que se cambian arriba: «Gantt» (una fila por pedido, con barras sobre tres semanas) y «Calendario» (el mes). La línea roja del Gantt es la entrega comprometida; si un pedido termina después de esa fecha, la fila lo avisa. Debajo, «Sin planificar» lista los pedidos abiertos que todavía no tienen fecha de producción."
     },
     {
       "ruta": "/ordenes",
@@ -52,7 +52,7 @@
         "GERENCIA",
         "CONTROL_CALIDAD"
       ],
-      "queEs": "Las órdenes de producción: una por lote, con su registro de la pesada a la liberación. De cada orden sale el batch record."
+      "queEs": "Las órdenes de producción: una por lote, con su registro de la pesada a la liberación. La tabla muestra orden, producto, lote, vencimiento, cantidad y estado. Cada orden toma la fórmula y guía las etapas que se registran en su ficha; de ahí sale el batch record."
     },
     {
       "ruta": "/formulas",
@@ -63,7 +63,7 @@
         "DIRECCION_TECNICA",
         "CONTROL_CALIDAD"
       ],
-      "queEs": "Dos pestañas: «Fórmulas» (la fórmula maestra de cada producto, en porcentaje) y «Calculadora de lote» (cuánto pesar de cada componente para el lote que quieras)."
+      "queEs": "Dos pestañas: «Fórmulas» (la fórmula maestra de cada producto, en porcentaje P/P, agrupadas por producto con su variedad, versión, código ME y estado) y «Calculadora de lote» (cuánto pesar o medir de cada componente para el lote que quieras). Las fórmulas son la base de las órdenes de producción y de la calculadora."
     },
     {
       "ruta": "/stock",
@@ -73,9 +73,10 @@
         "GERENCIA",
         "ADMINISTRACION",
         "DIRECCION_TECNICA",
-        "CONTROL_CALIDAD"
+        "CONTROL_CALIDAD",
+        "VENTAS"
       ],
-      "queEs": "Todo lo de existencias en pestañas: «Insumos», «Recepciones», «Stock de seguridad», «En fábrica» y «Conteo». Cada rol ve solo las pestañas que le tocan."
+      "queEs": "Todo lo de existencias, en pestañas: «Insumos», «Recepciones», «Stock de seguridad», «En fábrica» y «Conteo». Cada rol ve solo las pestañas que le tocan (se configuran en «Quién ve qué»). La pestaña elegida queda en el enlace. Los datos salen de los lotes recibidos, los movimientos de stock y los pedidos."
     },
     {
       "ruta": "/lotes",
@@ -86,7 +87,7 @@
         "DIRECCION_TECNICA",
         "CONTROL_CALIDAD"
       ],
-      "queEs": "La lista de todos los lotes de insumo que se recibieron, con su estado de calidad y su rótulo. Sirve para buscar un lote y abrir su ficha."
+      "queEs": "La lista de todos los lotes de insumo que se recibieron, cada uno con su estado en el circuito de calidad y su rótulo vigente. Cada fila muestra el insumo (con una llama si es inflamable), el N° interno, el lote del proveedor, el proveedor, el estado, el depósito, el vencimiento y la cantidad. Los lotes nacen cuando se registra una recepción en Stock; desde acá se busca uno y se abre su ficha."
     },
     {
       "ruta": "/liberacion",
@@ -96,29 +97,17 @@
         "CONTROL_CALIDAD",
         "GERENCIA"
       ],
-      "queEs": "Los lotes de producto terminado que esperan la firma de Dirección Técnica, y los últimos ya resueltos. La firma se hace en la orden; desde acá la abrís o bajás el batch record."
+      "queEs": "Los lotes de producto terminado que esperan la firma de Dirección Técnica, y los últimos 30 ya resueltos. La tabla muestra lote, producto, cantidad y estado («espera liberación», «liberada» o «rechazada»). Cada lote sale de una orden de producción terminada. La firma se hace en la orden; desde acá la abrís o bajás el batch record."
     },
     {
       "ruta": "/especificaciones",
       "etiqueta": "Especificaciones",
       "roles": [
-        "GERENCIA_PRODUCCION",
         "DIRECCION_TECNICA",
         "CONTROL_CALIDAD",
         "GERENCIA"
       ],
-      "queEs": "Los requisitos de cada producto (documentos I-E.50.xx): composición, almacenamiento, vida útil y los límites que tiene que cumplir. Las órdenes controlan el producto contra estas especificaciones."
-    },
-    {
-      "ruta": "/punto-venta",
-      "etiqueta": "Calle 5",
-      "roles": [
-        "GERENCIA_PRODUCCION",
-        "GERENCIA",
-        "ADMINISTRACION",
-        "VENTAS"
-      ],
-      "queEs": "Es el stock de producto terminado de Calle 5, el local. Entra lo que manda la planta y sale lo que se vende o se descarta."
+      "queEs": "Los requisitos de cada producto (documentos I-E.50.xx): composición, almacenamiento, vida útil y los límites que tiene que cumplir. La lista muestra código, denominación, estado y desde cuándo está vigente; al tocar una fila se abre su ficha. Las órdenes controlan el producto terminado contra estas especificaciones."
     },
     {
       "ruta": "/tercerizados",
@@ -127,7 +116,7 @@
         "GERENCIA_PRODUCCION",
         "GERENCIA"
       ],
-      "queEs": "Los clientes para los que Nail Show fabrica con su propia marca. Cada uno tiene su stock, sus productos y sus pedidos, aparte de los de Nail Show."
+      "queEs": "Los clientes para los que Nail Show fabrica con su propia marca. Cada cliente es un cuadrito que dice, sin abrirlo, cuántos pedidos tiene en curso y en producción, cuántos insumos tiene en stock (y si alguno está en cuarentena) y cuántos productos. Cada uno tiene su stock, sus productos y sus pedidos, aparte de los de Nail Show."
     },
     {
       "ruta": "/compras",
@@ -137,7 +126,7 @@
         "ADMINISTRACION",
         "GERENCIA"
       ],
-      "queEs": "Lo que falta comprar para cubrir los pedidos, anotado desde la ficha de cada pedido. Hay dos vistas: «Abiertas» e «Historial»."
+      "queEs": "Lo que falta comprar para cubrir los pedidos, anotado desde la ficha de cada pedido con «Anotar en compras». Arriba hay tres contadores: «Por comprar» (todavía no se le pidió al proveedor), «Pedido al proveedor» (esperando que llegue) y «Pasadas de fecha» (la entrega del pedido ya pasó y la compra sigue abierta). Debajo, dos vistas: «Abiertas», con lo más urgente arriba, e «Historial», con lo resuelto y lo descartado. El circuito es: «Ya lo pedí» → «Ya llegó», que abre la recepción con los datos de la compra ya cargados; el material entra en cuarentena y pasa a stock disponible cuando Control de Calidad lo aprueba."
     },
     {
       "ruta": "/facturas",
@@ -147,7 +136,7 @@
         "VENTAS",
         "GERENCIA"
       ],
-      "queEs": "Es la lista de las facturas emitidas desde cada pedido, con su estado y el CAE. Acá solo se miran: las facturas se emiten desde el pedido."
+      "queEs": "Es la lista de las facturas emitidas desde cada pedido, con su estado y el CAE. Arriba hay tres contadores («Autorizadas», con el total; «Rechazadas»; y «Pendientes»), después los filtros y la tabla con comprobante, cliente, pedido, neto, IVA, total, estado y CAE o motivo. Acá solo se miran: las facturas se emiten desde el pedido."
     },
     {
       "ruta": "/clientes",
@@ -157,7 +146,7 @@
         "VENTAS",
         "GERENCIA"
       ],
-      "queEs": "Es el padrón de clientes. La condición frente al IVA de cada uno decide si se le factura A o B."
+      "queEs": "Es el padrón de clientes. La tabla muestra el nombre (con domicilio y correo si los hay), la condición frente al IVA, el documento y la clase de factura que le corresponde (A o B). La condición frente al IVA decide si se le factura A o B; los clientes desactivados se ven atenuados y con la marca «Inactivo»."
     },
     {
       "ruta": "/precios",
@@ -167,7 +156,7 @@
         "VENTAS",
         "GERENCIA"
       ],
-      "queEs": "Es donde se ven y se cambian los precios de lista (con IVA incluido), los descuentos por cliente y la escala de descuento por monto del pedido mayorista."
+      "queEs": "Es donde se ven y se cambian los precios de lista (con IVA incluido), los descuentos por cliente y la escala de descuento por monto del pedido mayorista. Tiene tres pestañas: «Precios de lista» (cada producto con su precio con IVA, el neto y desde cuándo rige), «Descuentos por cliente» y «Escala por monto» (los escalones que se aplican según el total del pedido). Los pedidos nuevos toman estos valores."
     },
     {
       "ruta": "/administracion",
@@ -175,7 +164,7 @@
       "roles": [
         "GERENCIA"
       ],
-      "queEs": "Es el inicio de Administración: lo que hay que resolver hoy, ordenado por prioridad. Cada cuadro lleva a la pantalla donde se resuelve."
+      "queEs": "Es el inicio de Administración: lo que hay que resolver hoy, ordenado por prioridad. Arriba hay ocho cuadros con importes y cantidades; la mayoría lleva con un toque a la pantalla donde se resuelve. Más abajo hay un aviso de facturas por cargar (si corresponde), el gráfico de flujo de fondos, las tortas de ventas por cliente y compras por proveedor, y botones rápidos a las demás pantallas."
     },
     {
       "ruta": "/cuentas-proveedores",
@@ -184,7 +173,7 @@
         "ADMINISTRACION",
         "GERENCIA"
       ],
-      "queEs": "Es la cuenta corriente de cada proveedor: lo que se le debe, qué vence y si coincide con lo que él informa."
+      "queEs": "Es la cuenta corriente de cada proveedor. La lista muestra el saldo (lo que se le debe), lo vencido, el próximo vencimiento y el estado de la conciliación (si coincide con lo que el proveedor informa, tiene diferencia o está sin conciliar). Al abrir un proveedor se ve su cuenta con cada factura (debe), pago (haber) y el saldo corrido."
     },
     {
       "ruta": "/cuentas-clientes",
@@ -193,7 +182,7 @@
         "ADMINISTRACION",
         "GERENCIA"
       ],
-      "queEs": "Es la cuenta corriente de cada cliente: lo facturado, lo cobrado, lo que debe y hace cuánto."
+      "queEs": "Es la cuenta corriente de cada cliente: lo facturado, lo cobrado, lo que debe y hace cuánto. La lista muestra el saldo de cada cliente repartido por antigüedad (hasta 30 días, 31 a 60, 61 a 90 y más de 90, este último en rojo) y lo cobrado que todavía no se imputó a una factura. Al abrir un cliente se ve su cuenta con facturas, notas de crédito y cobros."
     },
     {
       "ruta": "/tesoreria",
@@ -202,7 +191,7 @@
         "ADMINISTRACION",
         "GERENCIA"
       ],
-      "queEs": "Son las cajas, los bancos y las cuentas de terceros. Los pagos y cobros se registran solos; acá va lo demás."
+      "queEs": "Son las cajas, los bancos, las billeteras y las cuentas de terceros. Arriba una tarjeta por cuenta muestra su nombre, tipo, saldo y la fecha de la última conciliación (en naranja si pasaron más de 30 días o nunca se hizo); la cuenta elegida muestra debajo sus movimientos con concepto, contraparte, comprobante e importe. Los pagos y cobros de proveedores y clientes se registran solos; acá va lo demás."
     },
     {
       "ruta": "/solicitudes-pago",
@@ -213,7 +202,7 @@
         "GERENCIA_PRODUCCION",
         "VENTAS"
       ],
-      "queEs": "Es donde cualquier área pide un pago y Administración lo aprueba y lo paga. Queda quién pidió, quién resolvió y cuándo."
+      "queEs": "Es donde cualquier área pide un pago y Administración lo aprueba y lo paga. La lista muestra el concepto, a quién se paga, quién pidió y cuándo, el vencimiento, el importe y el estado (pendiente, aprobada, pagada, rechazada o anulada). Queda registrado quién pidió, quién resolvió y cuándo. Cada solicitud tiene «Comentarios (N)»: una conversación corta, con nombre y hora, entre quien pidió y Administración; el último comentario se ve debajo del concepto."
     },
     {
       "ruta": "/costos",
@@ -224,7 +213,7 @@
         "ADMINISTRACION",
         "GERENCIA_PRODUCCION"
       ],
-      "queEs": "Acá se ve cuánto cuesta cada insumo y cada producto. Es costo de gestión, sin IVA: sirve para decidir, no es la valuación contable."
+      "queEs": "Acá se ve cuánto cuesta cada insumo y cada producto. Es costo de gestión, sin IVA: sirve para decidir, no es la valuación contable. La pantalla tiene pestañas: «Insumos» (costo vigente de cada materia prima y de dónde sale), «Lotes» (lo que se pagó por cada lote recibido), «Recepciones» (si lo cargado coincide con la factura del proveedor), «Productos» (costo calculado de cada producto), «Stock valorizado» (cuánta plata hay parada), «Gastos», «Avisos» y «Parámetros». Los datos salen de las recepciones de insumos, de las fórmulas de los productos y de lo que cargan Finanzas, Administración y Producción; con ellos se calculan las cotizaciones, el resultado del mes y la eficiencia."
     },
     {
       "ruta": "/resultado",
@@ -234,7 +223,7 @@
         "GERENCIA",
         "ADMINISTRACION"
       ],
-      "queEs": "El resultado del mes: cuánto se facturó, cuánto costó todo y cuánto hay que vender para no perder. Es resultado de gestión, no fiscal."
+      "queEs": "El resultado del mes: cuánto se facturó, cuánto costó todo y cuánto hay que vender para no perder. Es resultado de gestión, no fiscal: lo valida el estudio contable. Arriba hay cuatro tarjetas del último mes con datos («Resultado», «Facturación» con su margen de contribución, «Punto de equilibrio» y «Falta para el equilibrio» o «Sobra sobre el equilibrio»). Abajo, un gráfico de facturación contra costos totales de los últimos 12 meses y una tabla mes por mes. La facturación sale de las facturas autorizadas; los costos, del costo de lo vendido más los gastos cargados en Costos › Gastos."
     },
     {
       "ruta": "/eficiencia",
@@ -244,7 +233,7 @@
         "GERENCIA",
         "ADMINISTRACION"
       ],
-      "queEs": "Te muestra qué productos explican la mayor parte de la facturación, cuánto margen deja cada uno y dónde hay plata parada en stock."
+      "queEs": "Te muestra qué productos explican la mayor parte de la facturación, cuánto margen deja cada uno y dónde hay plata parada en stock. Arriba elegís el período. Primero aparece el conteo de productos por clase A, B y C, la curva de Pareto, la matriz «Facturación × margen» y una tabla por producto (unidades, facturación, participación, acumulado y margen). Abajo hay tres pestañas: «Stock: rotación y capital inmovilizado», «Precios por proveedor» y «Alertas de precio». Los datos salen de las facturas autorizadas, los costos de los productos y el stock valorizado."
     },
     {
       "ruta": "/cotizaciones",
@@ -254,7 +243,7 @@
         "GERENCIA",
         "GERENCIA_PRODUCCION"
       ],
-      "queEs": "El historial de cotizaciones. Desde acá armás una nueva, abrís una existente o buscás una emitida."
+      "queEs": "El historial de cotizaciones. Desde acá armás una nueva, abrís una existente o buscás una emitida. La lista está dividida en «Para clientes» y «Uso interno», y cada fila muestra número, fecha, producto, para quién es, precio unitario, margen, estado (Borrador, Emitida o Anulada), vencimiento y quién la emitió. Los datos salen de las cotizaciones que se arman en el editor; una vez emitidas quedan congeladas."
     },
     {
       "ruta": "/gerencia",
@@ -263,7 +252,7 @@
         "FINANZAS",
         "GERENCIA"
       ],
-      "queEs": "Un resumen del mes con pocos números grandes: resultado, facturación, punto de equilibrio y producción."
+      "queEs": "Un resumen del mes con pocos números grandes: resultado, facturación, punto de equilibrio y producción. Abajo, dos listas: los cinco productos más vendidos del mes con su margen y las órdenes de producción terminadas. Los datos salen de las facturas autorizadas, los costos y gastos cargados y las órdenes de producción terminadas; el detalle completo está en Resultado y Eficiencia."
     },
     {
       "ruta": "/reportes",
@@ -272,7 +261,7 @@
         "ADMINISTRACION",
         "GERENCIA"
       ],
-      "queEs": "Son los reportes de IVA, ventas, resultado, flujo de fondos y compras, armados con lo que se carga día a día."
+      "queEs": "Son los reportes de IVA, ventas, resultado, flujo de fondos y compras, armados con lo que se carga día a día. Tiene seis pestañas, cada una con una nota arriba que explica cómo se calcula y una tabla con los números por mes. No se carga nada acá: son solo para mirar."
     },
     {
       "ruta": "/usuarios",
@@ -280,7 +269,7 @@
       "roles": [
         "ADMINISTRADOR_SISTEMA"
       ],
-      "queEs": "Es la lista de las personas del sistema, con su rol y su sector. Solo la ve el administrador del sistema."
+      "queEs": "Es la lista de las personas del sistema, con su rol y su sector. La tabla muestra el nombre (con la marca «DT titular» si corresponde), el correo, el rol principal y los adicionales, el sector, la fecha de alta y el estado (Habilitado o Desactivado). Solo la ve el administrador del sistema."
     },
     {
       "ruta": "/visibilidad",
@@ -288,7 +277,7 @@
       "roles": [
         "ADMINISTRADOR_SISTEMA"
       ],
-      "queEs": "Es una grilla de cada pantalla contra cada rol. Tildar o destildar decide qué aparece en el menú de ese rol."
+      "queEs": "Es una grilla de cada pantalla (y de las pestañas) contra cada rol. Tildar o destildar decide qué aparece en el menú de ese rol. Cada columna es un rol, con el nombre de quien lo usa hoy cuando corresponde. Solo cambia el menú: no da ni quita permisos sobre los datos."
     },
     {
       "ruta": "/auditoria",
@@ -298,7 +287,7 @@
         "GERENCIA",
         "ADMINISTRADOR_SISTEMA"
       ],
-      "queEs": "Es el registro de todo lo que se escribió en el sistema: quién, cuándo, y qué valor tenía antes y después. Es lo que un inspector va a pedir."
+      "queEs": "Es el registro de todo lo que se escribió en el sistema: quién, cuándo, y qué valor tenía antes y después. Es lo que un inspector va a pedir. Cada fila muestra el momento, la tabla, la operación, el usuario y el rol de base que hizo la escritura. Es de solo lectura."
     },
     {
       "ruta": "/stock?vista=insumos",
@@ -341,6 +330,17 @@
       "queEs": null
     },
     {
+      "ruta": "/stock?vista=calle5",
+      "etiqueta": "Stock › Calle 5",
+      "roles": [
+        "GERENCIA_PRODUCCION",
+        "GERENCIA",
+        "ADMINISTRACION",
+        "VENTAS"
+      ],
+      "queEs": "Es el stock de producto terminado de Calle 5, el local. Entra lo que manda la planta y sale lo que se vende o se descarta. Arriba hay dos contadores: «Unidades en el local» y «Productos con stock». Después viene la tabla con cada producto, sus unidades (con las que están retenidas por lote sin liberar) y la fecha del último movimiento. Más abajo hay tres pestañas («Pedidos a despachar», «Por producto» y «Reservas») y la lista de últimos movimientos. Todo movimiento queda en un libro del que no se borra nada."
+    },
+    {
       "ruta": "/stock?vista=conteo",
       "etiqueta": "Stock › Conteo",
       "roles": [
@@ -358,7 +358,7 @@
         "CONTROL_CALIDAD",
         "GERENCIA"
       ],
-      "queEs": "Los listados maestros del sistema en cuatro pestañas: «Productos», «Insumos», «Proveedores» y «Depósitos». Todo lo demás (recepciones, órdenes) se arma sobre ellos."
+      "queEs": "Los listados maestros del sistema en cuatro pestañas: «Productos», «Insumos», «Proveedores» y «Depósitos» (se abre en «Productos»). Todo lo demás (recepciones, órdenes, fórmulas) se arma sobre ellos. Cada pestaña es una tabla con buscador; los datos los carga el equipo desde acá."
     }
   ],
   "subrutas": [

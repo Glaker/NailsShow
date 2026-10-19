@@ -70,12 +70,17 @@ describe('reparto por rol del 2026-10-01', () => {
     const r = rutas('ADMINISTRACION');
     for (const fuera of ['/formulas', '/lotes', '/planificacion', '/tercerizados'])
       expect(r).not.toContain(fuera);
-    expect(r).toContain('/punto-venta');
+    expect(r).toContain('/stock');
   });
   it('Ventas tiene su sección y no la lista de pedidos de producción', () => {
     const r = rutas('VENTAS');
     expect(r).toContain('/ventas');
     expect(r).not.toContain('/pedidos');
+  });
+  it('Gerencia de Producción no ve Especificaciones (D-ventas-pedidos-2)', () => {
+    const r = rutas('GERENCIA_PRODUCCION');
+    expect(r).not.toContain('/especificaciones');
+    expect(r).toContain('/compras');
   });
   it('catálogos, calculadora y lista de materiales no son secciones', () => {
     const todas = itemsVisibles(['ADMINISTRADOR_SISTEMA']).map((i) => i.ruta);

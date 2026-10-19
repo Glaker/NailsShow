@@ -545,6 +545,164 @@ Certificados: `AFIP_CERT_<CUIT>`/`AFIP_KEY_<CUIT>` por emisor, o
 IVA y cuentas corrientes por emisor.
 **Decide.** Gerencia, con el estudio contable.
 
+## Rama sesion-15-oct (número definitivo al integrar en main)
+
+### D-sesion-15-oct-1 · Comentarios en solicitudes de pago — adoptada 2026-10-15
+Pedido del usuario: Gerencia de Producción ve todas las solicitudes de pago,
+sin aprobarlas ni pagarlas, y quien ve una solicitud puede comentarla. Los
+comentarios son append-only, a nombre propio y con la hora de la base
+(20261015120000, §2.2 del documento de Administración).
+
+### D-sesion-15-oct-2 · El Administrador del sistema no comenta — provisoria
+Ve todas las solicitudes (lectura completa, §3.5), y con la regla «comenta
+quien ve» habría pasado a escribir. Se lo excluye de comentar
+(20261015120100) por ser su acceso de lectura; sí comenta una solicitud que
+cargó él mismo, como cualquier solicitante. **A confirmar** por el
+usuario: si debe poder comentar, se revierte con una migración nueva.
+
+## Rama ventas-pedidos (número definitivo al integrar en main)
+
+Ventas, pedidos, roles y respaldos (2026-10-15). Número provisorio por rama
+(CLAUDE.md §6, Git).
+
+### D-ventas-pedidos-1 · Agustina: producción y ventas
+**Contexto.** El modelo ya admite varios roles por usuario
+(`core.usuarios.roles_adicionales`, claim `roles`, `core.es_rol`). Agustina
+sería VENTAS con ENCARGADA_STOCK adicional («Pedidos a armar», lo que hoy hace
+Silveira).
+**Resuelto (2026-10-15):** Tercerizados se abre **solo a Agustina**, no a todo
+VENTAS. Como el menú y RLS son por rol, hace falta un permiso por usuario o un
+rol propio: se define al implementar el bloque 2.
+**Pendiente.** Si Silveira conserva ENCARGADA_STOCK. Correos de Agustina y
+Silveira.
+**Decide.** Gerencia.
+
+### D-ventas-pedidos-2 · Especificaciones y Gerencia de Producción — resuelta 2026-10-15
+Sale del menú de GP y **pierde también la escritura** en
+`gmp.especificaciones` (políticas de DT y GP). Va en la migración del bloque 2.
+
+### D-ventas-pedidos-3 · Vendedores nuevos: Johana, María del Rosario, Silvina Alegre
+Pendientes, sin reglas inventadas: lista y escala de educadores (Johana);
+comisión de mayorista Santa Fe (María del Rosario); integración o carga manual
+de Tienda Nube (Silvina). Faltan los correos y los valores del atributo que las
+distingue (canal, zona). No bloquea el bloque 3.
+**Decide.** Gerencia, en reunión.
+
+### D-ventas-pedidos-4 · Pedido que vuelve a Nazarena — resuelta 2026-10-15
+Si Ventas cambia productos o cantidades después de la fecha propuesta, la fecha
+queda «a reconfirmar» y vuelve a la bandeja de GP. Si cambia solo precio,
+descuento o forma de pago, no vuelve. Mientras esté «a reconfirmar», el pedido
+no cuenta en estadísticas.
+
+### D-ventas-pedidos-5 · Tope de descuento efectivo por rol — adoptada 2026-10-15
+Los descuentos se encadenan (`1 − Π(1 − dᵢ)`). Superar el tope del rol **no
+bloquea**: pide autorización de GERENCIA. Los valores por rol los fija
+Finanzas y son configurables.
+
+### D-ventas-pedidos-6 · Pago antes de facturar: anticipo
+**Adoptado (modelo):** anticipo imputado al pedido y aplicado a la factura
+cuando se emite.
+**Abierto (fiscal):** por la Ley de IVA (art. 5), un anticipo que congela
+precio puede generar el hecho imponible al cobrarse. No se implementa la
+lógica fiscal hasta que confirme el contador.
+**Decide.** Contador.
+
+### D-ventas-pedidos-7 · Reproceso de mercadería devuelta desde Calle 5
+No existe en el sistema y el POE (RN-25) no está redactado. El bloque 5 queda
+diferido hasta que exista el POE; no se diseña el circuito antes.
+**Decide.** Dirección Técnica.
+
+### D-ventas-pedidos-8 · Respaldos: destino, PITR y conservación
+- **Destino de la copia externa:** almacenamiento a nombre de la empresa, nunca
+  una cuenta personal. Cuál, a confirmar. El workflow toma el destino por
+  secreto, cifra la copia y la clave queda fuera del repo.
+- **PITR:** lo decide la Dirección con `docs/SEGURIDAD_Y_RESPALDOS.md`. La copia
+  nocturna externa va igual.
+- **Conservación propuesta:** copias diarias por 30 días, mensuales por 10
+  años, y nunca borrar datos de la base viva. Fundamento: I.60.12 retiene
+  muestras de archivo un año después del vencimiento (vida útil de 36 meses: al
+  menos cuatro años desde la fabricación); el Código Civil y Comercial (art.
+  328) exige conservar la documentación comercial diez años.
+**Decide.** Dirección Técnica y contador.
+
+### D-ventas-pedidos-9 · Exportación completa — adoptada 2026-10-15
+Todas las tablas, incluidos costos y auditoría, solo para ADMINISTRADOR_SISTEMA
+y GERENCIA. Cada exportación queda registrada con autor y fecha.
+
+### D-ventas-pedidos-10 · Foto del importe pedido y condición de estadísticas — adoptada 2026-10-15
+Un pedido cuenta en las estadísticas de ventas solo cuando Nazarena propuso
+fecha para el pedido **entero** (no solo para renglones demorados) y Ventas lo
+confirmó. En ese momento se congela una foto del importe pedido (cantidades,
+precios y descuentos tal como quedaron). Las ediciones posteriores cambian el
+importe enviado o facturado, nunca la foto. La foto se implementa antes de
+habilitar la edición en APROBADO.
+
+### D-ventas-pedidos-11 · Rama base del trabajo
+`main` está 82 commits atrás de `costos-fase-1`, que es lo aplicado en la base
+real. `herramientas`, `sesion-15-oct` y `ventas-pedidos` salen de
+`costos-fase-1` (desde `main` no compilan: les faltan archivos como
+`src/features/costos/`). `ventas-pedidos` va encima de las otras dos. Falta
+decidir cuándo se lleva todo a `main` (Vercel publica desde `main`).
+
+### D-ventas-pedidos-12 · Árbol de trabajo ordenado — resuelta 2026-10-15
+Los cambios sin commitear eran del usuario, de otras sesiones: quedaron en
+`herramientas` (sesión A) y `sesion-15-oct` (sesión B), un commit por tema.
+Siguen sin commitear, a decisión del usuario: `react-doctor`, `shadcn`, el
+script `doctor` y la clave `intent` de `package.json`; `AGENTS.md`;
+`.claude/skills/`; `.impeccable/review/`; `react-doctor.yml`.
+
+### D-ventas-pedidos-13 · «Aprobado» se guarda como CONFIRMADO — a confirmar
+El plan aprobado hablaba de un estado nuevo APROBADO. En la base, el pedido de
+venta aprobado queda en el **CONFIRMADO** de siempre, porque es el estado que
+leen Calle 5, el armado, el despacho, la facturación y los S-xxxx (14
+migraciones y unas 15 partes del front). Lo nuevo es cómo se llega: solo desde
+FECHA_PROPUESTA y con foto, y eso lo controla la base (20261019130100). La
+pantalla lo muestra como «Aprobado» en los pedidos de venta. Renombrarlo
+obligaría a reescribir todo el circuito posterior sin cambiar ninguna regla.
+
+### D-ventas-pedidos-14 · Ventas confirmadas antes del circuito nuevo — resuelta 2026-10-19
+Los pedidos de venta que ya estaban CONFIRMADOS o CUMPLIDOS antes de
+20261019130100 no tienen foto y no aparecen en `comercial.v_ventas_pedidas`.
+**Resuelta por el usuario (2026-10-19):** sin foto retroactiva. La
+estadística de importe pedido arranca desde la puesta en servicio de
+20261019130100.
+
+Nota de numeración: el circuito se escribió como 20261015130000/130100 y se
+aplicó como 20261019130000/130100. Los números intermedios los usa la rama
+giorgio, cuyas 20261019110000 y 120000 ya están registradas en la base real.
+
+### D-ventas-pedidos-16 · Giorgio en espera de la dirección — abierta
+Suspendido hasta que la dirección decida si se paga la API. Mientras tanto: no
+se trabaja en la rama `giorgio` ni en su worktree (queda commiteada y sin
+integrar); no se crea ninguna clave de API, ningún secreto
+`ANTHROPIC_API_KEY`, ninguna Edge Function de Giorgio ni ninguna tabla de su
+registro, en ninguna base; nada de Giorgio entra en las ramas en curso.
+**Diseño acordado para cuando se retome:**
+1. Primero una capa **sin IA**: ayuda por pantalla, tarjetas de «de dónde sale
+   este número» armadas por el sistema, buscador con «Llevame a…» y preguntas
+   frecuentes por rol.
+2. Una capa **con IA, apagada**, que se activa solo si el registro de uso
+   muestra que hace falta, con tope mensual configurable.
+Las decisiones D-57 a D-60 de la rama `giorgio` se renumeran con la
+convención por rama (CLAUDE.md §6, Git) cuando se retome.
+**Decide.** Dirección.
+
+### D-ventas-pedidos-15 · Quién propone la fecha — adoptada
+Solo Gerencia de Producción (Nazarena). Gerencia no, porque la política de
+UPDATE de `comercial.pedidos` no la incluye y el pedido no pasaría a
+FECHA_PROPUESTA.
+**Abierta:** quién propone fechas cuando Nazarena está ausente.
+
+### D-ventas-pedidos-17 · Gantt por producción de producto, no por pedido — pendiente
+Pedido del usuario (2026-10-16), para después del bloque 3: en el Gantt,
+Nazarena no carga un pedido entero sino **producción de un producto**, y decide
+para qué pedido va o si es para tener en el depósito. Hoy el Gantt planifica
+pedidos (`comercial.pedidos.plan_inicio`, `plan_dias`) y lo que falta de una
+venta va a Producción como un S-xxxx entero (`para_pedido_id`). **A diseñar**:
+la unidad de planificación (producción de un producto con cantidad), cómo se
+asigna a uno o varios pedidos o a stock, y cómo convive con la fecha
+comprometida del bloque 3.
+
 ## Abiertas — 2026-10-14
 
 ### D-55 · Especificaciones cargadas en borrador: qué revisar antes de aprobar

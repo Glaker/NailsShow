@@ -1,4 +1,13 @@
-import { Badge, Grid, Group, NumberInput, SegmentedControl, Select, Switch, Text } from '@mantine/core';
+import {
+  Badge,
+  Grid,
+  Group,
+  NumberInput,
+  SegmentedControl,
+  Select,
+  Switch,
+  Text,
+} from '@mantine/core';
 import { numero } from '@/lib/formato';
 import {
   ALICUOTAS,
@@ -6,6 +15,7 @@ import {
   UNIDADES_COSTO,
   convertirCantidad,
   netoArs,
+  useTipoCambioActivo,
   type Comprobante,
   type CostoReferencia,
   type Moneda,
@@ -43,6 +53,14 @@ export const costoCompleto = (v: ValorCosto) =>
 
 const pesos = (v: number) => `$ ${numero(v, 2)}`;
 
+/** De dónde sale el tipo de cambio propuesto, para que se vea al cargar. */
+export const descripcionTc = (
+  tc: { mes: string; valor: number; es_provisorio: boolean } | null | undefined,
+) =>
+  tc
+    ? `BCRA A3500 ${tc.es_provisorio ? 'de hoy' : 'cierre ' + tc.mes.slice(5, 7) + '/' + tc.mes.slice(0, 4)}: $ ${numero(tc.valor, 2)}`
+    : undefined;
+
 /**
  * «Pagué $X por N unidades, con o sin IVA». Muestra el neto y el unitario
  * resultantes en la unidad del catálogo, y la variación contra el costo de
@@ -67,11 +85,20 @@ export function CamposCosto({
   sinCantidad?: boolean;
 }) {
   const set = (cambio: Partial<ValorCosto>) => onChange({ ...valor, ...cambio });
+  // Al pasar a dólares se propone el A3500 vigente del BCRA; se puede cambiar
+  // por el de la factura.
+  const tcOficial = useTipoCambioActivo().data;
   const esA = valor.tipo_comprobante === 'FACTURA_A';
   const tc = valor.moneda === 'ARS' ? 1 : (valor.tipo_cambio ?? 0);
   const neto =
     valor.importe !== null && tc > 0
-      ? netoArs(valor.importe, valor.tipo_comprobante, esA ? valor.incluye_iva : null, valor.alicuota_iva, tc)
+      ? netoArs(
+          valor.importe,
+          valor.tipo_comprobante,
+          esA ? valor.incluye_iva : null,
+          valor.alicuota_iva,
+          tc,
+        )
       : null;
   const cantCatalogo =
     !sinCantidad && valor.cantidad && unidadCatalogo
@@ -107,7 +134,15 @@ export function CamposCosto({
             { label: 'Dólares', value: 'USD' },
           ]}
           value={valor.moneda}
-          onChange={(v) => set({ moneda: v as Moneda })}
+          onChange={(v) =>
+            set({
+              moneda: v as Moneda,
+              tipo_cambio:
+                v === 'USD' && valor.tipo_cambio === null
+                  ? (tcOficial?.valor ?? null)
+                  : valor.tipo_cambio,
+            })
+          }
         />
       </Grid.Col>
       <Grid.Col span={{ base: 6, sm: 4 }}>
@@ -149,6 +184,7 @@ export function CamposCosto({
         <Grid.Col span={{ base: 6, sm: 4 }}>
           <NumberInput
             label="Tipo de cambio ($ por U$D)"
+            description={descripcionTc(tcOficial)}
             min={0}
             decimalScale={4}
             thousandSeparator="."
@@ -171,7 +207,10 @@ export function CamposCosto({
           <Grid.Col span={{ base: 6, sm: 4 }}>
             <Select
               label="Alícuota"
-              data={ALICUOTAS.map((a) => ({ value: a, label: a === '0' ? 'Exento' : `${a.replace('.', ',')} %` }))}
+              data={ALICUOTAS.map((a) => ({
+                value: a,
+                label: a === '0' ? 'Exento' : `${a.replace('.', ',')} %`,
+              }))}
               value={String(valor.alicuota_iva)}
               onChange={(v) => v && set({ alicuota_iva: Number(v) })}
               allowDeselect={false}
@@ -199,7 +238,10 @@ export function CamposCosto({
             <Text size="sm">
               Unitario: <b>{pesos(unitario)}</b> por {unidadCatalogo}
             </Text>
-          ) : !sinCantidad && valor.cantidad && unidadCatalogo && cantCatalogo === null ? (
+          ) : !sinCantidad &&
+            valor.cantidad &&
+            unidadCatalogo &&
+            cantCatalogo === null ? (
             <Text size="sm" c="orange">
               No se puede pasar {valor.unidad} a {unidadCatalogo} sin densidad: cargalo en{' '}
               {unidadCatalogo}.

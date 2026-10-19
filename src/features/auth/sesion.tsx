@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -41,6 +42,13 @@ interface ValorSesion {
   cargando: boolean;
   /** Autenticado en Supabase pero sin rol: usuario desactivado o recién creado. */
   sinHabilitar: boolean;
+  /**
+   * La sesión se cerró sin que el usuario tocara «Salir» (refresco fallido,
+   * sesión revocada). La pantalla sigue montada, con lo que había escrito, y se
+   * pide reingresar encima. `claims` conserva los de la sesión perdida para que
+   * el menú y las rutas no se desarmen mientras tanto.
+   */
+  vencida: { email: string } | null;
   ingresar: (email: string, password: string) => Promise<void>;
   registrar: (email: string, password: string, nombreCompleto: string) => Promise<void>;
   salir: () => Promise<void>;
@@ -80,17 +88,50 @@ function leerClaims(session: Session | null): ClaimsSesion | null {
 export function ProveedorSesion({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [cargando, setCargando] = useState(true);
+  const [vencida, setVencida] = useState<{
+    email: string;
+    claims: ClaimsSesion | null;
+  } | null>(null);
+  const salidaVoluntaria = useRef(false);
+  const ultima = useRef<Session | null>(null);
 
   useEffect(() => {
     let vigente = true;
 
     void supabase.auth.getSession().then(({ data }) => {
       if (!vigente) return;
+      ultima.current = data.session;
       setSession(data.session);
       setCargando(false);
     });
 
-    const { data: suscripcion } = supabase.auth.onAuthStateChange((_evento, nueva) => {
+    const { data: suscripcion } = supabase.auth.onAuthStateChange((evento, nueva) => {
+      // Diagnóstico del cierre inesperado (bloque 1.2): queda en la consola
+      // qué evento llegó, cuándo y cuándo vencía el token.
+      console.info(
+        '[sesion]',
+        evento,
+        new Date().toISOString(),
+        nueva?.expires_at
+          ? `vence ${new Date(nueva.expires_at * 1000).toISOString()}`
+          : '',
+      );
+      if (
+        evento === 'SIGNED_OUT' &&
+        !salidaVoluntaria.current &&
+        ultima.current?.user.email
+      ) {
+        console.warn('[sesion] cierre no pedido por el usuario');
+        setVencida({
+          email: ultima.current.user.email,
+          claims: leerClaims(ultima.current),
+        });
+      }
+      if (nueva) {
+        setVencida(null);
+        salidaVoluntaria.current = false;
+      }
+      ultima.current = nueva;
       setSession(nueva);
       setCargando(false);
     });
@@ -101,7 +142,10 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const claims = useMemo(() => leerClaims(session), [session]);
+  const claims = useMemo(
+    () => leerClaims(session) ?? vencida?.claims ?? null,
+    [session, vencida],
+  );
 
   const ingresar = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -121,6 +165,8 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
   );
 
   const salir = useCallback(async () => {
+    salidaVoluntaria.current = true;
+    setVencida(null);
     await supabase.auth.signOut();
   }, []);
 
@@ -136,12 +182,13 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
       claims,
       cargando,
       sinHabilitar: Boolean(session) && !claims?.rol,
+      vencida: vencida && { email: vencida.email },
       ingresar,
       registrar,
       salir,
       refrescar,
     }),
-    [session, claims, cargando, ingresar, registrar, salir, refrescar],
+    [session, claims, cargando, vencida, ingresar, registrar, salir, refrescar],
   );
 
   return <ContextoSesion.Provider value={valor}>{children}</ContextoSesion.Provider>;

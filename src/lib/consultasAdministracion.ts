@@ -7,9 +7,10 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 import { avisarError, avisarExito } from './consultas';
-import { comercial } from './supabase';
+import { comercial, supabase } from './supabase';
 
 type Vistas = Database['comercial']['Views'];
 type Tablas = Database['comercial']['Tables'];
@@ -514,6 +515,39 @@ export const useResolverSolicitud = () =>
         : r.estado === 'RECHAZADA'
           ? 'Solicitud rechazada.'
           : 'Solicitud anulada.',
+  );
+
+/** Un comentario sobre una solicitud (20261015120000). Append-only. */
+export interface ComentarioSolicitud {
+  id: string;
+  solicitud_id: string;
+  texto: string;
+  autor: string;
+  creado_en: string;
+}
+
+// Puente: comentarios_solicitud_pago entra con 20261015120000. Al correr
+// `npm run db:types` se tipa con Tablas y se borra.
+const comentarios = () =>
+  (supabase as unknown as SupabaseClient)
+    .schema('comercial')
+    .from('comentarios_solicitud_pago');
+
+/** Todos los comentarios visibles; la pantalla los agrupa por solicitud. */
+export const useComentariosSolicitudes = () =>
+  useQuery(
+    lista<ComentarioSolicitud>(['solicitudes-pago', 'comentarios'], () =>
+      comentarios().select('*').order('creado_en', { ascending: true }),
+    ),
+  );
+
+export const useComentarSolicitud = () =>
+  useMutacion(
+    (c: { solicitudId: string; texto: string }) =>
+      avisarSiFalla(
+        comentarios().insert({ solicitud_id: c.solicitudId, texto: c.texto }),
+      ),
+    'Comentario guardado.',
   );
 
 export const usePagarSolicitudConEgreso = () =>

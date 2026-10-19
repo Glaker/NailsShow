@@ -39,6 +39,8 @@ reconstrucción la aplica en su lugar por orden de nombre.
 | `probar_ventas_central.mjs` | central de Ventas: lista 46.14 por pack, escala por monto del pedido entero, precio a mano, envío contra Calle 5 con S-xxxx para lo que falta, reserva opcional, visto bueno de stock, despacho y pago en pedido cerrado |
 | `probar_descarte.mjs` | dar de baja todo el stock de un artículo (descarte «Discontinuado» por posición) |
 | `probar_giorgio.mjs` | Giorgio: límite diario por rol, tope global con corte al 80 %, interruptor, registro append-only y a nombre propio, costo de un modelo sin precio, tokens inventados recortados (D-58 a D-60) |
+| `probar_comentarios_pago.mjs` | Gerencia de Producción ve todas las solicitudes de pago sin poder aprobarlas; comentarios append-only, a nombre propio, con la hora de la base, solo sobre solicitudes visibles; el Administrador del sistema lee y no comenta |
+| `probar_fecha_y_foto.mjs` | pedido de venta: Ventas pide fecha, Gerencia de Producción la propone (pedido entero y productos demorados), Ventas aprueba con foto del importe; vuelta a reconfirmar, factura bloqueada sin aprobar, es_venta inmutable |
 
 `probar_facturas` (sesiones anteriores) necesita el token de Afip SDK y red, y
 no está acá.
