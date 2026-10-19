@@ -146,7 +146,7 @@ function FormularioFecha({
   const proponer = useProponerFecha();
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
-  const [entera, setEntera] = useState<Date | null>(
+  const [entera, setEntera] = useState<Date | null>(() =>
     pedido.fecha_entrega ? new Date(`${pedido.fecha_entrega}T12:00:00`) : null,
   );
   const [nota, setNota] = useState('');
