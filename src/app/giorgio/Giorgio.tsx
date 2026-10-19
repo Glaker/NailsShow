@@ -74,10 +74,12 @@ export function Giorgio() {
     ];
     setTexto('');
     setPanel(true);
+    const id = proximo.current;
+    proximo.current += 2;
     setMensajes((ms) => [
       ...ms,
-      { id: proximo.current++, rol: 'usuario', texto: pregunta, botones: [] },
-      { id: proximo.current++, rol: 'giorgio', texto: '', botones: [] },
+      { id, rol: 'usuario', texto: pregunta, botones: [] },
+      { id: id + 1, rol: 'giorgio', texto: '', botones: [] },
     ]);
     setCargando(true);
     corte.current = new AbortController();
