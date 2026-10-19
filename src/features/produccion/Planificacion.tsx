@@ -31,7 +31,7 @@ import {
 import type { CSSProperties } from 'react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { useSesion, useTieneRol } from '@/features/auth/sesion';
-import { fecha, fechaISO } from '@/lib/formato';
+import { fecha, fechaISO, desdeCalendario } from '@/lib/formato';
 import {
   usePedidos,
   usePlanificarPedido,
@@ -472,7 +472,7 @@ function ModalPlanificar({
             label="Empieza a producirse"
             valueFormat="DD/MM/YYYY"
             value={valorInicio}
-            onChange={(v) => setInicio(v ? new Date(v) : null)}
+            onChange={(v) => setInicio(desdeCalendario(v))}
           />
           <NumberInput
             label="Días de producción"

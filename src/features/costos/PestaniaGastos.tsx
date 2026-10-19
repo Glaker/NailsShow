@@ -24,7 +24,7 @@ import { z } from 'zod';
 import { IconReceipt, IconSearch } from '@tabler/icons-react';
 import { Vacio } from '@/components/Vacio';
 import { FINANZAS, useTieneRol } from '@/features/auth/sesion';
-import { fechaISO, numero } from '@/lib/formato';
+import { fechaISO, numero, desdeCalendario } from '@/lib/formato';
 import {
   COMPROBANTES,
   ETIQUETA_CLASE,
@@ -97,7 +97,9 @@ export function PestaniaGastos() {
     );
   const total = suma(visibles.map((r) => r.importe_neto_ars));
   const sinCompTotal = suma(
-    visibles.filter((r) => r.tipo_comprobante === 'SIN_COMPROBANTE').map((r) => r.importe_neto_ars),
+    visibles
+      .filter((r) => r.tipo_comprobante === 'SIN_COMPROBANTE')
+      .map((r) => r.importe_neto_ars),
   );
   const pctSinComp = total > 0 ? (sinCompTotal / total) * 100 : 0;
 
@@ -179,7 +181,10 @@ export function PestaniaGastos() {
           />
         </Paper>
       ) : (
-        <Paper withBorder style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}>
+        <Paper
+          withBorder
+          style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}
+        >
           <Table.ScrollContainer minWidth={1000}>
             <Table verticalSpacing="sm" highlightOnHover>
               <Table.Thead>
@@ -222,7 +227,8 @@ export function PestaniaGastos() {
                           </Badge>
                         ) : (
                           <Text size="sm">
-                            {COMPROBANTES.find((c) => c.value === r.tipo_comprobante)?.label ?? '—'}
+                            {COMPROBANTES.find((c) => c.value === r.tipo_comprobante)
+                              ?.label ?? '—'}
                           </Text>
                         )}
                       </Table.Td>
@@ -236,7 +242,11 @@ export function PestaniaGastos() {
                       </Table.Td>
                       {puede ? (
                         <Table.Td>
-                          <Button size="sm" variant="light" onClick={() => setRectificando(r)}>
+                          <Button
+                            size="sm"
+                            variant="light"
+                            onClick={() => setRectificando(r)}
+                          >
                             Corregir
                           </Button>
                         </Table.Td>
@@ -271,9 +281,18 @@ export function PestaniaGastos() {
         ) : null}
       </Modal>
 
-      <Modal opened={cargando} onClose={() => setCargando(false)} title="Cargar gasto" centered size="lg">
+      <Modal
+        opened={cargando}
+        onClose={() => setCargando(false)}
+        title="Cargar gasto"
+        centered
+        size="lg"
+      >
         {cargando ? (
-          <FormularioGasto categorias={categorias.data ?? []} onListo={() => setCargando(false)} />
+          <FormularioGasto
+            categorias={categorias.data ?? []}
+            onListo={() => setCargando(false)}
+          />
         ) : null}
       </Modal>
     </Stack>
@@ -297,11 +316,19 @@ const formaGasto = {
   clase: z.enum(['FIJO', 'OPERATIVO', 'INVERSION']).nullable(),
   mes: z.date({ error: 'Elegí el mes' }),
   descripcion: z.string().trim().min(3, 'Describí el gasto'),
-  vida_util_meses: z.number().int().min(1, 'La vida útil es de al menos 1 mes').max(600, 'La vida útil es de hasta 600 meses').nullable(),
+  vida_util_meses: z
+    .number()
+    .int()
+    .min(1, 'La vida útil es de al menos 1 mes')
+    .max(600, 'La vida útil es de hasta 600 meses')
+    .nullable(),
   comprobante_url: z
     .string()
     .trim()
-    .refine((s) => s === '' || /^https?:\/\//.test(s), 'El link tiene que empezar con http:// o https://'),
+    .refine(
+      (s) => s === '' || /^https?:\/\//.test(s),
+      'El link tiene que empezar con http:// o https://',
+    ),
 };
 
 /** Sólo las inversiones se amortizan: piden vida útil. */
@@ -310,7 +337,11 @@ function reglasGasto(
   ctx: z.RefinementCtx,
 ) {
   if (v.clase === 'INVERSION' && v.vida_util_meses === null)
-    ctx.addIssue({ code: 'custom', path: ['vida_util_meses'], message: 'Falta la vida útil' });
+    ctx.addIssue({
+      code: 'custom',
+      path: ['vida_util_meses'],
+      message: 'Falta la vida útil',
+    });
 }
 
 const esquemaCargar = z
@@ -409,7 +440,9 @@ function FormularioGasto({
       comprobante_url: x.comprobante_url.trim() || null,
     };
     guardar.mutate(
-      rectifica ? { ...datos, rectifica_a: rectifica.id, motivo: x.motivo.trim() } : datos,
+      rectifica
+        ? { ...datos, rectifica_a: rectifica.id, motivo: x.motivo.trim() }
+        : datos,
       { onSuccess: onListo },
     );
   };
@@ -419,7 +452,8 @@ function FormularioGasto({
       <Stack gap="md">
         {rectifica ? (
           <Text size="sm" c="dimmed">
-            El gasto no se edita: se carga uno nuevo que corrige al anterior. Para quitarlo, corregilo con importe 0.
+            El gasto no se edita: se carga uno nuevo que corrige al anterior. Para
+            quitarlo, corregilo con importe 0.
           </Text>
         ) : null}
         <SimpleGrid cols={{ base: 1, sm: 2 }}>
@@ -445,7 +479,7 @@ function FormularioGasto({
             description="Mes al que corresponde, no el del pago."
             valueFormat="MM/YYYY"
             value={v.mes}
-            onChange={(x) => form.setFieldValue('mes', x ? new Date(x) : null)}
+            onChange={(x) => form.setFieldValue('mes', desdeCalendario(x))}
             error={form.errors.mes}
           />
         </SimpleGrid>
@@ -480,7 +514,9 @@ function FormularioGasto({
         ) : null}
         {primerError ? (
           <Text size="sm" c="red">
-            {typeof primerError === 'string' ? primerError : 'Revisá los datos del gasto.'}
+            {typeof primerError === 'string'
+              ? primerError
+              : 'Revisá los datos del gasto.'}
           </Text>
         ) : null}
         <Group justify="flex-end">

@@ -38,7 +38,7 @@ import {
   useProveedores,
   type Insumo,
 } from '@/lib/consultas';
-import { fechaISO, numero } from '@/lib/formato';
+import { desdeCalendario, fechaISO, numero } from '@/lib/formato';
 import {
   useAvisosCompra,
   useVincularCompras,
@@ -570,6 +570,9 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
                       valueFormat="DD/MM/YYYY"
                       clearable
                       {...form.getInputProps(`lotes.${i}.plazo_validez`)}
+                      onChange={(v) =>
+                        form.setFieldValue(`lotes.${i}.plazo_validez`, desdeCalendario(v))
+                      }
                     />
                   </Grid.Col>
 
@@ -907,6 +910,9 @@ function DatosComprobante({ form }: { form: UseFormReturnType<ValoresRecepcion> 
               label="Fecha de la factura"
               valueFormat="DD/MM/YYYY"
               {...form.getInputProps('comprobante.fecha')}
+              onChange={(v) =>
+                form.setFieldValue('comprobante.fecha', desdeCalendario(v) ?? new Date())
+              }
             />
           </Grid.Col>
           {conIva ? (

@@ -38,7 +38,7 @@ import { useNomina } from '@/lib/consultasComercial';
 import { useTieneRol } from '@/features/auth/sesion';
 import { BadgeEstadoPedido } from '@/features/comercial/estadoPedido';
 import { TablaEscala } from './TablaEscala';
-import { fecha, fechaHora, fechaISO, numero } from '@/lib/formato';
+import { fecha, fechaHora, fechaISO, numero, desdeCalendario } from '@/lib/formato';
 import {
   ESTADOS_SIN_APROBAR,
   FORMAS_PAGO,
@@ -486,7 +486,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
               valueFormat="DD/MM/YYYY"
               clearable
               value={entrega}
-              onChange={(x) => setEntrega(x ? new Date(x) : null)}
+              onChange={(x) => setEntrega(desdeCalendario(x))}
               disabled={!editable}
             />
           </Grid.Col>

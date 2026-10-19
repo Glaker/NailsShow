@@ -21,7 +21,7 @@ import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { Vacio } from '@/components/Vacio';
 import { useSesion, useTieneRol } from '@/features/auth/sesion';
 import { useProveedores } from '@/lib/consultas';
-import { fecha, fechaHora, fechaISO } from '@/lib/formato';
+import { fecha, fechaHora, fechaISO, desdeCalendario } from '@/lib/formato';
 import { useNomina } from '@/lib/consultasComercial';
 import {
   MEDIOS_PAGO,
@@ -349,7 +349,7 @@ function ModalNuevaSolicitud({
             valueFormat="DD/MM/YYYY"
             clearable
             value={vence}
-            onChange={(v) => setVence(v ? new Date(v) : null)}
+            onChange={(v) => setVence(desdeCalendario(v))}
           />
         </Group>
         <Select

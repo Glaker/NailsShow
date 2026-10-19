@@ -40,6 +40,18 @@ export function fechaHora(valor: string | Date | null | undefined): string {
   }).format(d);
 }
 
+/**
+ * Lo que entrega un calendario de Mantine 8 (`'YYYY-MM-DD'`), como fecha local.
+ * `new Date('2026-10-22')` es la medianoche UTC: en Buenos Aires, el 21 a las
+ * 21 h, y el calendario mostraba el día anterior al tocado.
+ */
+export function desdeCalendario(valor: string | Date | null | undefined): Date | null {
+  if (!valor) return null;
+  if (valor instanceof Date) return valor;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(valor);
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(valor);
+}
+
 /** Fecha en formato ISO corto, la que va en un campo `date` de la base. */
 export function fechaISO(valor: Date | null | undefined): string | null {
   if (!valor) return null;

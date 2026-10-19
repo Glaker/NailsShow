@@ -25,7 +25,11 @@ import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { Vacio } from '@/components/Vacio';
 import { useTieneRol } from '@/features/auth/sesion';
 import { useClientes } from '@/lib/consultasFacturacion';
-import { useCostosProducto, useParametrosCosto, type CostoProducto } from '@/lib/consultasCostos';
+import {
+  useCostosProducto,
+  useParametrosCosto,
+  type CostoProducto,
+} from '@/lib/consultasCostos';
 import {
   ROLES_COTIZAN,
   useClientesPotenciales,
@@ -35,7 +39,7 @@ import {
   type DestinoCotizacion,
   type EstadoCotizacion,
 } from '@/lib/consultasCotizador';
-import { fecha, fechaISO, numero } from '@/lib/formato';
+import { fecha, fechaISO, numero, desdeCalendario } from '@/lib/formato';
 
 const ESTADO: Record<EstadoCotizacion, { texto: string; color: string }> = {
   BORRADOR: { texto: 'Borrador', color: 'gray' },
@@ -58,7 +62,11 @@ const esquemaNueva = z
     path: ['producto_id'],
   });
 
-type ValoresNueva = { titulo: string; partir: 'blanco' | 'copiar'; producto_id: string | null };
+type ValoresNueva = {
+  titulo: string;
+  partir: 'blanco' | 'copiar';
+  producto_id: string | null;
+};
 
 function NuevaCotizacion({
   abierta,
@@ -178,8 +186,12 @@ export function PaginaCotizaciones() {
   }
 
   const lista = cotizaciones.data ?? [];
-  const nombres = new Map((clientes.data ?? []).map((c) => [c.id, c.razon_social] as const));
-  const potencialesPorId = new Map((potenciales.data ?? []).map((p) => [p.id, p.razon_social] as const));
+  const nombres = new Map(
+    (clientes.data ?? []).map((c) => [c.id, c.razon_social] as const),
+  );
+  const potencialesPorId = new Map(
+    (potenciales.data ?? []).map((p) => [p.id, p.razon_social] as const),
+  );
   const nombreDe = (c: Cotizacion): string | null => {
     if (c.destino === 'CLIENTE' && c.cliente_id) return nombres.get(c.cliente_id) ?? null;
     if (c.destino === 'POTENCIAL' && c.cliente_potencial_id)
@@ -187,9 +199,13 @@ export function PaginaCotizaciones() {
     return null;
   };
 
-  const inicio = desde ? new Date(desde.getFullYear(), desde.getMonth(), desde.getDate()) : null;
+  const inicio = desde
+    ? new Date(desde.getFullYear(), desde.getMonth(), desde.getDate())
+    : null;
   // Fin exclusivo: el «hasta» incluye todo el día elegido.
-  const fin = hasta ? new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate() + 1) : null;
+  const fin = hasta
+    ? new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate() + 1)
+    : null;
   const busqueda = texto.trim().toLowerCase();
   const hoy = fechaISO(new Date()) ?? '';
 
@@ -216,7 +232,11 @@ export function PaginaCotizaciones() {
         {...(puedeCotizar
           ? {
               acciones: (
-                <Button size="lg" leftSection={<IconPlus size={18} />} onClick={() => setAbierta(true)}>
+                <Button
+                  size="lg"
+                  leftSection={<IconPlus size={18} />}
+                  onClick={() => setAbierta(true)}
+                >
                   Nueva cotización
                 </Button>
               ),
@@ -275,7 +295,7 @@ export function PaginaCotizaciones() {
           clearable
           w={150}
           value={desde}
-          onChange={(v) => setDesde(v ? new Date(v) : null)}
+          onChange={(v) => setDesde(desdeCalendario(v))}
         />
         <DateInput
           size="md"
@@ -284,7 +304,7 @@ export function PaginaCotizaciones() {
           clearable
           w={150}
           value={hasta}
-          onChange={(v) => setHasta(v ? new Date(v) : null)}
+          onChange={(v) => setHasta(desdeCalendario(v))}
         />
       </Group>
 
@@ -324,16 +344,24 @@ export function PaginaCotizaciones() {
               <Table.Tbody>
                 {visibles.map((c) => {
                   const precio = c.foto?.pdf.precio_unitario ?? c.precio_unitario;
-                  const vencida = c.estado === 'EMITIDA' && c.vence_el !== null && c.vence_el < hoy;
+                  const vencida =
+                    c.estado === 'EMITIDA' && c.vence_el !== null && c.vence_el < hoy;
                   const nombre = nombreDe(c);
                   return (
                     <Table.Tr key={c.id}>
                       <Table.Td ff="monospace">
-                        {c.numero !== null && c.anio !== null ? `${c.numero}/${c.anio}` : 'borrador'}
+                        {c.numero !== null && c.anio !== null
+                          ? `${c.numero}/${c.anio}`
+                          : 'borrador'}
                       </Table.Td>
                       <Table.Td>{fecha(c.emitida_en ?? c.creado_en)}</Table.Td>
                       <Table.Td>
-                        <Anchor component={Link} to={`/cotizaciones/${c.id}`} fw={600} size="md">
+                        <Anchor
+                          component={Link}
+                          to={`/cotizaciones/${c.id}`}
+                          fw={600}
+                          size="md"
+                        >
                           {c.titulo}
                         </Anchor>
                       </Table.Td>
@@ -359,7 +387,9 @@ export function PaginaCotizaciones() {
                         {precio === null ? '—' : `$ ${numero(precio, 2)}`}
                       </Table.Td>
                       <Table.Td ta="right" ff="monospace">
-                        {c.foto ? `${numero(c.foto.margen_sobre_precio * 100, 1)} %` : '—'}
+                        {c.foto
+                          ? `${numero(c.foto.margen_sobre_precio * 100, 1)} %`
+                          : '—'}
                       </Table.Td>
                       <Table.Td>
                         <Badge color={ESTADO[c.estado].color} variant="light">

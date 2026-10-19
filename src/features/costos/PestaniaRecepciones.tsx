@@ -19,7 +19,7 @@ import { z } from 'zod';
 import { IconReceipt } from '@tabler/icons-react';
 import { Vacio } from '@/components/Vacio';
 import { useTieneRol } from '@/features/auth/sesion';
-import { fecha, fechaISO } from '@/lib/formato';
+import { fecha, fechaISO, desdeCalendario } from '@/lib/formato';
 import {
   COMPROBANTES,
   ROLES_CARGAN_COSTO_LOTE,
@@ -66,7 +66,10 @@ export function PestaniaRecepciones() {
           />
         </Paper>
       ) : (
-        <Paper withBorder style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}>
+        <Paper
+          withBorder
+          style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}
+        >
           <Table.ScrollContainer minWidth={820}>
             <Table verticalSpacing="sm" highlightOnHover>
               <Table.Thead>
@@ -152,7 +155,10 @@ function ContenidoAccesorios({ recepcionId }: { recepcionId: string }) {
           Esta recepción todavía no tiene costos accesorios.
         </Text>
       ) : (
-        <Paper withBorder style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}>
+        <Paper
+          withBorder
+          style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}
+        >
           <Table.ScrollContainer minWidth={560}>
             <Table verticalSpacing="sm">
               <Table.Thead>
@@ -182,7 +188,8 @@ function ContenidoAccesorios({ recepcionId }: { recepcionId: string }) {
                       ) : null}
                     </Table.Td>
                     <Table.Td>
-                      {COMPROBANTES.find((c) => c.value === a.tipo_comprobante)?.label ?? '—'}
+                      {COMPROBANTES.find((c) => c.value === a.tipo_comprobante)?.label ??
+                        '—'}
                     </Table.Td>
                     <Table.Td ta="right" ff="monospace" fw={700}>
                       {pesos(a.importe_neto_ars)}
@@ -267,7 +274,8 @@ function FormularioQuitar({
       >
         <Stack gap="sm">
           <Text fw={600}>
-            Quitar «{etiquetaConcepto(accesorio.concepto)}» de {pesos(accesorio.importe_neto_ars)}
+            Quitar «{etiquetaConcepto(accesorio.concepto)}» de{' '}
+            {pesos(accesorio.importe_neto_ars)}
           </Text>
           <TextInput
             label="Motivo"
@@ -363,7 +371,7 @@ function FormularioAccesorio({ recepcionId }: { recepcionId: string }) {
               label="Fecha"
               valueFormat="DD/MM/YYYY"
               value={v.fecha}
-              onChange={(x) => form.setFieldValue('fecha', x ? new Date(x) : null)}
+              onChange={(x) => form.setFieldValue('fecha', desdeCalendario(x))}
               error={form.errors.fecha}
             />
           </Group>

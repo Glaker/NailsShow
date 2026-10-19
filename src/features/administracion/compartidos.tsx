@@ -12,7 +12,7 @@ import {
   TextInput,
 } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
-import { fecha, fechaISO } from '@/lib/formato';
+import { fecha, fechaISO, desdeCalendario } from '@/lib/formato';
 import { numeroComprobante } from '@/lib/consultasCompras';
 import { useAuditoriaDe } from '@/lib/consultas';
 import {
@@ -325,7 +325,7 @@ export function FiltroPeriodo({
         clearable
         w={150}
         value={aFechaDe(desde)}
-        onChange={(v) => onDesde(v ? fechaISO(new Date(v)) : null)}
+        onChange={(v) => onDesde(fechaISO(desdeCalendario(v)))}
       />
       <DateInput
         label="Hasta"
@@ -333,7 +333,7 @@ export function FiltroPeriodo({
         clearable
         w={150}
         value={aFechaDe(hasta)}
-        onChange={(v) => onHasta(v ? fechaISO(new Date(v)) : null)}
+        onChange={(v) => onHasta(fechaISO(desdeCalendario(v)))}
       />
       <Text size="sm" c="dimmed">
         {desde ? (

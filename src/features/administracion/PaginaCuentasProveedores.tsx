@@ -27,7 +27,7 @@ import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { FormularioProveedor } from '@/features/maestros/PaginaProveedores';
 import { Vacio } from '@/components/Vacio';
 import { useProveedores } from '@/lib/consultas';
-import { fecha, fechaISO } from '@/lib/formato';
+import { fecha, fechaISO, desdeCalendario } from '@/lib/formato';
 import {
   discriminaIva,
   useComprobantesProveedor,
@@ -488,14 +488,14 @@ export function ModalComprobante({
             label="Fecha"
             valueFormat="DD/MM/YYYY"
             value={dia}
-            onChange={(v) => setDia(v ? new Date(v) : null)}
+            onChange={(v) => setDia(desdeCalendario(v))}
           />
           <DateInput
             label="Vence el pago"
             valueFormat="DD/MM/YYYY"
             clearable
             value={vence}
-            onChange={(v) => setVence(v ? new Date(v) : null)}
+            onChange={(v) => setVence(desdeCalendario(v))}
           />
         </Group>
         {conIva ? (
@@ -598,7 +598,7 @@ function ModalConciliarProveedor({
             label="Al día"
             valueFormat="DD/MM/YYYY"
             value={dia}
-            onChange={(v) => setDia(v ? new Date(v) : null)}
+            onChange={(v) => setDia(desdeCalendario(v))}
           />
           <NumberInput
             label="Saldo informado"

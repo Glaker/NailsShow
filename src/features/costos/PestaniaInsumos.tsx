@@ -24,7 +24,7 @@ import { z } from 'zod';
 import { IconCoin, IconFileDownload, IconSearch } from '@tabler/icons-react';
 import { Vacio } from '@/components/Vacio';
 import { FINANZAS, useTieneRol } from '@/features/auth/sesion';
-import { fecha, fechaISO, numero } from '@/lib/formato';
+import { fecha, fechaISO, numero, desdeCalendario } from '@/lib/formato';
 import {
   UNIDADES_COSTO,
   convertirCantidad,
@@ -588,7 +588,7 @@ function FormularioFijar({
             label="Vigente desde"
             valueFormat="DD/MM/YYYY"
             value={v.vigente_desde}
-            onChange={(x) => form.setFieldValue('vigente_desde', x ? new Date(x) : null)}
+            onChange={(x) => form.setFieldValue('vigente_desde', desdeCalendario(x))}
             error={form.errors.vigente_desde}
           />
           <DateInput
@@ -596,7 +596,7 @@ function FormularioFijar({
             valueFormat="DD/MM/YYYY"
             clearable
             value={v.vigente_hasta}
-            onChange={(x) => form.setFieldValue('vigente_hasta', x ? new Date(x) : null)}
+            onChange={(x) => form.setFieldValue('vigente_hasta', desdeCalendario(x))}
             error={form.errors.vigente_hasta}
           />
         </Group>

@@ -1,5 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { dineroCompacto, fecha } from './formato';
+import { desdeCalendario, dineroCompacto, fecha, fechaISO } from './formato';
+
+describe('desdeCalendario', () => {
+  it('el día que se toca en el calendario es el día que queda', () => {
+    const d = desdeCalendario('2026-10-22')!;
+    expect(d.getDate()).toBe(22);
+    expect(fechaISO(d)).toBe('2026-10-22');
+    expect(fecha(d)).toBe('22/10/2026');
+  });
+  it('vacío es null y una fecha pasa igual', () => {
+    expect(desdeCalendario(null)).toBeNull();
+    expect(desdeCalendario('')).toBeNull();
+    const d = new Date(2026, 0, 5);
+    expect(desdeCalendario(d)).toBe(d);
+  });
+});
 
 describe('dineroCompacto', () => {
   it('k abajo del millón, M desde el millón', () => {

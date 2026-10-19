@@ -14,7 +14,7 @@ import {
 import { DateInput } from '@mantine/dates';
 import { IconPencil, IconPlus, IconX } from '@tabler/icons-react';
 import { useTieneRol } from '@/features/auth/sesion';
-import { fechaISO, numero } from '@/lib/formato';
+import { fechaISO, numero, desdeCalendario } from '@/lib/formato';
 import {
   descuentoPorMonto,
   useCargarEscala,
@@ -176,7 +176,7 @@ export function CambiarEscala() {
             label="Rige desde"
             valueFormat="DD/MM/YYYY"
             value={desde}
-            onChange={(v) => setDesde(v ? new Date(v) : null)}
+            onChange={(v) => setDesde(desdeCalendario(v))}
           />
           {!valida ? (
             <Text size="xs" c="orange.8">

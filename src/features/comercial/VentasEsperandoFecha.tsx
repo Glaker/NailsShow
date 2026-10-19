@@ -15,7 +15,7 @@ import {
 import { DateInput } from '@mantine/dates';
 import { IconCalendarEvent } from '@tabler/icons-react';
 import { useProductos } from '@/lib/consultas';
-import { fecha, fechaISO, numero } from '@/lib/formato';
+import { fecha, fechaISO, numero, desdeCalendario } from '@/lib/formato';
 import {
   useNomina,
   useRenglonesPedido,
@@ -177,7 +177,7 @@ function FormularioFecha({
         valueFormat="DD/MM/YYYY"
         minDate={hoy}
         value={entera}
-        onChange={(x) => setEntera(x ? new Date(x) : null)}
+        onChange={(x) => setEntera(desdeCalendario(x))}
         description={
           pedido.fecha_entrega
             ? `El cliente lo pidió para el ${fecha(pedido.fecha_entrega)}.`
@@ -212,7 +212,7 @@ function FormularioFecha({
                     minDate={hoy}
                     value={demora[r.id] ?? null}
                     onChange={(x) =>
-                      setDemora((m) => ({ ...m, [r.id]: x ? new Date(x) : null }))
+                      setDemora((m) => ({ ...m, [r.id]: desdeCalendario(x) }))
                     }
                     aria-label={`Demora de ${nombre(r.producto_id)}`}
                   />

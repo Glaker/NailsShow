@@ -26,7 +26,7 @@ import {
 } from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { Vacio } from '@/components/Vacio';
-import { diasHasta, fecha, fechaISO } from '@/lib/formato';
+import { diasHasta, fecha, fechaISO, desdeCalendario } from '@/lib/formato';
 import {
   pesos,
   useAnularMovimientoFondos,
@@ -576,7 +576,7 @@ function ModalMovimiento({
             label="Fecha"
             valueFormat="DD/MM/YYYY"
             value={dia}
-            onChange={(v) => setDia(v ? new Date(v) : null)}
+            onChange={(v) => setDia(desdeCalendario(v))}
           />
         </Group>
         <TextInput
@@ -735,7 +735,7 @@ function ModalConciliar({
             label="Al día"
             valueFormat="DD/MM/YYYY"
             value={dia}
-            onChange={(v) => setDia(v ? new Date(v) : null)}
+            onChange={(v) => setDia(desdeCalendario(v))}
           />
           <NumberInput
             label="Saldo real"

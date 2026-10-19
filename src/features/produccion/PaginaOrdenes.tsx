@@ -21,7 +21,7 @@ import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { Vacio } from '@/components/Vacio';
 import { useTieneRol } from '@/features/auth/sesion';
 import { useFormulasFabricacion, useProductos } from '@/lib/consultas';
-import { fecha, fechaISO, numero } from '@/lib/formato';
+import { fecha, fechaISO, numero, desdeCalendario } from '@/lib/formato';
 import {
   useAbrirOrden,
   useCrearEquipo,
@@ -214,7 +214,7 @@ export function ModalAbrirOrden({
             label="Fecha de elaboración"
             valueFormat="DD/MM/YYYY"
             value={jornada}
-            onChange={(v) => setJornada(v ? new Date(v) : null)}
+            onChange={(v) => setJornada(desdeCalendario(v))}
           />
           <NumberInput
             label="Cantidad teórica (kg)"
@@ -257,7 +257,7 @@ export function ModalAbrirOrden({
             valueFormat="DD/MM/YYYY"
             clearable
             value={vencimiento}
-            onChange={(v) => setVencimiento(v ? new Date(v) : null)}
+            onChange={(v) => setVencimiento(desdeCalendario(v))}
           />
         </Group>
         <Text size="sm">

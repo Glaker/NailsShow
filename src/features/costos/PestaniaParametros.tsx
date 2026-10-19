@@ -20,7 +20,7 @@ import { z } from 'zod';
 import { IconAdjustments, IconChartLine, IconCloudDownload } from '@tabler/icons-react';
 import { Vacio } from '@/components/Vacio';
 import { FINANZAS, useTieneRol } from '@/features/auth/sesion';
-import { fecha, fechaISO, numero } from '@/lib/formato';
+import { fecha, fechaISO, numero, desdeCalendario } from '@/lib/formato';
 import {
   useCargarParametros,
   useCargarSerie,
@@ -479,7 +479,7 @@ function FormularioSerie({ puntos }: { puntos: PuntoSerieMacro[] }) {
               label="Mes"
               valueFormat="MM/YYYY"
               value={v.mes}
-              onChange={(x) => form.setFieldValue('mes', x ? new Date(x) : null)}
+              onChange={(x) => form.setFieldValue('mes', desdeCalendario(x))}
               error={form.errors.mes}
             />
             <NumberInput
