@@ -16,6 +16,8 @@ export default tseslint.config(
       'supabase/.temp',
       'src/lib/database.types.ts',
       'supabase/functions/*/index.ts',
+      // Bibliotecas de terceros copiadas tal cual (versión fija, con su hash).
+      'supabase/functions/_shared/vendor',
     ],
   },
   {
