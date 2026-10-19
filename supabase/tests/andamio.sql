@@ -25,6 +25,11 @@ $$;
 
 grant usage on schema auth to authenticated, anon, supabase_auth_admin;
 
+-- Vault de Supabase: 20261016120000 lee la clave de ARCA de acá. En la prueba
+-- queda vacío; ningún rol de la aplicación lo lee directo.
+create schema vault;
+create table vault.decrypted_secrets (name text primary key, decrypted_secret text);
+
 -- Simula la sesión que arma PostgREST: fija los claims que inyecta el hook de
 -- access token. Con `set role authenticated` después de esto, la conexión se
 -- comporta como la de un usuario real de la aplicación, RLS incluida.
