@@ -48,11 +48,20 @@ jobs:
         with:
           version: latest
 
-      - name: Levantar Supabase local
-        run: supabase start
+      # Supabase local vacío: las migraciones no las aplica la CLI sino el
+      # script, que siembra las cuentas de arranque que algunas cargas
+      # necesitan (supabase/tests/aplicar_migraciones.sh). Sin migraciones no
+      # hay seed ni función del hook de JWT, así que también se apagan. Solo
+      # en esta copia del CI: config.toml queda igual en el repo.
+      - name: Levantar Supabase local, sin migraciones
+        run: |
+          sed -i '/^\[db\.migrations\]/,/^\[/ s/^enabled = true/enabled = false/' supabase/config.toml
+          sed -i '/^\[db\.seed\]/,/^\[/ s/^enabled = true/enabled = false/' supabase/config.toml
+          sed -i '/^\[auth\.hook\.custom_access_token\]/,/^\[/ s/^enabled = true/enabled = false/' supabase/config.toml
+          supabase start
 
       - name: Verificar que las migraciones aplican en limpio
-        run: supabase db reset
+        run: bash supabase/tests/aplicar_migraciones.sh postgresql://postgres:postgres@127.0.0.1:54322/postgres
 
       - name: Correr pruebas pgTAP
         run: supabase test db

@@ -44,19 +44,8 @@ SQL
 dropdb --if-exists nailshow; createdb nailshow
 psql -q -d nailshow -v ON_ERROR_STOP=1 -f "$RAIZ/supabase/tests/andamio.sql"
 
-for f in "$RAIZ"/supabase/migrations/*.sql; do
-  # La carga de proveedores atribuye las filas a una cuenta concreta del
-  # proyecto alojado. Acá esa cuenta no existe, así que se siembra antes.
-  case "$(basename "$f")" in
-    20260910140000_*)
-      psql -q -d nailshow -v ON_ERROR_STOP=1 -c "
-        insert into core.usuarios (id, nombre_completo, email, rol, sector, es_dt_titular)
-        values ('a5898868-e25d-4123-bcd9-fbe217f6ca19','Cuenta de verificación',
-                'verificacion@nailshow.com.ar','ADMINISTRADOR_SISTEMA','ADMINISTRACION',true);" ;;
-  esac
-  printf '  %-60s ' "$(basename "$f")"
-  psql -q -d nailshow -v ON_ERROR_STOP=1 -f "$f" >/dev/null && echo "ok"
-done
+# Las cuentas de arranque que algunas cargas necesitan las siembra el script.
+bash "$RAIZ/supabase/tests/aplicar_migraciones.sh" "postgresql://$PGUSER@127.0.0.1:$PUERTO/nailshow"
 
 echo
 echo "Base de verificación lista en 127.0.0.1:$PUERTO/nailshow"
