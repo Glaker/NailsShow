@@ -656,16 +656,20 @@ El plan aprobado hablaba de un estado nuevo APROBADO. En la base, el pedido de
 venta aprobado queda en el **CONFIRMADO** de siempre, porque es el estado que
 leen Calle 5, el armado, el despacho, la facturación y los S-xxxx (14
 migraciones y unas 15 partes del front). Lo nuevo es cómo se llega: solo desde
-FECHA_PROPUESTA y con foto, y eso lo controla la base (20261015130100). La
+FECHA_PROPUESTA y con foto, y eso lo controla la base (20261019130100). La
 pantalla lo muestra como «Aprobado» en los pedidos de venta. Renombrarlo
 obligaría a reescribir todo el circuito posterior sin cambiar ninguna regla.
 
-### D-ventas-pedidos-14 · Ventas confirmadas antes del circuito nuevo — abierta
+### D-ventas-pedidos-14 · Ventas confirmadas antes del circuito nuevo — resuelta 2026-10-19
 Los pedidos de venta que ya estaban CONFIRMADOS o CUMPLIDOS antes de
-20261015130100 no tienen foto y no aparecen en `comercial.v_ventas_pedidas`.
-**Pregunta.** ¿Se les toma una foto retroactiva (con qué fecha de aprobación:
-la de envío que registra la auditoría) o la estadística de importe pedido
-arranca desde la puesta en servicio?
+20261019130100 no tienen foto y no aparecen en `comercial.v_ventas_pedidas`.
+**Resuelta por el usuario (2026-10-19):** sin foto retroactiva. La
+estadística de importe pedido arranca desde la puesta en servicio de
+20261019130100.
+
+Nota de numeración: el circuito se escribió como 20261015130000/130100 y se
+aplicó como 20261019130000/130100. Los números intermedios los usa la rama
+giorgio, cuyas 20261019110000 y 120000 ya están registradas en la base real.
 
 ### D-ventas-pedidos-16 · Giorgio en espera de la dirección — abierta
 Suspendido hasta que la dirección decida si se paga la API. Mientras tanto: no
