@@ -117,13 +117,20 @@ await api('PATCH', '/config/auth', {
 });
 console.log('Hook de JWT encendido.');
 
-// 3. Datos inventados.
+// 3. Clave de la emisión ARCA (20261016120000): propia de este proyecto,
+//    aleatoria, solo en su Vault. Sin ella, las facturas de práctica no se
+//    autorizan. Si se despliega emitir-factura acá, cargarla también con
+//    `supabase secrets set ARCA_REGISTRO_CLAVE=…` (se lee de Vault).
+await sql(`select vault.create_secret(encode(extensions.gen_random_bytes(32), 'hex'), 'arca_registro_clave')
+  where not exists (select 1 from vault.secrets where name = 'arca_registro_clave');`);
+
+// 4. Datos inventados.
 await sql(readFileSync(path.join(AQUI, 'datos_practica.sql'), 'utf8'));
 // Módulo de costos: un bloque por fase, cada uno se saltea si ya está cargado.
 await sql(readFileSync(path.join(AQUI, 'datos_practica_costos.sql'), 'utf8'));
 console.log('Datos de práctica listos.');
 
-// 4. Lo que va en el despliegue de práctica (la clave es la pública, para el navegador).
+// 5. Lo que va en el despliegue de práctica (la clave es la pública, para el navegador).
 const claves = await api('GET', '/api-keys');
 const publica =
   claves.find((k) => k.type === 'publishable') ?? claves.find((k) => k.name === 'anon');

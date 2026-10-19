@@ -54,3 +54,11 @@ end; $$;
 
 grant usage, create on schema public to authenticated;
 grant execute on function public.sesion(uuid), public.verdad(boolean, text) to authenticated;
+
+-- Vault de Supabase, reducido a la vista que leen las funciones. La clave de
+-- prueba es pública a propósito: en el proyecto alojado la clave real vive en
+-- Vault y en los secretos de la Edge Function, nunca en el repositorio.
+create schema vault;
+create table vault.decrypted_secrets (name text primary key, decrypted_secret text);
+insert into vault.decrypted_secrets values
+  ('arca_registro_clave', 'clave-de-prueba-arca-0123456789abcdef');

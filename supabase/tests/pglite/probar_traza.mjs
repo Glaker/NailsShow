@@ -1,5 +1,5 @@
 import { banco } from './lib.mjs';
-const { db, q, uno, prueba, rechaza, como, usuario, fin, invariantes } = await banco();
+const { db, q, uno, prueba, rechaza, como, usuario, fin, invariantes, liberarAtajo } = await banco();
 await usuario('naza@x', 'GERENCIA_PRODUCCION');
 await usuario('silveira@x', 'ENCARGADA_STOCK', 'DEPOSITO');
 const DT = 'salta.agustin@gmail.com';
@@ -29,9 +29,7 @@ await rechaza('RN-51: un lote sin liberar no se despacha', `select comercial.des
 await rechaza('ni se manda a Calle 5', `select comercial.transferir_pt('${duo}', 1, 'PTF', 'C5')`, /no liberó/);
 // Liberada por la DT (el circuito de liberación se prueba en probar_ordenes).
 await como(DT);
-await db.exec('reset role');
-await q(`update gmp.ordenes_produccion set estado='TERMINADA', terminada_por=core.usuario_actual(), terminada_en=now() where id=$1`, [o]);
-await q(`update gmp.ordenes_produccion set estado='LIBERADA', liberada_por=core.usuario_actual(), liberada_en=now() where id=$1`, [o]);
+await liberarAtajo(o);
 await prueba('traza hacia adelante: despacho al cliente', async () => {
   await como('silveira@x');
   await q(`select comercial.despachar_pedido($1, $2::jsonb, 'PTF', false)`, [p, JSON.stringify([{ producto_id: duo, cantidad: 4 }])]);

@@ -1,6 +1,6 @@
 // Fase 3 del módulo de costos (20261009140000): renglones de factura, gastos,
 // amortizaciones, mano de obra no absorbida, resultado de gestión y equilibrio.
-import { banco } from './lib.mjs';
+import { banco, CLAVE_ARCA } from './lib.mjs';
 const { db, q, uno, prueba, rechaza, como, usuario, fin, invariantes } = await banco();
 await usuario('gaby@x', 'FINANZAS', 'ADMINISTRACION');
 await usuario('naza@x', 'GERENCIA_PRODUCCION');
@@ -17,9 +17,9 @@ await q(`update comercial.configuracion_fiscal set vigente = false where vigente
 await q(`insert into comercial.configuracion_fiscal (ambiente, cuit_emisor, punto_venta, razon_social, condicion_iva)
          values ('PRODUCCION', '30711111111', 9, 'Nail Show SRL (prueba)', 'RESPONSABLE_INSCRIPTO')`);
 const autorizar = async (id, numero) => {
-  await q(`select comercial.fijar_numero_factura($1, $2)`, [id, numero]);
+  await q(`select comercial.fijar_numero_factura($1, $2, $3)`, [id, numero, CLAVE_ARCA]);
   const r = { FECAESolicitarResult: { FeCabResp: { Resultado: 'A' }, FeDetResp: { FECAEDetResponse: [{ Resultado: 'A', CAE: '12345678901234', CAEFchVto: '20261231' }] } } };
-  await q(`select comercial.registrar_resultado_factura($1, '{}'::jsonb, $2::jsonb)`, [id, JSON.stringify(r)]);
+  await q(`select comercial.registrar_resultado_factura($1, '{}'::jsonb, $2::jsonb, null, $3)`, [id, JSON.stringify(r), CLAVE_ARCA]);
 };
 
 await como('diego@x');

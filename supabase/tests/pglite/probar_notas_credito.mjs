@@ -1,4 +1,4 @@
-import { banco } from './lib.mjs';
+import { banco, CLAVE_ARCA } from './lib.mjs';
 const { db, q, uno, prueba, rechaza, como, usuario, fin, invariantes } = await banco();
 await usuario('diego@x', 'ADMINISTRACION', 'ADMINISTRACION');
 await usuario('gg@x', 'GERENCIA', 'ADMINISTRACION');
@@ -14,9 +14,9 @@ const CUIT_MONO = cuit('2712345678');
 
 // Respuesta de ARCA simulada: el circuito real se prueba en homologación.
 const autorizar = async (id, numero) => {
-  await q(`select comercial.fijar_numero_factura($1, $2)`, [id, numero]);
+  await q(`select comercial.fijar_numero_factura($1, $2, $3)`, [id, numero, CLAVE_ARCA]);
   const r = { FECAESolicitarResult: { FeCabResp: { Resultado: 'A' }, FeDetResp: { FECAEDetResponse: [{ Resultado: 'A', CAE: '12345678901234', CAEFchVto: '20261031' }] } } };
-  return uno(`select comercial.registrar_resultado_factura($1, '{}'::jsonb, $2::jsonb) r`, [id, JSON.stringify(r)]);
+  return uno(`select comercial.registrar_resultado_factura($1, '{}'::jsonb, $2::jsonb, null, $3) r`, [id, JSON.stringify(r), CLAVE_ARCA]);
 };
 
 await como('gg@x');

@@ -1,6 +1,6 @@
 # Estado del proyecto y plan — handoff entre sesiones
 
-Última actualización: 2026-10-10 (módulo de costos al final del archivo; D-42 resuelta).
+Última actualización: 2026-10-16 (revisión de seguridad al final del archivo).
 Este archivo es el punto de entrada de cada sesión nueva. Las reglas permanentes
 están en `CLAUDE.md`; acá va el estado y el plan, que cambian.
 
@@ -2058,6 +2058,87 @@ Refresca cada 20 s.
 
 ---
 
+## Revisión de seguridad del 2026-10-16 — rama `seguridad/guardas-transiciones`
+
+Revisión del código del 16/9 al 14/10. Las invariantes de catálogo están bien:
+RLS forzada, auditoría en todas las tablas, dirección de dependencias, sin
+DELETE y sin `service_role`. El defecto era de patrón: **las condiciones de una
+transición vivían solo en la RPC, pero la tabla admitía UPDATE (o INSERT)
+directo del rol**. Con la sesión propia, desde la consola, se probó en PGlite:
+
+- DT liberaba una orden por PATCH sin etapas ni CC del producto terminado;
+- Ventas dejaba una factura AUTORIZADA con un CAE inventado, sin ARCA, o la
+  insertaba ya autorizada;
+- toda columna `*_por` aceptaba el id de otra persona (firmar por otro);
+- `gmp.siguiente_numero` (SECURITY DEFINER, nuestra del 4/9) quemaba números
+  de cualquier ámbito.
+
+`20261016120000_seguridad_guardas_transiciones.sql` lo cierra:
+el trigger es la autoridad (la RPC queda para el mensaje), el sellado
+genérico `core.fn_sellar_autores` en 61 tablas, facturas solo por funciones
+SECURITY DEFINER, y el número y el CAE exigen una clave que solo tiene la
+Edge Function. Prueba: `supabase/tests/pglite/probar_atajos.mjs`.
+
+Dos detalles que salieron al correr la suite:
+
+- `SELECT … FOR UPDATE` sobre facturas (cobros, `eliminar_pedido`) exige
+  UPDATE en alguna columna y la política de UPDATE. Quedan concedidos solo
+  sobre `motivo`, que `fn_factura_inmutable` rechaza siempre: bloquea, no
+  escribe. `probar_atajos` lo verifica.
+- Tres pruebas daban por liberada una orden con un UPDATE de superusuario. El
+  trigger ahora lo impide también ahí, así que usan `liberarAtajo` de
+  `lib.mjs`, que apaga los triggers solo para ese paso de preparación.
+
+**Criterio para lo que venga:** toda condición de una transición va en el
+trigger de la tabla, no solo en la RPC. Toda columna `*_por` nueva se suma al
+trigger `trg_sellar_autores` de su tabla.
+
+### Segunda tanda: `20261016130000_seguridad_contadores_y_anulaciones_pt.sql`
+
+- **RN-51 por la puerta de la anulación.** Un movimiento de PT con
+  `anula_a_movimiento_id` salía del trigger sin control: Ventas registraba
+  como venta un lote retenido «anulando» su entrada. Ahora la anulación de PT
+  sigue las reglas de la de insumos (original existente, misma posición,
+  opuesto exacto, no se anula una anulación) y no puede ser venta ni
+  producción. Prueba: `probar_anulaciones_pt.mjs`.
+- **Contadores de OP y de análisis** (`contadores_orden`,
+  `contadores_analisis`): tenían políticas FOR ALL. Ahora solo lectura; el
+  incremento lo hacen `gmp.siguiente_numero_orden` y
+  `gmp.siguiente_numero_analisis`. Prueba: `probar_contadores.mjs`.
+- **Revisado y bien:** RN-51 en `movimientos_stock` y en el reparto por lote
+  de `movimientos_pt`; cobros, pagos, comprobantes, bloqueos, fórmulas y
+  reservas tienen sus guardas en trigger.
+- **Decisión abierta (§3.4 del alcance):** nada impide que quien realizó una
+  etapa del batch record la controle. El alcance recomienda separación
+  configurable con modo «advertencia registrada»; no está implementada.
+
+### Despliegue (en este orden, todo junto)
+
+1. Generar la clave: `openssl rand -hex 32`.
+2. Cargarla en Vault con el nombre `arca_registro_clave` (Dashboard →
+   Project Settings → Vault, o `select vault.create_secret('<clave>',
+   'arca_registro_clave')`). No va en ninguna migración (invariante 5).
+3. `supabase secrets set ARCA_REGISTRO_CLAVE=<clave>`.
+4. `supabase db push`.
+5. `supabase functions deploy emitir-factura`.
+6. `npm run db:types`.
+
+Entre 4 y 5 la emisión falla (la función vieja no manda la clave): hacerlo
+sin facturas en curso.
+
+### Pendiente de decisión
+
+- **Cuenta de verificación** (`verificacion@nailshow.com.ar`): única
+  ADMINISTRADOR_SISTEMA, con todos los roles adicionales incluido DT, y la
+  contraseña pasó por chat. Dar el rol de administrador a una persona real,
+  quitarle los roles y desactivarla (RN-49).
+- La §5 de CLAUDE.md prevé un rol de base dedicado con JWT propio para la
+  Edge Function. Acá se usó una clave en Vault porque mantiene la llamada a
+  nombre del usuario (auditoría) y no depende del secreto de firma de JWT.
+  Si se prefiere el rol dedicado, es un cambio acotado a las dos funciones.
+
+---
+
 ## Giorgio, el asistente de ayuda (D-57 a D-61) — rama `giorgio`
 
 **Aplicado en la base real (2026-10-19)**, por pedido explícito de la conducción
@@ -2074,10 +2155,11 @@ no está en ningún archivo). **Falta `ANTHROPIC_API_KEY`**: la carga la
 conducción desde el panel de Supabase. Hasta entonces Giorgio responde
 «todavía no está configurado».
 
-**Falta para que se vea:** mergear la rama `giorgio` en la que publica Vercel.
-Al mergear, `src/app/giorgio/catalogo.test.ts` regenera
-`supabase/functions/giorgio/catalogo.json` con el menú nuevo: commitearlo y
-volver a desplegar la función.
+**Publicado en `main` (2026-10-19)** junto con la revisión de seguridad del 16.
+Cuando entren ramas que cambien el menú o la ayuda,
+`src/app/giorgio/catalogo.test.ts` regenera
+`supabase/functions/giorgio/catalogo.json`: commitearlo y volver a desplegar
+la función (`supabase functions deploy giorgio --use-api`).
 
 **Fases:** 1 (base) y 2 (interfaz) hechas; 3 (guía, glosario,
 `explicar_numero`) y 4 (evaluación Haiku contra Sonnet) pendientes.

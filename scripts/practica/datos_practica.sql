@@ -128,8 +128,12 @@ begin
     update comercial.pedidos set estado = 'CONFIRMADO' where id = ped;
     perform comercial.preparar_factura(ped);
     select id into fac from comercial.facturas where pedido_id = ped and estado = 'PENDIENTE';
-    perform comercial.fijar_numero_factura(fac, 100 + n);
-    perform comercial.registrar_resultado_factura(fac, '{}'::jsonb, aut);
+    -- La clave de la emisión (20261016120000) sale del Vault del proyecto de
+    -- práctica: este script corre como superusuario, que puede leerla.
+    perform comercial.fijar_numero_factura(fac, 100 + n,
+      (select decrypted_secret from vault.decrypted_secrets where name = 'arca_registro_clave'));
+    perform comercial.registrar_resultado_factura(fac, '{}'::jsonb, aut, null,
+      (select decrypted_secret from vault.decrypted_secrets where name = 'arca_registro_clave'));
   end loop;
 
   -- Un cobro total y uno parcial.

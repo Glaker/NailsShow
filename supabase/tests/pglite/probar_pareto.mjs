@@ -1,6 +1,6 @@
 // Fase 4 del módulo de costos (20261009150000): Pareto ABC con margen,
 // rotación de insumos, precios por proveedor y alertas de precio.
-import { banco } from './lib.mjs';
+import { banco, CLAVE_ARCA } from './lib.mjs';
 const { db, q, uno, prueba, como, usuario, fin, invariantes } = await banco();
 await usuario('gaby@x', 'FINANZAS', 'ADMINISTRACION');
 await usuario('mati@x', 'VENTAS', 'ADMINISTRACION');
@@ -26,9 +26,9 @@ for (let i = 0; i < 5; i++)
 await q(`update comercial.pedidos set estado='CONFIRMADO' where id=$1`, [ped]);
 await q(`select comercial.preparar_factura($1)`, [ped]);
 const fac = (await uno(`select id, fecha from comercial.facturas where pedido_id=$1`, [ped]));
-await q(`select comercial.fijar_numero_factura($1, 77)`, [fac.id]);
-await q(`select comercial.registrar_resultado_factura($1, '{}'::jsonb, $2::jsonb)`, [fac.id,
-  JSON.stringify({ FECAESolicitarResult: { FeCabResp: { Resultado: 'A' }, FeDetResp: { FECAEDetResponse: [{ Resultado: 'A', CAE: '12345678901234', CAEFchVto: '20261231' }] } } })]);
+await q(`select comercial.fijar_numero_factura($1, 77, $2)`, [fac.id, CLAVE_ARCA]);
+await q(`select comercial.registrar_resultado_factura($1, '{}'::jsonb, $2::jsonb, null, $3)`, [fac.id,
+  JSON.stringify({ FECAESolicitarResult: { FeCabResp: { Resultado: 'A' }, FeDetResp: { FECAEDetResponse: [{ Resultado: 'A', CAE: '12345678901234', CAEFchVto: '20261231' }] } } }), CLAVE_ARCA]);
 const mes = (await uno(`select date_trunc('month', fecha)::date::text m from comercial.facturas where id=$1`, [fac.id])).m;
 await db.exec('reset role');
 // Costo del mes: el primero con margen del 10 % (bajo), los demás del 50 %; el último sin costo.

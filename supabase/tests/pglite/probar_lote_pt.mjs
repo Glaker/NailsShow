@@ -1,5 +1,5 @@
 import { banco } from './lib.mjs';
-const { db, q, uno, prueba, rechaza, como, usuario, fin, invariantes } = await banco();
+const { db, q, uno, prueba, rechaza, como, usuario, fin, invariantes, liberarAtajo } = await banco();
 await usuario('naza@x', 'GERENCIA_PRODUCCION');
 await usuario('silveira@x', 'ENCARGADA_STOCK', 'DEPOSITO');
 const DT = 'salta.agustin@gmail.com';
@@ -62,9 +62,7 @@ await prueba('un ajuste de menos sale de cualquier lote', async () => {
 });
 
 await como(DT);
-await db.exec('reset role');
-await q(`update gmp.ordenes_produccion set estado='TERMINADA', terminada_por=core.usuario_actual(), terminada_en=now() where id=$1`, [o1]);
-await q(`update gmp.ordenes_produccion set estado='LIBERADA', liberada_por=core.usuario_actual(), liberada_en=now() where id=$1`, [o1]);
+await liberarAtajo(o1);
 await como('silveira@x');
 await prueba('liberado por la DT, sale y va a Calle 5', async () => {
   await q(`select comercial.transferir_pt($1, 1, 'PTF', 'C5')`, [duo]);
