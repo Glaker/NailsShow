@@ -21,7 +21,10 @@ import {
 describe('clave de API', () => {
   const buena = 'sk-ant-api03-AbC_d-123';
   it('saca espacios, saltos de línea e invisibles pegados con la clave', () => {
-    expect(limpiarClaveApi(` \ufeff${buena}\u200b\r\n`)).toEqual({ clave: buena, problema: null });
+    expect(limpiarClaveApi(` \ufeff${buena}\u200b\r\n`)).toEqual({
+      clave: buena,
+      problema: null,
+    });
   });
   it('describe un carácter inválido sin mostrar la clave', () => {
     const r = limpiarClaveApi('sk-ant-PEGÁ-ACÁ-TU-CLAVE');
