@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { NAVEGACION, ROLES_CONFIGURABLES, ve } from '@/app/navegacion';
 import type { Rol } from '@/features/auth/sesion';
 import type { VisibilidadRow } from '@/lib/consultasVisibilidad';
+import { SUGERENCIAS, sugerenciasDe } from '@/app/ayuda/sugerencias';
 import { pantallasPermitidas } from '../../../supabase/functions/_shared/giorgio';
 import { SUBRUTAS, SUBRUTAS_EXCLUIDAS, armarCatalogo } from './catalogo';
 
@@ -31,6 +32,25 @@ describe('catálogo de Giorgio', () => {
     const conParametro = [...rutas.matchAll(/path="([^"]*:[^"]*)"/g)].map((m) => m[1]);
     const conocidas = [...SUBRUTAS.map((s) => s.patron), ...SUBRUTAS_EXCLUIDAS];
     expect(conParametro.filter((r) => !conocidas.includes(r!))).toEqual([]);
+  });
+
+  it('las sugerencias de Giorgio son de rutas que existen', () => {
+    const rutas = [
+      ...readFileSync('src/app/routes.tsx', 'utf8').matchAll(/path="([^"]+)"/g),
+    ].map((m) => m[1]);
+    const pantallas = armarCatalogo().pantallas.map((p) => p.ruta);
+    const sueltas = Object.keys(SUGERENCIAS).filter(
+      (k) => !rutas.includes(k) && !pantallas.includes(k),
+    );
+    expect(sueltas).toEqual([]);
+  });
+
+  it('sugerencias: la página de detalle tiene las suyas, una ruta sin sugerencias ninguna', () => {
+    expect(
+      sugerenciasDe('/costos/producto/3f2b8c1e-7a4d-4e2f-9b6a-1c2d3e4f5a6b'),
+    ).toEqual(SUGERENCIAS['/costos/producto/:id']);
+    expect(sugerenciasDe('/costos', '?vista=insumos')).toEqual(SUGERENCIAS['/costos']);
+    expect(sugerenciasDe('/inexistente')).toEqual([]);
   });
 
   it('cada subruta depende de una pantalla del catálogo', () => {

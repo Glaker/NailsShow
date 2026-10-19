@@ -563,10 +563,103 @@ a.contador:hover {
   background: color-mix(in srgb, var(--mantine-color-body) 96%, transparent);
   backdrop-filter: blur(6px);
   animation: entrada-suave 260ms var(--curva-salida) both;
+  /* Deja libre la esquina de Giorgio, que está fija abajo a la derecha. */
+  margin-right: 64px;
 }
 @media (max-width: 62em) {
   .pie-venta {
     bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Giorgio, el asistente (D-57): un círculo que se agranda y despliega el
+   campo. El tamaño cambia con una transición corta; sin ella si el sistema
+   pide menos movimiento. */
+.giorgio {
+  position: fixed;
+  right: 16px;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--mantine-color-body);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  transition:
+    width var(--transicion),
+    height var(--transicion),
+    border-color var(--transicion);
+}
+.giorgio[data-abierto='true'] {
+  width: min(380px, calc(100vw - 32px));
+  height: 56px;
+  border-color: var(--superficie-borde);
+}
+.giorgio:focus-within {
+  border-color: var(--mantine-primary-color-filled);
+}
+.giorgio-marca {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--mantine-primary-color-filled);
+  color: var(--mantine-color-white);
+  font: 700 20px/1 var(--mantine-font-family);
+  cursor: pointer;
+  transition:
+    width var(--transicion),
+    height var(--transicion);
+}
+.giorgio[data-abierto='true'] .giorgio-marca {
+  width: 54px;
+  height: 54px;
+}
+.giorgio-marca:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 3px;
+}
+.giorgio-campo {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 8px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--mantine-color-text);
+  font: 400 15px var(--mantine-font-family);
+  text-overflow: ellipsis;
+  opacity: 0;
+  transition: opacity var(--transicion);
+}
+.giorgio[data-abierto='true'] .giorgio-campo {
+  opacity: 1;
+}
+.giorgio-campo::placeholder {
+  color: var(--mantine-color-dimmed);
+}
+.giorgio-accion {
+  flex: 0 0 auto;
+  margin-right: 6px;
+}
+.giorgio-pregunta {
+  align-self: flex-end;
+  max-width: 85%;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: var(--superficie-tenue);
+}
+@media (prefers-reduced-motion: reduce) {
+  .giorgio,
+  .giorgio-marca,
+  .giorgio-campo {
+    transition: none;
   }
 }
 
