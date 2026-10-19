@@ -2055,3 +2055,29 @@ magenta, Naza turquesa, Virginia violeta, Anabella verde, el resto por
 paleta). Común (la ven y la mueven todos) o propia. Mover: cualquiera que la
 vea; texto y «Sacar»: quien la cargó. «Hecha» la cierra. No se borra.
 Refresca cada 20 s.
+
+---
+
+## Giorgio, el asistente de ayuda (D-57 a D-61) — rama `giorgio`
+
+**Aplicado en la base real (2026-10-19)**, por pedido explícito de la conducción
+(no hay proyecto de práctica en la cuenta): `20261019110000_core_giorgio` y
+`20261019120000_core_giorgio_tope_mensual`, con asiento en
+`schema_migrations`. Verificado ahí: `core.tablas_sin_auditoria()` vacío, RLS
+forzada en las dos tablas, `postgres` con BYPASSRLS (lo necesitan
+`giorgio_estado` y `giorgio_registrar`), topes USD 1/día y USD 20/mes, hash de
+la clave de registro cargado. Edge Function `giorgio` desplegada; sin sesión
+responde 401.
+
+**Secretos de la función:** `GIORGIO_CLAVE_REGISTRO` cargado (generado al azar,
+no está en ningún archivo). **Falta `ANTHROPIC_API_KEY`**: la carga la
+conducción desde el panel de Supabase. Hasta entonces Giorgio responde
+«todavía no está configurado».
+
+**Falta para que se vea:** mergear la rama `giorgio` en la que publica Vercel.
+Al mergear, `src/app/giorgio/catalogo.test.ts` regenera
+`supabase/functions/giorgio/catalogo.json` con el menú nuevo: commitearlo y
+volver a desplegar la función.
+
+**Fases:** 1 (base) y 2 (interfaz) hechas; 3 (guía, glosario,
+`explicar_numero`) y 4 (evaluación Haiku contra Sonnet) pendientes.
