@@ -64,7 +64,9 @@ jobs:
         run: bash supabase/tests/aplicar_migraciones.sh postgresql://postgres:postgres@127.0.0.1:54322/postgres
 
       - name: Correr pruebas pgTAP
-        run: supabase test db
+        # Solo las pruebas: supabase/tests también tiene andamio.sql, que
+        # prepara entornos sin Supabase y no es una prueba.
+        run: supabase test db supabase/tests/database
 
       - name: Bajar Supabase local
         if: always()

@@ -36,32 +36,43 @@ insert into t values ('duo', (select id from gmp.productos where codigo_interno 
 
 -- Un lote producido y liberado, con 4 unidades en fábrica.
 select pg_temp.como('dt@pgtap');
-insert into t select 'formula', id from (
+with x as (
   insert into gmp.formulas_fabricacion (producto_id, version)
-  values ((select valor from t where clave = 'duo'), '99') returning id) x;
+  values ((select valor from t where clave = 'duo'), '99') returning id)
+insert into t select 'formula', id from x;
 select pg_temp.como('gp@pgtap');
-insert into t select 'p1', id from (
-  insert into comercial.pedidos (numero, cliente) values ('PGTAP-1', 'Ana') returning id) x;
+with x as (
+  insert into comercial.pedidos (numero, cliente) values ('PGTAP-1', 'Ana') returning id)
+insert into t select 'p1', id from x;
 insert into comercial.pedido_renglones (pedido_id, producto_id, cantidad, precio_unitario)
 values ((select valor from t where clave = 'p1'), (select valor from t where clave = 'duo'), 4, 1);
 update comercial.pedidos set estado = 'CONFIRMADO' where id = (select valor from t where clave = 'p1');
-insert into t select 'orden', id from (
+with x as (
   insert into gmp.ordenes_produccion (formula_id, producto_id, jornada, partida, cantidad_teorica)
   values ((select valor from t where clave = 'formula'), (select valor from t where clave = 'duo'), current_date, 99, 1)
-  returning id) x;
+  returning id)
+insert into t select 'orden', id from x;
 insert into comercial.pedido_ordenes (pedido_id, orden_id)
 values ((select valor from t where clave = 'p1'), (select valor from t where clave = 'orden'));
 select comercial.terminar_pedido((select valor from t where clave = 'p1'));
+-- Liberación de atajo, como liberarAtajo de pglite/lib.mjs: los triggers de
+-- ordenes_produccion exigen etapas y control de calidad (20261016120000), que
+-- acá no se prueban. Se apagan solo para este UPDATE, dentro de la
+-- transacción que se deshace al final; lo hace el dueño de la tabla.
 reset role;
-update gmp.ordenes_produccion set estado = 'TERMINADA', terminada_por = (select id from core.usuarios where email = 'dt@pgtap'),
-       terminada_en = now() where id = (select valor from t where clave = 'orden');
-update gmp.ordenes_produccion set estado = 'LIBERADA', liberada_por = (select id from core.usuarios where email = 'dt@pgtap'),
-       liberada_en = now() where id = (select valor from t where clave = 'orden');
+alter table gmp.ordenes_produccion disable trigger user;
+update gmp.ordenes_produccion
+   set estado = 'LIBERADA',
+       terminada_por = (select id from core.usuarios where email = 'dt@pgtap'), terminada_en = now(),
+       liberada_por = (select id from core.usuarios where email = 'dt@pgtap'), liberada_en = now()
+ where id = (select valor from t where clave = 'orden');
+alter table gmp.ordenes_produccion enable trigger user;
 
 -- Un segundo pedido que se lleva esas 4 unidades.
 select pg_temp.como('gp@pgtap');
-insert into t select 'p2', id from (
-  insert into comercial.pedidos (numero, cliente) values ('PGTAP-2', 'Beto') returning id) x;
+with x as (
+  insert into comercial.pedidos (numero, cliente) values ('PGTAP-2', 'Beto') returning id)
+insert into t select 'p2', id from x;
 insert into comercial.pedido_renglones (pedido_id, producto_id, cantidad, precio_unitario)
 values ((select valor from t where clave = 'p2'), (select valor from t where clave = 'duo'), 4, 1);
 update comercial.pedidos set estado = 'CONFIRMADO' where id = (select valor from t where clave = 'p2');
