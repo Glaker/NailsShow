@@ -30,7 +30,10 @@ export interface Plantilla<C = unknown> {
   descripcion: string;
   columnas: Columna[];
   /** Reglas que dependen del renglón entero o de datos de la base. */
-  validar: (fila: Record<string, Celda>, contexto: C) => { accion: 'crear' | 'actualizar'; errores: string[] };
+  validar: (
+    fila: Record<string, Celda>,
+    contexto: C,
+  ) => { accion: 'crear' | 'actualizar'; errores: string[] };
 }
 
 export interface RenglonLeido {
@@ -41,8 +44,7 @@ export interface RenglonLeido {
 }
 
 export type ResultadoLectura =
-  | { ok: false; error: string }
-  | { ok: true; renglones: RenglonLeido[] };
+  { ok: false; error: string } | { ok: true; renglones: RenglonLeido[] };
 
 /** Serie de fecha de Excel (días desde 1899-12-30) a 'AAAA-MM-DD'. */
 export function fechaDeExcel(v: Celda): string | null {
@@ -71,8 +73,14 @@ function numeroDe(v: Celda): number | null {
 
 const vacio = (v: Celda) => v === null || (typeof v === 'string' && v.trim() === '');
 
-export function leerPlantilla<C>(filas: Celda[][], plantilla: Plantilla<C>, contexto: C): ResultadoLectura {
-  const encabezado = (filas[0] ?? []).map((h) => (typeof h === 'string' ? h.trim() : h === null ? '' : String(h)));
+export function leerPlantilla<C>(
+  filas: Celda[][],
+  plantilla: Plantilla<C>,
+  contexto: C,
+): ResultadoLectura {
+  const encabezado = (filas[0] ?? []).map((h) =>
+    typeof h === 'string' ? h.trim() : h === null ? '' : String(h),
+  );
   const esperadas = plantilla.columnas.map((c) => c.clave);
   const presentes = encabezado.filter((h) => h !== '');
   const faltan = esperadas.filter((c) => !presentes.includes(c));
@@ -108,7 +116,8 @@ export function leerPlantilla<C>(filas: Celda[][], plantilla: Plantilla<C>, cont
         datos[c.clave] = n;
       } else if (c.tipo === 'fecha') {
         const d = fechaDeExcel(crudo);
-        if (d === null) errores.push(`${c.clave} no es una fecha («${String(crudo)}»; usá dd/mm/aaaa)`);
+        if (d === null)
+          errores.push(`${c.clave} no es una fecha («${String(crudo)}»; usá dd/mm/aaaa)`);
         datos[c.clave] = d;
       } else {
         const t = String(crudo).trim();
@@ -117,16 +126,24 @@ export function leerPlantilla<C>(filas: Celda[][], plantilla: Plantilla<C>, cont
         datos[c.clave] = c.valores?.find((x) => x.toLowerCase() === t.toLowerCase()) ?? t;
       }
     }
-    const v = errores.length ? { accion: 'crear' as const, errores: [] } : plantilla.validar(datos, contexto);
+    const v = errores.length
+      ? { accion: 'crear' as const, errores: [] }
+      : plantilla.validar(datos, contexto);
     const todos = [...errores, ...v.errores];
-    renglones.push({ numero: i + 2, datos, accion: todos.length ? 'error' : v.accion, errores: todos });
+    renglones.push({
+      numero: i + 2,
+      datos,
+      accion: todos.length ? 'error' : v.accion,
+      errores: todos,
+    });
   });
-  if (renglones.length === 0) return { ok: false, error: 'La planilla no tiene renglones con datos.' };
+  if (renglones.length === 0)
+    return { ok: false, error: 'La planilla no tiene renglones con datos.' };
   return { ok: true, renglones };
 }
 
 /** Planilla de ejemplo de una plantilla: encabezados y un renglón de muestra. */
-export const filasDePlantilla = <C,>(p: Plantilla<C>): Celda[][] => [
+export const filasDePlantilla = <C>(p: Plantilla<C>): Celda[][] => [
   p.columnas.map((c) => c.clave),
   p.columnas.map((c) => c.ejemplo),
 ];
@@ -147,32 +164,107 @@ export const PLANTILLA_COSTOS_MP: Plantilla<ContextoCostos> = {
   descripcion:
     'Un precio de referencia por renglón, con o sin IVA (la base guarda el neto). Carga un precio nuevo para cada insumo (el anterior queda en el historial); no cambia lo que se pagó en cada lote. En líquidos y polvos, cantidad y unidad son las de la presentación de compra (D-42).',
   columnas: [
-    { clave: 'codigo_insumo', tipo: 'texto', requerida: true, descripcion: 'Código interno del insumo, como en el catálogo', ejemplo: '101ESE' },
-    { clave: 'importe', tipo: 'numero', requerida: true, descripcion: 'Precio de la presentación', ejemplo: 12000 },
-    { clave: 'incluye_iva', tipo: 'texto', requerida: false, descripcion: 'Si el importe trae IVA (vacío = NO)', ejemplo: 'NO', valores: ['SI', 'NO'] },
-    { clave: 'alicuota', tipo: 'numero', requerida: false, descripcion: 'Alícuota de IVA; sólo si incluye_iva es SI', ejemplo: null },
-    { clave: 'cantidad', tipo: 'numero', requerida: true, descripcion: 'Cantidad de la presentación', ejemplo: 500 },
-    { clave: 'unidad', tipo: 'texto', requerida: true, descripcion: 'Unidad de la presentación', ejemplo: 'g', valores: ['g', 'kg', 'ml', 'l', 'UNIDAD'] },
-    { clave: 'moneda', tipo: 'texto', requerida: true, descripcion: 'Moneda del importe', ejemplo: 'ARS', valores: ['ARS', 'USD'] },
-    { clave: 'tipo_cambio', tipo: 'numero', requerida: false, descripcion: 'Pesos por dólar; sólo si la moneda es USD', ejemplo: null },
-    { clave: 'vigente_desde', tipo: 'fecha', requerida: false, descripcion: 'Desde cuándo rige (vacío = hoy)', ejemplo: '01/10/2026' },
-    { clave: 'motivo', tipo: 'texto', requerida: false, descripcion: 'Por qué cambia (cotización, acuerdo…)', ejemplo: 'Cotización del proveedor' },
+    {
+      clave: 'codigo_insumo',
+      tipo: 'texto',
+      requerida: true,
+      descripcion: 'Código interno del insumo, como en el catálogo',
+      ejemplo: '101ESE',
+    },
+    {
+      clave: 'importe',
+      tipo: 'numero',
+      requerida: true,
+      descripcion: 'Precio de la presentación',
+      ejemplo: 12000,
+    },
+    {
+      clave: 'incluye_iva',
+      tipo: 'texto',
+      requerida: false,
+      descripcion: 'Si el importe trae IVA (vacío = NO)',
+      ejemplo: 'NO',
+      valores: ['SI', 'NO'],
+    },
+    {
+      clave: 'alicuota',
+      tipo: 'numero',
+      requerida: false,
+      descripcion: 'Alícuota de IVA; sólo si incluye_iva es SI',
+      ejemplo: null,
+    },
+    {
+      clave: 'cantidad',
+      tipo: 'numero',
+      requerida: true,
+      descripcion: 'Cantidad de la presentación',
+      ejemplo: 500,
+    },
+    {
+      clave: 'unidad',
+      tipo: 'texto',
+      requerida: true,
+      descripcion: 'Unidad de la presentación',
+      ejemplo: 'g',
+      valores: ['g', 'kg', 'ml', 'l', 'UNIDAD'],
+    },
+    {
+      clave: 'moneda',
+      tipo: 'texto',
+      requerida: true,
+      descripcion: 'Moneda del importe',
+      ejemplo: 'ARS',
+      valores: ['ARS', 'USD'],
+    },
+    {
+      clave: 'tipo_cambio',
+      tipo: 'numero',
+      requerida: false,
+      descripcion: 'Pesos por dólar; sólo si la moneda es USD',
+      ejemplo: null,
+    },
+    {
+      clave: 'vigente_desde',
+      tipo: 'fecha',
+      requerida: false,
+      descripcion: 'Desde cuándo rige (vacío = hoy)',
+      ejemplo: '01/10/2026',
+    },
+    {
+      clave: 'motivo',
+      tipo: 'texto',
+      requerida: false,
+      descripcion: 'Por qué cambia (cotización, acuerdo…)',
+      ejemplo: 'Cotización del proveedor',
+    },
   ],
   validar: (f, ctx) => {
     const errores: string[] = [];
     const ins = ctx.insumos.get(String(f.codigo_insumo));
-    if (!ins) errores.push(`no existe el insumo «${String(f.codigo_insumo)}» en el catálogo`);
-    if (typeof f.importe === 'number' && f.importe <= 0) errores.push('el importe tiene que ser mayor que cero');
+    if (!ins)
+      errores.push(`no existe el insumo «${String(f.codigo_insumo)}» en el catálogo`);
+    if (typeof f.importe === 'number' && f.importe <= 0)
+      errores.push('el importe tiene que ser mayor que cero');
     if (f.incluye_iva === 'SI' && ![10.5, 21, 27].includes(f.alicuota as number))
       errores.push('con IVA incluido va la alícuota (10,5, 21 o 27)');
-    if (f.incluye_iva !== 'SI' && f.alicuota !== null) errores.push('la alícuota va sólo si incluye_iva es SI');
-    if (typeof f.cantidad === 'number' && f.cantidad <= 0) errores.push('la cantidad tiene que ser mayor que cero');
+    if (f.incluye_iva !== 'SI' && f.alicuota !== null)
+      errores.push('la alícuota va sólo si incluye_iva es SI');
+    if (typeof f.cantidad === 'number' && f.cantidad <= 0)
+      errores.push('la cantidad tiene que ser mayor que cero');
     if (f.moneda === 'USD' && !(typeof f.tipo_cambio === 'number' && f.tipo_cambio > 0))
       errores.push('en dólares hace falta el tipo de cambio');
-    if (ins && ins.unidad && typeof f.cantidad === 'number' && typeof f.unidad === 'string'
-        && convertirCantidad(f.cantidad, f.unidad, ins.unidad) === null)
-      errores.push(`no se puede pasar ${f.unidad} a la unidad del catálogo (${ins.unidad})`);
-    if (ins && !ins.unidad) errores.push('el insumo no tiene unidad de medida en el catálogo');
+    if (
+      ins &&
+      ins.unidad &&
+      typeof f.cantidad === 'number' &&
+      typeof f.unidad === 'string' &&
+      convertirCantidad(f.cantidad, f.unidad, ins.unidad) === null
+    )
+      errores.push(
+        `no se puede pasar ${f.unidad} a la unidad del catálogo (${ins.unidad})`,
+      );
+    if (ins && !ins.unidad)
+      errores.push('el insumo no tiene unidad de medida en el catálogo');
     return { accion: ins?.tieneManual ? 'actualizar' : 'crear', errores };
   },
 };

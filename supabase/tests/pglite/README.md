@@ -19,28 +19,28 @@ falla. `lib.mjs` trae el andamio (`banco()`, `prueba`, `rechaza`, `como`,
 una antes de escribirla, ponerla en `borradores/` (no versionada): la
 reconstrucción la aplica en su lugar por orden de nombre.
 
-| Archivo | Qué prueba |
-| --- | --- |
-| `probar_comprobantes.mjs` | comprobantes de proveedor (A/B/C/NC/sin factura), inmutabilidad, anulación |
-| `probar_calle5.mjs` | reservas de PT, despacho completo o con faltantes, falta producir, destino en «Terminado» |
-| `probar_tesoreria.mjs` | cajas y bancos, conciliación, pagos con imputación (RN-63), solicitudes, IVA, traza de compras |
-| `probar_cobros.mjs` | cobros e imputación, antigüedad, cash flow, ventas y resultado |
-| `probar_ventas.mjs` | permisos del rol VENTAS |
-| `probar_precios.mjs` | precios versionados, descuentos por cliente, precio sugerido |
-| `probar_plan.mjs` | planificación de la producción |
-| `probar_visibilidad.mjs` | visibilidad de pantallas por rol, lectura del administrador |
-| `probar_ordenes.mjs` | especificaciones, órdenes de producción, etapas, liberación |
-| `probar_traza.mjs` | trazabilidad del lote hacia atrás y hacia adelante |
-| `probar_quitar.mjs` | quitar componente de fórmula y material sin DELETE; DELETE revocado |
-| `probar_notas_credito.mjs` | nota de crédito total, refacturar, varios emisores, Factura C, restas en cuenta corriente y ventas |
-| `probar_lote_pt.mjs` | lote en producto terminado: retenido hasta liberar, sin lote primero, Calle 5 solo liberado (RN-51, R-09) |
-| `probar_manual_formulas.mjs` | carga del manual de fórmulas v10: 44 en borrador, % que reproducen los kg, procedimientos por aroma |
-| `probar_flujo.mjs` | flujo de caja diario, detalle del día y volúmenes por contraparte para el inicio de Administración |
-| `probar_ventas_central.mjs` | central de Ventas: lista 46.14 por pack, escala por monto del pedido entero, precio a mano, envío contra Calle 5 con S-xxxx para lo que falta, reserva opcional, visto bueno de stock, despacho y pago en pedido cerrado |
-| `probar_descarte.mjs` | dar de baja todo el stock de un artículo (descarte «Discontinuado» por posición) |
-| `probar_giorgio.mjs` | Giorgio: límite diario por rol, tope global con corte al 80 %, interruptor, registro append-only y a nombre propio, costo de un modelo sin precio, tokens inventados recortados (D-58 a D-60) |
+| Archivo                       | Qué prueba                                                                                                                                                                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `probar_comprobantes.mjs`     | comprobantes de proveedor (A/B/C/NC/sin factura), inmutabilidad, anulación                                                                                                                                                     |
+| `probar_calle5.mjs`           | reservas de PT, despacho completo o con faltantes, falta producir, destino en «Terminado»                                                                                                                                      |
+| `probar_tesoreria.mjs`        | cajas y bancos, conciliación, pagos con imputación (RN-63), solicitudes, IVA, traza de compras                                                                                                                                 |
+| `probar_cobros.mjs`           | cobros e imputación, antigüedad, cash flow, ventas y resultado                                                                                                                                                                 |
+| `probar_ventas.mjs`           | permisos del rol VENTAS                                                                                                                                                                                                        |
+| `probar_precios.mjs`          | precios versionados, descuentos por cliente, precio sugerido                                                                                                                                                                   |
+| `probar_plan.mjs`             | planificación de la producción                                                                                                                                                                                                 |
+| `probar_visibilidad.mjs`      | visibilidad de pantallas por rol, lectura del administrador                                                                                                                                                                    |
+| `probar_ordenes.mjs`          | especificaciones, órdenes de producción, etapas, liberación                                                                                                                                                                    |
+| `probar_traza.mjs`            | trazabilidad del lote hacia atrás y hacia adelante                                                                                                                                                                             |
+| `probar_quitar.mjs`           | quitar componente de fórmula y material sin DELETE; DELETE revocado                                                                                                                                                            |
+| `probar_notas_credito.mjs`    | nota de crédito total, refacturar, varios emisores, Factura C, restas en cuenta corriente y ventas                                                                                                                             |
+| `probar_lote_pt.mjs`          | lote en producto terminado: retenido hasta liberar, sin lote primero, Calle 5 solo liberado (RN-51, R-09)                                                                                                                      |
+| `probar_manual_formulas.mjs`  | carga del manual de fórmulas v10: 44 en borrador, % que reproducen los kg, procedimientos por aroma                                                                                                                            |
+| `probar_flujo.mjs`            | flujo de caja diario, detalle del día y volúmenes por contraparte para el inicio de Administración                                                                                                                             |
+| `probar_ventas_central.mjs`   | central de Ventas: lista 46.14 por pack, escala por monto del pedido entero, precio a mano, envío contra Calle 5 con S-xxxx para lo que falta, reserva opcional, visto bueno de stock, despacho y pago en pedido cerrado       |
+| `probar_descarte.mjs`         | dar de baja todo el stock de un artículo (descarte «Discontinuado» por posición)                                                                                                                                               |
+| `probar_giorgio.mjs`          | Giorgio: límite diario por rol, tope global con corte al 80 %, interruptor, registro append-only y a nombre propio, costo de un modelo sin precio, tokens inventados recortados (D-58 a D-60)                                  |
 | `probar_comentarios_pago.mjs` | Gerencia de Producción ve todas las solicitudes de pago sin poder aprobarlas; comentarios append-only, a nombre propio, con la hora de la base, solo sobre solicitudes visibles; el Administrador del sistema lee y no comenta |
-| `probar_fecha_y_foto.mjs` | pedido de venta: Ventas pide fecha, Gerencia de Producción la propone (pedido entero y productos demorados), Ventas aprueba con foto del importe; vuelta a reconfirmar, factura bloqueada sin aprobar, es_venta inmutable |
+| `probar_fecha_y_foto.mjs`     | pedido de venta: Ventas pide fecha, Gerencia de Producción la propone (pedido entero y productos demorados), Ventas aprueba con foto del importe; vuelta a reconfirmar, factura bloqueada sin aprobar, es_venta inmutable      |
 
 `probar_facturas` (sesiones anteriores) necesita el token de Afip SDK y red, y
 no está acá.

@@ -38,7 +38,9 @@ export const formaCosto = {
     'NO_DISCRIMINADO',
     'SIN_COMPROBANTE',
   ]),
-  importe: z.number({ error: 'Falta el importe' }).min(0, 'El importe no puede ser negativo'),
+  importe: z
+    .number({ error: 'Falta el importe' })
+    .min(0, 'El importe no puede ser negativo'),
   incluye_iva: z.boolean(),
   alicuota_iva: z.number(),
   moneda: z.enum(['ARS', 'USD']),
@@ -56,7 +58,11 @@ export function reglasCosto(
   if (conCantidad && !((v.cantidad ?? 0) > 0))
     ctx.addIssue({ code: 'custom', path: ['cantidad'], message: 'Falta la cantidad' });
   if (v.moneda === 'USD' && !((v.tipo_cambio ?? 0) > 0))
-    ctx.addIssue({ code: 'custom', path: ['tipo_cambio'], message: 'Falta el tipo de cambio' });
+    ctx.addIssue({
+      code: 'custom',
+      path: ['tipo_cambio'],
+      message: 'Falta el tipo de cambio',
+    });
 }
 
 /** Del formulario al payload del hook: en pesos el tipo de cambio es 1. */

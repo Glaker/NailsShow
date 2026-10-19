@@ -80,7 +80,12 @@ const AROMA_PASOS = {
 
 const numerar = (pasos) => pasos.map((p, i) => `  ${i + 1}. ${p}`).join('\n');
 const tabla = (filas) =>
-  filas.map((f) => `  - ${f.nombre}: ${f.medida}${f.kg !== undefined ? ` — ${f.pesoTexto ?? `${coma(f.kg)} kg`}` : f.pesoTexto ? ` — ${f.pesoTexto}` : ''}`).join('\n');
+  filas
+    .map(
+      (f) =>
+        `  - ${f.nombre}: ${f.medida}${f.kg !== undefined ? ` — ${f.pesoTexto ?? `${coma(f.kg)} kg`}` : f.pesoTexto ? ` — ${f.pesoTexto}` : ''}`,
+    )
+    .join('\n');
 /** 5 → «5,00», 0.04 → «0,04», 0.006 → «0,006»: como escribe el manual. */
 const coma = (n) => {
   const dec = (String(n).split('.')[1] ?? '').length;
@@ -113,28 +118,78 @@ const prep = (marca, pagina, notas = []) => ({
   titulo: `PREP ${marca} - BIDON DE 20 L`,
   pagina,
   componentes: [
-    { nombre: 'Alcohol isopropilico', medida: '14,00 L', kg: 10.99, insumo: I.ISOPROPILICO },
+    {
+      nombre: 'Alcohol isopropilico',
+      medida: '14,00 L',
+      kg: 10.99,
+      insumo: I.ISOPROPILICO,
+    },
     { nombre: 'Acetato de butilo', medida: '6,00 L', kg: 5.28, insumo: I.ACETATO_BUTILO },
   ],
-  pasos: ['Agregar alcohol isopropilico.', 'Agregar acetato de butilo.', 'Mezclar hasta homogeneizar.'],
+  pasos: [
+    'Agregar alcohol isopropilico.',
+    'Agregar acetato de butilo.',
+    'Mezclar hasta homogeneizar.',
+  ],
   notas: ['TOTAL: 20,00 L — 16,27 kg aprox.', ...notas],
 });
 
 const sanitizanteNS = (tam, aroma) => {
   const es125 = tam === 125;
   const componentes = [
-    { nombre: 'Alcohol de cereal / cleanser', medida: '14,50 L', kg: 11.46, insumo: I.ALCOHOL_SANITIZANTE },
+    {
+      nombre: 'Alcohol de cereal / cleanser',
+      medida: '14,50 L',
+      kg: 11.46,
+      insumo: I.ALCOHOL_SANITIZANTE,
+    },
     { nombre: 'Agua desionizada', medida: '5,00 L', kg: 5.0, insumo: I.AGUA },
     es125
-      ? { nombre: 'Glicerina', medida: '0,13 L', kg: 0.17, pesoTexto: '0,17 kg aprox. (165 gr)', insumo: I.GLICERINA }
-      : { nombre: 'Glicerina', medida: '0,13 L', kg: 0.16, pesoTexto: '0,16 kg aprox. (165 gr)', insumo: I.GLICERINA },
+      ? {
+          nombre: 'Glicerina',
+          medida: '0,13 L',
+          kg: 0.17,
+          pesoTexto: '0,17 kg aprox. (165 gr)',
+          insumo: I.GLICERINA,
+        }
+      : {
+          nombre: 'Glicerina',
+          medida: '0,13 L',
+          kg: 0.16,
+          pesoTexto: '0,16 kg aprox. (165 gr)',
+          insumo: I.GLICERINA,
+        },
     ...(es125
-      ? [{ nombre: 'Extracto glicolico de aloe vera', medida: '0,10 L', kg: 0.11, pesoTexto: '0,11 kg aprox. (110 gr)', insumo: I.ALOE_GLICOLICO }]
+      ? [
+          {
+            nombre: 'Extracto glicolico de aloe vera',
+            medida: '0,10 L',
+            kg: 0.11,
+            pesoTexto: '0,11 kg aprox. (110 gr)',
+            insumo: I.ALOE_GLICOLICO,
+          },
+        ]
       : []),
-    { nombre: `Fragancia ${aroma}`, medida: '0,20 L', kg: 0.2, pesoTexto: es125 ? '0,20 kg (200 gr)' : '0,20 kg aprox. (200 gr)', insumo: I.FRAGANCIA[aroma] },
+    {
+      nombre: `Fragancia ${aroma}`,
+      medida: '0,20 L',
+      kg: 0.2,
+      pesoTexto: es125 ? '0,20 kg (200 gr)' : '0,20 kg aprox. (200 gr)',
+      insumo: I.FRAGANCIA[aroma],
+    },
     es125
-      ? { nombre: `Pigmento ${aroma === 'AMOR' ? 'ROSA OSCURO #148' : aroma === 'AIRE' ? 'CAMALEON LILA #328' : 'VIOLETA #158 XVII'}`, medida: '0,01 L', kg: 0.006, pesoTexto: '0,006 kg aprox. (6 gr)', insumo: I.PIGMENTO_AROMA[aroma] }
-      : { nombre: 'Pigmento / colorante', medida: 'Segun aroma', pesoTexto: 'Segun aroma' },
+      ? {
+          nombre: `Pigmento ${aroma === 'AMOR' ? 'ROSA OSCURO #148' : aroma === 'AIRE' ? 'CAMALEON LILA #328' : 'VIOLETA #158 XVII'}`,
+          medida: '0,01 L',
+          kg: 0.006,
+          pesoTexto: '0,006 kg aprox. (6 gr)',
+          insumo: I.PIGMENTO_AROMA[aroma],
+        }
+      : {
+          nombre: 'Pigmento / colorante',
+          medida: 'Segun aroma',
+          pesoTexto: 'Segun aroma',
+        },
   ];
   const pasosBase = es125
     ? [
@@ -194,9 +249,27 @@ const NAIL_SHOW = [
       titulo: 'CLARIFICADOR NAIL SHOW - BIDON DE 20 L',
       pagina: 2,
       componentes: [
-        { nombre: 'Alcohol comun / cereal', medida: '15,96 L', kg: 12.59, pesoTexto: '12,59 kg aprox.', insumo: I.ALCOHOL_CEREAL },
-        { nombre: 'Alcohol isopropilico', medida: '4,00 L', kg: 3.14, pesoTexto: '3,14 kg aprox.', insumo: I.ISOPROPILICO },
-        { nombre: 'Esencia Chicle Tutti Bazook', medida: '40 ml por bidon de 20 L', kg: 0.04, pesoTexto: '0,040 kg aprox.', insumo: I.TUTTI_BAZOOK },
+        {
+          nombre: 'Alcohol comun / cereal',
+          medida: '15,96 L',
+          kg: 12.59,
+          pesoTexto: '12,59 kg aprox.',
+          insumo: I.ALCOHOL_CEREAL,
+        },
+        {
+          nombre: 'Alcohol isopropilico',
+          medida: '4,00 L',
+          kg: 3.14,
+          pesoTexto: '3,14 kg aprox.',
+          insumo: I.ISOPROPILICO,
+        },
+        {
+          nombre: 'Esencia Chicle Tutti Bazook',
+          medida: '40 ml por bidon de 20 L',
+          kg: 0.04,
+          pesoTexto: '0,040 kg aprox.',
+          insumo: I.TUTTI_BAZOOK,
+        },
       ],
       pasos: [
         'Agregar el ALCOHOL COMUN / CEREAL.',
@@ -205,7 +278,9 @@ const NAIL_SHOW = [
         'En la olla agregar 80 ml de ESENCIA CHICLE TUTTI BAZOOK en total (40 ml por cada bidon de 20 L).',
         'Mezclar hasta homogeneizar.',
       ],
-      notas: ['IMPORTANTE - OLLA DE 40 L: son 2 bidones de 20 L. Agregar 80 ml de ESENCIA CHICLE TUTTI BAZOOK EN TOTAL en la olla.'],
+      notas: [
+        'IMPORTANTE - OLLA DE 40 L: son 2 bidones de 20 L. Agregar 80 ml de ESENCIA CHICLE TUTTI BAZOOK EN TOTAL en la olla.',
+      ],
     },
   },
   {
@@ -231,8 +306,14 @@ const NAIL_SHOW = [
       ],
     },
   },
-  ...['AMOR', 'AIRE', 'PAZ'].map((a) => ({ skus: [{ AMOR: '391', AIRE: '393', PAZ: '395' }[a]], f: sanitizanteNS(200, a) })),
-  ...['AMOR', 'AIRE', 'PAZ'].map((a) => ({ skus: [{ AMOR: '392', AIRE: '394', PAZ: '396' }[a]], f: sanitizanteNS(125, a) })),
+  ...['AMOR', 'AIRE', 'PAZ'].map((a) => ({
+    skus: [{ AMOR: '391', AIRE: '393', PAZ: '395' }[a]],
+    f: sanitizanteNS(200, a),
+  })),
+  ...['AMOR', 'AIRE', 'PAZ'].map((a) => ({
+    skus: [{ AMOR: '392', AIRE: '394', PAZ: '396' }[a]],
+    f: sanitizanteNS(125, a),
+  })),
   {
     skus: ['86', '99'],
     f: polimero('SOFT COVER PINK', 6, [
@@ -272,7 +353,10 @@ const NAIL_SHOW = [
   },
   {
     skus: ['80'],
-    f: polimero('ROSADO TRANSLUCIDO', 8, [baseClear, 'Agregar 1 cucharada blanca de pigmento rosa #144 III.']),
+    f: polimero('ROSADO TRANSLUCIDO', 8, [
+      baseClear,
+      'Agregar 1 cucharada blanca de pigmento rosa #144 III.',
+    ]),
   },
   {
     skus: ['88'],
@@ -285,7 +369,11 @@ const NAIL_SHOW = [
   },
   {
     skus: ['91'],
-    f: polimero('PRINCESS', 8, [ez8, 'Agregar 8 cucharadas mini de Ferrite.', 'Agregar 12 cucharadas blancas de Sugar XLI Rainbow.']),
+    f: polimero('PRINCESS', 8, [
+      ez8,
+      'Agregar 8 cucharadas mini de Ferrite.',
+      'Agregar 12 cucharadas blancas de Sugar XLI Rainbow.',
+    ]),
   },
   {
     skus: ['90'],
@@ -321,19 +409,52 @@ const TERCEROS = [
   {
     tercero: 'Navi',
     productos: [
-      { nombre: 'PREP NAVI 8ml', f: prep('NAVI', 10, ['RENDIMIENTO ORIENTATIVO: 20 L = 2.500 envases de PREP de 8 ml.', NAVI_NOTA]) },
+      {
+        nombre: 'PREP NAVI 8ml',
+        f: prep('NAVI', 10, [
+          'RENDIMIENTO ORIENTATIVO: 20 L = 2.500 envases de PREP de 8 ml.',
+          NAVI_NOTA,
+        ]),
+      },
       {
         nombre: 'CLARIFICADOR NAVI',
         f: {
           titulo: 'CLARIFICADOR NAVI - BIDON DE 20 L',
           pagina: 10,
           componentes: [
-            { nombre: 'Alcohol comun / cereal', medida: '15,96 L', kg: 12.59, insumo: I.ALCOHOL_CEREAL },
-            { nombre: 'Alcohol isopropilico', medida: '4,00 L', kg: 3.14, insumo: I.ISOPROPILICO },
-            { nombre: 'Chicle Pumita', medida: '25 ml', kg: 0.025, pesoTexto: '0,025 kg aprox.', insumo: I.CHICLE_PUMITA },
-            { nombre: 'Frambuesa', medida: '12,5 ml', kg: 0.013, pesoTexto: '0,013 kg aprox.', insumo: I.FRAMBUESA },
+            {
+              nombre: 'Alcohol comun / cereal',
+              medida: '15,96 L',
+              kg: 12.59,
+              insumo: I.ALCOHOL_CEREAL,
+            },
+            {
+              nombre: 'Alcohol isopropilico',
+              medida: '4,00 L',
+              kg: 3.14,
+              insumo: I.ISOPROPILICO,
+            },
+            {
+              nombre: 'Chicle Pumita',
+              medida: '25 ml',
+              kg: 0.025,
+              pesoTexto: '0,025 kg aprox.',
+              insumo: I.CHICLE_PUMITA,
+            },
+            {
+              nombre: 'Frambuesa',
+              medida: '12,5 ml',
+              kg: 0.013,
+              pesoTexto: '0,013 kg aprox.',
+              insumo: I.FRAMBUESA,
+            },
           ],
-          pasos: ['Agregar alcohol comun / cereal.', 'Agregar alcohol isopropilico.', 'Agregar Chicle Pumita y Frambuesa al final.', 'Mezclar hasta homogeneizar.'],
+          pasos: [
+            'Agregar alcohol comun / cereal.',
+            'Agregar alcohol isopropilico.',
+            'Agregar Chicle Pumita y Frambuesa al final.',
+            'Mezclar hasta homogeneizar.',
+          ],
           notas: [NAVI_NOTA],
         },
       },
@@ -343,11 +464,33 @@ const TERCEROS = [
           titulo: 'POLYGEL NAVI - BIDON DE 60 L',
           pagina: 10,
           componentes: [
-            { nombre: 'Alcohol isopropilico', medida: '42,48 L', kg: 33.35, insumo: I.ISOPROPILICO },
-            { nombre: 'Acetato de butilo', medida: '15,00 L', kg: 13.2, insumo: I.ACETATO_BUTILO },
+            {
+              nombre: 'Alcohol isopropilico',
+              medida: '42,48 L',
+              kg: 33.35,
+              insumo: I.ISOPROPILICO,
+            },
+            {
+              nombre: 'Acetato de butilo',
+              medida: '15,00 L',
+              kg: 13.2,
+              insumo: I.ACETATO_BUTILO,
+            },
             { nombre: 'Glicerina', medida: '2,40 L', kg: 3.02, insumo: I.GLICERINA },
-            { nombre: 'Chicle Pumita', medida: '80 ml', kg: 0.08, pesoTexto: '0,080 kg aprox.', insumo: I.CHICLE_PUMITA },
-            { nombre: 'Frambuesa', medida: '40 ml', kg: 0.042, pesoTexto: '0,042 kg aprox.', insumo: I.FRAMBUESA },
+            {
+              nombre: 'Chicle Pumita',
+              medida: '80 ml',
+              kg: 0.08,
+              pesoTexto: '0,080 kg aprox.',
+              insumo: I.CHICLE_PUMITA,
+            },
+            {
+              nombre: 'Frambuesa',
+              medida: '40 ml',
+              kg: 0.042,
+              pesoTexto: '0,042 kg aprox.',
+              insumo: I.FRAMBUESA,
+            },
           ],
           pasos: [
             'Agregar primero el alcohol isopropilico.',
@@ -365,12 +508,39 @@ const TERCEROS = [
           titulo: 'REMOVEDOR DE ESMALTE NAVI - OLLA DE 40 L',
           pagina: 11,
           componentes: [
-            { nombre: 'Removedor base', medida: '20,00 L', kg: 20.0, pesoTexto: '20,00 kg aprox.' },
-            { nombre: 'Alcohol comun / cereal', medida: '20,00 L', kg: 15.78, pesoTexto: '15,78 kg aprox.', insumo: I.ALCOHOL_CEREAL },
-            { nombre: 'Chicle Pumita', medida: '50 ml', kg: 0.05, pesoTexto: '0,050 kg aprox.', insumo: I.CHICLE_PUMITA },
-            { nombre: 'Frambuesa', medida: '25 ml', kg: 0.026, pesoTexto: '0,026 kg aprox.', insumo: I.FRAMBUESA },
+            {
+              nombre: 'Removedor base',
+              medida: '20,00 L',
+              kg: 20.0,
+              pesoTexto: '20,00 kg aprox.',
+            },
+            {
+              nombre: 'Alcohol comun / cereal',
+              medida: '20,00 L',
+              kg: 15.78,
+              pesoTexto: '15,78 kg aprox.',
+              insumo: I.ALCOHOL_CEREAL,
+            },
+            {
+              nombre: 'Chicle Pumita',
+              medida: '50 ml',
+              kg: 0.05,
+              pesoTexto: '0,050 kg aprox.',
+              insumo: I.CHICLE_PUMITA,
+            },
+            {
+              nombre: 'Frambuesa',
+              medida: '25 ml',
+              kg: 0.026,
+              pesoTexto: '0,026 kg aprox.',
+              insumo: I.FRAMBUESA,
+            },
           ],
-          pasos: ['Agregar el removedor base y el alcohol comun / cereal en la OLLA DE 40 L.', 'Agregar Chicle Pumita y Frambuesa.', 'Mezclar hasta homogeneizar.'],
+          pasos: [
+            'Agregar el removedor base y el alcohol comun / cereal en la OLLA DE 40 L.',
+            'Agregar Chicle Pumita y Frambuesa.',
+            'Mezclar hasta homogeneizar.',
+          ],
           notas: [
             'RECIPIENTE: OLLA DE 40 L. Rendimiento aproximado: 160 envases de 250 ml.',
             'El manual no trae orden de preparacion para esta formula: el orden de arriba es el de la tabla de componentes y lo tiene que confirmar Produccion.',
@@ -383,11 +553,33 @@ const TERCEROS = [
           titulo: 'REMOVEDOR DE UÑAS ARTIFICIALES NAVI - BIDON AZUL DE 60 L',
           pagina: 11,
           componentes: [
-            { nombre: 'Removedor base', medida: '3 bidones de 20 L', kg: 60.0, pesoTexto: '60,00 kg aprox.' },
-            { nombre: 'Chicle Pumita', medida: '75 ml', kg: 0.075, pesoTexto: '0,075 kg aprox.', insumo: I.CHICLE_PUMITA },
-            { nombre: 'Frambuesa', medida: '37,5 ml', kg: 0.04, pesoTexto: '0,040 kg aprox.', insumo: I.FRAMBUESA },
+            {
+              nombre: 'Removedor base',
+              medida: '3 bidones de 20 L',
+              kg: 60.0,
+              pesoTexto: '60,00 kg aprox.',
+            },
+            {
+              nombre: 'Chicle Pumita',
+              medida: '75 ml',
+              kg: 0.075,
+              pesoTexto: '0,075 kg aprox.',
+              insumo: I.CHICLE_PUMITA,
+            },
+            {
+              nombre: 'Frambuesa',
+              medida: '37,5 ml',
+              kg: 0.04,
+              pesoTexto: '0,040 kg aprox.',
+              insumo: I.FRAMBUESA,
+            },
           ],
-          pasos: ['Preparar directamente en el BIDON AZUL DE 60 L.', 'Agregar los 3 bidones de 20 L de removedor base.', 'Agregar Chicle Pumita y Frambuesa.', 'Mezclar hasta homogeneizar.'],
+          pasos: [
+            'Preparar directamente en el BIDON AZUL DE 60 L.',
+            'Agregar los 3 bidones de 20 L de removedor base.',
+            'Agregar Chicle Pumita y Frambuesa.',
+            'Mezclar hasta homogeneizar.',
+          ],
           notas: [
             'Rendimiento aproximado: 240 envases de 250 ml.',
             'El manual no trae orden de preparacion para esta formula: el orden de arriba es el de la tabla de componentes y lo tiene que confirmar Produccion.',
@@ -406,11 +598,32 @@ const TERCEROS = [
           titulo: 'SANITIZANTE LIMON GLAM - OLLA DE 40 L (y BIDON GRANDE DE 200 L)',
           pagina: 12,
           componentes: [
-            { nombre: 'Alcohol comun / cereal', medida: '29,00 L', kg: 22.88, pesoTexto: '22,88 kg aprox.', insumo: I.ALCOHOL_SANITIZANTE },
+            {
+              nombre: 'Alcohol comun / cereal',
+              medida: '29,00 L',
+              kg: 22.88,
+              pesoTexto: '22,88 kg aprox.',
+              insumo: I.ALCOHOL_SANITIZANTE,
+            },
             { nombre: 'Agua desionizada', medida: '10,00 L', kg: 10.0, insumo: I.AGUA },
-            { nombre: 'Glicerina', medida: '260 ml', kg: 0.33, pesoTexto: '0,33 kg aprox.', insumo: I.GLICERINA },
-            { nombre: 'Esencia Limon', medida: '75 ml', kg: 0.075, pesoTexto: '0,075 kg aprox.' },
-            { nombre: 'Colorante amarillo', medida: '2 cucharadas de 1/8 tsp', pesoTexto: 'Medir con cuchara 1/8' },
+            {
+              nombre: 'Glicerina',
+              medida: '260 ml',
+              kg: 0.33,
+              pesoTexto: '0,33 kg aprox.',
+              insumo: I.GLICERINA,
+            },
+            {
+              nombre: 'Esencia Limon',
+              medida: '75 ml',
+              kg: 0.075,
+              pesoTexto: '0,075 kg aprox.',
+            },
+            {
+              nombre: 'Colorante amarillo',
+              medida: '2 cucharadas de 1/8 tsp',
+              pesoTexto: 'Medir con cuchara 1/8',
+            },
           ],
           pasos: [
             'Agregar primero el AGUA.',
@@ -439,12 +652,37 @@ const TERCEROS = [
           titulo: 'CLARIFICADOR GLAM - BIDON DE 20 L',
           pagina: 13,
           componentes: [
-            { nombre: 'Alcohol comun / cereal', medida: '15,85 L aprox.', kg: 12.5, pesoTexto: '12,50 kg aprox.', insumo: I.ALCOHOL_CEREAL },
-            { nombre: 'Alcohol isopropilico', medida: '4,00 L', kg: 3.14, insumo: I.ISOPROPILICO },
-            { nombre: 'Esencia Frutilla', medida: '150 ml', kg: 0.15, pesoTexto: '0,150 kg aprox.' },
-            { nombre: 'Colorante rojo', medida: 'Ajustar visualmente', pesoTexto: 'Agregar de a poco' },
+            {
+              nombre: 'Alcohol comun / cereal',
+              medida: '15,85 L aprox.',
+              kg: 12.5,
+              pesoTexto: '12,50 kg aprox.',
+              insumo: I.ALCOHOL_CEREAL,
+            },
+            {
+              nombre: 'Alcohol isopropilico',
+              medida: '4,00 L',
+              kg: 3.14,
+              insumo: I.ISOPROPILICO,
+            },
+            {
+              nombre: 'Esencia Frutilla',
+              medida: '150 ml',
+              kg: 0.15,
+              pesoTexto: '0,150 kg aprox.',
+            },
+            {
+              nombre: 'Colorante rojo',
+              medida: 'Ajustar visualmente',
+              pesoTexto: 'Agregar de a poco',
+            },
           ],
-          pasos: ['Agregar el alcohol comun / cereal.', 'Agregar el alcohol isopropilico.', 'Agregar la esencia FRUTILLA.', 'Agregar el colorante rojo de a poco, ajustando visualmente.'],
+          pasos: [
+            'Agregar el alcohol comun / cereal.',
+            'Agregar el alcohol isopropilico.',
+            'Agregar la esencia FRUTILLA.',
+            'Agregar el colorante rojo de a poco, ajustando visualmente.',
+          ],
           notas: [
             'ESENCIA CONFIRMADA: FRUTILLA - 150 ml (aprox. 0,150 kg) por cada 20 L.',
             'El manual no trae orden de preparacion para esta formula: el orden de arriba es el de la tabla de componentes y lo tiene que confirmar Produccion.',
@@ -457,11 +695,23 @@ const TERCEROS = [
           titulo: 'POLYGEL GLAM - REFERENCIA DE TANDA DE 60 L',
           pagina: 13,
           componentes: [
-            { nombre: 'Base de Polygel Glam', medida: '60 L de liquido preparado', pesoTexto: 'Segun formula operativa vigente' },
+            {
+              nombre: 'Base de Polygel Glam',
+              medida: '60 L de liquido preparado',
+              pesoTexto: 'Segun formula operativa vigente',
+            },
             { nombre: 'Esencia Anana', medida: '200 ml', pesoTexto: '0,200 kg aprox.' },
-            { nombre: 'Colorante azul', medida: '1 cucharada de 2,5 ml', pesoTexto: 'Medir con cuchara 2,5 ml' },
+            {
+              nombre: 'Colorante azul',
+              medida: '1 cucharada de 2,5 ml',
+              pesoTexto: 'Medir con cuchara 2,5 ml',
+            },
           ],
-          pasos: ['Preparar los 60 L de base de Polygel Glam.', 'Agregar 200 ml de esencia ANANA.', 'Agregar 1 cucharada de 2,5 ml de colorante AZUL.'],
+          pasos: [
+            'Preparar los 60 L de base de Polygel Glam.',
+            'Agregar 200 ml de esencia ANANA.',
+            'Agregar 1 cucharada de 2,5 ml de colorante AZUL.',
+          ],
           notas: [
             'REFERENCIA CONFIRMADA EN PRODUCCION: 60 L + 200 ml de ANANA + 1 cucharada de 2,5 ml de colorante AZUL.',
             'La base de Polygel Glam no esta en el manual ("segun formula operativa vigente"): sin ella no hay % p/p. No asumir la base de otra marca.',
@@ -495,14 +745,41 @@ const TERCEROS = [
           titulo: `SANITIZANTE JENNIFER BEAUTY 100 ml ${aroma} - REFERENCIA POR 20 L`,
           pagina: 14,
           componentes: [
-            { nombre: 'Alcohol de cereal / cleanser', medida: '14,50 L', kg: 11.46, insumo: I.ALCOHOL_SANITIZANTE },
+            {
+              nombre: 'Alcohol de cereal / cleanser',
+              medida: '14,50 L',
+              kg: 11.46,
+              insumo: I.ALCOHOL_SANITIZANTE,
+            },
             { nombre: 'Agua desionizada', medida: '5,00 L', kg: 5.0, insumo: I.AGUA },
-            { nombre: 'Glicerina', medida: '0,13 L', kg: 0.16, pesoTexto: '0,16 kg aprox.', insumo: I.GLICERINA },
-            { nombre: `Esencia ${aroma}`, medida: '200 g por 20 L', kg: 0.2, pesoTexto: '0,200 kg' },
-            { nombre: 'Colorante', medida: 'Segun variante', pesoTexto: 'Segun variante' },
+            {
+              nombre: 'Glicerina',
+              medida: '0,13 L',
+              kg: 0.16,
+              pesoTexto: '0,16 kg aprox.',
+              insumo: I.GLICERINA,
+            },
+            {
+              nombre: `Esencia ${aroma}`,
+              medida: '200 g por 20 L',
+              kg: 0.2,
+              pesoTexto: '0,200 kg',
+            },
+            {
+              nombre: 'Colorante',
+              medida: 'Segun variante',
+              pesoTexto: 'Segun variante',
+            },
           ],
-          pasos: ['Agregar primero el AGUA.', 'Mezclar la GLICERINA con un chorrito de agua e incorporar.', 'Agregar el ALCOHOL.', 'Agregar la ESENCIA y el colorante de la variante.'],
-          notas: [`PEDIDO DE REFERENCIA: 500 unidades x 100 ml = 50 L — esencia necesaria 0,500 kg (${aroma}).`],
+          pasos: [
+            'Agregar primero el AGUA.',
+            'Mezclar la GLICERINA con un chorrito de agua e incorporar.',
+            'Agregar el ALCOHOL.',
+            'Agregar la ESENCIA y el colorante de la variante.',
+          ],
+          notas: [
+            `PEDIDO DE REFERENCIA: 500 unidades x 100 ml = 50 L — esencia necesaria 0,500 kg (${aroma}).`,
+          ],
         },
       },
       {
@@ -512,7 +789,11 @@ const TERCEROS = [
           titulo: `ACEITE DE CUTICULA JENNIFER BEAUTY 30 ml ${aroma}`,
           pagina: 15,
           componentes: [],
-          pasos: ['Preparar la base del aceite de cuticula.', 'Agregar la esencia al 0,80 %.', 'Mezclar hasta homogeneizar.'],
+          pasos: [
+            'Preparar la base del aceite de cuticula.',
+            'Agregar la esencia al 0,80 %.',
+            'Mezclar hasta homogeneizar.',
+          ],
           notas: [
             `PEDIDO DE REFERENCIA: 500 unidades x 30 ml = 15 L — esencia al 0,80 %: 0,120 kg aprox. (${aroma}).`,
             'La dosificacion confirmada de esencia es 0,80 %. La formula/base completa del aceite no fue especificada en este manual.',
@@ -530,10 +811,22 @@ function crema(tipo, aroma) {
     titulo: `CREMA ${tipo} JENNIFER BEAUTY 200 g ${aroma}`,
     pagina: 14,
     componentes: [
-      { nombre: `Crema ${tipo.toLowerCase()} a producir`, medida: '100 kg', pesoTexto: '100 kg' },
-      { nombre: `Esencia ${aroma} (0,6 %)`, medida: '0,6 %', pesoTexto: '0,600 kg — PESAR EN KG' },
+      {
+        nombre: `Crema ${tipo.toLowerCase()} a producir`,
+        medida: '100 kg',
+        pesoTexto: '100 kg',
+      },
+      {
+        nombre: `Esencia ${aroma} (0,6 %)`,
+        medida: '0,6 %',
+        pesoTexto: '0,600 kg — PESAR EN KG',
+      },
     ],
-    pasos: [`Pesar la base de crema ${tipo.toLowerCase()}.`, 'Pesar la esencia al 0,6 % (0,600 kg cada 100 kg) e incorporarla.', 'Mezclar hasta homogeneizar.'],
+    pasos: [
+      `Pesar la base de crema ${tipo.toLowerCase()}.`,
+      'Pesar la esencia al 0,6 % (0,600 kg cada 100 kg) e incorporarla.',
+      'Mezclar hasta homogeneizar.',
+    ],
     notas: [
       `TOTAL ${tipo}: 1.500 unidades x 200 g = 300 kg. Dividir 100 kg por aroma.`,
       'La base de la crema no esta en el manual: solo la dosificacion de esencia. No asumir la formula de otra marca/cliente.',
@@ -549,8 +842,18 @@ function componentesConPct(f, extra) {
   // Jennifer Beauty cremas y aceite: la esencia es un % fijo y la base csp.
   if (extra?.esencia) {
     return [
-      { orden: 1, nombre: extra.base, csp: true, obs: 'Base no especificada en el manual: completar antes de aprobar.' },
-      { orden: 2, nombre: extra.esencia.nombre, pct: extra.esencia.pct, obs: `Manual: esencia al ${coma(extra.esencia.pct)} %.` },
+      {
+        orden: 1,
+        nombre: extra.base,
+        csp: true,
+        obs: 'Base no especificada en el manual: completar antes de aprobar.',
+      },
+      {
+        orden: 2,
+        nombre: extra.esencia.nombre,
+        pct: extra.esencia.pct,
+        obs: `Manual: esencia al ${coma(extra.esencia.pct)} %.`,
+      },
     ];
   }
   const conKg = f.componentes.filter((c) => c.kg !== undefined);
@@ -571,7 +874,8 @@ function componentesConPct(f, extra) {
  * SQL
  * ------------------------------------------------------------------------- */
 
-const lit = (s) => (s === null || s === undefined ? 'null' : `'${String(s).replace(/'/g, "''")}'`);
+const lit = (s) =>
+  s === null || s === undefined ? 'null' : `'${String(s).replace(/'/g, "''")}'`;
 const dolar = (s) => {
   if (s.includes('$txt$')) throw new Error('El texto contiene $txt$');
   return `$txt$${s}$txt$`;
@@ -584,14 +888,24 @@ function sqlFormula(productoExpr, f, extra) {
   // Un borrador vacío (sin componentes ni procedimiento, p. ej. el de la 394
   // cargado desde la app) se completa en vez de duplicarse; si no, versión nueva.
   lineas.push(`  v_f := null;`);
-  lineas.push(`  select f.id into v_f from gmp.formulas_fabricacion f where f.producto_id = v_prod and f.estado = 'BORRADOR'`);
+  lineas.push(
+    `  select f.id into v_f from gmp.formulas_fabricacion f where f.producto_id = v_prod and f.estado = 'BORRADOR'`,
+  );
   lineas.push(`     and f.variedad is not distinct from ${lit(extra?.variedad ?? null)}`);
-  lineas.push(`     and not exists (select 1 from gmp.formula_componentes c where c.formula_id = f.id)`);
-  lineas.push(`     and not exists (select 1 from gmp.formula_procedimientos p where p.formula_id = f.id)`);
+  lineas.push(
+    `     and not exists (select 1 from gmp.formula_componentes c where c.formula_id = f.id)`,
+  );
+  lineas.push(
+    `     and not exists (select 1 from gmp.formula_procedimientos p where p.formula_id = f.id)`,
+  );
   lineas.push(`   order by f.creado_en limit 1;`);
   lineas.push(`  if v_f is null then`);
-  lineas.push(`    insert into gmp.formulas_fabricacion (producto_id, variedad, version, emitida_por)`);
-  lineas.push(`    values (v_prod, ${lit(extra?.variedad ?? null)}, coalesce((select (max(version::int) + 1)::text from gmp.formulas_fabricacion where producto_id = v_prod and version ~ '^[0-9]+$'), '1'), v_dt)`);
+  lineas.push(
+    `    insert into gmp.formulas_fabricacion (producto_id, variedad, version, emitida_por)`,
+  );
+  lineas.push(
+    `    values (v_prod, ${lit(extra?.variedad ?? null)}, coalesce((select (max(version::int) + 1)::text from gmp.formulas_fabricacion where producto_id = v_prod and version ~ '^[0-9]+$'), '1'), v_dt)`,
+  );
   lineas.push(`    returning id into v_f;`);
   lineas.push(`  end if;`);
   for (const c of comps) {
@@ -600,7 +914,9 @@ function sqlFormula(productoExpr, f, extra) {
       `  insert into gmp.formula_componentes (formula_id, orden, insumo_id, nombre_libre, porcentaje_pp, es_csp, observacion) values (v_f, ${c.orden}, ${insumo}, ${lit(c.nombre)}, ${c.csp ? 'null' : c.pct}, ${Boolean(c.csp)}, ${lit(c.obs)});`,
     );
   }
-  lineas.push(`  insert into gmp.formula_procedimientos (formula_id, version, texto, redactado_por) values (v_f, 1, ${dolar(procedimiento(f))}, v_dt);`);
+  lineas.push(
+    `  insert into gmp.formula_procedimientos (formula_id, version, texto, redactado_por) values (v_f, 1, ${dolar(procedimiento(f))}, v_dt);`,
+  );
   return lineas.join('\n');
 }
 
@@ -625,11 +941,19 @@ for (const t of TERCEROS) {
   );
   for (const p of t.productos) {
     bloques.push(`  -- ${t.tercero}: ${p.nombre}`);
-    bloques.push(sqlFormula(`(gmp.alta_producto_tercero(${var_}, ${lit(p.nombre)}, null, ${lit(p.variedad ?? null)})).id`, p.f, p));
+    bloques.push(
+      sqlFormula(
+        `(gmp.alta_producto_tercero(${var_}, ${lit(p.nombre)}, null, ${lit(p.variedad ?? null)})).id`,
+        p.f,
+        p,
+      ),
+    );
     nFormulas++;
   }
 }
-const varsTerceros = TERCEROS.map((t) => `  v_t_${t.tercero.toLowerCase().replace(/\W+/g, '_')} uuid;`).join('\n');
+const varsTerceros = TERCEROS.map(
+  (t) => `  v_t_${t.tercero.toLowerCase().replace(/\W+/g, '_')} uuid;`,
+).join('\n');
 const nProductosNuevos = TERCEROS.reduce((a, t) => a + t.productos.length, 0);
 
 const sql = `-- ---------------------------------------------------------------------------
@@ -713,7 +1037,10 @@ writeFileSync(MIGRACION, sql);
 
 const sinInsumo = new Set();
 const sinPct = [];
-for (const g of [...NAIL_SHOW.map((x) => ({ n: x.f.titulo, f: x.f })), ...TERCEROS.flatMap((t) => t.productos.map((p) => ({ n: p.nombre, f: p.f, p })))]) {
+for (const g of [
+  ...NAIL_SHOW.map((x) => ({ n: x.f.titulo, f: x.f })),
+  ...TERCEROS.flatMap((t) => t.productos.map((p) => ({ n: p.nombre, f: p.f, p }))),
+]) {
   for (const c of g.f.componentes) {
     if (c.kg !== undefined && !c.insumo) sinInsumo.add(c.nombre);
     if (c.kg === undefined) sinPct.push(`${g.n}: ${c.nombre} (${c.medida})`);
@@ -749,7 +1076,10 @@ ${nFormulas} fórmulas cargadas en BORRADOR (${NAIL_SHOW.reduce((a, g) => a + g.
 
 ## Insumos que no están en el catálogo (cargados por nombre)
 
-${[...sinInsumo].sort().map((n) => `- ${n}`).join('\n')}
+${[...sinInsumo]
+  .sort()
+  .map((n) => `- ${n}`)
+  .join('\n')}
 
 Darlos de alta en \`/insumos\` y reemplazar el nombre por el insumo en cada
 fórmula antes de aprobarla: con nombre libre no se descuenta stock.

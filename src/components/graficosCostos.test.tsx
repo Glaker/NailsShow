@@ -5,7 +5,8 @@ import { theme } from '@/app/theme';
 import { GraficoLineas } from './GraficoLineas';
 import { GraficoBarrasPareadas } from './GraficoBarrasPareadas';
 
-const conTema = (ui: React.ReactNode) => render(<MantineProvider theme={theme}>{ui}</MantineProvider>);
+const conTema = (ui: React.ReactNode) =>
+  render(<MantineProvider theme={theme}>{ui}</MantineProvider>);
 const pesos = (v: number) => `$ ${Math.round(v)}`;
 
 describe('GraficoLineas', () => {
@@ -17,7 +18,12 @@ describe('GraficoLineas', () => {
         formato={pesos}
         series={[
           { nombre: 'Costo', color: 1, valores: [100, null, 120, 130] },
-          { nombre: 'Consumidor final', color: 2, punteada: true, valores: [300, 300, 320, 320] },
+          {
+            nombre: 'Consumidor final',
+            color: 2,
+            punteada: true,
+            valores: [300, 300, 320, 320],
+          },
         ]}
       />,
     );
@@ -29,7 +35,14 @@ describe('GraficoLineas', () => {
   });
 
   it('sin valores muestra el estado vacío', () => {
-    conTema(<GraficoLineas titulo="x" etiquetas={['ene']} formato={pesos} series={[{ nombre: 'Costo', color: 1, valores: [null] }]} />);
+    conTema(
+      <GraficoLineas
+        titulo="x"
+        etiquetas={['ene']}
+        formato={pesos}
+        series={[{ nombre: 'Costo', color: 1, valores: [null] }]}
+      />,
+    );
     expect(screen.getByText('Sin datos para el período.')).toBeTruthy();
   });
 });

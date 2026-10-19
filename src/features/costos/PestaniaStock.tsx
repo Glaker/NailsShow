@@ -151,7 +151,8 @@ export function PestaniaStock() {
         </Tooltip>
       );
     }
-    const formateado = vista === 'USD' ? `U$D ${numero(r.valor, 2)}` : `$ ${numero(r.valor, 2)}`;
+    const formateado =
+      vista === 'USD' ? `U$D ${numero(r.valor, 2)}` : `$ ${numero(r.valor, 2)}`;
     return r.provisorio ? (
       <>
         {formateado}{' '}
@@ -203,8 +204,8 @@ export function PestaniaStock() {
         </SimpleGrid>
         <Text size="sm" c="dimmed">
           Insumos: saldo de cada lote × lo que costó ese lote (identificación específica).
-          Producto terminado: saldo × costo unitario vigente del producto. Es un valor de gestión,
-          no la valuación contable.
+          Producto terminado: saldo × costo unitario vigente del producto. Es un valor de
+          gestión, no la valuación contable.
         </Text>
       </Stack>
 
@@ -359,7 +360,9 @@ export function PestaniaStock() {
                         <Button
                           size="sm"
                           variant="subtle"
-                          onClick={() => void navigate(`/costos/producto/${g.producto_id}`)}
+                          onClick={() =>
+                            void navigate(`/costos/producto/${g.producto_id}`)
+                          }
                         >
                           Ver panel
                         </Button>

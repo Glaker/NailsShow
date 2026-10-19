@@ -34,7 +34,8 @@ const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(AQUI, '../..');
 // El tercer argumento opcional es la carpeta de salida de la migración (para
 // probarla antes de escribirla en supabase/migrations).
-const [xlsx, dir, salida = path.join(RAIZ, 'supabase/migrations')] = process.argv.slice(2);
+const [xlsx, dir, salida = path.join(RAIZ, 'supabase/migrations')] =
+  process.argv.slice(2);
 if (!xlsx || !dir) {
   console.error('Uso: generar_migracion.mjs <planilla.xlsx> <dir_descomprimido>');
   process.exit(1);
@@ -51,11 +52,17 @@ const dec = (s) =>
 
 const wb = readFileSync(`${dir}/xl/workbook.xml`, 'utf8');
 const rels = readFileSync(`${dir}/xl/_rels/workbook.xml.rels`, 'utf8');
-const shared = [...readFileSync(`${dir}/xl/sharedStrings.xml`, 'utf8').matchAll(/<si>([\s\S]*?)<\/si>/g)].map(
-  (m) => dec([...m[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map((t) => t[1]).join('')),
+const shared = [
+  ...readFileSync(`${dir}/xl/sharedStrings.xml`, 'utf8').matchAll(
+    /<si>([\s\S]*?)<\/si>/g,
+  ),
+].map((m) =>
+  dec([...m[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map((t) => t[1]).join('')),
 );
 const rid = new RegExp(`<sheet name="${HOJA}"[^>]*r:id="(rId\\d+)"`).exec(wb)[1];
-const target = new RegExp(`Id="${rid}"[^>]*Target="([^"]+)"`).exec(rels)[1].replace(/^\/?xl\//, '');
+const target = new RegExp(`Id="${rid}"[^>]*Target="([^"]+)"`)
+  .exec(rels)[1]
+  .replace(/^\/?xl\//, '');
 const xml = readFileSync(`${dir}/xl/${target}`, 'utf8');
 
 const filas = [];
@@ -65,7 +72,8 @@ for (const r of xml.matchAll(/<row [^>]*r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g)) {
     const t = /t="(\w+)"/.exec(c[2])?.[1];
     let v = /<v>([\s\S]*?)<\/v>/.exec(c[3] ?? '')?.[1] ?? '';
     if (t === 's') v = shared[Number(v)];
-    else if (t === 'inlineStr') v = dec(/<t[^>]*>([\s\S]*?)<\/t>/.exec(c[3] ?? '')?.[1] ?? '');
+    else if (t === 'inlineStr')
+      v = dec(/<t[^>]*>([\s\S]*?)<\/t>/.exec(c[3] ?? '')?.[1] ?? '');
     celdas[c[1]] = dec(String(v));
   }
   filas.push({ fila: Number(r[1]), ...celdas });
@@ -86,11 +94,21 @@ for (const f of filas.filter((x) => x.fila >= 3)) {
   const precio = Math.round(Number(f.D) * 100) / 100;
   const nombre = (f.C ?? '').trim();
   if (!catalogo.has(cod.toUpperCase())) {
-    pendientes.push({ cod, nombre, fila: f.fila, motivo: 'el código no está en el catálogo de productos' });
+    pendientes.push({
+      cod,
+      nombre,
+      fila: f.fila,
+      motivo: 'el código no está en el catálogo de productos',
+    });
     continue;
   }
   if (!(precio > 0)) {
-    pendientes.push({ cod, nombre, fila: f.fila, motivo: 'sin precio de lista en la planilla' });
+    pendientes.push({
+      cod,
+      nombre,
+      fila: f.fila,
+      motivo: 'sin precio de lista en la planilla',
+    });
     continue;
   }
   const lista = porCodigo.get(cod.toUpperCase()) ?? [];
@@ -115,7 +133,10 @@ for (const [, lista] of porCodigo) {
 const sha = createHash('sha256').update(readFileSync(xlsx)).digest('hex');
 const q = (s) => `'${s.replace(/'/g, "''")}'`;
 const valores = cargar
-  .map((x) => `  (${q(x.cod)}, ${x.precio.toFixed(2)}, ${q(`Planilla, hoja ${HOJA}, fila ${x.fila}`)})`)
+  .map(
+    (x) =>
+      `  (${q(x.cod)}, ${x.precio.toFixed(2)}, ${q(`Planilla, hoja ${HOJA}, fila ${x.fila}`)})`,
+  )
   .join(',\n');
 
 const sql = `-- ---------------------------------------------------------------------------

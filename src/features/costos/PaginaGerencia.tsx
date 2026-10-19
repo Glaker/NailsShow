@@ -1,4 +1,13 @@
-import { Alert, Divider, Group, Paper, SimpleGrid, Skeleton, Stack, Text } from '@mantine/core';
+import {
+  Alert,
+  Divider,
+  Group,
+  Paper,
+  SimpleGrid,
+  Skeleton,
+  Stack,
+  Text,
+} from '@mantine/core';
 import {
   IconAlertTriangle,
   IconChartLine,
@@ -27,7 +36,8 @@ export function PaginaGerencia() {
   const productos = useCostosProducto();
   const { convertir, leyenda, vista } = useVistaMoneda();
 
-  if (resultado.isLoading || pareto.isLoading || produccion.isLoading) return <Skeleton h={420} />;
+  if (resultado.isLoading || pareto.isLoading || produccion.isLoading)
+    return <Skeleton h={420} />;
 
   const encabezado = (
     <EncabezadoPagina
@@ -37,7 +47,9 @@ export function PaginaGerencia() {
   );
 
   // El mes en curso todavía puede no tener facturas: las tarjetas muestran el último mes con datos.
-  const conDatos = (resultado.data ?? []).filter((r) => r.facturacion > 0 || r.costos_totales > 0);
+  const conDatos = (resultado.data ?? []).filter(
+    (r) => r.facturacion > 0 || r.costos_totales > 0,
+  );
   const ultimo = conDatos[conDatos.length - 1];
   if (!ultimo) {
     return (
@@ -52,20 +64,29 @@ export function PaginaGerencia() {
     );
   }
 
-  const fmt = (v: number | null) => (v === null ? '—' : `${vista === 'USD' ? 'U$D ' : '$ '}${numero(v, 0)}`);
-  const conv = (v: number | null, mes: string) => (v === null ? null : convertir(v, mes, 'FLUJO').valor);
+  const fmt = (v: number | null) =>
+    v === null ? '—' : `${vista === 'USD' ? 'U$D ' : '$ '}${numero(v, 0)}`;
+  const conv = (v: number | null, mes: string) =>
+    v === null ? null : convertir(v, mes, 'FLUJO').valor;
 
   const resultadoMes = conv(ultimo.resultado, ultimo.mes);
   const facturacionMes = conv(ultimo.facturacion, ultimo.mes);
   const equilibrioMes = conv(ultimo.facturacion_equilibrio, ultimo.mes);
-  const diferencia = equilibrioMes !== null && facturacionMes !== null ? equilibrioMes - facturacionMes : null;
+  const diferencia =
+    equilibrioMes !== null && facturacionMes !== null
+      ? equilibrioMes - facturacionMes
+      : null;
   const perdida = resultadoMes !== null && resultadoMes < 0;
 
   const ordenes = produccion.data ?? [];
   const unidades = ordenes.reduce((s, o) => s + (o.unidades_obtenidas ?? 0), 0);
-  const nombres = new Map((productos.data ?? []).map((p) => [p.producto_id, p.nombre] as const));
+  const nombres = new Map(
+    (productos.data ?? []).map((p) => [p.producto_id, p.nombre] as const),
+  );
   const nombreDe = (id: string) => nombres.get(id) ?? '—';
-  const top = [...(pareto.data ?? [])].sort((a, b) => b.facturacion - a.facturacion).slice(0, 5);
+  const top = [...(pareto.data ?? [])]
+    .sort((a, b) => b.facturacion - a.facturacion)
+    .slice(0, 5);
 
   return (
     <Stack gap="lg">
@@ -84,7 +105,9 @@ export function PaginaGerencia() {
           color={perdida ? 'red' : 'green'}
           valor={
             <Text span inherit c={perdida ? 'red.7' : 'green.7'}>
-              {resultadoMes === null ? '—' : `${perdida ? '−' : ''}${fmt(Math.abs(resultadoMes))}`}
+              {resultadoMes === null
+                ? '—'
+                : `${perdida ? '−' : ''}${fmt(Math.abs(resultadoMes))}`}
             </Text>
           }
           detalle={
@@ -145,7 +168,9 @@ export function PaginaGerencia() {
                           {f.producto}
                         </Text>
                         <Text size="xs" c={sinMargen ? 'orange' : 'dimmed'}>
-                          {sinMargen ? 'costo incompleto' : `Margen ${pct(f.margen_pct ?? 0)}`}
+                          {sinMargen
+                            ? 'costo incompleto'
+                            : `Margen ${pct(f.margen_pct ?? 0)}`}
                         </Text>
                       </Stack>
                       <Text fw={700} ff="monospace" ta="right">
@@ -180,7 +205,9 @@ export function PaginaGerencia() {
                       </Text>
                     </Stack>
                     <Text fw={700} ff="monospace" ta="right">
-                      {o.unidades_obtenidas === null ? '—' : `${numero(o.unidades_obtenidas, 0)} unidades`}
+                      {o.unidades_obtenidas === null
+                        ? '—'
+                        : `${numero(o.unidades_obtenidas, 0)} unidades`}
                     </Text>
                   </Group>
                 </div>

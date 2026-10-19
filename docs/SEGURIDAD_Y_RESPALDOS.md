@@ -7,25 +7,25 @@ Informe para la Dirección. Borrador del 2026-10-15: lo marcado como
 
 ## 1. Qué información tenemos y dónde está
 
-| Qué | Dónde vive | ¿Lo cubre el respaldo de Supabase? |
-| --- | --- | --- |
-| Registros de fabricación, control de calidad, liberación, stock, pedidos, clientes, facturas, cuentas corrientes, costos, tareas, auditoría | Base de datos en Supabase (servidor en San Pablo, Brasil) | Sí, según el plan contratado (ver 2) |
-| Usuarios y contraseñas (cifradas) | Misma base de datos, sección de autenticación | Sí |
-| Archivos (PDF, fotos, comprobantes escaneados) | Hoy **no hay archivos guardados** en el sistema. Dos registros admiten un enlace a un archivo externo (protocolo del lote de insumo y comprobante de gasto), y **ninguno tiene enlaces cargados** (revisado en la base real el 2026-10-15, en toda columna de texto: ningún `http`, Drive, Dropbox ni OneDrive) | No. Un archivo enlazado vive fuera de la app y ningún respaldo lo cubre: antes de que se empiecen a usar esos enlaces conviene decidir guardar los archivos dentro del sistema, donde sí se respaldan |
-| Programa (el código de la aplicación) | GitHub (cuenta personal) | No es un dato: se puede volver a publicar desde GitHub |
-| Funciones de facturación electrónica | Supabase (código en GitHub) | El código, por GitHub; los certificados no |
-| Certificados de ARCA, clave de Afip SDK | Almacén de secretos de Supabase | **No.** Deben estar también en el gestor de contraseñas de la empresa |
-| Aplicación publicada | Vercel | No guarda datos |
+| Qué                                                                                                                                         | Dónde vive                                                                                                                                                                                                                                                                                                      | ¿Lo cubre el respaldo de Supabase?                                                                                                                                                                    |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Registros de fabricación, control de calidad, liberación, stock, pedidos, clientes, facturas, cuentas corrientes, costos, tareas, auditoría | Base de datos en Supabase (servidor en San Pablo, Brasil)                                                                                                                                                                                                                                                       | Sí, según el plan contratado (ver 2)                                                                                                                                                                  |
+| Usuarios y contraseñas (cifradas)                                                                                                           | Misma base de datos, sección de autenticación                                                                                                                                                                                                                                                                   | Sí                                                                                                                                                                                                    |
+| Archivos (PDF, fotos, comprobantes escaneados)                                                                                              | Hoy **no hay archivos guardados** en el sistema. Dos registros admiten un enlace a un archivo externo (protocolo del lote de insumo y comprobante de gasto), y **ninguno tiene enlaces cargados** (revisado en la base real el 2026-10-15, en toda columna de texto: ningún `http`, Drive, Dropbox ni OneDrive) | No. Un archivo enlazado vive fuera de la app y ningún respaldo lo cubre: antes de que se empiecen a usar esos enlaces conviene decidir guardar los archivos dentro del sistema, donde sí se respaldan |
+| Programa (el código de la aplicación)                                                                                                       | GitHub (cuenta personal)                                                                                                                                                                                                                                                                                        | No es un dato: se puede volver a publicar desde GitHub                                                                                                                                                |
+| Funciones de facturación electrónica                                                                                                        | Supabase (código en GitHub)                                                                                                                                                                                                                                                                                     | El código, por GitHub; los certificados no                                                                                                                                                            |
+| Certificados de ARCA, clave de Afip SDK                                                                                                     | Almacén de secretos de Supabase                                                                                                                                                                                                                                                                                 | **No.** Deben estar también en el gestor de contraseñas de la empresa                                                                                                                                 |
+| Aplicación publicada                                                                                                                        | Vercel                                                                                                                                                                                                                                                                                                          | No guarda datos                                                                                                                                                                                       |
 
 ## 2. Cómo se respalda hoy
 
 Supabase hace una copia diaria de la base **solo si el proyecto está en un plan pago**:
 
-| Plan | Copia automática | Cuántos días se guarda |
-| --- | --- | --- |
-| Gratuito | No | — |
-| Pro (USD 25/mes) | Diaria | 7 días |
-| Team | Diaria | 14 días |
+| Plan             | Copia automática | Cuántos días se guarda |
+| ---------------- | ---------------- | ---------------------- |
+| Gratuito         | No               | —                      |
+| Pro (USD 25/mes) | Diaria           | 7 días                 |
+| Team             | Diaria           | 14 días                |
 
 **[pendiente]** Confirmar en qué plan está el proyecto (Panel de Supabase →
 Organización → Facturación). Si es el gratuito, **hoy no hay ninguna copia
@@ -53,12 +53,12 @@ lote fabricado y liberado ese día tendría que volver a cargarse desde papel.
 ella la pérdida máxima baja a **unos 2 minutos**. Costo aproximado, según la
 lista vigente de Supabase:
 
-| Concepto | Costo mensual aprox. |
-| --- | --- |
-| Plan Pro (si no se tiene) | USD 25 |
+| Concepto                                               | Costo mensual aprox.                         |
+| ------------------------------------------------------ | -------------------------------------------- |
+| Plan Pro (si no se tiene)                              | USD 25                                       |
 | Servidor «Small» (lo exige la recuperación a un punto) | unos USD 15 por encima de lo incluido en Pro |
-| Recuperación a un punto, 7 días | USD 100 |
-| **Total** | **unos USD 140 por mes** |
+| Recuperación a un punto, 7 días                        | USD 100                                      |
+| **Total**                                              | **unos USD 140 por mes**                     |
 
 ## 4. Copia propia, fuera de Supabase (regla 3-2-1)
 
@@ -85,6 +85,7 @@ Propuesta:
   conserva muestras hasta un año después del vencimiento, y con una vida útil
   de 36 meses eso da al menos cuatro años desde la fabricación. El Código Civil
   y Comercial (art. 328) exige conservar la documentación comercial diez años.
+
 - Si una copia falla, llega un aviso por correo al administrador del sistema.
 - Nunca se guardan copias en el repositorio de código ni en el sistema de
   práctica.
@@ -113,13 +114,13 @@ precios y la migración desde HOLISSTOR.
 
 ## 7. Quién tiene acceso a qué
 
-| Servicio | Situación hoy | Propuesta |
-| --- | --- | --- |
-| Supabase (base de datos) | Cuenta personal | Organización «Nail Show» con al menos dos dueños: un directivo y el responsable técnico |
-| GitHub (código) | Cuenta personal | Organización «Nail Show» con dos dueños |
-| Vercel (publicación) | **[pendiente]** confirmar titular | Equipo de la empresa |
-| Afip SDK | **[pendiente]** confirmar titular | A nombre de la empresa |
-| Consola de Anthropic | **[pendiente]** confirmar titular | A nombre de la empresa |
+| Servicio                 | Situación hoy                     | Propuesta                                                                               |
+| ------------------------ | --------------------------------- | --------------------------------------------------------------------------------------- |
+| Supabase (base de datos) | Cuenta personal                   | Organización «Nail Show» con al menos dos dueños: un directivo y el responsable técnico |
+| GitHub (código)          | Cuenta personal                   | Organización «Nail Show» con dos dueños                                                 |
+| Vercel (publicación)     | **[pendiente]** confirmar titular | Equipo de la empresa                                                                    |
+| Afip SDK                 | **[pendiente]** confirmar titular | A nombre de la empresa                                                                  |
+| Consola de Anthropic     | **[pendiente]** confirmar titular | A nombre de la empresa                                                                  |
 
 Para todas estas cuentas, y para los correos asociados:
 
@@ -148,15 +149,15 @@ Para todas estas cuentas, y para los correos asociados:
 
 ## 9. Pendientes, con su costo
 
-| # | Pendiente | Costo | Urgencia |
-| --- | --- | --- | --- |
-| 1 | Confirmar el plan de Supabase y, si es el gratuito, pasar a Pro | USD 25/mes | Alta |
-| 2 | Recuperación a un punto en el tiempo (pérdida máxima de unos 2 minutos) | unos USD 115/mes más | Alta para registros BPF y facturación |
-| 3 | Copia nocturna cifrada fuera de Supabase | unos pocos USD/mes de almacenamiento | Alta |
-| 4 | Pasar Supabase y GitHub a cuentas de la empresa, con dos dueños | sin costo | Alta |
-| 5 | Segundo factor en todas las cuentas | sin costo | Alta |
-| 6 | Cambiar las claves que quedaron expuestas en sesiones de trabajo: token de Afip SDK, token de administración y contraseña de la base de Supabase, contraseña de la cuenta de verificación | sin costo | **Inmediata** |
-| 7 | Contraseñas de al menos 12 caracteres (se sube en el panel el 2026-10-15) y cierre del alta libre de cuentas | sin costo | Media |
-| 7b | Política de contenido del sitio: publicada en modo informe; tras una semana sin avisos, pasar a modo bloqueo | sin costo | Media |
-| 8 | Prueba mensual de restauración | unas horas por mes | Media |
-| 9 | Consultar al asesor legal sobre la **Ley 25.326 de Protección de Datos Personales**: la base guarda datos de clientes y empleados, y la ley puede exigir, entre otras cosas, inscribirla en el registro de la Agencia de Acceso a la Información Pública | honorarios del asesor | Media |
+| #   | Pendiente                                                                                                                                                                                                                                                | Costo                                | Urgencia                              |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------- |
+| 1   | Confirmar el plan de Supabase y, si es el gratuito, pasar a Pro                                                                                                                                                                                          | USD 25/mes                           | Alta                                  |
+| 2   | Recuperación a un punto en el tiempo (pérdida máxima de unos 2 minutos)                                                                                                                                                                                  | unos USD 115/mes más                 | Alta para registros BPF y facturación |
+| 3   | Copia nocturna cifrada fuera de Supabase                                                                                                                                                                                                                 | unos pocos USD/mes de almacenamiento | Alta                                  |
+| 4   | Pasar Supabase y GitHub a cuentas de la empresa, con dos dueños                                                                                                                                                                                          | sin costo                            | Alta                                  |
+| 5   | Segundo factor en todas las cuentas                                                                                                                                                                                                                      | sin costo                            | Alta                                  |
+| 6   | Cambiar las claves que quedaron expuestas en sesiones de trabajo: token de Afip SDK, token de administración y contraseña de la base de Supabase, contraseña de la cuenta de verificación                                                                | sin costo                            | **Inmediata**                         |
+| 7   | Contraseñas de al menos 12 caracteres (se sube en el panel el 2026-10-15) y cierre del alta libre de cuentas                                                                                                                                             | sin costo                            | Media                                 |
+| 7b  | Política de contenido del sitio: publicada en modo informe; tras una semana sin avisos, pasar a modo bloqueo                                                                                                                                             | sin costo                            | Media                                 |
+| 8   | Prueba mensual de restauración                                                                                                                                                                                                                           | unas horas por mes                   | Media                                 |
+| 9   | Consultar al asesor legal sobre la **Ley 25.326 de Protección de Datos Personales**: la base guarda datos de clientes y empleados, y la ley puede exigir, entre otras cosas, inscribirla en el registro de la Agencia de Acceso a la Información Pública | honorarios del asesor                | Media                                 |

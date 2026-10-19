@@ -47,7 +47,9 @@ export function GraficoPareto({
   const ancho = Math.max(2, paso - 2); // 2px de superficie entre barras
   const y = (v: number) => M.arriba + altoUtil - v * altoUtil;
   const x = (i: number) => M.izquierda + i * paso;
-  const curva = barras.map((b, i) => `${i ? 'L' : 'M'} ${x(i) + paso / 2} ${y(b.acumulado)}`).join(' ');
+  const curva = barras
+    .map((b, i) => `${i ? 'L' : 'M'} ${x(i) + paso / 2} ${y(b.acumulado)}`)
+    .join(' ');
   const pct = (v: number) => `${Math.round(v * 100)} %`;
   const b = activa !== null ? barras[activa] : undefined;
 
@@ -56,7 +58,11 @@ export function GraficoPareto({
       <Group gap="md" mb="xs" wrap="wrap">
         {(['A', 'B', 'C'] as const).map((c) => (
           <Group key={c} gap={6} wrap="nowrap">
-            <Box w={12} h={12} style={{ borderRadius: 3, background: `var(--serie-${COLOR_CLASE[c]})` }} />
+            <Box
+              w={12}
+              h={12}
+              style={{ borderRadius: 3, background: `var(--serie-${COLOR_CLASE[c]})` }}
+            />
             <Text size="xs">Clase {c}</Text>
           </Group>
         ))}
@@ -77,8 +83,20 @@ export function GraficoPareto({
         >
           {[0, 0.5, 1].map((f) => (
             <g key={f}>
-              <line x1={M.izquierda} x2={ANCHO - M.derecha} y1={y(f)} y2={y(f)} stroke="var(--superficie-borde)" />
-              <text x={M.izquierda - 6} y={y(f) + 4} fontSize="11" textAnchor="end" fill="var(--mantine-color-dimmed)">
+              <line
+                x1={M.izquierda}
+                x2={ANCHO - M.derecha}
+                y1={y(f)}
+                y2={y(f)}
+                stroke="var(--superficie-borde)"
+              />
+              <text
+                x={M.izquierda - 6}
+                y={y(f) + 4}
+                fontSize="11"
+                textAnchor="end"
+                fill="var(--mantine-color-dimmed)"
+              >
                 {pct(f)}
               </text>
             </g>
@@ -98,7 +116,13 @@ export function GraficoPareto({
               />
             );
           })}
-          <path d={curva} fill="none" stroke="var(--mantine-color-text)" strokeWidth={2} strokeLinejoin="round" />
+          <path
+            d={curva}
+            fill="none"
+            stroke="var(--mantine-color-text)"
+            strokeWidth={2}
+            strokeLinejoin="round"
+          />
           {[
             { v: corteA, t: `A ${pct(corteA)}` },
             { v: corteB, t: `B ${pct(corteB)}` },
@@ -112,7 +136,12 @@ export function GraficoPareto({
                 stroke="var(--mantine-color-dimmed)"
                 strokeDasharray="5 4"
               />
-              <text x={ANCHO - M.derecha + 4} y={y(c.v) + 4} fontSize="11" fill="var(--mantine-color-dimmed)">
+              <text
+                x={ANCHO - M.derecha + 4}
+                y={y(c.v) + 4}
+                fontSize="11"
+                fill="var(--mantine-color-dimmed)"
+              >
                 {c.t}
               </text>
             </g>
@@ -135,7 +164,8 @@ export function GraficoPareto({
               {b.nombre}
             </Text>
             <Text size="xs" c="dimmed">
-              Clase {b.clase} · {pct(b.participacion)} de la facturación · acumulado {pct(b.acumulado)}
+              Clase {b.clase} · {pct(b.participacion)} de la facturación · acumulado{' '}
+              {pct(b.acumulado)}
             </Text>
             {b.detalle ? <Text size="xs">{b.detalle}</Text> : null}
           </Paper>

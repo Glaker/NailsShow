@@ -82,7 +82,13 @@ describe('FECAESolicitar', () => {
 
   it('la Factura C no discrimina IVA: sin bloque Iva, neto = total', () => {
     const det = cuerpoSolicitar(
-      factura({ tipo: 'C', codigo_arca: 11, importe_neto: 121, importe_iva: 0, alicuotas: [] }),
+      factura({
+        tipo: 'C',
+        codigo_arca: 11,
+        importe_neto: 121,
+        importe_iva: 0,
+        alicuotas: [],
+      }),
       AUTH,
       1,
     ).params.FeCAEReq.FeDetReq.FECAEDetRequest;

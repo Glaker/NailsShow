@@ -36,7 +36,9 @@ function crc32(b: Uint8Array): number {
 }
 
 async function inflar(datos: Uint8Array): Promise<Uint8Array> {
-  const flujo = new Response(datos as BodyInit).body!.pipeThrough(new DecompressionStream('deflate-raw'));
+  const flujo = new Response(datos as BodyInit).body!.pipeThrough(
+    new DecompressionStream('deflate-raw'),
+  );
   return new Uint8Array(await new Response(flujo).arrayBuffer());
 }
 
@@ -58,7 +60,8 @@ export async function leerZip(buf: ArrayBuffer): Promise<Map<string, Uint8Array>
   const dec = new TextDecoder();
   const salida = new Map<string, Uint8Array>();
   for (let i = 0; i < cantidad; i++) {
-    if (v.getUint32(p, true) !== 0x02014b50) throw new Error('El .xlsx está dañado (directorio central).');
+    if (v.getUint32(p, true) !== 0x02014b50)
+      throw new Error('El .xlsx está dañado (directorio central).');
     const metodo = v.getUint16(p + 10, true);
     const comprimido = v.getUint32(p + 20, true);
     const largoNombre = v.getUint16(p + 28, true);
@@ -66,7 +69,8 @@ export async function leerZip(buf: ArrayBuffer): Promise<Map<string, Uint8Array>
     const largoComent = v.getUint16(p + 32, true);
     const local = v.getUint32(p + 42, true);
     const nombre = dec.decode(b.subarray(p + 46, p + 46 + largoNombre));
-    const inicio = local + 30 + v.getUint16(local + 26, true) + v.getUint16(local + 28, true);
+    const inicio =
+      local + 30 + v.getUint16(local + 26, true) + v.getUint16(local + 28, true);
     const datos = b.subarray(inicio, inicio + comprimido);
     if (metodo === 0) salida.set(nombre, datos.slice());
     else if (metodo === 8) salida.set(nombre, await inflar(datos));
@@ -77,7 +81,9 @@ export async function leerZip(buf: ArrayBuffer): Promise<Map<string, Uint8Array>
 }
 
 /** Zip sin compresión (método 0). */
-export function escribirZip(archivos: { nombre: string; datos: Uint8Array }[]): Uint8Array {
+export function escribirZip(
+  archivos: { nombre: string; datos: Uint8Array }[],
+): Uint8Array {
   const enc = new TextEncoder();
   const partes: Uint8Array[] = [];
   const central: Uint8Array[] = [];
@@ -137,10 +143,17 @@ const desescapar = (s: string) =>
     .replace(/&#(\d+);/g, (_, n: string) => String.fromCodePoint(Number(n)))
     .replace(/&amp;/g, '&');
 const escapar = (s: string) =>
-  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 
 /** Texto de un nodo <si> o <is>: todos sus <t> (los textos con formato vienen partidos). */
-const textoDe = (xml: string) => [...xml.matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map((m) => desescapar(m[1] ?? '')).join('');
+const textoDe = (xml: string) =>
+  [...xml.matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)]
+    .map((m) => desescapar(m[1] ?? ''))
+    .join('');
 
 /** «AB12» → columna 27 (base 0), fila 11 (base 0). */
 function posicion(ref: string): [number, number] {
@@ -153,7 +166,8 @@ function posicion(ref: string): [number, number] {
 
 const letra = (col: number) => {
   let s = '';
-  for (let c = col + 1; c > 0; c = Math.floor((c - 1) / 26)) s = String.fromCharCode(65 + ((c - 1) % 26)) + s;
+  for (let c = col + 1; c > 0; c = Math.floor((c - 1) / 26))
+    s = String.fromCharCode(65 + ((c - 1) % 26)) + s;
   return s;
 };
 
@@ -170,13 +184,20 @@ export async function leerXlsx(buf: ArrayBuffer): Promise<Celda[][]> {
   let rutaHoja = 'xl/worksheets/sheet1.xml';
   const primera = libro ? /<sheet\b[^>]*r:id="([^"]+)"/.exec(libro) : null;
   if (primera && rels) {
-    const rel = new RegExp(`<Relationship\\b[^>]*Id="${primera[1]}"[^>]*Target="([^"]+)"`).exec(rels)
-      ?? new RegExp(`<Relationship\\b[^>]*Target="([^"]+)"[^>]*Id="${primera[1]}"`).exec(rels);
+    const rel =
+      new RegExp(`<Relationship\\b[^>]*Id="${primera[1]}"[^>]*Target="([^"]+)"`).exec(
+        rels,
+      ) ??
+      new RegExp(`<Relationship\\b[^>]*Target="([^"]+)"[^>]*Id="${primera[1]}"`).exec(
+        rels,
+      );
     if (rel) rutaHoja = rel[1]!.startsWith('/') ? rel[1]!.slice(1) : `xl/${rel[1]}`;
   }
   const hoja = texto(rutaHoja);
   if (!hoja) throw new Error('El .xlsx no tiene hojas.');
-  const compartidos = [...(texto('xl/sharedStrings.xml') ?? '').matchAll(/<si>([\s\S]*?)<\/si>/g)].map((m) => textoDe(m[1] ?? ''));
+  const compartidos = [
+    ...(texto('xl/sharedStrings.xml') ?? '').matchAll(/<si>([\s\S]*?)<\/si>/g),
+  ].map((m) => textoDe(m[1] ?? ''));
 
   const filas: Celda[][] = [];
   for (const c of hoja.matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
@@ -197,7 +218,9 @@ export async function leerXlsx(buf: ArrayBuffer): Promise<Celda[][]> {
   }
   // Huecos explícitos, filas vacías del medio y todas del mismo ancho.
   const ancho = Math.max(0, ...filas.map((f) => (f ?? []).length));
-  return Array.from({ length: filas.length }, (_, i) => Array.from({ length: ancho }, (_, j) => filas[i]?.[j] ?? null));
+  return Array.from({ length: filas.length }, (_, i) =>
+    Array.from({ length: ancho }, (_, j) => filas[i]?.[j] ?? null),
+  );
 }
 
 /** Un .xlsx de una hoja con estas filas (textos en línea, números como número). */
@@ -210,14 +233,17 @@ export function escribirXlsx(filas: Celda[][], nombreHoja = 'Hoja1'): Uint8Array
           .map((v, j) => {
             const ref = `${letra(j)}${i + 1}`;
             if (v === null || v === '') return '';
-            if (typeof v === 'number' && Number.isFinite(v)) return `<c r="${ref}"><v>${v}</v></c>`;
-            if (typeof v === 'boolean') return `<c r="${ref}" t="b"><v>${v ? 1 : 0}</v></c>`;
+            if (typeof v === 'number' && Number.isFinite(v))
+              return `<c r="${ref}"><v>${v}</v></c>`;
+            if (typeof v === 'boolean')
+              return `<c r="${ref}" t="b"><v>${v ? 1 : 0}</v></c>`;
             return `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${escapar(String(v))}</t></is></c>`;
           })
           .join('')}</row>`,
     )
     .join('');
-  const x = (s: string) => enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${s}`);
+  const x = (s: string) =>
+    enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${s}`);
   return escribirZip([
     {
       nombre: '[Content_Types].xml',
@@ -245,7 +271,9 @@ export function escribirXlsx(filas: Celda[][], nombreHoja = 'Hoja1'): Uint8Array
     },
     {
       nombre: 'xl/worksheets/sheet1.xml',
-      datos: x(`<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${hoja}</sheetData></worksheet>`),
+      datos: x(
+        `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${hoja}</sheetData></worksheet>`,
+      ),
     },
   ]);
 }
@@ -254,7 +282,9 @@ export function escribirXlsx(filas: Celda[][], nombreHoja = 'Hoja1'): Uint8Array
 export function descargarXlsx(filas: Celda[][], archivo: string, nombreHoja?: string) {
   const datos = escribirXlsx(filas, nombreHoja);
   const url = URL.createObjectURL(
-    new Blob([datos as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+    new Blob([datos as BlobPart], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    }),
   );
   const a = document.createElement('a');
   a.href = url;

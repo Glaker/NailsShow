@@ -13,7 +13,8 @@ export function PaginaCotizacionPdf() {
   const cot = useCotizacion(id);
   if (cot.isLoading) return <Skeleton h={600} />;
   const pdf = cot.data?.foto?.pdf;
-  if (!cot.data || !pdf) return <Text>La cotización todavía no se emitió: no tiene PDF.</Text>;
+  if (!cot.data || !pdf)
+    return <Text>La cotización todavía no se emitió: no tiene PDF.</Text>;
   return (
     <>
       <Group justify="space-between" mb="md" className="no-imprimir">

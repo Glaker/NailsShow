@@ -71,7 +71,8 @@ await prueba('la hora la pone la base, no quien inserta', async () => {
     [propia],
   );
   await db.exec('rollback to savepoint hora');
-  if (new Date(c.creado_en).getFullYear() === 2020) throw new Error('quedó la fecha del cliente');
+  if (new Date(c.creado_en).getFullYear() === 2020)
+    throw new Error('quedó la fecha del cliente');
 });
 await rechaza(
   'más de 2000 caracteres no',
@@ -120,29 +121,35 @@ await rechaza(
 );
 
 await como('admsis@x');
-await prueba('el Administrador del sistema ve la solicitud y sus comentarios', async () => {
-  const n = await uno(
-    `select count(*)::int n from comercial.comentarios_solicitud_pago where solicitud_id=$1`,
-    [propia],
-  );
-  if (n.n !== 2) throw new Error(String(n.n));
-});
+await prueba(
+  'el Administrador del sistema ve la solicitud y sus comentarios',
+  async () => {
+    const n = await uno(
+      `select count(*)::int n from comercial.comentarios_solicitud_pago where solicitud_id=$1`,
+      [propia],
+    );
+    if (n.n !== 2) throw new Error(String(n.n));
+  },
+);
 await rechaza(
   'pero no comenta: su acceso es de lectura',
   `insert into comercial.comentarios_solicitud_pago (solicitud_id, texto) values ('${propia}', 'hola')`,
   /row-level security|política|policy/i,
 );
-await prueba('salvo en una solicitud que cargó él, como cualquier solicitante', async () => {
-  const suya = (
-    await uno(
-      `insert into comercial.solicitudes_pago (area, concepto, destinatario, importe) values ('ADMINISTRACION','Dominio web','Registrador',3000) returning id`,
-    )
-  ).id;
-  await q(
-    `insert into comercial.comentarios_solicitud_pago (solicitud_id, texto) values ($1, 'Vence en noviembre')`,
-    [suya],
-  );
-});
+await prueba(
+  'salvo en una solicitud que cargó él, como cualquier solicitante',
+  async () => {
+    const suya = (
+      await uno(
+        `insert into comercial.solicitudes_pago (area, concepto, destinatario, importe) values ('ADMINISTRACION','Dominio web','Registrador',3000) returning id`,
+      )
+    ).id;
+    await q(
+      `insert into comercial.comentarios_solicitud_pago (solicitud_id, texto) values ($1, 'Vence en noviembre')`,
+      [suya],
+    );
+  },
+);
 
 // Cada rama de la regla por separado (sol es de Ventas; Naza no la pidió).
 await como('ventas@x');

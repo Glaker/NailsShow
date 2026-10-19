@@ -1,12 +1,4 @@
-import {
-  Badge,
-  Button,
-  Paper,
-  Skeleton,
-  Stack,
-  Table,
-  Text,
-} from '@mantine/core';
+import { Badge, Button, Paper, Skeleton, Stack, Table, Text } from '@mantine/core';
 import { IconBell } from '@tabler/icons-react';
 import { Vacio } from '@/components/Vacio';
 import { FINANZAS, useSesion, useTieneRol } from '@/features/auth/sesion';
@@ -29,8 +21,8 @@ export function PestaniaAvisos() {
   return (
     <Stack gap="md">
       <Text size="sm" c="dimmed">
-        El último ingreso salió distinto de tu precio de referencia, descontada la inflación.
-        Ninguno de los dos gana solo: decidí si actualizás la referencia.
+        El último ingreso salió distinto de tu precio de referencia, descontada la
+        inflación. Ninguno de los dos gana solo: decidí si actualizás la referencia.
       </Text>
 
       {filas.length === 0 ? (
@@ -42,7 +34,10 @@ export function PestaniaAvisos() {
           />
         </Paper>
       ) : (
-        <Paper withBorder style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}>
+        <Paper
+          withBorder
+          style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}
+        >
           <Table.ScrollContainer minWidth={960}>
             <Table verticalSpacing="sm" highlightOnHover>
               <Table.Thead>
@@ -73,7 +68,11 @@ export function PestaniaAvisos() {
                     <Table.Td ta="right" ff="monospace">
                       {porcentaje(a.variacion_nominal)}
                     </Table.Td>
-                    <Table.Td ta="right" ff="monospace" {...(a.ipc_acumulado === null ? { c: 'dimmed' } : {})}>
+                    <Table.Td
+                      ta="right"
+                      ff="monospace"
+                      {...(a.ipc_acumulado === null ? { c: 'dimmed' } : {})}
+                    >
                       {a.ipc_acumulado !== null ? porcentaje(a.ipc_acumulado) : 'sin IPC'}
                     </Table.Td>
                     <Table.Td ta="right" ff="monospace" fw={700} c="orange">
@@ -91,7 +90,10 @@ export function PestaniaAvisos() {
                           disabled={!claims?.usuario_id}
                           loading={visto.isPending}
                           onClick={() =>
-                            visto.mutate({ id: a.id, usuarioId: claims?.usuario_id ?? '' })
+                            visto.mutate({
+                              id: a.id,
+                              usuarioId: claims?.usuario_id ?? '',
+                            })
                           }
                         >
                           Marcar visto

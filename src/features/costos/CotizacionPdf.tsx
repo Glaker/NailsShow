@@ -9,7 +9,13 @@ import type { DatosPdf } from '@/lib/consultasCotizador';
  * acá ni por error (lo verifica CotizacionPdf.test.tsx). Se imprime o se
  * guarda como PDF desde el navegador; lo envía quien cotizó.
  */
-export function CotizacionPdf({ datos, marcaPractica = MODO_PRACTICA }: { datos: DatosPdf; marcaPractica?: boolean }) {
+export function CotizacionPdf({
+  datos,
+  marcaPractica = MODO_PRACTICA,
+}: {
+  datos: DatosPdf;
+  marcaPractica?: boolean;
+}) {
   const pesos = (v: number) => `$ ${numero(v, 2)}`;
   const contenido =
     datos.contenido_cantidad !== null && datos.contenido_unidad
@@ -20,7 +26,15 @@ export function CotizacionPdf({ datos, marcaPractica = MODO_PRACTICA }: { datos:
       ? 'Precios más IVA.'
       : `Precios con IVA incluido (${numero(datos.alicuota_iva, datos.alicuota_iva % 1 ? 1 : 0)} %).`;
   return (
-    <Box className="hoja-cotizacion" p="xl" maw={760} mx="auto" bg="white" c="black" style={{ position: 'relative' }}>
+    <Box
+      className="hoja-cotizacion"
+      p="xl"
+      maw={760}
+      mx="auto"
+      bg="white"
+      c="black"
+      style={{ position: 'relative' }}
+    >
       {marcaPractica || datos.destino === 'INTERNO' ? (
         <Text
           aria-hidden="true"
@@ -43,7 +57,9 @@ export function CotizacionPdf({ datos, marcaPractica = MODO_PRACTICA }: { datos:
       <Group justify="space-between" align="flex-start" mb="xl">
         <img src="/marca-nailshow.png" alt="Nail Show" width={84} height={84} />
         <Stack gap={2} align="flex-end">
-          <Title order={2}>Cotización n.º {datos.numero}/{datos.anio}</Title>
+          <Title order={2}>
+            Cotización n.º {datos.numero}/{datos.anio}
+          </Title>
           <Text size="sm">Fecha: {fecha(datos.fecha)}</Text>
           <Text size="sm" fw={600}>
             Válida hasta el {fecha(datos.vence_el)}
@@ -60,8 +76,12 @@ export function CotizacionPdf({ datos, marcaPractica = MODO_PRACTICA }: { datos:
         ) : (
           <>
             <Text fw={600}>{datos.cliente?.razon_social}</Text>
-            {datos.cliente?.documento ? <Text size="sm">CUIT / documento: {datos.cliente.documento}</Text> : null}
-            {datos.cliente?.contacto ? <Text size="sm">Contacto: {datos.cliente.contacto}</Text> : null}
+            {datos.cliente?.documento ? (
+              <Text size="sm">CUIT / documento: {datos.cliente.documento}</Text>
+            ) : null}
+            {datos.cliente?.contacto ? (
+              <Text size="sm">Contacto: {datos.cliente.contacto}</Text>
+            ) : null}
           </>
         )}
       </Stack>
@@ -79,9 +99,13 @@ export function CotizacionPdf({ datos, marcaPractica = MODO_PRACTICA }: { datos:
           <Table.Tr>
             <Table.Td>
               <Text fw={600}>{datos.titulo}</Text>
-              {contenido ? <Text size="sm">Contenido por unidad: {contenido}</Text> : null}
+              {contenido ? (
+                <Text size="sm">Contenido por unidad: {contenido}</Text>
+              ) : null}
             </Table.Td>
-            <Table.Td ta="right">{numero(datos.cantidad, datos.cantidad % 1 ? 2 : 0)}</Table.Td>
+            <Table.Td ta="right">
+              {numero(datos.cantidad, datos.cantidad % 1 ? 2 : 0)}
+            </Table.Td>
             <Table.Td ta="right">{pesos(datos.precio_unitario)}</Table.Td>
             <Table.Td ta="right" fw={700}>
               {pesos(datos.total)}

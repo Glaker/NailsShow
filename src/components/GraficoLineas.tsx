@@ -58,7 +58,10 @@ export function GraficoLineas({
         d += `${abierto ? 'L' : 'M'} ${x(i)} ${y(v)} `;
         abierto = true;
       });
-      const ultimo = s.valores.reduce<number | null>((u, v, i) => (v === null ? u : i), null);
+      const ultimo = s.valores.reduce<number | null>(
+        (u, v, i) => (v === null ? u : i),
+        null,
+      );
       return { d, ultimo };
     });
     return { maximo, x, y, trazos, base: M.arriba + altoUtil, paso };
@@ -74,7 +77,10 @@ export function GraficoLineas({
 
   const { x, y, trazos, base, maximo, paso } = geo;
   const desdeX = (px: number) =>
-    Math.max(0, Math.min(etiquetas.length - 1, Math.round((px - M.izquierda) / (paso || 1))));
+    Math.max(
+      0,
+      Math.min(etiquetas.length - 1, Math.round((px - M.izquierda) / (paso || 1))),
+    );
 
   return (
     <Box>
@@ -124,7 +130,12 @@ export function GraficoLineas({
                 strokeWidth={1}
               />
               {f > 0 ? (
-                <text x={M.izquierda} y={y(maximo * f) - 4} fontSize="11" fill="var(--mantine-color-dimmed)">
+                <text
+                  x={M.izquierda}
+                  y={y(maximo * f) - 4}
+                  fontSize="11"
+                  fill="var(--mantine-color-dimmed)"
+                >
                   {formato(maximo * f)}
                 </text>
               ) : null}
@@ -255,7 +266,9 @@ export function GraficoLineas({
             <tr key={e}>
               <td>{e}</td>
               {series.map((s) => (
-                <td key={s.nombre}>{s.valores[i] == null ? 'sin dato' : formato(s.valores[i])}</td>
+                <td key={s.nombre}>
+                  {s.valores[i] == null ? 'sin dato' : formato(s.valores[i])}
+                </td>
               ))}
             </tr>
           ))}

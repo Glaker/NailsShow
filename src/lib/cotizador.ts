@@ -43,8 +43,11 @@ export const unidadBase = (u: string | null | undefined): string => {
   return x === 'kg' || x === 'g' ? 'g' : x === 'l' || x === 'ml' ? 'ml' : 'unidad';
 };
 
-const neto = (precio: number, incluyeIva: boolean | null | undefined, alicuota: number | null | undefined) =>
-  incluyeIva ? precio / (1 + (alicuota ?? 0) / 100) : precio;
+const neto = (
+  precio: number,
+  incluyeIva: boolean | null | undefined,
+  alicuota: number | null | undefined,
+) => (incluyeIva ? precio / (1 + (alicuota ?? 0) / 100) : precio);
 
 const r = (v: number, d: number) => Math.round(v * 10 ** d) / 10 ** d;
 
@@ -65,7 +68,10 @@ export function costearLinea(l: LineaCotizacion): CostoLinea {
   } else {
     pb = l.precio != null ? neto(l.precio, l.incluyeIva, l.alicuotaIva) : null;
   }
-  const cant = l.tipo === 'LIBRE' ? l.cantidad : convertirCantidad(l.cantidad, l.unidad, ub, l.densidad ?? null);
+  const cant =
+    l.tipo === 'LIBRE'
+      ? l.cantidad
+      : convertirCantidad(l.cantidad, l.unidad, ub, l.densidad ?? null);
   const falta =
     l.tipo === 'CATALOGO' && l.costoCatalogo == null
       ? 'Insumo sin costo de referencia'
@@ -87,13 +93,22 @@ export function costearLinea(l: LineaCotizacion): CostoLinea {
  * precio_base = precio / (cantidad_presentación × factor a la unidad base).
  * $12.000 por 500 g → $24 el g ($24.000 el kg).
  */
-export function precioPorUnidadBase(precio: number, cantidad: number, unidad: string): number | null {
+export function precioPorUnidadBase(
+  precio: number,
+  cantidad: number,
+  unidad: string,
+): number | null {
   const f = convertirCantidad(cantidad, unidad, unidadBase(unidad));
   return f ? precio / f : null;
 }
 
 /** Margen sobre el precio: P = C / (1 − m). Recargo sobre el costo: P = C × (1 + k). */
-export function precioDesdeMargen(costo: number, margen: number, modo: ModoMargen, redondeo: number): number {
+export function precioDesdeMargen(
+  costo: number,
+  margen: number,
+  modo: ModoMargen,
+  redondeo: number,
+): number {
   const p = modo === 'SOBRE_PRECIO' ? costo / (1 - margen) : costo * (1 + margen);
   return Math.round(p / redondeo) * redondeo;
 }
@@ -120,7 +135,8 @@ export function precioCotizacion(p: {
     mostrado = p.precio;
   } else {
     if (p.margen === null || (p.modo === 'SOBRE_PRECIO' && p.margen >= 1)) return null;
-    const neto = p.modo === 'SOBRE_PRECIO' ? p.costo / (1 - p.margen) : p.costo * (1 + p.margen);
+    const neto =
+      p.modo === 'SOBRE_PRECIO' ? p.costo / (1 - p.margen) : p.costo * (1 + p.margen);
     mostrado = Math.round((neto * k) / p.redondeo) * p.redondeo;
   }
   return { neto: mostrado / k, mostrado: Math.round(mostrado * 100) / 100 };

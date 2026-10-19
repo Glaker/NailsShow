@@ -18,7 +18,10 @@ import { IconBuildingWarehouse, IconCoin, IconPackage } from '@tabler/icons-reac
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { TarjetaIndicador } from '@/components/TarjetaIndicador';
 import { GraficoLineas, type SerieLinea } from '@/components/GraficoLineas';
-import { GraficoBarrasPareadas, type GrupoBarras } from '@/components/GraficoBarrasPareadas';
+import {
+  GraficoBarrasPareadas,
+  type GrupoBarras,
+} from '@/components/GraficoBarrasPareadas';
 import { GraficoTorta } from '@/features/administracion/GraficoTorta';
 import { Vacio } from '@/components/Vacio';
 import { numero } from '@/lib/formato';
@@ -39,9 +42,26 @@ import {
 import { useVistaMoneda } from './vistaMoneda';
 import { ORIGEN_PRECIO } from './comun';
 
-const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const MESES = [
+  'ene',
+  'feb',
+  'mar',
+  'abr',
+  'may',
+  'jun',
+  'jul',
+  'ago',
+  'sep',
+  'oct',
+  'nov',
+  'dic',
+];
 const BANDAS: Banda[] = ['CONSUMIDOR_FINAL', 'MAYORISTA', 'MAYORISTA_PROMO'];
-const COLOR_BANDA: Record<Banda, 2 | 3 | 4> = { CONSUMIDOR_FINAL: 2, MAYORISTA: 3, MAYORISTA_PROMO: 4 };
+const COLOR_BANDA: Record<Banda, 2 | 3 | 4> = {
+  CONSUMIDOR_FINAL: 2,
+  MAYORISTA: 3,
+  MAYORISTA_PROMO: 4,
+};
 
 /** Los últimos 12 meses, 'AAAA-MM', del más viejo al actual. */
 function ultimosMeses(n = 12): string[] {
@@ -80,7 +100,8 @@ export function PanelProducto() {
 
   const meses = useMemo(() => ultimosMeses(12), []);
   const mesActual = meses[meses.length - 1]!;
-  const dinero = (v: number) => (vista === 'USD' ? `U$D ${numero(v, 2)}` : `$ ${numero(v, 2)}`);
+  const dinero = (v: number) =>
+    vista === 'USD' ? `U$D ${numero(v, 2)}` : `$ ${numero(v, 2)}`;
   const enVista = (v: number | null, mes = mesActual) =>
     v === null ? null : convertir(v, mes, 'FLUJO').valor;
 
@@ -98,7 +119,9 @@ export function PanelProducto() {
   const producto = (productos.data ?? []).find((p) => p.producto_id === id);
 
   const torta = useMemo(() => {
-    const granel = filas.filter((f) => f.tipo === 'GRANEL').reduce((s, f) => s + (f.subtotal ?? 0), 0);
+    const granel = filas
+      .filter((f) => f.tipo === 'GRANEL')
+      .reduce((s, f) => s + (f.subtotal ?? 0), 0);
     return [
       ...(granel > 0 ? [{ nombre: 'Granel', valor: granel }] : []),
       ...filas
@@ -109,7 +132,8 @@ export function PanelProducto() {
 
   const preciosActuales = useMemo(() => {
     const m = new Map<Banda, number>();
-    for (const p of precios.data ?? []) if (p.mes.slice(0, 7) === mesActual) m.set(p.banda, p.precio_neto);
+    for (const p of precios.data ?? [])
+      if (p.mes.slice(0, 7) === mesActual) m.set(p.banda, p.precio_neto);
     return m;
   }, [precios.data, mesActual]);
 
@@ -134,11 +158,15 @@ export function PanelProducto() {
 
   // Sin useMemo: `convertir` cambia en cada render y la cuenta es chica.
   const lineas: SerieLinea[] = (() => {
-    const porMes = new Map((fotos.data ?? []).map((f) => [f.mes.slice(0, 7), f.costo_unitario]));
+    const porMes = new Map(
+      (fotos.data ?? []).map((f) => [f.mes.slice(0, 7), f.costo_unitario]),
+    );
     // El mes en curso sale del cálculo en vivo; los cerrados, de su foto.
     porMes.set(mesActual, total > 0 ? total : (porMes.get(mesActual) ?? null));
     const conv = (v: number | null | undefined, m: string) =>
-      v === null || v === undefined ? { valor: null, provisorio: false } : convertir(v, m, 'FLUJO');
+      v === null || v === undefined
+        ? { valor: null, provisorio: false }
+        : convertir(v, m, 'FLUJO');
     const costo = meses.map((m) => conv(porMes.get(m), m));
     const series: SerieLinea[] = [
       {
@@ -150,7 +178,9 @@ export function PanelProducto() {
     ];
     for (const b of BANDAS) {
       const precio = new Map(
-        (precios.data ?? []).filter((p) => p.banda === b).map((p) => [p.mes.slice(0, 7), p.precio_neto]),
+        (precios.data ?? [])
+          .filter((p) => p.banda === b)
+          .map((p) => [p.mes.slice(0, 7), p.precio_neto]),
       );
       if (precio.size === 0) continue;
       const v = meses.map((m) => conv(precio.get(m), m));
@@ -168,14 +198,20 @@ export function PanelProducto() {
   const insumosDelProducto = new Set(filas.map((f) => f.insumo_id).filter(Boolean));
   const valorPt = (stockPt.data ?? [])
     .filter((s) => s.producto_id === id)
-    .reduce((a, s) => ({ saldo: a.saldo + s.saldo, valor: a.valor + (s.valor_ars ?? 0) }), { saldo: 0, valor: 0 });
+    .reduce(
+      (a, s) => ({ saldo: a.saldo + s.saldo, valor: a.valor + (s.valor_ars ?? 0) }),
+      { saldo: 0, valor: 0 },
+    );
   const valorInsumos = (stockInsumos.data ?? [])
     .filter((s) => insumosDelProducto.has(s.insumo_id))
     .reduce((a, s) => a + (s.valor_ars ?? 0), 0);
   const saldoEnVista = (v: number) => convertir(v, mesActual, 'SALDO').valor;
 
   const elegido = filas.find((f) => `${f.tipo}-${f.orden}` === componente);
-  const impacto = elegido && elegido.subtotal ? sensibilidad(elegido.subtotal, total, variacion / 100) : null;
+  const impacto =
+    elegido && elegido.subtotal
+      ? sensibilidad(elegido.subtotal, total, variacion / 100)
+      : null;
 
   if (desglose.isLoading) return <Skeleton h={400} />;
   if (!id || filas.length === 0) {
@@ -212,7 +248,8 @@ export function PanelProducto() {
         )}
         {producto?.formula_estado && producto.formula_estado !== 'VIGENTE' ? (
           <Badge color="yellow" variant="light">
-            costeado con fórmula en {producto.formula_estado.toLowerCase().replace(/_/g, ' ')}
+            costeado con fórmula en{' '}
+            {producto.formula_estado.toLowerCase().replace(/_/g, ' ')}
           </Badge>
         ) : null}
         {partDesactualizada > 0 ? (
@@ -222,7 +259,8 @@ export function PanelProducto() {
         ) : null}
         {faltantes.length ? (
           <Badge color="orange" variant="light">
-            costo incompleto: {faltantes.length} {faltantes.length === 1 ? 'dato falta' : 'datos faltan'}
+            costo incompleto: {faltantes.length}{' '}
+            {faltantes.length === 1 ? 'dato falta' : 'datos faltan'}
           </Badge>
         ) : null}
       </Group>
@@ -232,18 +270,30 @@ export function PanelProducto() {
           etiqueta="Costo unitario"
           icono={IconCoin}
           valor={enVista(total) === null ? '—' : dinero(enVista(total)!)}
-          detalle={faltantes.length ? 'Incompleto: ver «Falta» en el desglose' : 'Granel + acondicionamiento + mano de obra'}
+          detalle={
+            faltantes.length
+              ? 'Incompleto: ver «Falta» en el desglose'
+              : 'Granel + acondicionamiento + mano de obra'
+          }
         />
         <TarjetaIndicador
           etiqueta="Stock de este producto"
           icono={IconBuildingWarehouse}
-          valor={saldoEnVista(valorPt.valor) === null ? '—' : dinero(saldoEnVista(valorPt.valor)!)}
+          valor={
+            saldoEnVista(valorPt.valor) === null
+              ? '—'
+              : dinero(saldoEnVista(valorPt.valor)!)
+          }
           detalle={`${numero(valorPt.saldo)} unidades al costo vigente`}
         />
         <TarjetaIndicador
           etiqueta="Stock de sus insumos"
           icono={IconPackage}
-          valor={saldoEnVista(valorInsumos) === null ? '—' : dinero(saldoEnVista(valorInsumos)!)}
+          valor={
+            saldoEnVista(valorInsumos) === null
+              ? '—'
+              : dinero(saldoEnVista(valorInsumos)!)
+          }
           detalle="Saldo de cada lote × lo que costó ese lote"
         />
       </SimpleGrid>
@@ -252,7 +302,11 @@ export function PanelProducto() {
         <GraficoTorta
           titulo="Incidencia de cada componente en el costo"
           datos={torta}
-          aviso={faltantes.length ? 'Faltan datos: la torta reparte sólo lo costeado.' : undefined}
+          aviso={
+            faltantes.length
+              ? 'Faltan datos: la torta reparte sólo lo costeado.'
+              : undefined
+          }
         />
         <Paper withBorder p="md" style={{ borderColor: 'var(--superficie-borde)' }}>
           <Title order={4} mb={4}>
@@ -261,7 +315,11 @@ export function PanelProducto() {
           <Text size="xs" c="dimmed" mb="sm">
             Precio neto de IVA; margen sobre el precio, (P − C) / P. Montos {leyenda}.
           </Text>
-          <GraficoBarrasPareadas grupos={barras} formato={dinero} titulo="Costo contra precio neto por banda" />
+          <GraficoBarrasPareadas
+            grupos={barras}
+            formato={dinero}
+            titulo="Costo contra precio neto por banda"
+          />
         </Paper>
       </SimpleGrid>
 
@@ -270,8 +328,9 @@ export function PanelProducto() {
           Costo y precios en el tiempo, {leyenda}
         </Title>
         <Text size="xs" c="dimmed" mb="sm">
-          Cada mes cerrado sale de su foto; el mes en curso, del cálculo de hoy. Un mes sin foto queda como hueco. Los
-          precios van punteados. Punto hueco: valor con IPC estimado (provisorio).
+          Cada mes cerrado sale de su foto; el mes en curso, del cálculo de hoy. Un mes
+          sin foto queda como hueco. Los precios van punteados. Punto hueco: valor con IPC
+          estimado (provisorio).
         </Text>
         <GraficoLineas
           etiquetas={meses.map(etiquetaMes)}
@@ -314,13 +373,17 @@ export function PanelProducto() {
         </Group>
         {impacto !== null && elegido ? (
           <Text mt="md">
-            el costo del producto {impacto >= 0 ? 'sube' : 'baja'} <b>{pct(Math.abs(impacto))}</b> (pesa{' '}
-            {pct((elegido.subtotal ?? 0) / total)} del costo).
+            el costo del producto {impacto >= 0 ? 'sube' : 'baja'}{' '}
+            <b>{pct(Math.abs(impacto))}</b> (pesa {pct((elegido.subtotal ?? 0) / total)}{' '}
+            del costo).
           </Text>
         ) : null}
       </Paper>
 
-      <Paper withBorder style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}>
+      <Paper
+        withBorder
+        style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}
+      >
         <Table.ScrollContainer minWidth={760}>
           <Table verticalSpacing="sm">
             <Table.Thead>
@@ -344,7 +407,11 @@ export function PanelProducto() {
                         {f.componente}
                       </Text>
                       <Text size="xs" c="dimmed">
-                        {f.tipo === 'GRANEL' ? 'Granel' : f.tipo === 'ACONDICIONAMIENTO' ? 'Acondicionamiento' : 'Mano de obra'}
+                        {f.tipo === 'GRANEL'
+                          ? 'Granel'
+                          : f.tipo === 'ACONDICIONAMIENTO'
+                            ? 'Acondicionamiento'
+                            : 'Mano de obra'}
                         {f.codigo_interno ? ` · ${f.codigo_interno}` : ''}
                       </Text>
                       {f.falta ? (
@@ -354,14 +421,23 @@ export function PanelProducto() {
                       ) : null}
                     </Table.Td>
                     <Table.Td ta="right" ff="monospace">
-                      {f.cantidad === null ? '—' : `${numero(f.cantidad, 4)} ${f.unidad ?? ''}`}
+                      {f.cantidad === null
+                        ? '—'
+                        : `${numero(f.cantidad, 4)} ${f.unidad ?? ''}`}
                     </Table.Td>
                     <Table.Td ta="right" ff="monospace">
-                      {cu === null ? '—' : vista === 'USD' ? `U$D ${numero(cu, 4)}` : `$ ${numero(cu, 4)}`}
+                      {cu === null
+                        ? '—'
+                        : vista === 'USD'
+                          ? `U$D ${numero(cu, 4)}`
+                          : `$ ${numero(cu, 4)}`}
                     </Table.Td>
                     <Table.Td>
                       {f.origen_costo ? (
-                        <Badge variant="light" color={ORIGEN_PRECIO[f.origen_costo]?.color ?? 'gray'}>
+                        <Badge
+                          variant="light"
+                          color={ORIGEN_PRECIO[f.origen_costo]?.color ?? 'gray'}
+                        >
                           {ORIGEN_PRECIO[f.origen_costo]?.label ?? f.origen_costo}
                         </Badge>
                       ) : null}

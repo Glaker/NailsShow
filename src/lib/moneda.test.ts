@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { convertir, ipcDelMes, leyendaVista, mesBasePorDefecto, type SeriesMacro } from './moneda';
+import {
+  convertir,
+  ipcDelMes,
+  leyendaVista,
+  mesBasePorDefecto,
+  type SeriesMacro,
+} from './moneda';
 
-const p = (mes: string, valor: number, provisorio = false) => ({ mes, valor, provisorio });
+const p = (mes: string, valor: number, provisorio = false) => ({
+  mes,
+  valor,
+  provisorio,
+});
 
 const series: SeriesMacro = {
   ipc: [p('2026-01', 100), p('2026-02', 110), p('2026-03', 200)],
@@ -18,7 +28,9 @@ describe('conversión de moneda', () => {
     // base = marzo (200); enero (100) se lleva a marzo multiplicando por 2,
     // y un importe de marzo expresado en pesos de enero vale la mitad.
     expect(convertir(1000, '2026-01', 'CONSTANTE', 'FLUJO', series).valor).toBe(2000);
-    expect(convertir(1000, '2026-03', 'CONSTANTE', 'FLUJO', series, '2026-01').valor).toBe(500);
+    expect(
+      convertir(1000, '2026-03', 'CONSTANTE', 'FLUJO', series, '2026-01').valor,
+    ).toBe(500);
   });
 
   it('el mes base es el último con IPC definitivo', () => {
@@ -32,7 +44,10 @@ describe('conversión de moneda', () => {
   });
 
   it('sin tipo de cambio del mes no se convierte a dólares', () => {
-    expect(convertir(100, '2026-02', 'USD', 'FLUJO', series)).toEqual({ valor: null, provisorio: false });
+    expect(convertir(100, '2026-02', 'USD', 'FLUJO', series)).toEqual({
+      valor: null,
+      provisorio: false,
+    });
   });
 
   it('el IPC faltante se estima con la última variación y sale provisorio', () => {
@@ -51,7 +66,9 @@ describe('conversión de moneda', () => {
   });
 
   it('la leyenda dice en qué moneda está el gráfico', () => {
-    expect(leyendaVista('CONSTANTE', '2026-09', 'A3500')).toBe('en pesos constantes de sep-2026');
+    expect(leyendaVista('CONSTANTE', '2026-09', 'A3500')).toBe(
+      'en pesos constantes de sep-2026',
+    );
     expect(leyendaVista('USD', null, 'A3500')).toBe('en dólares (A3500)');
   });
 });

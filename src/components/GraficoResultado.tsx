@@ -31,7 +31,9 @@ export function GraficoResultado({
   alto?: number;
 }) {
   const [activo, setActivo] = useState<number | null>(null);
-  const valores = puntos.flatMap((p) => [p.facturacion, p.costos]).filter((v): v is number => v !== null);
+  const valores = puntos
+    .flatMap((p) => [p.facturacion, p.costos])
+    .filter((v): v is number => v !== null);
   if (valores.length === 0) {
     return (
       <Text c="dimmed" size="sm" ta="center" py="xl">
@@ -41,7 +43,8 @@ export function GraficoResultado({
   }
   const maximo = Math.max(1, ...valores) * 1.08;
   const altoUtil = alto - M.arriba - M.abajo;
-  const paso = puntos.length > 1 ? (ANCHO - M.izquierda - M.derecha) / (puntos.length - 1) : 0;
+  const paso =
+    puntos.length > 1 ? (ANCHO - M.izquierda - M.derecha) / (puntos.length - 1) : 0;
   const x = (i: number) => M.izquierda + i * paso;
   const y = (v: number) => M.arriba + altoUtil - (v / maximo) * altoUtil;
 
@@ -51,19 +54,37 @@ export function GraficoResultado({
   for (let i = 0; i < puntos.length - 1; i++) {
     const a = puntos[i]!;
     const b = puntos[i + 1]!;
-    if (a.facturacion === null || a.costos === null || b.facturacion === null || b.costos === null) continue;
+    if (
+      a.facturacion === null ||
+      a.costos === null ||
+      b.facturacion === null ||
+      b.costos === null
+    )
+      continue;
     const da = a.facturacion - a.costos;
     const db = b.facturacion - b.costos;
-    const poli = (x1: number, f1: number, c1: number, x2: number, f2: number, c2: number) =>
-      `M ${x1} ${y(f1)} L ${x2} ${y(f2)} L ${x2} ${y(c2)} L ${x1} ${y(c1)} Z`;
+    const poli = (
+      x1: number,
+      f1: number,
+      c1: number,
+      x2: number,
+      f2: number,
+      c2: number,
+    ) => `M ${x1} ${y(f1)} L ${x2} ${y(f2)} L ${x2} ${y(c2)} L ${x1} ${y(c1)} Z`;
     if (da * db >= 0) {
-      sombras.push({ d: poli(x(i), a.facturacion, a.costos, x(i + 1), b.facturacion, b.costos), gana: da + db >= 0 });
+      sombras.push({
+        d: poli(x(i), a.facturacion, a.costos, x(i + 1), b.facturacion, b.costos),
+        gana: da + db >= 0,
+      });
     } else {
       const t = da / (da - db);
       const xc = x(i) + t * paso;
       const vc = a.facturacion + t * (b.facturacion - a.facturacion);
       sombras.push({ d: poli(x(i), a.facturacion, a.costos, xc, vc, vc), gana: da > 0 });
-      sombras.push({ d: poli(xc, vc, vc, x(i + 1), b.facturacion, b.costos), gana: db > 0 });
+      sombras.push({
+        d: poli(xc, vc, vc, x(i + 1), b.facturacion, b.costos),
+        gana: db > 0,
+      });
     }
   }
   const linea = (k: 'facturacion' | 'costos') => {
@@ -81,7 +102,8 @@ export function GraficoResultado({
     return d;
   };
   const p = activo !== null ? puntos[activo] : undefined;
-  const dif = p && p.facturacion !== null && p.costos !== null ? p.facturacion - p.costos : null;
+  const dif =
+    p && p.facturacion !== null && p.costos !== null ? p.facturacion - p.costos : null;
 
   return (
     <Box>
@@ -95,11 +117,19 @@ export function GraficoResultado({
           <Text size="xs">Costos totales</Text>
         </Group>
         <Group gap={6} wrap="nowrap">
-          <Box w={12} h={12} style={{ background: GANANCIA, opacity: 0.25, borderRadius: 3 }} />
+          <Box
+            w={12}
+            h={12}
+            style={{ background: GANANCIA, opacity: 0.25, borderRadius: 3 }}
+          />
           <Text size="xs">Ganancia</Text>
         </Group>
         <Group gap={6} wrap="nowrap">
-          <Box w={12} h={12} style={{ background: PERDIDA, opacity: 0.25, borderRadius: 3 }} />
+          <Box
+            w={12}
+            h={12}
+            style={{ background: PERDIDA, opacity: 0.25, borderRadius: 3 }}
+          />
           <Text size="xs">Pérdida</Text>
         </Group>
       </Group>
@@ -114,7 +144,12 @@ export function GraficoResultado({
           onPointerMove={(e) => {
             const r = e.currentTarget.getBoundingClientRect();
             const px = ((e.clientX - r.left) / r.width) * ANCHO;
-            setActivo(Math.max(0, Math.min(puntos.length - 1, Math.round((px - M.izquierda) / (paso || 1)))));
+            setActivo(
+              Math.max(
+                0,
+                Math.min(puntos.length - 1, Math.round((px - M.izquierda) / (paso || 1))),
+              ),
+            );
           }}
           onPointerLeave={() => setActivo(null)}
         >
@@ -129,7 +164,12 @@ export function GraficoResultado({
                 strokeWidth={1}
               />
               {f > 0 ? (
-                <text x={M.izquierda} y={y(maximo * f) - 4} fontSize="11" fill="var(--mantine-color-dimmed)">
+                <text
+                  x={M.izquierda}
+                  y={y(maximo * f) - 4}
+                  fontSize="11"
+                  fill="var(--mantine-color-dimmed)"
+                >
                   {formato(maximo * f)}
                 </text>
               ) : null}
@@ -138,8 +178,20 @@ export function GraficoResultado({
           {sombras.map((s, i) => (
             <path key={i} d={s.d} fill={s.gana ? GANANCIA : PERDIDA} fillOpacity={0.18} />
           ))}
-          <path d={linea('costos')} fill="none" stroke="var(--serie-2)" strokeWidth={2} strokeLinejoin="round" />
-          <path d={linea('facturacion')} fill="none" stroke="var(--serie-1)" strokeWidth={2} strokeLinejoin="round" />
+          <path
+            d={linea('costos')}
+            fill="none"
+            stroke="var(--serie-2)"
+            strokeWidth={2}
+            strokeLinejoin="round"
+          />
+          <path
+            d={linea('facturacion')}
+            fill="none"
+            stroke="var(--serie-1)"
+            strokeWidth={2}
+            strokeLinejoin="round"
+          />
           {puntos.map((pt, i) =>
             i % Math.ceil(puntos.length / 6) === 0 || i === puntos.length - 1 ? (
               <text
@@ -173,7 +225,7 @@ export function GraficoResultado({
             style={{
               position: 'absolute',
               top: 0,
-              left: `${Math.min(68, ((activo ?? 0) * paso + M.izquierda) / ANCHO * 100)}%`,
+              left: `${Math.min(68, (((activo ?? 0) * paso + M.izquierda) / ANCHO) * 100)}%`,
               pointerEvents: 'none',
               minWidth: 190,
             }}
@@ -183,12 +235,20 @@ export function GraficoResultado({
               {p.provisorio ? ' (IPC estimado)' : ''}
             </Text>
             <Group justify="space-between" gap="sm" wrap="nowrap">
-              <Text size="xs" c="dimmed">Facturación</Text>
-              <Text size="xs" ff="monospace">{p.facturacion === null ? '—' : formato(p.facturacion)}</Text>
+              <Text size="xs" c="dimmed">
+                Facturación
+              </Text>
+              <Text size="xs" ff="monospace">
+                {p.facturacion === null ? '—' : formato(p.facturacion)}
+              </Text>
             </Group>
             <Group justify="space-between" gap="sm" wrap="nowrap">
-              <Text size="xs" c="dimmed">Costos totales</Text>
-              <Text size="xs" ff="monospace">{p.costos === null ? '—' : formato(p.costos)}</Text>
+              <Text size="xs" c="dimmed">
+                Costos totales
+              </Text>
+              <Text size="xs" ff="monospace">
+                {p.costos === null ? '—' : formato(p.costos)}
+              </Text>
             </Group>
             {dif !== null ? (
               <Text size="xs" fw={700} c={dif >= 0 ? 'green.7' : 'red.7'} mt={4}>

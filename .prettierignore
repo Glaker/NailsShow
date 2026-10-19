@@ -6,3 +6,4 @@ src/lib/database.types.ts
 package-lock.json
 supabase/functions/giorgio/catalogo.json
 supabase/functions/_shared/vendor
+.claude/

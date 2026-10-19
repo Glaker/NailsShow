@@ -61,7 +61,11 @@ export interface DatosPdf {
   fecha: string;
   vence_el: string;
   destino: DestinoCotizacion;
-  cliente: { razon_social: string; documento?: string | null; contacto?: string | null } | null;
+  cliente: {
+    razon_social: string;
+    documento?: string | null;
+    contacto?: string | null;
+  } | null;
   titulo: string;
   contenido_cantidad: number | null;
   contenido_unidad: string | null;
@@ -132,7 +136,10 @@ const aLinea = (f: Record<string, unknown>): LineaGuardada => ({
   merma: Number(f.merma),
 });
 
-async function filas<T>(p: PromiseLike<{ data: unknown; error: unknown }>, map: (f: Record<string, unknown>) => T) {
+async function filas<T>(
+  p: PromiseLike<{ data: unknown; error: unknown }>,
+  map: (f: Record<string, unknown>) => T,
+) {
   const { data, error } = await p;
   if (error) throw error as Error;
   return ((data ?? []) as Record<string, unknown>[]).map(map);
@@ -144,7 +151,11 @@ const invalidar = (qc: ReturnType<typeof useQueryClient>) =>
 export function useCotizaciones() {
   return useQuery({
     queryKey: ['cotizaciones', 'lista'],
-    queryFn: () => filas(c().from('cotizaciones').select('*').order('creado_en', { ascending: false }), aCotizacion),
+    queryFn: () =>
+      filas(
+        c().from('cotizaciones').select('*').order('creado_en', { ascending: false }),
+        aCotizacion,
+      ),
   });
 }
 
@@ -152,7 +163,9 @@ export function useCotizacion(id: string | null) {
   return useQuery({
     queryKey: ['cotizaciones', 'una', id],
     enabled: !!id,
-    queryFn: async () => (await filas(c().from('cotizaciones').select('*').eq('id', id!), aCotizacion))[0] ?? null,
+    queryFn: async () =>
+      (await filas(c().from('cotizaciones').select('*').eq('id', id!), aCotizacion))[0] ??
+      null,
   });
 }
 
@@ -162,7 +175,12 @@ export function useLineasCotizacion(id: string | null) {
     enabled: !!id,
     queryFn: () =>
       filas(
-        c().from('cotizacion_lineas').select('*').eq('cotizacion_id', id!).eq('anulada', false).order('orden'),
+        c()
+          .from('cotizacion_lineas')
+          .select('*')
+          .eq('cotizacion_id', id!)
+          .eq('anulada', false)
+          .order('orden'),
         aLinea,
       ),
   });
@@ -172,23 +190,38 @@ export function useClientesPotenciales() {
   return useQuery({
     queryKey: ['cotizaciones', 'potenciales'],
     queryFn: () =>
-      filas(c().from('clientes_potenciales').select('*').order('razon_social'), (f) => f as unknown as ClientePotencial),
+      filas(
+        c().from('clientes_potenciales').select('*').order('razon_social'),
+        (f) => f as unknown as ClientePotencial,
+      ),
   });
 }
 
 export function useCrearCotizacion() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (v: { titulo: string; vigencia_dias: number; producto_base_id: string | null }) => {
+    mutationFn: async (v: {
+      titulo: string;
+      vigencia_dias: number;
+      producto_base_id: string | null;
+    }) => {
       const { data, error } = await c()
         .from('cotizaciones')
-        .insert({ titulo: v.titulo, vigencia_dias: v.vigencia_dias, fija: 'MARGEN', margen_objetivo: 0.3 })
+        .insert({
+          titulo: v.titulo,
+          vigencia_dias: v.vigencia_dias,
+          fija: 'MARGEN',
+          margen_objetivo: 0.3,
+        })
         .select('id')
         .single();
       if (error) throw error as Error;
       const id = data.id as string;
       if (v.producto_base_id) {
-        const r = await c().rpc('lineas_desde_producto', { p_cotizacion_id: id, p_producto_id: v.producto_base_id });
+        const r = await c().rpc('lineas_desde_producto', {
+          p_cotizacion_id: id,
+          p_producto_id: v.producto_base_id,
+        });
         if (r.error) throw r.error as Error;
       }
       return id;
@@ -218,7 +251,9 @@ export function useGuardarLinea() {
       const { id, cotizacion_id, ...resto } = l;
       const r = id
         ? await c().from('cotizacion_lineas').update(resto).eq('id', id)
-        : await c().from('cotizacion_lineas').insert({ cotizacion_id, ...resto });
+        : await c()
+            .from('cotizacion_lineas')
+            .insert({ cotizacion_id, ...resto });
       if (r.error) throw r.error as Error;
     },
     onSuccess: () => invalidar(qc),
@@ -230,7 +265,10 @@ export function useQuitarLinea() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await c().from('cotizacion_lineas').update({ anulada: true }).eq('id', id);
+      const { error } = await c()
+        .from('cotizacion_lineas')
+        .update({ anulada: true })
+        .eq('id', id);
       if (error) throw error as Error;
     },
     onSuccess: () => invalidar(qc),
@@ -242,13 +280,18 @@ export function useEmitirCotizacion() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (v: { id: string; justificacion: string | null }) => {
-      const r = await c().rpc('emitir_cotizacion', { p_id: v.id, p_justificacion: v.justificacion });
+      const r = await c().rpc('emitir_cotizacion', {
+        p_id: v.id,
+        p_justificacion: v.justificacion,
+      });
       if (r.error) throw r.error as Error;
       return r.data as number;
     },
     onSuccess: (n) => {
       invalidar(qc);
-      avisarExito(`Cotización n.º ${n} emitida. Ya no se edita: para cambiarla, duplicala.`);
+      avisarExito(
+        `Cotización n.º ${n} emitida. Ya no se edita: para cambiarla, duplicala.`,
+      );
     },
     onError: avisarError,
   });
@@ -258,7 +301,10 @@ export function useAnularCotizacion() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (v: { id: string; motivo: string }) => {
-      const { error } = await c().rpc('anular_cotizacion', { p_id: v.id, p_motivo: v.motivo });
+      const { error } = await c().rpc('anular_cotizacion', {
+        p_id: v.id,
+        p_motivo: v.motivo,
+      });
       if (error) throw error as Error;
     },
     onSuccess: () => {
@@ -285,8 +331,16 @@ export function useDuplicarCotizacion() {
 export function useCrearPotencial() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (p: { razon_social: string; cuit: string | null; contacto: string | null }) => {
-      const { data, error } = await c().from('clientes_potenciales').insert(p).select('id').single();
+    mutationFn: async (p: {
+      razon_social: string;
+      cuit: string | null;
+      contacto: string | null;
+    }) => {
+      const { data, error } = await c()
+        .from('clientes_potenciales')
+        .insert(p)
+        .select('id')
+        .single();
       if (error) throw error as Error;
       return data.id as string;
     },
@@ -297,11 +351,18 @@ export function useCrearPotencial() {
 
 export function useProponerCatalogo() {
   return useMutation({
-    mutationFn: async (p: { cotizacion_linea_id: string; nombre: string; detalle: string | null }) => {
+    mutationFn: async (p: {
+      cotizacion_linea_id: string;
+      nombre: string;
+      detalle: string | null;
+    }) => {
       const { error } = await c().from('solicitudes_catalogo').insert(p);
       if (error) throw error as Error;
     },
-    onSuccess: () => avisarExito('Propuesta enviada a Dirección Técnica. El catálogo no cambia hasta que la DT lo cargue.'),
+    onSuccess: () =>
+      avisarExito(
+        'Propuesta enviada a Dirección Técnica. El catálogo no cambia hasta que la DT lo cargue.',
+      ),
     onError: avisarError,
   });
 }
@@ -326,7 +387,9 @@ export function useProduccionPeriodo(desde: string) {
         (supabase as unknown as SupabaseClient)
           .schema('gmp')
           .from('ordenes_produccion')
-          .select('id, numero, producto_id, terminada_en, unidades_obtenidas, cantidad_obtenida, unidad, terminada_por')
+          .select(
+            'id, numero, producto_id, terminada_en, unidades_obtenidas, cantidad_obtenida, unidad, terminada_por',
+          )
           .gte('terminada_en', desde)
           .order('terminada_en', { ascending: false }),
         (f) => ({

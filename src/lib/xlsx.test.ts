@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { escribirXlsx, leerXlsx, leerZip, sha256 } from './xlsx';
 
-const buf = (u: Uint8Array) => u.buffer.slice(u.byteOffset, u.byteOffset + u.byteLength) as ArrayBuffer;
+const buf = (u: Uint8Array) =>
+  u.buffer.slice(u.byteOffset, u.byteOffset + u.byteLength) as ArrayBuffer;
 
 /** Un zip con DEFLATE, como los que guarda Excel (el nuestro escribe sin comprimir). */
 async function zipComprimido(nombre: string, texto: string): Promise<ArrayBuffer> {
   const plano = new TextEncoder().encode(texto);
-  const flujo = new Response(plano).body!.pipeThrough(new CompressionStream('deflate-raw'));
+  const flujo = new Response(plano).body!.pipeThrough(
+    new CompressionStream('deflate-raw'),
+  );
   const comp = new Uint8Array(await new Response(flujo).arrayBuffer());
   // Rearmar con método 8: encabezado local + datos comprimidos + directorio central.
   const n = new TextEncoder().encode(nombre);
@@ -27,10 +30,20 @@ async function zipComprimido(nombre: string, texto: string): Promise<ArrayBuffer
   f.setUint16(10, 1, true);
   f.setUint32(12, 46 + n.length, true);
   f.setUint32(16, 30 + n.length + comp.length, true);
-  const partes = [new Uint8Array(l.buffer), n, comp, new Uint8Array(c.buffer), n, new Uint8Array(f.buffer)];
+  const partes = [
+    new Uint8Array(l.buffer),
+    n,
+    comp,
+    new Uint8Array(c.buffer),
+    n,
+    new Uint8Array(f.buffer),
+  ];
   const out = new Uint8Array(partes.reduce((a, x) => a + x.length, 0));
   let o = 0;
-  for (const x of partes) { out.set(x, o); o += x.length; }
+  for (const x of partes) {
+    out.set(x, o);
+    o += x.length;
+  }
   return out.buffer;
 }
 
@@ -45,11 +58,17 @@ describe('xlsx propio', () => {
     expect(await leerXlsx(buf(escribirXlsx(filas)))).toEqual(filas);
   });
   it('lee entradas comprimidas con DEFLATE', async () => {
-    const z = await leerZip(await zipComprimido('a.txt', 'hola hola hola hola, Nail Show'));
-    expect(new TextDecoder().decode(z.get('a.txt'))).toBe('hola hola hola hola, Nail Show');
+    const z = await leerZip(
+      await zipComprimido('a.txt', 'hola hola hola hola, Nail Show'),
+    );
+    expect(new TextDecoder().decode(z.get('a.txt'))).toBe(
+      'hola hola hola hola, Nail Show',
+    );
   });
   it('rechaza lo que no es un zip', async () => {
-    await expect(leerXlsx(new TextEncoder().encode('no soy un excel').buffer)).rejects.toThrow(/no es un .xlsx/);
+    await expect(
+      leerXlsx(new TextEncoder().encode('no soy un excel').buffer),
+    ).rejects.toThrow(/no es un .xlsx/);
   });
   it('sha256 conocido', async () => {
     expect(await sha256(new TextEncoder().encode('abc').buffer)).toBe(

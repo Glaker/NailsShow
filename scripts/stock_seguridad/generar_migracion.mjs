@@ -38,8 +38,12 @@ const dec = (s) =>
 const wb = readFileSync(`${dir}/xl/workbook.xml`, 'utf8');
 const rels = readFileSync(`${dir}/xl/_rels/workbook.xml.rels`, 'utf8');
 const shared = [
-  ...readFileSync(`${dir}/xl/sharedStrings.xml`, 'utf8').matchAll(/<si>([\s\S]*?)<\/si>/g),
-].map((m) => dec([...m[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map((t) => t[1]).join('')));
+  ...readFileSync(`${dir}/xl/sharedStrings.xml`, 'utf8').matchAll(
+    /<si>([\s\S]*?)<\/si>/g,
+  ),
+].map((m) =>
+  dec([...m[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map((t) => t[1]).join('')),
+);
 
 function hoja(nombre) {
   const rid = new RegExp(`<sheet name="${nombre}"[^>]*r:id="(rId\\d+)"`).exec(wb)?.[1];
@@ -63,7 +67,9 @@ const H = hoja('sku_stock');
 const encabezado = H[1];
 const filas = Object.entries(H)
   .filter(([f]) => Number(f) > 1)
-  .map(([, r]) => Object.fromEntries(Object.entries(encabezado).map(([c, n]) => [n, r[c]])));
+  .map(([, r]) =>
+    Object.fromEntries(Object.entries(encabezado).map(([c, n]) => [n, r[c]])),
+  );
 if (filas.length !== 603) throw new Error(`Se esperaban 603 SKU y hay ${filas.length}`);
 
 const sql = (s) =>
@@ -132,5 +138,8 @@ end;
 $$;
 `;
 
-writeFileSync(`${RAIZ}/supabase/migrations/20260925100100_carga_stock_seguridad.sql`, salida);
+writeFileSync(
+  `${RAIZ}/supabase/migrations/20260925100100_carga_stock_seguridad.sql`,
+  salida,
+);
 console.log(`SKU ${filas.length}`);

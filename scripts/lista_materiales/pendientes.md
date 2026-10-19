@@ -54,7 +54,7 @@ Cada grupo dice qué hace falta para que el renglón entre. Se resuelven en
 - `Y450 fila 453` — 103TAP TAPA CLEANSER Y MONOMERO 1Lt. = 1. Sanitizante 1 litro: la etiqueta NS-397ET no está en la planilla de inventario y el producto «335 SANITIZANTE 1LT.» no dice fragancia; no se puede asignar sin confirmar.
 - `Y450 fila 454` — 138CL1 CLEANSER ALCOHOL DE CEREAL = 735. Sanitizante 1 litro: la etiqueta NS-397ET no está en la planilla de inventario y el producto «335 SANITIZANTE 1LT.» no dice fragancia; no se puede asignar sin confirmar.
 - `Y450 fila 455` — 135AGUA AGUA DESIONIZADA = 250. Sanitizante 1 litro: la etiqueta NS-397ET no está en la planilla de inventario y el producto «335 SANITIZANTE 1LT.» no dice fragancia; no se puede asignar sin confirmar.
-- `Y450 fila 456` — 135GLI  = 6.5. Sanitizante 1 litro: la etiqueta NS-397ET no está en la planilla de inventario y el producto «335 SANITIZANTE 1LT.» no dice fragancia; no se puede asignar sin confirmar.
+- `Y450 fila 456` — 135GLI = 6.5. Sanitizante 1 litro: la etiqueta NS-397ET no está en la planilla de inventario y el producto «335 SANITIZANTE 1LT.» no dice fragancia; no se puede asignar sin confirmar.
 - `Y450 fila 457` — 135fra1 FRAGANCIA 34764 AMOR = 10. Sanitizante 1 litro: la etiqueta NS-397ET no está en la planilla de inventario y el producto «335 SANITIZANTE 1LT.» no dice fragancia; no se puede asignar sin confirmar.
 - `Y450 fila 458` — 148PIG PIGMENTO VII rosa oscuro = 0.4. Sanitizante 1 litro: la etiqueta NS-397ET no está en la planilla de inventario y el producto «335 SANITIZANTE 1LT.» no dice fragancia; no se puede asignar sin confirmar.
 - `K482 fila 483` — 103ENV CONTENEDOR DE LIQUIDO = 1. Removedor 1 litro: no hay producto en el catálogo.
@@ -73,4 +73,3 @@ Cada grupo dice qué hace falta para que el renglón entre. Se resuelven en
 - `J291 fila 292` — 387 PRIMER ACIDO 8ml. = 1. «387» no está en gmp.insumos_catalogo.
 - `D291 fila 293` — 377 NAIL PREP 8ml. (Solo Envasado) = 1. «377» no está en gmp.insumos_catalogo.
 - `J291 fila 293` — 377 NAIL PREP 8ml. (Solo Envasado) = 1. «377» no está en gmp.insumos_catalogo.
-

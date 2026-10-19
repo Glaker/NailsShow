@@ -21,29 +21,43 @@ const ruta = process.argv[2];
 if (!ruta) throw new Error('Falta la ruta al .xlsx de origen.');
 const buf = readFileSync(ruta);
 const hash = createHash('sha256').update(buf).digest('hex');
-if (hash !== origen.hash_archivo) throw new Error(`El archivo no es el de origen.json (sha256 ${hash}).`);
+if (hash !== origen.hash_archivo)
+  throw new Error(`El archivo no es el de origen.json (sha256 ${hash}).`);
 
-const zip = await leerZip(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
+const zip = await leerZip(
+  buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength),
+);
 const t = (n) => (zip.get(n) ? new TextDecoder().decode(zip.get(n)) : '');
-const id = new RegExp(`<sheet\\b[^>]*name="${origen.hoja}"[^>]*r:id="([^"]+)"`).exec(t('xl/workbook.xml'))[1];
+const id = new RegExp(`<sheet\\b[^>]*name="${origen.hoja}"[^>]*r:id="([^"]+)"`).exec(
+  t('xl/workbook.xml'),
+)[1];
 const rels = t('xl/_rels/workbook.xml.rels');
 const destino =
   new RegExp(`Id="${id}"[^>]*Target="([^"]+)"`).exec(rels)?.[1] ??
   new RegExp(`Target="([^"]+)"[^>]*Id="${id}"`).exec(rels)[1];
 const hoja = t(destino.startsWith('/') ? destino.slice(1) : `xl/${destino}`);
 const estilos = t('xl/styles.xml');
-const formatos = new Map([...estilos.matchAll(/<numFmt numFmtId="(\d+)" formatCode="([^"]*)"/g)].map((m) => [m[1], m[2]]));
-const xfs = [.../<cellXfs[^>]*>([\s\S]*?)<\/cellXfs>/.exec(estilos)[1].matchAll(/<xf\b([^>]*)/g)].map(
-  (m) => /numFmtId="(\d+)"/.exec(m[1])?.[1] ?? '0',
+const formatos = new Map(
+  [...estilos.matchAll(/<numFmt numFmtId="(\d+)" formatCode="([^"]*)"/g)].map((m) => [
+    m[1],
+    m[2],
+  ]),
 );
-const compartidos = [...t('xl/sharedStrings.xml').matchAll(/<si>([\s\S]*?)<\/si>/g)].map((m) =>
-  [...m[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map((x) => x[1]).join(''),
+const xfs = [
+  .../<cellXfs[^>]*>([\s\S]*?)<\/cellXfs>/.exec(estilos)[1].matchAll(/<xf\b([^>]*)/g),
+].map((m) => /numFmtId="(\d+)"/.exec(m[1])?.[1] ?? '0');
+const compartidos = [...t('xl/sharedStrings.xml').matchAll(/<si>([\s\S]*?)<\/si>/g)].map(
+  (m) => [...m[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map((x) => x[1]).join(''),
 );
 
 // «#,##0 "kg."» → kg. Las que no son de masa ni volumen quedan con su nombre.
 const UNIDADES = { kg: 'kg', gr: 'g', lts: 'l', ml: 'ml' };
 const unidad = (formato) => {
-  const u = /&quot;([^&]+)&quot;/.exec(formato ?? '')?.[1]?.trim().toLowerCase().replace(/\.$/, '');
+  const u = /&quot;([^&]+)&quot;/
+    .exec(formato ?? '')?.[1]
+    ?.trim()
+    .toLowerCase()
+    .replace(/\.$/, '');
   return u ? (UNIDADES[u] ?? u) : '';
 };
 
@@ -53,7 +67,10 @@ for (const c of hoja.matchAll(/<c r="([A-Z]+)(\d+)"([^>]*?)(?:\/>|>([\s\S]*?)<\/
   if (n < 3 || (c[1] !== 'A' && c[1] !== 'D')) continue;
   const f = filas.get(n) ?? {};
   if (c[1] === 'A') {
-    let v = /<v>([\s\S]*?)<\/v>/.exec(c[4] ?? '')?.[1] ?? /<t[^>]*>([\s\S]*?)<\/t>/.exec(c[4] ?? '')?.[1] ?? '';
+    let v =
+      /<v>([\s\S]*?)<\/v>/.exec(c[4] ?? '')?.[1] ??
+      /<t[^>]*>([\s\S]*?)<\/t>/.exec(c[4] ?? '')?.[1] ??
+      '';
     if (/\bt="s"/.test(c[3])) v = compartidos[Number(v)];
     f.codigo = v.trim();
   } else {
@@ -66,9 +83,14 @@ const salida = [...filas]
   .sort((a, b) => a[0] - b[0])
   .map(([, f]) => f)
   .filter((f) => f.codigo);
-if (salida.length !== origen.renglones) throw new Error(`Se leyeron ${salida.length} renglones, origen.json dice ${origen.renglones}.`);
+if (salida.length !== origen.renglones)
+  throw new Error(
+    `Se leyeron ${salida.length} renglones, origen.json dice ${origen.renglones}.`,
+  );
 writeFileSync(
   new URL('inventario_apertura_unidades.csv', AQUI),
-  ['codigo,peso_unidad', ...salida.map((f) => `${f.codigo},${f.unidad ?? ''}`)].join('\n') + '\n',
+  ['codigo,peso_unidad', ...salida.map((f) => `${f.codigo},${f.unidad ?? ''}`)].join(
+    '\n',
+  ) + '\n',
 );
 console.log(`${salida.length} renglones → inventario_apertura_unidades.csv`);

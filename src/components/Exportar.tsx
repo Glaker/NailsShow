@@ -26,7 +26,11 @@ export function Exportar({
       >
         Excel
       </Button>
-      <Button variant="default" leftSection={<IconPrinter size={18} />} onClick={() => window.print()}>
+      <Button
+        variant="default"
+        leftSection={<IconPrinter size={18} />}
+        onClick={() => window.print()}
+      >
         PDF
       </Button>
     </Group>

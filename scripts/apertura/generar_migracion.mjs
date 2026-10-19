@@ -197,10 +197,15 @@ for (const [codigo, filasDelCodigo] of porCodigo) {
       ? `SALDO DE APERTURA — ${proveedores.join(' / ')}`
       : 'SALDO DE APERTURA — sin proveedor registrado en la planilla de origen';
 
-  const coloresOrigen = [...new Set(filasDelCodigo.map((f) => f.color_origen?.trim()).filter(Boolean))];
+  const coloresOrigen = [
+    ...new Set(filasDelCodigo.map((f) => f.color_origen?.trim()).filter(Boolean)),
+  ];
   const colorOrigen = coloresOrigen.join('+'); // más de un color en el mismo código: se deja constancia de los dos
 
-  const detalle = filasDelCodigo.map((f) => f.detalle?.trim()).filter(Boolean).join(' / ');
+  const detalle = filasDelCodigo
+    .map((f) => f.detalle?.trim())
+    .filter(Boolean)
+    .join(' / ');
 
   importables.push({
     codigo,
@@ -233,7 +238,9 @@ pendientesMd += `en la migración generada. Clasificarlos es una decisión de ca
 pendientesMd += `si aplica \`requiere_protocolo\`/\`es_inflamable\`), no de esta carga. Ver CLAUDE.md §7 y\n`;
 pendientesMd += `\`docs/DECISIONES_ABIERTAS.md\`.\n\n`;
 pendientesMd += `**${excluidosNoCatalogo.length} códigos excluidos**, agrupados por familia declarada en la planilla:\n\n`;
-for (const [fam, codigos] of [...familiasExcluidas].sort((a, b) => b[1].length - a[1].length)) {
+for (const [fam, codigos] of [...familiasExcluidas].sort(
+  (a, b) => b[1].length - a[1].length,
+)) {
   pendientesMd += `- **${fam}** (${codigos.length}): ${[...new Set(codigos)].join(', ')}\n`;
 }
 pendientesMd += `\n## Caso aparte: código \`550\`\n\n`;
@@ -406,5 +413,9 @@ writeFileSync(outPath, sql, 'utf8');
 console.log(`Migración generada: ${path.relative(REPO_ROOT, outPath)}`);
 console.log(`  Renglones de origen: ${renglones.length}`);
 console.log(`  Importados (código en catálogo): ${importables.length}`);
-console.log(`  Sin cantidad declarada: ${importables.filter((i) => i.cantidadNoDeclarada).length}`);
-console.log(`  Excluidos (código fuera de catálogo): ${excluidosNoCatalogo.length} → scripts/apertura/pendientes.md`);
+console.log(
+  `  Sin cantidad declarada: ${importables.filter((i) => i.cantidadNoDeclarada).length}`,
+);
+console.log(
+  `  Excluidos (código fuera de catálogo): ${excluidosNoCatalogo.length} → scripts/apertura/pendientes.md`,
+);

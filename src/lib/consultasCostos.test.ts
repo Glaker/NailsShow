@@ -11,7 +11,12 @@ describe('neto en pesos', () => {
     expect(netoArs(10000, 'FACTURA_A', false, 21, 1)).toBe(10000);
   });
   it('sin comprobante, B, C o no discriminado: el importe entero es costo', () => {
-    for (const c of ['SIN_COMPROBANTE', 'FACTURA_B', 'FACTURA_C', 'NO_DISCRIMINADO'] as const)
+    for (const c of [
+      'SIN_COMPROBANTE',
+      'FACTURA_B',
+      'FACTURA_C',
+      'NO_DISCRIMINADO',
+    ] as const)
       expect(netoArs(12100, c, true, 21, 1)).toBe(12100);
   });
   it('en dólares se lleva a pesos con el tipo de cambio', () => {
@@ -59,6 +64,9 @@ describe('punto de equilibrio', () => {
   it('el veredicto no cambia con la moneda: escalar todo por un tipo de cambio escala el equilibrio igual', async () => {
     const { equilibrio } = await import('./consultasCostos');
     const tc = 1200;
-    expect(equilibrio(20000 / tc, 12000 / tc, 104600 / tc)!).toBeCloseTo(174333.3333 / tc, 6);
+    expect(equilibrio(20000 / tc, 12000 / tc, 104600 / tc)!).toBeCloseTo(
+      174333.3333 / tc,
+      6,
+    );
   });
 });

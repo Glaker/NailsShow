@@ -18,12 +18,24 @@ export async function reconstruir({ silencioso = false } = {}) {
     create role supabase_auth_admin nologin;
     create role supabase_admin nologin bypassrls;
   `);
-  try { await db.exec(readFileSync(`${RAIZ}/supabase/tests/andamio.sql`, 'utf8')); } catch (e) { console.log('FALLA andamio', e.message); throw new Error('andamio'); }
+  try {
+    await db.exec(readFileSync(`${RAIZ}/supabase/tests/andamio.sql`, 'utf8'));
+  } catch (e) {
+    console.log('FALLA andamio', e.message);
+    throw new Error('andamio');
+  }
   // Borradores opcionales: migraciones en preparación, que se prueban antes de
   // escribirlas en supabase/migrations (una migración escrita no se edita).
   const BOR = new URL('./borradores/', import.meta.url);
-  const borradores = existsSync(BOR) ? readdirSync(BOR).filter((x) => x.endsWith('.sql')) : [];
-  const todos = [...readdirSync(MIG).filter((x) => x.endsWith('.sql')).map((f) => [f, `${MIG}/${f}`]), ...borradores.map((f) => [f, new URL(f, BOR)])].sort((a, b) => a[0].localeCompare(b[0]));
+  const borradores = existsSync(BOR)
+    ? readdirSync(BOR).filter((x) => x.endsWith('.sql'))
+    : [];
+  const todos = [
+    ...readdirSync(MIG)
+      .filter((x) => x.endsWith('.sql'))
+      .map((f) => [f, `${MIG}/${f}`]),
+    ...borradores.map((f) => [f, new URL(f, BOR)]),
+  ].sort((a, b) => a[0].localeCompare(b[0]));
   for (const [f, ruta] of todos) {
     if (f.startsWith('20260910140000_')) {
       await db.exec(`insert into core.usuarios (id, nombre_completo, email, rol, sector, es_dt_titular)
@@ -49,7 +61,14 @@ export async function reconstruir({ silencioso = false } = {}) {
       if (!silencioso) console.log('ok   ', f);
     } catch (e) {
       await db.exec('rollback;').catch(() => {});
-      console.log('FALLA', f, '\n     ', e.message, e.position ? `(pos ${e.position})` : '', e.where ?? '');
+      console.log(
+        'FALLA',
+        f,
+        '\n     ',
+        e.message,
+        e.position ? `(pos ${e.position})` : '',
+        e.where ?? '',
+      );
       throw new Error(f);
     }
   }

@@ -69,7 +69,10 @@ export function useAvisosTareas() {
 }
 
 // PostgrestError trae message: avisarError lo muestra igual que un Error.
-function useMutacion<T>(fn: (v: T) => PromiseLike<{ error: Error | null }>, exito?: string) {
+function useMutacion<T>(
+  fn: (v: T) => PromiseLike<{ error: Error | null }>,
+  exito?: string,
+) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (v: T) => {

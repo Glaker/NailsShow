@@ -41,7 +41,8 @@ if (!/^\d{14}$/.test(ts ?? '')) {
   process.exit(1);
 }
 const salida =
-  process.argv[3] ?? path.join(RAIZ, 'supabase', 'migrations', `${ts}_rectifica_costos_apertura_d42.sql`);
+  process.argv[3] ??
+  path.join(RAIZ, 'supabase', 'migrations', `${ts}_rectifica_costos_apertura_d42.sql`);
 // Una migración escrita no se pisa (CLAUDE.md §6).
 if (existsSync(salida)) {
   console.error(`${salida} ya existe: una migración escrita no se regenera encima.`);
@@ -49,7 +50,11 @@ if (existsSync(salida)) {
 }
 
 const origen = JSON.parse(readFileSync(path.join(AQUI, 'origen.json'), 'utf8'));
-const leer = (f) => readFileSync(path.join(AQUI, f), 'utf8').replace(/\r\n/g, '\n').split('\n').filter((l) => l.trim());
+const leer = (f) =>
+  readFileSync(path.join(AQUI, f), 'utf8')
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .filter((l) => l.trim());
 
 // El CSV lo produce xlsx_a_csv.py; los campos con coma vienen entre comillas.
 const partir = (l) => {
@@ -59,28 +64,37 @@ const partir = (l) => {
   for (let i = 0; i < l.length; i++) {
     const c = l[i];
     if (q) {
-      if (c === '"' && l[i + 1] === '"') { f += '"'; i++; }
-      else if (c === '"') q = false;
+      if (c === '"' && l[i + 1] === '"') {
+        f += '"';
+        i++;
+      } else if (c === '"') q = false;
       else f += c;
     } else if (c === '"') q = true;
-    else if (c === ',') { out.push(f); f = ''; }
-    else f += c;
+    else if (c === ',') {
+      out.push(f);
+      f = '';
+    } else f += c;
   }
   out.push(f);
   return out;
 };
 const [cab, ...filas] = leer('inventario_apertura.csv');
 const col = partir(cab);
-const renglones = filas.map((l) => Object.fromEntries(partir(l).map((v, i) => [col[i], v.trim()])));
+const renglones = filas.map((l) =>
+  Object.fromEntries(partir(l).map((v, i) => [col[i], v.trim()])),
+);
 const [, ...unidades] = leer('inventario_apertura_unidades.csv');
-if (unidades.length !== renglones.length) throw new Error('El CSV de unidades no tiene los mismos renglones.');
+if (unidades.length !== renglones.length)
+  throw new Error('El CSV de unidades no tiene los mismos renglones.');
 unidades.forEach((l, i) => {
   const [codigo, unidad] = l.split(',');
-  if (codigo !== renglones[i].codigo) throw new Error(`Renglón ${i + 1}: ${codigo} ≠ ${renglones[i].codigo}`);
+  if (codigo !== renglones[i].codigo)
+    throw new Error(`Renglón ${i + 1}: ${codigo} ≠ ${renglones[i].codigo}`);
   renglones[i].peso_unidad = unidad || null;
 });
 
-const num = (s) => (s === '' || s == null || !Number.isFinite(Number(s)) ? null : Number(s));
+const num = (s) =>
+  s === '' || s == null || !Number.isFinite(Number(s)) ? null : Number(s);
 const HOY = `${ts.slice(0, 4)}-${ts.slice(4, 6)}-${ts.slice(6, 8)}`;
 const porCodigo = new Map();
 const sinCosto = [];
@@ -92,7 +106,10 @@ for (const r of renglones) {
   const presentaciones = num(r.contenido_cantidad) > 0 ? num(r.contenido_cantidad) : 1;
   const moneda = usd > 0 ? 'USD' : 'ARS';
   const importe = usd > 0 ? usd / presentaciones : unitario;
-  if (!(importe > 0)) { sinCosto.push(r.codigo); continue; }
+  if (!(importe > 0)) {
+    sinCosto.push(r.codigo);
+    continue;
+  }
   let revisar = false;
   if (usd > 0 && unitario > 0) {
     const tc = unitario / importe;
@@ -100,7 +117,8 @@ for (const r of renglones) {
     if (revisar) dolarRaro.push(`${r.codigo} (${tc.toFixed(0)} $/U$D)`);
   }
   const fecha =
-    /^\d{4}-\d{2}-\d{2}$/.test(r.fecha_actualizacion_costo) && r.fecha_actualizacion_costo <= HOY
+    /^\d{4}-\d{2}-\d{2}$/.test(r.fecha_actualizacion_costo) &&
+    r.fecha_actualizacion_costo <= HOY
       ? r.fecha_actualizacion_costo
       : null;
   const peso = num(r.contenido_peso);
@@ -116,10 +134,16 @@ for (const r of renglones) {
     detalle: r.detalle || null,
   };
   const prev = porCodigo.get(r.codigo);
-  if (!prev || (cand.fecha && (!prev.fecha || cand.fecha > prev.fecha))) porCodigo.set(r.codigo, cand);
+  if (!prev || (cand.fecha && (!prev.fecha || cand.fecha > prev.fecha)))
+    porCodigo.set(r.codigo, cand);
 }
 
-const lit = (v) => (v === null || v === undefined ? 'null' : typeof v === 'number' ? String(v) : `'${String(v).replace(/'/g, "''")}'`);
+const lit = (v) =>
+  v === null || v === undefined
+    ? 'null'
+    : typeof v === 'number'
+      ? String(v)
+      : `'${String(v).replace(/'/g, "''")}'`;
 const valores = [...porCodigo.values()]
   .map(
     (c) =>
@@ -269,5 +293,8 @@ $$;
 `;
 
 writeFileSync(salida, sql, 'utf8');
-console.log(`${salida}\n${porCodigo.size} códigos con costo, ${sinCosto.length} renglones sin costo.`);
-if (dolarRaro.length) console.log(`Dólares a revisar, quedan pendientes: ${dolarRaro.join(', ')}`);
+console.log(
+  `${salida}\n${porCodigo.size} códigos con costo, ${sinCosto.length} renglones sin costo.`,
+);
+if (dolarRaro.length)
+  console.log(`Dólares a revisar, quedan pendientes: ${dolarRaro.join(', ')}`);

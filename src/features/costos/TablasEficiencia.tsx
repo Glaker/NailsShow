@@ -12,7 +12,12 @@ import {
   TextInput,
 } from '@mantine/core';
 import { useDebouncedState } from '@mantine/hooks';
-import { IconCircleCheck, IconCoin, IconSearch, IconTruckDelivery } from '@tabler/icons-react';
+import {
+  IconCircleCheck,
+  IconCoin,
+  IconSearch,
+  IconTruckDelivery,
+} from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { TarjetaIndicador } from '@/components/TarjetaIndicador';
 import { Vacio } from '@/components/Vacio';
@@ -100,8 +105,9 @@ export function TablaRotacion() {
     <Stack gap="lg">
       <Stack gap="xs">
         <Text size="sm" c="dimmed">
-          Capital inmovilizado: lo que vale hoy el stock de cada insumo (saldo de cada lote × lo que
-          costó). Días de stock: cuánto dura al ritmo de consumo de los últimos 90 días.
+          Capital inmovilizado: lo que vale hoy el stock de cada insumo (saldo de cada
+          lote × lo que costó). Días de stock: cuánto dura al ritmo de consumo de los
+          últimos 90 días.
         </Text>
         <TarjetaIndicador
           etiqueta="Capital inmovilizado"
@@ -163,7 +169,9 @@ export function TablaRotacion() {
                       </Text>
                     </Table.Td>
                     <Table.Td ta="right" ff="monospace">
-                      {f.saldo === null ? '—' : `${numero(f.saldo, 2)} ${f.unidad_medida ?? ''}`}
+                      {f.saldo === null
+                        ? '—'
+                        : `${numero(f.saldo, 2)} ${f.unidad_medida ?? ''}`}
                     </Table.Td>
                     <Table.Td ta="right" ff="monospace" fw={700}>
                       <Group gap={6} justify="flex-end" wrap="nowrap">
@@ -209,11 +217,13 @@ interface GrupoPrecios {
 
 function masBaratoDe(filas: PrecioProveedor[]): string | null {
   const conPrecio = filas.filter(
-    (f): f is PrecioProveedor & { precio_promedio_hoy: number } => f.precio_promedio_hoy !== null,
+    (f): f is PrecioProveedor & { precio_promedio_hoy: number } =>
+      f.precio_promedio_hoy !== null,
   );
   if (conPrecio.length < 2) return null;
-  return conPrecio.reduce((a, b) => (b.precio_promedio_hoy < a.precio_promedio_hoy ? b : a))
-    .proveedor_id;
+  return conPrecio.reduce((a, b) =>
+    b.precio_promedio_hoy < a.precio_promedio_hoy ? b : a,
+  ).proveedor_id;
 }
 
 function agruparPrecios(filas: PrecioProveedor[]): GrupoPrecios[] {
@@ -266,8 +276,9 @@ export function TablaPreciosProveedor() {
   return (
     <Stack gap="lg">
       <Text size="sm" c="dimmed">
-        Precio unitario neto de cada compra (sin flete ni accesorios). El promedio y el mínimo están
-        llevados a pesos de hoy con el IPC, para comparar compras de meses distintos.
+        Precio unitario neto de cada compra (sin flete ni accesorios). El promedio y el
+        mínimo están llevados a pesos de hoy con el IPC, para comparar compras de meses
+        distintos.
       </Text>
 
       <TextInput
@@ -380,8 +391,8 @@ export function TablaAlertasPrecio() {
   return (
     <Stack gap="lg">
       <Text size="sm" c="dimmed">
-        Bandas de precio (netas de IVA) por debajo del costo del producto o con un margen sobre el
-        precio menor que el mínimo que fijó Finanzas.
+        Bandas de precio (netas de IVA) por debajo del costo del producto o con un margen
+        sobre el precio menor que el mínimo que fijó Finanzas.
       </Text>
 
       {filas.length === 0 ? (
@@ -452,7 +463,11 @@ export function TablaAlertasPrecio() {
                       </Group>
                     </Table.Td>
                     <Table.Td>
-                      <Anchor component={Link} to={`/costos/producto/${f.producto_id}`} size="sm">
+                      <Anchor
+                        component={Link}
+                        to={`/costos/producto/${f.producto_id}`}
+                        size="sm"
+                      >
                         Ver panel
                       </Anchor>
                     </Table.Td>

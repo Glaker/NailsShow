@@ -56,7 +56,10 @@ export function ipcDelMes(ipc: PuntoSerie[], mes: string): Convertido {
   if (!ultimo || mes < ultimo.mes) return { valor: null, provisorio: false };
   const anterior = orden.at(-2);
   const variacion = anterior ? ultimo.valor / anterior.valor - 1 : 0;
-  return { valor: ultimo.valor * (1 + variacion) ** mesesEntre(ultimo.mes, mes), provisorio: true };
+  return {
+    valor: ultimo.valor * (1 + variacion) ** mesesEntre(ultimo.mes, mes),
+    provisorio: true,
+  };
 }
 
 /** Mes base por defecto de los pesos constantes: el último con IPC definitivo. */
@@ -82,14 +85,35 @@ export function convertir(
   if (!mesBase) return { valor: null, provisorio: false };
   const base = ipcDelMes(series.ipc, mesBase);
   const delMes = ipcDelMes(series.ipc, mes);
-  if (base.valor === null || delMes.valor === null) return { valor: null, provisorio: false };
-  return { valor: (importe * base.valor) / delMes.valor, provisorio: base.provisorio || delMes.provisorio };
+  if (base.valor === null || delMes.valor === null)
+    return { valor: null, provisorio: false };
+  return {
+    valor: (importe * base.valor) / delMes.valor,
+    provisorio: base.provisorio || delMes.provisorio,
+  };
 }
 
-const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const MESES = [
+  'ene',
+  'feb',
+  'mar',
+  'abr',
+  'may',
+  'jun',
+  'jul',
+  'ago',
+  'sep',
+  'oct',
+  'nov',
+  'dic',
+];
 
 /** Leyenda para el título de cada gráfico: nadie lee un número sin saber en qué moneda está. */
-export function leyendaVista(vista: VistaMoneda, mesBase: string | null, serieTc: string): string {
+export function leyendaVista(
+  vista: VistaMoneda,
+  mesBase: string | null,
+  serieTc: string,
+): string {
   if (vista === 'CORRIENTE') return 'en pesos corrientes';
   if (vista === 'USD') return `en dólares (${serieTc})`;
   if (!mesBase) return 'en pesos constantes (sin IPC cargado)';

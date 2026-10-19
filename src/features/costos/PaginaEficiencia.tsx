@@ -1,17 +1,39 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Anchor, Badge, Group, Paper, SegmentedControl, SimpleGrid, Skeleton, Stack, Table, Tabs, Text, Title } from '@mantine/core';
-import { IconAlertTriangle, IconBuildingWarehouse, IconTruckDelivery } from '@tabler/icons-react';
+import {
+  Anchor,
+  Badge,
+  Group,
+  Paper,
+  SegmentedControl,
+  SimpleGrid,
+  Skeleton,
+  Stack,
+  Table,
+  Tabs,
+  Text,
+  Title,
+} from '@mantine/core';
+import {
+  IconAlertTriangle,
+  IconBuildingWarehouse,
+  IconTruckDelivery,
+} from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { GraficoPareto, COLOR_CLASE } from '@/components/GraficoPareto';
 import { GraficoMatriz } from '@/components/GraficoMatriz';
 import { numero } from '@/lib/formato';
 import { useParametrosCosto, usePareto } from '@/lib/consultasCostos';
-import { TablaAlertasPrecio, TablaPreciosProveedor, TablaRotacion } from './TablasEficiencia';
+import {
+  TablaAlertasPrecio,
+  TablaPreciosProveedor,
+  TablaRotacion,
+} from './TablasEficiencia';
 import { useVistaMoneda } from './vistaMoneda';
 import { Exportar } from '@/components/Exportar';
 
-const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+const iso = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
 const pct = (v: number) => `${numero(v * 100, 1)} %`;
 
 /**
@@ -24,7 +46,10 @@ export function PaginaEficiencia() {
   const [meses, setMeses] = useState('3');
   const { desde, hasta } = useMemo(() => {
     const hoy = new Date();
-    return { desde: iso(new Date(hoy.getFullYear(), hoy.getMonth() - Number(meses) + 1, 1)), hasta: iso(hoy) };
+    return {
+      desde: iso(new Date(hoy.getFullYear(), hoy.getMonth() - Number(meses) + 1, 1)),
+      hasta: iso(hoy),
+    };
   }, [meses]);
   const pareto = usePareto(desde, hasta);
   const parametros = useParametrosCosto();
@@ -59,8 +84,30 @@ export function PaginaEficiencia() {
             />
             <Exportar
               archivo={`pareto_${desde.slice(0, 7)}_${hasta.slice(0, 7)}`}
-              encabezados={['clase', 'codigo', 'producto', 'unidades', 'facturacion', 'participacion', 'acumulado', 'costo_variable', 'margen', 'margen_pct']}
-              filas={(pareto.data ?? []).map((f) => [f.clase, f.codigo_interno, f.producto, f.unidades, f.facturacion, f.participacion, f.acumulado, f.costo_variable, f.margen, f.margen_pct])}
+              encabezados={[
+                'clase',
+                'codigo',
+                'producto',
+                'unidades',
+                'facturacion',
+                'participacion',
+                'acumulado',
+                'costo_variable',
+                'margen',
+                'margen_pct',
+              ]}
+              filas={(pareto.data ?? []).map((f) => [
+                f.clase,
+                f.codigo_interno,
+                f.producto,
+                f.unidades,
+                f.facturacion,
+                f.participacion,
+                f.acumulado,
+                f.costo_variable,
+                f.margen,
+                f.margen_pct,
+              ])}
             />
           </Group>
         }
@@ -72,13 +119,28 @@ export function PaginaEficiencia() {
         <>
           <Group gap="xs">
             {(['A', 'B', 'C'] as const).map((c) => (
-              <Badge key={c} variant="light" color="gray" leftSection={<span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 8, background: `var(--serie-${COLOR_CLASE[c]})` }} />}>
+              <Badge
+                key={c}
+                variant="light"
+                color="gray"
+                leftSection={
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      width: 8,
+                      height: 8,
+                      borderRadius: 8,
+                      background: `var(--serie-${COLOR_CLASE[c]})`,
+                    }}
+                  />
+                }
+              >
                 {cuenta(c)} productos clase {c}
               </Badge>
             ))}
             <Text size="xs" c="dimmed">
-              Cortes: A hasta {pct(corteA)} de la facturación acumulada, B hasta {pct(corteB)} (los cambia Finanzas en Costos ›
-              Parámetros).
+              Cortes: A hasta {pct(corteA)} de la facturación acumulada, B hasta{' '}
+              {pct(corteB)} (los cambia Finanzas en Costos › Parámetros).
             </Text>
           </Group>
           <SimpleGrid cols={{ base: 1, lg: 2 }}>
@@ -104,19 +166,28 @@ export function PaginaEficiencia() {
                 Facturación × margen
               </Title>
               <Text size="xs" c="dimmed" mb="sm">
-                Un A de margen bajo y un C de margen alto piden decisiones distintas. Sólo productos con costo completo.
+                Un A de margen bajo y un C de margen alto piden decisiones distintas. Sólo
+                productos con costo completo.
               </Text>
               <GraficoMatriz
                 titulo="Participación en la facturación contra margen sobre el precio"
                 margenMinimo={margenMinimo}
                 puntos={filas
                   .filter((f) => f.margen_pct !== null)
-                  .map((f) => ({ nombre: f.producto, participacion: f.participacion, margen: f.margen_pct!, clase: f.clase }))}
+                  .map((f) => ({
+                    nombre: f.producto,
+                    participacion: f.participacion,
+                    margen: f.margen_pct!,
+                    clase: f.clase,
+                  }))}
               />
             </Paper>
           </SimpleGrid>
 
-          <Paper withBorder style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}>
+          <Paper
+            withBorder
+            style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}
+          >
             <Table.ScrollContainer minWidth={760}>
               <Table verticalSpacing="xs" striped>
                 <Table.Thead>
@@ -139,24 +210,42 @@ export function PaginaEficiencia() {
                         </Badge>
                       </Table.Td>
                       <Table.Td>
-                        <Anchor component={Link} to={`/costos/producto/${f.producto_id}`} size="sm" fw={600}>
+                        <Anchor
+                          component={Link}
+                          to={`/costos/producto/${f.producto_id}`}
+                          size="sm"
+                          fw={600}
+                        >
                           {f.producto}
                         </Anchor>
                         <Text size="xs" c="dimmed">
                           {f.codigo_interno}
                         </Text>
                       </Table.Td>
-                      <Table.Td ta="right" ff="monospace">{numero(f.unidades)}</Table.Td>
-                      <Table.Td ta="right" ff="monospace">{dinero(f.facturacion)}</Table.Td>
-                      <Table.Td ta="right" ff="monospace">{pct(f.participacion)}</Table.Td>
-                      <Table.Td ta="right" ff="monospace">{pct(f.acumulado)}</Table.Td>
+                      <Table.Td ta="right" ff="monospace">
+                        {numero(f.unidades)}
+                      </Table.Td>
+                      <Table.Td ta="right" ff="monospace">
+                        {dinero(f.facturacion)}
+                      </Table.Td>
+                      <Table.Td ta="right" ff="monospace">
+                        {pct(f.participacion)}
+                      </Table.Td>
+                      <Table.Td ta="right" ff="monospace">
+                        {pct(f.acumulado)}
+                      </Table.Td>
                       <Table.Td ta="right" ff="monospace">
                         {f.margen_pct === null ? (
                           <Badge color="orange" variant="light">
                             costo incompleto
                           </Badge>
                         ) : (
-                          <Text span {...(f.margen_pct < margenMinimo ? { c: 'red.7' } : {})} size="sm" ff="monospace">
+                          <Text
+                            span
+                            {...(f.margen_pct < margenMinimo ? { c: 'red.7' } : {})}
+                            size="sm"
+                            ff="monospace"
+                          >
                             {pct(f.margen_pct)}
                           </Text>
                         )}
@@ -191,7 +280,8 @@ export function PaginaEficiencia() {
         <Tabs.Panel value="alertas">
           <TablaAlertasPrecio />
           <Text size="xs" c="dimmed" mt="sm">
-            Las variaciones de precio de compra contra tu referencia están en Costos › Avisos.
+            Las variaciones de precio de compra contra tu referencia están en Costos ›
+            Avisos.
           </Text>
         </Tabs.Panel>
       </Tabs>

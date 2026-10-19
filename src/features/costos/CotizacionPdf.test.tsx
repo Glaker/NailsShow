@@ -44,12 +44,34 @@ const hoja = (marcaPractica = false) =>
 describe('PDF de la cotización', () => {
   it('lleva precio, cantidad, total, vigencia, IVA y quién emitió', () => {
     const t = hoja();
-    for (const v of ['7/2026', 'Spa del Bosque', 'Protector solar', '60 g', '500', '653,00', '326.500,00', 'más IVA', 'Nazarena Bakás', 'Válida hasta'])
+    for (const v of [
+      '7/2026',
+      'Spa del Bosque',
+      'Protector solar',
+      '60 g',
+      '500',
+      '653,00',
+      '326.500,00',
+      'más IVA',
+      'Nazarena Bakás',
+      'Válida hasta',
+    ])
       expect(t).toContain(v);
   });
   it('nunca lleva costos, márgenes ni composición', () => {
     const t = hoja();
-    for (const v of ['456', 'Costo', 'costo', 'margen', 'Margen', 'recargo', 'ZnO', 'zinc', '119,01', 'Mano de obra'])
+    for (const v of [
+      '456',
+      'Costo',
+      'costo',
+      'margen',
+      'Margen',
+      'recargo',
+      'ZnO',
+      'zinc',
+      '119,01',
+      'Mano de obra',
+    ])
       expect(t).not.toContain(v);
   });
   it('en la base de práctica lleva la marca PRÁCTICA', () => {

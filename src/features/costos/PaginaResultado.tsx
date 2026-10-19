@@ -1,16 +1,51 @@
-import { Alert, Badge, Group, Paper, SimpleGrid, Skeleton, Stack, Table, Text, Title } from '@mantine/core';
-import { IconAlertTriangle, IconChartLine, IconScale, IconTargetArrow, IconTrendingUp } from '@tabler/icons-react';
+import {
+  Alert,
+  Badge,
+  Group,
+  Paper,
+  SimpleGrid,
+  Skeleton,
+  Stack,
+  Table,
+  Text,
+  Title,
+} from '@mantine/core';
+import {
+  IconAlertTriangle,
+  IconChartLine,
+  IconScale,
+  IconTargetArrow,
+  IconTrendingUp,
+} from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { TarjetaIndicador } from '@/components/TarjetaIndicador';
 import { GraficoResultado } from '@/components/GraficoResultado';
 import { Vacio } from '@/components/Vacio';
 import { numero } from '@/lib/formato';
-import { equilibrio, useResultadoGestion, type ResultadoMes } from '@/lib/consultasCostos';
+import {
+  equilibrio,
+  useResultadoGestion,
+  type ResultadoMes,
+} from '@/lib/consultasCostos';
 import { useVistaMoneda } from './vistaMoneda';
 import { Exportar } from '@/components/Exportar';
 
-const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-const etiquetaMes = (iso: string) => `${MESES[Number(iso.slice(5, 7)) - 1]}-${iso.slice(2, 4)}`;
+const MESES = [
+  'ene',
+  'feb',
+  'mar',
+  'abr',
+  'may',
+  'jun',
+  'jul',
+  'ago',
+  'sep',
+  'oct',
+  'nov',
+  'dic',
+];
+const etiquetaMes = (iso: string) =>
+  `${MESES[Number(iso.slice(5, 7)) - 1]}-${iso.slice(2, 4)}`;
 const pct = (v: number) => `${numero(v * 100, 1)} %`;
 
 /** Las magnitudes del mes en la moneda elegida (los porcentajes no cambian). */
@@ -26,7 +61,10 @@ function convertirMes(r: ResultadoMes, conv: (v: number) => number | null) {
     resultado: c(r.resultado),
     estructura,
     // Recalculado con los valores convertidos: mismo veredicto en las tres vistas.
-    equilibrio: facturacion !== null && mc !== null && estructura !== null ? equilibrio(facturacion, mc, estructura) : null,
+    equilibrio:
+      facturacion !== null && mc !== null && estructura !== null
+        ? equilibrio(facturacion, mc, estructura)
+        : null,
   };
 }
 
@@ -39,7 +77,8 @@ function convertirMes(r: ResultadoMes, conv: (v: number) => number | null) {
 export function PaginaResultado() {
   const resultado = useResultadoGestion();
   const { convertir, leyenda, vista } = useVistaMoneda();
-  const dinero = (v: number) => (vista === 'USD' ? `U$D ${numero(v, 0)}` : `$ ${numero(v, 0)}`);
+  const dinero = (v: number) =>
+    vista === 'USD' ? `U$D ${numero(v, 0)}` : `$ ${numero(v, 0)}`;
 
   if (resultado.isLoading) return <Skeleton h={420} />;
   const filas = (resultado.data ?? []).slice(-12);
@@ -47,7 +86,10 @@ export function PaginaResultado() {
   if (conDatos.length === 0) {
     return (
       <Stack>
-        <EncabezadoPagina titulo="Resultado" descripcion="Resultado de gestión, no fiscal." />
+        <EncabezadoPagina
+          titulo="Resultado"
+          descripcion="Resultado de gestión, no fiscal."
+        />
         <Vacio
           icono={IconChartLine}
           titulo="Todavía no hay resultado para mostrar"
@@ -60,15 +102,19 @@ export function PaginaResultado() {
   const mesAct = filas[filas.length - 1]!;
   // El mes en curso todavía no cerró: las tarjetas muestran el último mes con datos.
   const ultimo = [...conDatos].reverse()[0]!;
-  const conv = (r: ResultadoMes) => convertirMes(r, (v) => convertir(v, r.mes, 'FLUJO').valor);
+  const conv = (r: ResultadoMes) =>
+    convertirMes(r, (v) => convertir(v, r.mes, 'FLUJO').valor);
   const u = conv(ultimo);
-  const faltaEquilibrio = u.equilibrio !== null && u.facturacion !== null ? u.equilibrio - u.facturacion : null;
+  const faltaEquilibrio =
+    u.equilibrio !== null && u.facturacion !== null ? u.equilibrio - u.facturacion : null;
   const sinComprobante12 = filas.reduce((s, r) => s + r.gastos_sin_comprobante, 0);
   const gastos12 = filas.reduce(
     (s, r) => s + r.costos_fijos + r.nomina_produccion + r.gastos_operativos,
     0,
   );
-  const incompletos = filas.filter((r) => r.productos_sin_costo > 0 || r.productos_costo_incompleto > 0);
+  const incompletos = filas.filter(
+    (r) => r.productos_sin_costo > 0 || r.productos_costo_incompleto > 0,
+  );
 
   return (
     <Stack gap="lg">
@@ -77,11 +123,41 @@ export function PaginaResultado() {
         descripcion={`Resultado de gestión, no fiscal: lo valida el estudio contable. Montos ${leyenda}.`}
         acciones={
           <Group gap="xs">
-            <Badge variant="light" color="gray">Gestión, no fiscal</Badge>
+            <Badge variant="light" color="gray">
+              Gestión, no fiscal
+            </Badge>
             <Exportar
               archivo="resultado_de_gestion"
-              encabezados={['mes', 'facturacion', 'costo_variable', 'margen_contribucion_pct', 'costos_fijos', 'nomina_produccion', 'mano_de_obra_no_absorbida', 'gastos_operativos', 'amortizaciones', 'costos_totales', 'resultado', 'facturacion_equilibrio', 'gastos_sin_comprobante']}
-              filas={(resultado.data ?? []).map((r) => [r.mes, r.facturacion, r.costo_variable, r.margen_contribucion_pct, r.costos_fijos, r.nomina_produccion, r.mano_de_obra_no_absorbida, r.gastos_operativos, r.amortizaciones, r.costos_totales, r.resultado, r.facturacion_equilibrio, r.gastos_sin_comprobante])}
+              encabezados={[
+                'mes',
+                'facturacion',
+                'costo_variable',
+                'margen_contribucion_pct',
+                'costos_fijos',
+                'nomina_produccion',
+                'mano_de_obra_no_absorbida',
+                'gastos_operativos',
+                'amortizaciones',
+                'costos_totales',
+                'resultado',
+                'facturacion_equilibrio',
+                'gastos_sin_comprobante',
+              ]}
+              filas={(resultado.data ?? []).map((r) => [
+                r.mes,
+                r.facturacion,
+                r.costo_variable,
+                r.margen_contribucion_pct,
+                r.costos_fijos,
+                r.nomina_produccion,
+                r.mano_de_obra_no_absorbida,
+                r.gastos_operativos,
+                r.amortizaciones,
+                r.costos_totales,
+                r.resultado,
+                r.facturacion_equilibrio,
+                r.gastos_sin_comprobante,
+              ])}
             />
           </Group>
         }
@@ -89,8 +165,9 @@ export function PaginaResultado() {
 
       {incompletos.length ? (
         <Alert color="yellow" icon={<IconAlertTriangle size={18} />}>
-          En {incompletos.length} {incompletos.length === 1 ? 'mes' : 'meses'} se vendieron productos sin costo completo:
-          el costo de lo vendido de esos meses está subestimado. Completalos en Costos › Productos.
+          En {incompletos.length} {incompletos.length === 1 ? 'mes' : 'meses'} se
+          vendieron productos sin costo completo: el costo de lo vendido de esos meses
+          está subestimado. Completalos en Costos › Productos.
         </Alert>
       ) : null}
 
@@ -98,9 +175,19 @@ export function PaginaResultado() {
         <TarjetaIndicador
           etiqueta={`Resultado ${etiquetaMes(ultimo.mes)}`}
           icono={IconTrendingUp}
-          valor={u.resultado === null ? '—' : `${u.resultado >= 0 ? '' : '−'}${dinero(Math.abs(u.resultado))}`}
+          valor={
+            u.resultado === null
+              ? '—'
+              : `${u.resultado >= 0 ? '' : '−'}${dinero(Math.abs(u.resultado))}`
+          }
           color={u.resultado !== null && u.resultado < 0 ? 'red' : 'green'}
-          detalle={u.resultado === null ? 'Falta el tipo de cambio o el IPC del mes' : u.resultado >= 0 ? 'Ganancia' : 'Pérdida'}
+          detalle={
+            u.resultado === null
+              ? 'Falta el tipo de cambio o el IPC del mes'
+              : u.resultado >= 0
+                ? 'Ganancia'
+                : 'Pérdida'
+          }
         />
         <TarjetaIndicador
           etiqueta="Facturación"
@@ -119,7 +206,11 @@ export function PaginaResultado() {
           detalle="(Fijos + nómina + gastos + amortizaciones) / margen sin mano de obra %"
         />
         <TarjetaIndicador
-          etiqueta={faltaEquilibrio !== null && faltaEquilibrio > 0 ? 'Falta para el equilibrio' : 'Sobra sobre el equilibrio'}
+          etiqueta={
+            faltaEquilibrio !== null && faltaEquilibrio > 0
+              ? 'Falta para el equilibrio'
+              : 'Sobra sobre el equilibrio'
+          }
           icono={IconTargetArrow}
           valor={faltaEquilibrio === null ? '—' : dinero(Math.abs(faltaEquilibrio))}
           color={faltaEquilibrio !== null && faltaEquilibrio > 0 ? 'red' : 'green'}
@@ -132,8 +223,11 @@ export function PaginaResultado() {
           Facturación contra costos totales, {leyenda}
         </Title>
         <Text size="xs" c="dimmed" mb="sm">
-          Costos totales = costo de lo vendido + costos fijos + mano de obra no absorbida + gastos operativos +
-          amortizaciones. {mesAct.mes === ultimo.mes ? '' : `${etiquetaMes(mesAct.mes)} todavía no tiene datos.`}
+          Costos totales = costo de lo vendido + costos fijos + mano de obra no absorbida
+          + gastos operativos + amortizaciones.{' '}
+          {mesAct.mes === ultimo.mes
+            ? ''
+            : `${etiquetaMes(mesAct.mes)} todavía no tiene datos.`}
         </Text>
         <GraficoResultado
           titulo={`Facturación contra costos totales ${leyenda}`}
@@ -153,10 +247,14 @@ export function PaginaResultado() {
 
       <Text size="sm" c="dimmed">
         Gastos sin comprobante en los últimos 12 meses:{' '}
-        <b>{gastos12 > 0 ? pct(sinComprobante12 / gastos12) : '—'}</b> del total de gastos cargados.
+        <b>{gastos12 > 0 ? pct(sinComprobante12 / gastos12) : '—'}</b> del total de gastos
+        cargados.
       </Text>
 
-      <Paper withBorder style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}>
+      <Paper
+        withBorder
+        style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}
+      >
         <Table.ScrollContainer minWidth={980}>
           <Table verticalSpacing="xs" striped>
             <Table.Thead>
@@ -184,20 +282,41 @@ export function PaginaResultado() {
                 return (
                   <Table.Tr key={r.mes}>
                     <Table.Td>{etiquetaMes(r.mes)}</Table.Td>
-                    <Table.Td ta="right" ff="monospace">{m(r.facturacion)}</Table.Td>
-                    <Table.Td ta="right" ff="monospace">{m(r.costo_variable)}</Table.Td>
                     <Table.Td ta="right" ff="monospace">
-                      {r.margen_contribucion_pct === null ? '—' : pct(r.margen_contribucion_pct)}
+                      {m(r.facturacion)}
                     </Table.Td>
-                    <Table.Td ta="right" ff="monospace">{m(r.costos_fijos)}</Table.Td>
-                    <Table.Td ta="right" ff="monospace">{m(r.mano_de_obra_no_absorbida)}</Table.Td>
-                    <Table.Td ta="right" ff="monospace">{m(r.gastos_operativos)}</Table.Td>
-                    <Table.Td ta="right" ff="monospace">{m(r.amortizaciones)}</Table.Td>
-                    <Table.Td ta="right" ff="monospace" fw={700} c={r.resultado < 0 ? 'red.7' : 'green.7'}>
+                    <Table.Td ta="right" ff="monospace">
+                      {m(r.costo_variable)}
+                    </Table.Td>
+                    <Table.Td ta="right" ff="monospace">
+                      {r.margen_contribucion_pct === null
+                        ? '—'
+                        : pct(r.margen_contribucion_pct)}
+                    </Table.Td>
+                    <Table.Td ta="right" ff="monospace">
+                      {m(r.costos_fijos)}
+                    </Table.Td>
+                    <Table.Td ta="right" ff="monospace">
+                      {m(r.mano_de_obra_no_absorbida)}
+                    </Table.Td>
+                    <Table.Td ta="right" ff="monospace">
+                      {m(r.gastos_operativos)}
+                    </Table.Td>
+                    <Table.Td ta="right" ff="monospace">
+                      {m(r.amortizaciones)}
+                    </Table.Td>
+                    <Table.Td
+                      ta="right"
+                      ff="monospace"
+                      fw={700}
+                      c={r.resultado < 0 ? 'red.7' : 'green.7'}
+                    >
                       {r.resultado < 0 ? '−' : ''}
                       {m(Math.abs(r.resultado))}
                     </Table.Td>
-                    <Table.Td ta="right" ff="monospace">{e === null ? '—' : dinero(e)}</Table.Td>
+                    <Table.Td ta="right" ff="monospace">
+                      {e === null ? '—' : dinero(e)}
+                    </Table.Td>
                   </Table.Tr>
                 );
               })}

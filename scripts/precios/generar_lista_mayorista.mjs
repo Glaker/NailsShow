@@ -29,7 +29,8 @@ import { fileURLToPath } from 'node:url';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(AQUI, '../..');
-const [xlsx, dir, salida = path.join(RAIZ, 'supabase/migrations')] = process.argv.slice(2);
+const [xlsx, dir, salida = path.join(RAIZ, 'supabase/migrations')] =
+  process.argv.slice(2);
 if (!xlsx || !dir) {
   console.error('Uso: generar_lista_mayorista.mjs <planilla.xlsx> <dir_descomprimido>');
   process.exit(1);
@@ -47,8 +48,12 @@ const dec = (s) =>
 const wb = readFileSync(`${dir}/xl/workbook.xml`, 'utf8');
 const rels = readFileSync(`${dir}/xl/_rels/workbook.xml.rels`, 'utf8');
 const shared = [
-  ...readFileSync(`${dir}/xl/sharedStrings.xml`, 'utf8').matchAll(/<si>([\s\S]*?)<\/si>/g),
-].map((m) => dec([...m[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map((t) => t[1]).join('')));
+  ...readFileSync(`${dir}/xl/sharedStrings.xml`, 'utf8').matchAll(
+    /<si>([\s\S]*?)<\/si>/g,
+  ),
+].map((m) =>
+  dec([...m[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map((t) => t[1]).join('')),
+);
 // La primera hoja visible es la lista (la otra está oculta).
 const hoja = /<sheet name="([^"]+)"(?![^>]*state="hidden")[^>]*r:id="(rId\d+)"/.exec(wb);
 const target = new RegExp(`Id="${hoja[2]}"[^>]*Target="([^"]+)"`)
@@ -88,7 +93,8 @@ const catalogo = new Set(
     .filter(Boolean),
 );
 
-const num = (s) => (s !== undefined && s !== '' && !Number.isNaN(Number(s)) ? Number(s) : null);
+const num = (s) =>
+  s !== undefined && s !== '' && !Number.isNaN(Number(s)) ? Number(s) : null;
 let rubro = null;
 const porCodigo = new Map();
 const pendientes = [];
@@ -122,7 +128,10 @@ for (const f of filas.filter((x) => x.fila >= 7 && x.fila < 341)) {
     continue;
   }
   if (x.promo > x.lista && x.lista > 0) {
-    pendientes.push({ ...x, motivo: `precio con promoción (${x.promo}) mayor que el de lista` });
+    pendientes.push({
+      ...x,
+      motivo: `precio con promoción (${x.promo}) mayor que el de lista`,
+    });
     continue;
   }
   const l = porCodigo.get(cod.toUpperCase()) ?? [];
@@ -197,13 +206,19 @@ const existe = (c) => catalogo.has(String(c).toUpperCase());
 const marca = (c) => (existe(c) ? `\`${c}\`` : `\`${c}\` (no está en el catálogo)`);
 // Las dos composiciones que no salen del código: se leen del nombre en la planilla.
 const MANUALES = {
-  '800PACK': '24 × \`801\` (no está) + 12 × \`802\` (no está) + 12 × \`803\` (no está) + 12 × \`804\` (no está)',
-  '631PACK': '3 × cada uno de los 34 pigmentos (102 unidades); la planilla no dice cuáles 34: a confirmar',
+  '800PACK':
+    '24 × \`801\` (no está) + 12 × \`802\` (no está) + 12 × \`803\` (no está) + 12 × \`804\` (no está)',
+  '631PACK':
+    '3 × cada uno de los 34 pigmentos (102 unidades); la planilla no dice cuáles 34: a confirmar',
 };
 const clasificar = (x) => {
   const cod = x.cod.toUpperCase();
   if (/^PROMO/i.test(x.nombre) || cod === 'PROMO')
-    return { clase: 'c', detalle: 'Es una promoción de la planilla, no un producto: va como regla de precio.' };
+    return {
+      clase: 'c',
+      detalle:
+        'Es una promoción de la planilla, no un producto: va como regla de precio.',
+    };
   if (MANUALES[cod]) return { clase: 'b', detalle: MANUALES[cod] };
   const caja = /^CAJA(\d+)$/.exec(cod);
   if (caja) {
@@ -223,7 +238,10 @@ const clasificar = (x) => {
   const pack = /^(\d+)PACK$/.exec(cod);
   if (pack && x.pack > 1) return { clase: 'b', detalle: `${x.pack} × ${marca(pack[1])}` };
   if (/repetido/.test(x.motivo))
-    return { clase: 'c', detalle: `El código \`${x.cod}\` aparece dos veces con precios distintos: ${x.motivo.split('(')[1]?.replace(')', '') ?? ''}` };
+    return {
+      clase: 'c',
+      detalle: `El código \`${x.cod}\` aparece dos veces con precios distintos: ${x.motivo.split('(')[1]?.replace(')', '') ?? ''}`,
+    };
   return { clase: 'a', detalle: 'Producto simple: falta darlo de alta en el catálogo.' };
 };
 const grupos = { a: [], b: [], c: [] };
@@ -271,7 +289,9 @@ ${tabla(grupos.c, true)}
 writeFileSync(path.join(AQUI, 'pendientes_mayorista.md'), md);
 const archivo = path.join(salida, '20261001140000_carga_lista_mayorista.sql');
 if (existsSync(archivo)) {
-  console.log(`Ya existe ${archivo}: no se reescribe (una migración escrita no se edita).`);
+  console.log(
+    `Ya existe ${archivo}: no se reescribe (una migración escrita no se edita).`,
+  );
 } else {
   writeFileSync(archivo, sql);
 }

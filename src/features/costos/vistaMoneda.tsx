@@ -1,7 +1,18 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import { SegmentedControl, Stack, Text } from '@mantine/core';
 import { useSesion, useTieneRol } from '@/features/auth/sesion';
-import { ROLES_VEN_COSTOS, useParametrosCosto, useSeriesMacro } from '@/lib/consultasCostos';
+import {
+  ROLES_VEN_COSTOS,
+  useParametrosCosto,
+  useSeriesMacro,
+} from '@/lib/consultasCostos';
 import {
   convertir,
   leyendaVista,
@@ -26,7 +37,8 @@ interface ValorVista {
 
 const Contexto = createContext<ValorVista>({ vista: 'CORRIENTE', setVista: () => {} });
 
-const clave = (usuario: string | null | undefined) => `nailshow-vista-moneda-${usuario ?? 'anonimo'}`;
+const clave = (usuario: string | null | undefined) =>
+  `nailshow-vista-moneda-${usuario ?? 'anonimo'}`;
 
 function leer(usuario: string | null | undefined): VistaMoneda {
   try {

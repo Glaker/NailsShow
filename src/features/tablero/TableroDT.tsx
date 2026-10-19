@@ -103,7 +103,9 @@ export function TableroDT() {
             className="entrada"
             style={{ borderColor: 'var(--superficie-borde)' }}
           >
-            <Title order={3}>Análisis pendientes · {(pendientes.data ?? []).length}</Title>
+            <Title order={3}>
+              Análisis pendientes · {(pendientes.data ?? []).length}
+            </Title>
             <Text size="sm" c="dimmed" mb="sm">
               Lotes en análisis y graneles que Producción ya elaboró. Producción puede
               envasar igual; sin el registro aprobado el lote no se libera.
@@ -123,7 +125,11 @@ export function TableroDT() {
                     <Text size="sm" truncate>
                       <Anchor
                         component={Link}
-                        to={x.orden_id ? `/ordenes/${x.orden_id}` : `/lotes/${x.lote_insumo_id}`}
+                        to={
+                          x.orden_id
+                            ? `/ordenes/${x.orden_id}`
+                            : `/lotes/${x.lote_insumo_id}`
+                        }
                         fw={700}
                       >
                         {x.descripcion}

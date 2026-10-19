@@ -83,8 +83,12 @@ Deno.serve(async (req) => {
   const authorization = req.headers.get('Authorization');
   if (!authorization) return json({ error: 'Falta la sesión del usuario.' }, 401);
 
-  let entrada: { pedido_id?: string; emisor_id?: string; nota_credito_de?: string; motivo?: string } =
-    {};
+  let entrada: {
+    pedido_id?: string;
+    emisor_id?: string;
+    nota_credito_de?: string;
+    motivo?: string;
+  } = {};
   try {
     entrada = (await req.json()) ?? {};
   } catch {
@@ -106,7 +110,8 @@ Deno.serve(async (req) => {
 
   // Sin la clave no se puede registrar nada: se corta antes de preparar.
   const clave = Deno.env.get('ARCA_REGISTRO_CLAVE');
-  if (!clave) return json({ error: 'Falta el secreto ARCA_REGISTRO_CLAVE de la función.' }, 500);
+  if (!clave)
+    return json({ error: 'Falta el secreto ARCA_REGISTRO_CLAVE de la función.' }, 500);
 
   // 1. La base prepara (o devuelve la pendiente, si es un reintento).
   const prep = entrada.nota_credito_de

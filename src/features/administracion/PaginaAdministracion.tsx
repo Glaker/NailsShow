@@ -221,9 +221,9 @@ function FacturasPorCargar({
       title={`Tenés ${filas.length} ${filas.length === 1 ? 'factura' : 'facturas'} por cargar`}
     >
       <Text size="sm" mb="sm">
-        Estas recepciones entraron sin comprobante. Cargalo para que quede el IVA
-        crédito y la deuda con el proveedor. Si de verdad vino sin factura, cargalo
-        como «Sin factura».
+        Estas recepciones entraron sin comprobante. Cargalo para que quede el IVA crédito
+        y la deuda con el proveedor. Si de verdad vino sin factura, cargalo como «Sin
+        factura».
       </Text>
       <Table.ScrollContainer minWidth={560}>
         <Table verticalSpacing="xs">

@@ -72,23 +72,23 @@ para las firmas (regla en el motor, no en la aplicación).
 
 Archivo CSV adjunto: `inventario_apertura.csv` (650 filas).
 
-| Hallazgo | Cantidad | Implicancia |
-|---|---|---|
-| Renglones totales | 650 | |
-| Sin cantidad declarada | 228 (35%) | Importar como 0 y marcar `cantidad_no_declarada = true` |
-| Códigos duplicados | 9 códigos | `codigo` NO es clave única. Requiere resolución manual |
-| Familia ETIQUETA | 249 | Material de acondicionamiento, categoría distinta a granel/PT |
-| Con color de fila | 644 | Ver 4.1 |
+| Hallazgo               | Cantidad  | Implicancia                                                   |
+| ---------------------- | --------- | ------------------------------------------------------------- |
+| Renglones totales      | 650       |                                                               |
+| Sin cantidad declarada | 228 (35%) | Importar como 0 y marcar `cantidad_no_declarada = true`       |
+| Códigos duplicados     | 9 códigos | `codigo` NO es clave única. Requiere resolución manual        |
+| Familia ETIQUETA       | 249       | Material de acondicionamiento, categoría distinta a granel/PT |
+| Con color de fila      | 644       | Ver 4.1                                                       |
 
 ### 4.1 Códigos de color (columna `color_origen` del CSV)
 
-| Color | Filas | Con cantidad | Significado |
-|---|---|---|---|
-| VERDE | 289 | 186 | **A DEFINIR por el usuario** |
-| AMARILLO | 273 | 168 | **A DEFINIR** |
-| ROJO | 78 | 64 | **A DEFINIR** |
-| VIOLETA | 3 | 3 | **A DEFINIR** |
-| CELESTE | 1 | 0 | **A DEFINIR** |
+| Color    | Filas | Con cantidad | Significado                  |
+| -------- | ----- | ------------ | ---------------------------- |
+| VERDE    | 289   | 186          | **A DEFINIR por el usuario** |
+| AMARILLO | 273   | 168          | **A DEFINIR**                |
+| ROJO     | 78    | 64           | **A DEFINIR**                |
+| VIOLETA  | 3     | 3            | **A DEFINIR**                |
+| CELESTE  | 1     | 0            | **A DEFINIR**                |
 
 El color NO correlaciona con tener cantidad (103 de 289 verdes están vacíos),
 así que no significa "hay stock". Hasta que se defina, se importa como metadato
@@ -114,7 +114,7 @@ Los duplicados idénticos probablemente sean error de carga y se consolidan suma
 ## 5. Reglas de visualización en la interfaz
 
 1. Todo renglón en `SALDO_APERTURA` se muestra con un distintivo visual claro
-   (badge, color de fila) y la leyenda: *"Saldo de apertura, sin lote identificado"*.
+   (badge, color de fila) y la leyenda: _"Saldo de apertura, sin lote identificado"_.
 2. No puede ser seleccionado como insumo de una producción nueva sin una acción
    explícita del DT que lo reclasifique, dejando registro de esa decisión.
 3. Un reporte de trazabilidad que toque un renglón de apertura debe advertirlo,

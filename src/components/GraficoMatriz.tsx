@@ -55,7 +55,11 @@ export function GraficoMatriz({
       <Group gap="md" mb="xs" wrap="wrap">
         {(['A', 'B', 'C'] as const).map((c) => (
           <Group key={c} gap={6} wrap="nowrap">
-            <Box w={10} h={10} style={{ borderRadius: 10, background: `var(--serie-${COLOR_CLASE[c]})` }} />
+            <Box
+              w={10}
+              h={10}
+              style={{ borderRadius: 10, background: `var(--serie-${COLOR_CLASE[c]})` }}
+            />
             <Text size="xs">Clase {c}</Text>
           </Group>
         ))}
@@ -69,8 +73,20 @@ export function GraficoMatriz({
           aria-label={titulo}
           style={{ display: 'block', overflow: 'visible' }}
         >
-          <line x1={M.izquierda} x2={ANCHO - M.derecha} y1={y(0)} y2={y(0)} stroke="var(--superficie-borde)" />
-          <line x1={M.izquierda} x2={M.izquierda} y1={M.arriba} y2={M.arriba + altoUtil} stroke="var(--superficie-borde)" />
+          <line
+            x1={M.izquierda}
+            x2={ANCHO - M.derecha}
+            y1={y(0)}
+            y2={y(0)}
+            stroke="var(--superficie-borde)"
+          />
+          <line
+            x1={M.izquierda}
+            x2={M.izquierda}
+            y1={M.arriba}
+            y2={M.arriba + altoUtil}
+            stroke="var(--superficie-borde)"
+          />
           <line
             x1={M.izquierda}
             x2={ANCHO - M.derecha}
@@ -79,30 +95,82 @@ export function GraficoMatriz({
             stroke="var(--mantine-color-dimmed)"
             strokeDasharray="5 4"
           />
-          <text x={ANCHO - M.derecha} y={y(margenMinimo) - 6} fontSize="11" textAnchor="end" fill="var(--mantine-color-dimmed)">
+          <text
+            x={ANCHO - M.derecha}
+            y={y(margenMinimo) - 6}
+            fontSize="11"
+            textAnchor="end"
+            fill="var(--mantine-color-dimmed)"
+          >
             margen mínimo {pct(margenMinimo)}
           </text>
           {[
-            { t: 'Mucha venta, margen bajo: revisar precio o costo', xx: ANCHO - M.derecha - 4, yy: y(minM) - 6, a: 'end' },
-            { t: 'Poca venta, margen alto: empujar', xx: M.izquierda + 4, yy: M.arriba + 10, a: 'start' },
+            {
+              t: 'Mucha venta, margen bajo: revisar precio o costo',
+              xx: ANCHO - M.derecha - 4,
+              yy: y(minM) - 6,
+              a: 'end',
+            },
+            {
+              t: 'Poca venta, margen alto: empujar',
+              xx: M.izquierda + 4,
+              yy: M.arriba + 10,
+              a: 'start',
+            },
           ].map((c) => (
-            <text key={c.t} x={c.xx} y={c.yy} fontSize="11" textAnchor={c.a as 'start' | 'end'} fill="var(--mantine-color-dimmed)">
+            <text
+              key={c.t}
+              x={c.xx}
+              y={c.yy}
+              fontSize="11"
+              textAnchor={c.a as 'start' | 'end'}
+              fill="var(--mantine-color-dimmed)"
+            >
               {c.t}
             </text>
           ))}
-          <line x1={xMedio} x2={xMedio} y1={M.arriba} y2={M.arriba + altoUtil} stroke="var(--superficie-borde)" strokeDasharray="2 4" />
+          <line
+            x1={xMedio}
+            x2={xMedio}
+            y1={M.arriba}
+            y2={M.arriba + altoUtil}
+            stroke="var(--superficie-borde)"
+            strokeDasharray="2 4"
+          />
           {[minM, margenMinimo, maxM / 1.05].map((v) => (
-            <text key={v} x={M.izquierda - 6} y={y(v) + 4} fontSize="11" textAnchor="end" fill="var(--mantine-color-dimmed)">
+            <text
+              key={v}
+              x={M.izquierda - 6}
+              y={y(v) + 4}
+              fontSize="11"
+              textAnchor="end"
+              fill="var(--mantine-color-dimmed)"
+            >
               {pct(v)}
             </text>
           ))}
-          <text x={ANCHO / 2} y={alto - 4} fontSize="11" textAnchor="middle" fill="var(--mantine-color-dimmed)">
+          <text
+            x={ANCHO / 2}
+            y={alto - 4}
+            fontSize="11"
+            textAnchor="middle"
+            fill="var(--mantine-color-dimmed)"
+          >
             Participación en la facturación →
           </text>
           {puntos.map((pt, i) => (
-            <g key={pt.nombre + i} onPointerEnter={() => setActivo(i)} onPointerLeave={() => setActivo(null)}>
+            <g
+              key={pt.nombre + i}
+              onPointerEnter={() => setActivo(i)}
+              onPointerLeave={() => setActivo(null)}
+            >
               {/* Área de toque más grande que la marca. */}
-              <circle cx={x(pt.participacion)} cy={y(pt.margen)} r={14} fill="transparent" />
+              <circle
+                cx={x(pt.participacion)}
+                cy={y(pt.margen)}
+                r={14}
+                fill="transparent"
+              />
               <circle
                 cx={x(pt.participacion)}
                 cy={y(pt.margen)}
@@ -131,7 +199,8 @@ export function GraficoMatriz({
               {p.nombre}
             </Text>
             <Text size="xs" c="dimmed">
-              Clase {p.clase} · {pct(p.participacion)} de la facturación · margen {pct(p.margen)}
+              Clase {p.clase} · {pct(p.participacion)} de la facturación · margen{' '}
+              {pct(p.margen)}
             </Text>
           </Paper>
         ) : null}

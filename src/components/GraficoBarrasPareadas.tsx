@@ -37,8 +37,11 @@ export function GraficoBarrasPareadas({
       </Text>
     );
   }
-  const nombres = [...new Map(grupos.flatMap((g) => g.valores).map((v) => [v.nombre, v])).values()];
-  const maximo = Math.max(1, ...grupos.flatMap((g) => g.valores.map((v) => v.valor))) * 1.12;
+  const nombres = [
+    ...new Map(grupos.flatMap((g) => g.valores).map((v) => [v.nombre, v])).values(),
+  ];
+  const maximo =
+    Math.max(1, ...grupos.flatMap((g) => g.valores.map((v) => v.valor))) * 1.12;
   const altoUtil = alto - M.arriba - M.abajo;
   const anchoGrupo = ANCHO / grupos.length;
   const h = (v: number) => (Math.max(0, v) / maximo) * altoUtil;
@@ -49,7 +52,11 @@ export function GraficoBarrasPareadas({
       <Group gap="md" mb="xs" wrap="wrap">
         {nombres.map((n) => (
           <Group key={n.nombre} gap={6} wrap="nowrap">
-            <Box w={12} h={12} style={{ borderRadius: 3, background: `var(--serie-${n.color})` }} />
+            <Box
+              w={12}
+              h={12}
+              style={{ borderRadius: 3, background: `var(--serie-${n.color})` }}
+            />
             <Text size="xs">{n.nombre}</Text>
           </Group>
         ))}
@@ -62,7 +69,14 @@ export function GraficoBarrasPareadas({
         aria-label={titulo}
         style={{ display: 'block', overflow: 'visible' }}
       >
-        <line x1={0} x2={ANCHO} y1={base} y2={base} stroke="var(--superficie-borde)" strokeWidth={1} />
+        <line
+          x1={0}
+          x2={ANCHO}
+          y1={base}
+          y2={base}
+          stroke="var(--superficie-borde)"
+          strokeWidth={1}
+        />
         {grupos.map((g, gi) => {
           const ancho = g.valores.length * BARRA + (g.valores.length - 1) * SEPARACION;
           const x0 = gi * anchoGrupo + (anchoGrupo - ancho) / 2;

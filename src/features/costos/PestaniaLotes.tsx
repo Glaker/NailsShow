@@ -69,7 +69,9 @@ export function PestaniaLotes() {
   const delMes = filas.filter((r) => (r.fecha_costo ?? '').startsWith(mes));
   const totalMes = suma(delMes.map((r) => r.costo_total_ars));
   const sinCompMes = suma(
-    delMes.filter((r) => r.tipo_comprobante === 'SIN_COMPROBANTE').map((r) => r.costo_total_ars),
+    delMes
+      .filter((r) => r.tipo_comprobante === 'SIN_COMPROBANTE')
+      .map((r) => r.costo_total_ars),
   );
   const pctSinComp = totalMes > 0 ? (sinCompMes / totalMes) * 100 : 0;
 
@@ -148,7 +150,10 @@ export function PestaniaLotes() {
           />
         </Paper>
       ) : (
-        <Paper withBorder style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}>
+        <Paper
+          withBorder
+          style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}
+        >
           <Table.ScrollContainer minWidth={1100}>
             <Table verticalSpacing="sm" highlightOnHover>
               <Table.Thead>
@@ -195,8 +200,8 @@ export function PestaniaLotes() {
                         </Badge>
                       ) : (
                         <Text size="sm">
-                          {COMPROBANTES.find((c) => c.value === r.tipo_comprobante)?.label ??
-                            '—'}
+                          {COMPROBANTES.find((c) => c.value === r.tipo_comprobante)
+                            ?.label ?? '—'}
                         </Text>
                       )}
                     </Table.Td>
@@ -227,7 +232,11 @@ export function PestaniaLotes() {
                     </Table.Td>
                     {puede ? (
                       <Table.Td>
-                        <Button size="sm" variant="light" onClick={() => setRectificando(r)}>
+                        <Button
+                          size="sm"
+                          variant="light"
+                          onClick={() => setRectificando(r)}
+                        >
                           Rectificar
                         </Button>
                       </Table.Td>
@@ -254,7 +263,10 @@ export function PestaniaLotes() {
             </Text>
           </Paper>
         ) : (
-          <Paper withBorder style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}>
+          <Paper
+            withBorder
+            style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}
+          >
             <Table.ScrollContainer minWidth={680}>
               <Table verticalSpacing="sm">
                 <Table.Thead>
@@ -289,7 +301,11 @@ export function PestaniaLotes() {
                       </Table.Td>
                       {puede ? (
                         <Table.Td>
-                          <Button size="sm" variant="light" onClick={() => setCargando(l)}>
+                          <Button
+                            size="sm"
+                            variant="light"
+                            onClick={() => setCargando(l)}
+                          >
                             Cargar costo
                           </Button>
                         </Table.Td>
@@ -311,7 +327,10 @@ export function PestaniaLotes() {
         size="lg"
       >
         {rectificando ? (
-          <FormularioRectificar fila={rectificando} onListo={() => setRectificando(null)} />
+          <FormularioRectificar
+            fila={rectificando}
+            onListo={() => setRectificando(null)}
+          />
         ) : null}
       </Modal>
 
@@ -389,7 +408,9 @@ function FormularioCosto({
         ) : null}
         {primerError ? (
           <Text size="sm" c="red">
-            {typeof primerError === 'string' ? primerError : 'Revisá los datos del costo.'}
+            {typeof primerError === 'string'
+              ? primerError
+              : 'Revisá los datos del costo.'}
           </Text>
         ) : null}
         <Group justify="flex-end">
@@ -402,7 +423,13 @@ function FormularioCosto({
   );
 }
 
-function FormularioRectificar({ fila, onListo }: { fila: CostoLote; onListo: () => void }) {
+function FormularioRectificar({
+  fila,
+  onListo,
+}: {
+  fila: CostoLote;
+  onListo: () => void;
+}) {
   const rectificar = useCargarCostosLote();
   const referencia = useReferenciaPorInsumo().get(fila.insumo_id) ?? null;
   const inicial: ValorCosto = {
@@ -440,7 +467,13 @@ function FormularioRectificar({ fila, onListo }: { fila: CostoLote; onListo: () 
   );
 }
 
-function FormularioCargar({ lote, onListo }: { lote: LoteSinCosto; onListo: () => void }) {
+function FormularioCargar({
+  lote,
+  onListo,
+}: {
+  lote: LoteSinCosto;
+  onListo: () => void;
+}) {
   const cargar = useCargarCostosLote();
   const referencia = useReferenciaPorInsumo().get(lote.insumo_id) ?? null;
   const inicial: ValorCosto = {

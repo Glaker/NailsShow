@@ -770,13 +770,13 @@ Implementado a partir de `docs/ESPEC_SALDO_INICIAL.md`. Cinco migraciones
 nuevas, en este orden (dos van solas por la restricción de Postgres de no usar
 un valor de enum agregado en la misma transacción que lo agrega):
 
-| Migración                                                | Qué trae                                                                 |
-| --------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `20260916120000_gmp_estado_saldo_apertura`                | agrega `SALDO_APERTURA` a `gmp.estado_calidad_enum`                     |
+| Migración                                                 | Qué trae                                                                                                                                            |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `20260916120000_gmp_estado_saldo_apertura`                | agrega `SALDO_APERTURA` a `gmp.estado_calidad_enum`                                                                                                 |
 | `20260916130000_gmp_migracion_apertura`                   | `gmp.migracion_apertura`, columnas nuevas en `lotes_insumo`, exención del circuito de calidad para ese estado, depósito `APE`, color de rótulo AZUL |
-| `20260916140000_comercial_tipo_movimiento_saldo_apertura` | agrega `ENTRADA_SALDO_APERTURA` a `comercial.tipo_movimiento_enum`       |
-| `20260916150000_comercial_cargar_apertura_a_stock`        | `comercial.cargar_apertura_a_stock()`, `comercial.deshacer_apertura()`   |
-| `20260916160000_carga_saldo_apertura`                     | los datos: 336 de 647 renglones de `inventario_apertura.csv`, generados por `scripts/apertura/generar_migracion.mjs` |
+| `20260916140000_comercial_tipo_movimiento_saldo_apertura` | agrega `ENTRADA_SALDO_APERTURA` a `comercial.tipo_movimiento_enum`                                                                                  |
+| `20260916150000_comercial_cargar_apertura_a_stock`        | `comercial.cargar_apertura_a_stock()`, `comercial.deshacer_apertura()`                                                                              |
+| `20260916160000_carga_saldo_apertura`                     | los datos: 336 de 647 renglones de `inventario_apertura.csv`, generados por `scripts/apertura/generar_migracion.mjs`                                |
 
 **No se aplicaron todavía** (`supabase db push` pendiente) ni se corrieron
 contra el proyecto alojado: esta sesión no tuvo acceso a la base. Antes de
@@ -866,11 +866,11 @@ Postgres ni Docker), con 23 pruebas funcionales en verde usando sesiones reales
 de Gerencia de Producción y de Administración. **No se aplicaron** al proyecto
 alojado (`supabase db push` pendiente) ni se regeneraron los tipos.
 
-| Migración                                              | Qué trae                                                                                         |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| `20260923120000_gmp_lote_consumible_en_produccion`     | `gmp.impedimento_consumo()`: qué lote se puede usar en producción (incluye saldo de apertura, R-05) |
+| Migración                                                   | Qué trae                                                                                                              |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `20260923120000_gmp_lote_consumible_en_produccion`          | `gmp.impedimento_consumo()`: qué lote se puede usar en producción (incluye saldo de apertura, R-05)                   |
 | `20260923130000_comercial_consumo_y_faltantes_consolidados` | disponible recalculado, `faltantes_en_curso()`, `pedido_consumos`, `terminar_pedido()`, estados del pedido en la base |
-| `20260923140000_carga_lista_materiales_cvd`            | 91 renglones de lista de materiales para 25 productos, generados desde la hoja C.V.D.             |
+| `20260923140000_carga_lista_materiales_cvd`                 | 91 renglones de lista de materiales para 25 productos, generados desde la hoja C.V.D.                                 |
 
 **Esto cierra los pendientes 1 de la sección anterior**: la base ahora controla
 las transiciones del pedido, los productos solo se tocan en borrador, y
@@ -935,10 +935,10 @@ Por indicación del codirector técnico, dos migraciones más, también **sin
 aplicar** y reproducidas desde cero en PGlite (24 pruebas de pedidos + 14 de
 conteo, en verde):
 
-| Migración                                                   | Qué trae                                                                                   |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `20260923135000_gmp_alta_insumos_listas_materiales`         | 25 insumos nuevos (cierres, etiquetas, cremas, primer/bonder/removedor a granel); esencia a ml |
-| `20260923150000_comercial_conteo_inventario_y_apertura_provisoria` | `conteos_inventario`, `registrar_conteo()`, saldo provisorio de 66 materias primas      |
+| Migración                                                          | Qué trae                                                                                       |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| `20260923135000_gmp_alta_insumos_listas_materiales`                | 25 insumos nuevos (cierres, etiquetas, cremas, primer/bonder/removedor a granel); esencia a ml |
+| `20260923150000_comercial_conteo_inventario_y_apertura_provisoria` | `conteos_inventario`, `registrar_conteo()`, saldo provisorio de 66 materias primas             |
 
 `20260923140000` (recetas) se regeneró antes de aplicarse: ahora son **142
 renglones en 26 productos**. El orden de aplicación es 120000 → 130000 → 135000
@@ -1100,11 +1100,11 @@ Emisión de facturas desde los pedidos a través de Afip SDK. **Ambiente de
 homologación**: el CUIT es el de demostración de Afip SDK (20409378472), no el
 de Nail Show, y los comprobantes no son fiscales.
 
-| Pieza | Qué es |
-| --- | --- |
+| Pieza                                          | Qué es                                                                                                                                                           |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `20260924130000_comercial_clientes_y_facturas` | clientes con condición frente al IVA, precio en los renglones, configuración fiscal, `comercial.facturas`, `preparar_factura()`, `registrar_resultado_factura()` |
-| `supabase/functions/emitir-factura` | Edge Function: recibe `pedido_id`, pide el número a ARCA, envía y registra |
-| `supabase/functions/_shared/arca.ts` | armado y lectura de los cuerpos de Afip SDK, sin Deno, probado con Vitest |
+| `supabase/functions/emitir-factura`            | Edge Function: recibe `pedido_id`, pide el número a ARCA, envía y registra                                                                                       |
+| `supabase/functions/_shared/arca.ts`           | armado y lectura de los cuerpos de Afip SDK, sin Deno, probado con Vitest                                                                                        |
 
 **Formas de la API verificadas, no supuestas**: documentación de Afip SDK más
 llamadas reales en homologación (auth, FECompUltimoAutorizado, FECAESolicitar,
@@ -1136,7 +1136,6 @@ el CUIT propio en producción.
 certificado y clave como secretos (AFIP_CERT, AFIP_KEY), y una fila nueva en
 `comercial.configuracion_fiscal`.
 
-
 ---
 
 ## Tercerizados (2026-09-24, aplicado y en servicio)
@@ -1144,14 +1143,15 @@ certificado y clave como secretos (AFIP_CERT, AFIP_KEY), y una fila nueva en
 Producción para terceros («Navi» y otros), según la especificación del
 codirector técnico (ítem 2 de la cola).
 
-| Pieza | Qué es |
-| --- | --- |
-| `20260924150000_comercial_enum_tercerizados` | `ENTRADA_PROVISTO_TERCERO` y motivo `DISCONTINUADO` |
-| `20260924150100_gmp_tercerizados` | `gmp.terceros`; titular del lote (`lotes_insumo.tercero_id`, inmutable); insumos genéricos (`T-nnnnn`); productos del tercero (`TP-nnnnn`, nuevos o con `producto_base_id` y lista copiada); depósito `TER`; `gmp.ingresar_insumo_tercero()` |
-| `20260924150200_comercial_tercerizados` | pedidos de tercero; `pedido_origen_insumos` y `pasar_a_produccion()`; disponible y faltantes por titular; reservas con titular y beneficiario; `ingresar_stock_tercero()`; «Terminado» consumiendo del titular |
-| `20260924150300_gmp_terceros_paleta` | el color del cuadrito no puede ser uno de los de rótulo |
+| Pieza                                        | Qué es                                                                                                                                                                                                                                       |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `20260924150000_comercial_enum_tercerizados` | `ENTRADA_PROVISTO_TERCERO` y motivo `DISCONTINUADO`                                                                                                                                                                                          |
+| `20260924150100_gmp_tercerizados`            | `gmp.terceros`; titular del lote (`lotes_insumo.tercero_id`, inmutable); insumos genéricos (`T-nnnnn`); productos del tercero (`TP-nnnnn`, nuevos o con `producto_base_id` y lista copiada); depósito `TER`; `gmp.ingresar_insumo_tercero()` |
+| `20260924150200_comercial_tercerizados`      | pedidos de tercero; `pedido_origen_insumos` y `pasar_a_produccion()`; disponible y faltantes por titular; reservas con titular y beneficiario; `ingresar_stock_tercero()`; «Terminado» consumiendo del titular                               |
+| `20260924150300_gmp_terceros_paleta`         | el color del cuadrito no puede ser uno de los de rótulo                                                                                                                                                                                      |
 
 **Decisiones de diseño.**
+
 - El titular es un dato del lote, no un stock aparte: kardex, calidad,
   bloqueos y vencimiento funcionan igual para los dos.
 - «Sin proveedor» = proveedor genérico «Provisto por <cliente>», creado solo y
@@ -1183,6 +1183,7 @@ las suites anteriores sin regresión.
 20260917100000: fallaba siempre. Ahora pide «Por qué» (incluye Discontinuado).
 
 **Queda abierto.**
+
 - La calculadora de lote no usa todavía la fórmula del producto base para un
   producto tercerizado con otra etiqueta: hoy hay que elegir el producto de
   Nail Show.
@@ -1196,12 +1197,12 @@ las suites anteriores sin regresión.
 Pedido del codirector técnico: usar la planilla nueva de densidades, que
 agrega pares binarios para calcular cuánto se contrae el volumen al mezclar.
 
-| Pieza | Qué es |
-| --- | --- |
-| `20260924160000_gmp_mezclas_volumen_exceso` | `gmp.pares_volumen_exceso`, `gmp.densidad_composicion`, `gmp.etanol_agua_crc`; `gmp.densidad_mezcla()`, `gmp.densidad_mezcla_formula()`, `gmp.grado_alcoholico_a_pp()`; `calcular_lote()` con densidad estimada (D-33) |
-| `20260924160100_carga_mezclas_volumen_exceso` | generada por `scripts/densidades/generar_mezclas.mjs`: 24 pares, 101 filas CRC, composición de las 5 densidades viejas |
-| `src/features/produccion/calculoLote.ts` | `densidadMezcla()` y `gradoAlcoholicoAPP()`, espejo de la base |
-| `src/features/produccion/mezclas.fixture.json` | generado desde la planilla: compuestos, pares, 12 resultados de referencia, tabla CRC |
+| Pieza                                          | Qué es                                                                                                                                                                                                                 |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `20260924160000_gmp_mezclas_volumen_exceso`    | `gmp.pares_volumen_exceso`, `gmp.densidad_composicion`, `gmp.etanol_agua_crc`; `gmp.densidad_mezcla()`, `gmp.densidad_mezcla_formula()`, `gmp.grado_alcoholico_a_pp()`; `calcular_lote()` con densidad estimada (D-33) |
+| `20260924160100_carga_mezclas_volumen_exceso`  | generada por `scripts/densidades/generar_mezclas.mjs`: 24 pares, 101 filas CRC, composición de las 5 densidades viejas                                                                                                 |
+| `src/features/produccion/calculoLote.ts`       | `densidadMezcla()` y `gradoAlcoholicoAPP()`, espejo de la base                                                                                                                                                         |
+| `src/features/produccion/mezclas.fixture.json` | generado desde la planilla: compuestos, pares, 12 resultados de referencia, tabla CRC                                                                                                                                  |
 
 **Los 91 compuestos no cambiaron** (verificado contra la base): lo nuevo son
 los pares y la tabla CRC.
@@ -1228,10 +1229,10 @@ por falta de tabla).
 
 Respuestas del codirector técnico a las cuatro preguntas del día.
 
-| Pieza | Qué es |
-| --- | --- |
+| Pieza                                                      | Qué es                                                                                                                                     |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `20260924170000_comercial_borrar_pedido_y_quitar_producto` | `comercial.eliminar_pedido()` y renglón `anulado`; necesidad, factura, transición, «Terminado» y la regla del tercero ignoran los anulados |
-| `20260924170100_gmp_densidad_producto_estimada` | vigente = densidad medida o estimable; una vigente solo admite cambiar la densidad medida; 377 v1 corregida (R-07) |
+| `20260924170100_gmp_densidad_producto_estimada`            | vigente = densidad medida o estimable; una vigente solo admite cambiar la densidad medida; 377 v1 corregida (R-07)                         |
 
 **Borrar pedido.** No es un DELETE (la auditoría los rechaza en toda tabla de
 negocio): el pedido queda CANCELADO con `eliminado_en/por` y motivo, sale de
@@ -1249,10 +1250,10 @@ Probado: 16 pruebas nuevas en la base local y todas las suites anteriores.
 
 ## Stock de seguridad y depósito de PT en fábrica (2026-09-25, aplicado y en servicio)
 
-| Pieza | Qué es |
-| --- | --- |
+| Pieza                                      | Qué es                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `20260925100000_comercial_stock_seguridad` | depósito PTF; `ENTRADA_PRODUCCION` en `movimientos_pt` (solo de un pedido terminado, hasta lo pedido); pedidos `para_stock` y entrega (`entregar_pedido()`, también desde stock sin producir); `registrar_conteo_pt()`; `stock_seguridad_sku`, `metas_stock_seguridad` (append-only), `alta_producto_de_sku()`, vista `v_stock_seguridad`; «Terminado» suma a PTF |
-| `20260925100100_carga_stock_seguridad` | generada por `scripts/stock_seguridad/generar_migracion.mjs`: 603 SKU, 458 vinculados con producto |
+| `20260925100100_carga_stock_seguridad`     | generada por `scripts/stock_seguridad/generar_migracion.mjs`: 603 SKU, 458 vinculados con producto                                                                                                                                                                                                                                                                |
 
 **Cuenta** (por SKU): posición = en fábrica − comprometido con clientes
 (producidos y no entregados) + en producción para stock. Falta para el
@@ -1390,12 +1391,12 @@ por los permisos de la sesión. Para ponerlo en servicio, en este orden:
 4. Recorrer con una cuenta de Administración, una de GP y la de Silveira.
 5. Merge de `prueba` a `main` para que Vercel lo publique.
 
-| Ítem | Hecho | Dónde |
-| --- | --- | --- |
-| 17 | `/stock` con pestañas (insumos, recepciones, stock de seguridad, en fábrica, conteo); las rutas viejas redirigen | `PaginaStockUnificada.tsx` |
-| 18 | Comprobante del proveedor en la recepción (A, B, C, sin factura); columna en el listado | `20260929100000`, `FormularioRecepcion.tsx` |
-| 19–22 | Reservas de PT por cliente o pedido; despacho por pedido, completo o con faltantes, de Calle 5 o fábrica; falta producir sumando todos los pedidos; «Terminado» con cantidad, destino y sobrante; «Enviar a Calle 5» | `20260929110000/110100`, `Calle5.tsx` |
-| 23–25 | Inicio de Administración, tesorería, cuentas corrientes de proveedores y clientes, pagos y cobros con imputación, solicitudes de pago, IVA, cash flow, ventas, resultado, traza de compras | `20260929120000/130000`, `features/administracion/` |
+| Ítem  | Hecho                                                                                                                                                                                                                | Dónde                                               |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| 17    | `/stock` con pestañas (insumos, recepciones, stock de seguridad, en fábrica, conteo); las rutas viejas redirigen                                                                                                     | `PaginaStockUnificada.tsx`                          |
+| 18    | Comprobante del proveedor en la recepción (A, B, C, sin factura); columna en el listado                                                                                                                              | `20260929100000`, `FormularioRecepcion.tsx`         |
+| 19–22 | Reservas de PT por cliente o pedido; despacho por pedido, completo o con faltantes, de Calle 5 o fábrica; falta producir sumando todos los pedidos; «Terminado» con cantidad, destino y sobrante; «Enviar a Calle 5» | `20260929110000/110100`, `Calle5.tsx`               |
+| 23–25 | Inicio de Administración, tesorería, cuentas corrientes de proveedores y clientes, pagos y cobros con imputación, solicitudes de pago, IVA, cash flow, ventas, resultado, traza de compras                           | `20260929120000/130000`, `features/administracion/` |
 
 **Pruebas.** PGlite: 25 (comprobantes) + 27 (Calle 5) + 30 (tesorería) +
 10 (cobros), y las suites anteriores sin regresión (salvo `probar_facturas`,
@@ -1403,6 +1404,7 @@ que necesita el token de Afip SDK y red). Vitest: 89. Sin verificación visual:
 las vistas nuevas no existen en la base, así que la app no se pudo recorrer.
 
 **Cambios de comportamiento que hay que saber.**
+
 - La entrada de producción a PT ya no se limita a lo pedido: «Terminado» dice
   cuánto se produjo y adónde va, y solo «Terminado» puede registrarla.
 - «Entregar» es ahora «Despachar» (parcial o completo). `entregar_pedido()`
@@ -1416,6 +1418,7 @@ las vistas nuevas no existen en la base, así que la app no se pudo recorrer.
   por trigger a marcar la entrega de un pedido sin pendientes.
 
 **Sigue pendiente de la cola.**
+
 - **Facturación ARCA en producción**: CUIT real, punto de venta habilitado,
   `AFIP_CERT`/`AFIP_KEY` como secretos, fila nueva en
   `comercial.configuracion_fiscal`, y resolver D-32 antes (quién registra el
@@ -1435,15 +1438,15 @@ La cola del 2026-09-24 quedó hecha salvo el ítem 1 (dar de baja un lote o el
 stock de una materia prima), que pide conversarlo antes (ver esa sección).
 Pedido del usuario: **no poner nada en `main` hasta revisarlo en local.**
 
-| Ítem | Hecho | Dónde |
-| --- | --- | --- |
-| 8 | Rol VENTAS (Mati): pedidos, clientes, facturas, Calle 5, ve cobranzas; no produce ni toca tesorería | `20260929140000/140100` |
-| 7 | Precios de lista versionados (444 de la hoja UTILIDAD; 95 en `scripts/precios/pendientes.md`), descuentos por cliente, precio sugerido en el pedido | `20260929150000/150100`, `/precios` |
-| 10, 11 | Inicio de Nazarena (saludo, pendientes, 2 semanas) y `/planificacion` con Gantt y calendario | `20260929160000`, `Planificacion.tsx` |
-| — | «Quién ve qué»: visibilidad de pantallas y pestañas por rol, editable por el Administrador del sistema, que además ve todo y lee tesorería | `20260929170000`, `/visibilidad` |
-| 6 | Especificaciones versionadas (§4.6), aprobación DT, motor de evaluación (§7.3) | `20260930100000`, `/especificaciones` |
-| 5 | Órdenes de producción con las nueve etapas del R.40.x.1, Realizó/Controló, equipos, lote según I.40.25 (R-08), liberación DT; batch record en PDF | `20260930110000`, `/ordenes` |
-| 12 | Trazabilidad del lote hacia atrás (insumos, lote, proveedor) y hacia adelante (despachos) | `20260930120000` |
+| Ítem   | Hecho                                                                                                                                               | Dónde                                 |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| 8      | Rol VENTAS (Mati): pedidos, clientes, facturas, Calle 5, ve cobranzas; no produce ni toca tesorería                                                 | `20260929140000/140100`               |
+| 7      | Precios de lista versionados (444 de la hoja UTILIDAD; 95 en `scripts/precios/pendientes.md`), descuentos por cliente, precio sugerido en el pedido | `20260929150000/150100`, `/precios`   |
+| 10, 11 | Inicio de Nazarena (saludo, pendientes, 2 semanas) y `/planificacion` con Gantt y calendario                                                        | `20260929160000`, `Planificacion.tsx` |
+| —      | «Quién ve qué»: visibilidad de pantallas y pestañas por rol, editable por el Administrador del sistema, que además ve todo y lee tesorería          | `20260929170000`, `/visibilidad`      |
+| 6      | Especificaciones versionadas (§4.6), aprobación DT, motor de evaluación (§7.3)                                                                      | `20260930100000`, `/especificaciones` |
+| 5      | Órdenes de producción con las nueve etapas del R.40.x.1, Realizó/Controló, equipos, lote según I.40.25 (R-08), liberación DT; batch record en PDF   | `20260930110000`, `/ordenes`          |
+| 12     | Trazabilidad del lote hacia atrás (insumos, lote, proveedor) y hacia adelante (despachos)                                                           | `20260930120000`                      |
 
 **Pruebas.** Todas las suites PGlite en verde (312 pruebas); las nuevas están
 en `supabase/tests/pglite/` (ver su README). Vitest 94, lint y build OK.
@@ -1708,17 +1711,17 @@ en el scratchpad de la sesión (`tmp_suites.mjs`): copia `reconstruir.mjs` y
 
 ### Migraciones nuevas, en orden (ninguna aplicada)
 
-| Archivo | Qué |
-| --- | --- |
-| `20261001130000_comercial_central_ventas` | lista mayorista, escalas de descuento, columnas de venta en pedidos y renglones, recálculo de precios, `v_disponible_calle5`, `enviar_venta(uuid,bool)`, `reservar_venta`, reserva para la venta de lo que Producción termina en Calle 5 (`para_pedido_id`), `verificar_stock_pedido`, `v_ventas`. **Línea 567 rota.** |
-| `…130100_comercial_pago_en_pedido_cerrado` | en pedido cerrado se cambian solo `estado_pago`, `forma_pago`, `observaciones`. |
-| `…140000_carga_lista_mayorista` | 178 productos de la lista 46.14 (`scripts/precios/generar_lista_mayorista.mjs`). |
-| `…150000_matias_ventas` | Matías pasa a VENTAS. |
-| `…160000_gmp_bloqueo_lote_producto_terminado` | `gmp.bloqueos_lote.orden_id` (lote de PT); `impedimento_despacho_orden` con vencimiento y bloqueos; `gmp.lote_despachable()` responde por insumo y por PT. |
-| `…160100_comercial_venta_reserva_lote_y_factura` | `enviar_venta(uuid)` **reserva siempre** (se borra la de bool); `asignar_lotes_pt` con `gmp.lote_despachable`; `despacho_diferencias` + `enviar_armado(pedido, renglones, motivo)` (lo pedido y lo que salió, motivo obligatorio si difiere); `preparar_factura` de una venta toma lo **despachado**; `escalas_descuento.vigente_desde`. |
-| `…160200_comercial_asignar_lotes_mensaje` | mensaje de `asignar_lotes_pt` («Dirección Técnica todavía no liberó», sin decimales). |
-| `…170000_comercial_fase_b_tesoreria` | B1 `anular_transferencia` y la pata suelta se rechaza; B2 resultado sin anulados; B3 cash flow sin anulaciones en el bruto; B5 no se anula comprobante con pagos o NC vigentes; B6 solicitud con mismo proveedor e importe; R11 `for update` al imputar. |
-| `…170100_comercial_anular_transferencia_correccion` | `anular_transferencia` con advisory lock (el `for update` pedía UPDATE sobre el libro). |
+| Archivo                                             | Qué                                                                                                                                                                                                                                                                                                                                      |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `20261001130000_comercial_central_ventas`           | lista mayorista, escalas de descuento, columnas de venta en pedidos y renglones, recálculo de precios, `v_disponible_calle5`, `enviar_venta(uuid,bool)`, `reservar_venta`, reserva para la venta de lo que Producción termina en Calle 5 (`para_pedido_id`), `verificar_stock_pedido`, `v_ventas`. **Línea 567 rota.**                   |
+| `…130100_comercial_pago_en_pedido_cerrado`          | en pedido cerrado se cambian solo `estado_pago`, `forma_pago`, `observaciones`.                                                                                                                                                                                                                                                          |
+| `…140000_carga_lista_mayorista`                     | 178 productos de la lista 46.14 (`scripts/precios/generar_lista_mayorista.mjs`).                                                                                                                                                                                                                                                         |
+| `…150000_matias_ventas`                             | Matías pasa a VENTAS.                                                                                                                                                                                                                                                                                                                    |
+| `…160000_gmp_bloqueo_lote_producto_terminado`       | `gmp.bloqueos_lote.orden_id` (lote de PT); `impedimento_despacho_orden` con vencimiento y bloqueos; `gmp.lote_despachable()` responde por insumo y por PT.                                                                                                                                                                               |
+| `…160100_comercial_venta_reserva_lote_y_factura`    | `enviar_venta(uuid)` **reserva siempre** (se borra la de bool); `asignar_lotes_pt` con `gmp.lote_despachable`; `despacho_diferencias` + `enviar_armado(pedido, renglones, motivo)` (lo pedido y lo que salió, motivo obligatorio si difiere); `preparar_factura` de una venta toma lo **despachado**; `escalas_descuento.vigente_desde`. |
+| `…160200_comercial_asignar_lotes_mensaje`           | mensaje de `asignar_lotes_pt` («Dirección Técnica todavía no liberó», sin decimales).                                                                                                                                                                                                                                                    |
+| `…170000_comercial_fase_b_tesoreria`                | B1 `anular_transferencia` y la pata suelta se rechaza; B2 resultado sin anulados; B3 cash flow sin anulaciones en el bruto; B5 no se anula comprobante con pagos o NC vigentes; B6 solicitud con mismo proveedor e importe; R11 `for update` al imputar.                                                                                 |
+| `…170100_comercial_anular_transferencia_correccion` | `anular_transferencia` con advisory lock (el `for update` pedía UPDATE sobre el libro).                                                                                                                                                                                                                                                  |
 
 Pruebas nuevas: PGlite `probar_ventas_central.mjs` (23), `probar_bloqueo_lote_pt.mjs`
 (6), `probar_fase_b.mjs` (11); `probar_comprobantes.mjs` adaptada a B5. pgTAP
@@ -1836,7 +1839,6 @@ Pruebas nuevas: PGlite `probar_ventas_central.mjs` (23), `probar_bloqueo_lote_pt
 - Animaciones: excepción pedida a «nada de animaciones decorativas» (§6), sin
   rebote, apagadas con reducción de movimiento.
 
-
 ---
 
 ## Módulo de costos, rentabilidad y gerencia (2026-10-09) — LEER PRIMERO
@@ -1859,13 +1861,13 @@ se escriben con Write (o con el generador, en el caso de la apertura).
 
 ### Fase 1 — hecha, sin aplicar
 
-| Migración | Qué |
-| --- | --- |
-| `20261009120000_core_rol_finanzas` | `FINANZAS` en `core.rol_enum` (solo, por el ADD VALUE) |
-| `…120100_core_nombre_nazarena` | «Nazarena Bakás» (por email) |
-| `…120200_gmp_contenido_neto_producto` | `gmp.productos.contenido_neto` + `unidad_contenido` (dato de rótulo, no precio) |
-| `…120300_comercial_costos` | `costos_lote`, `costos_accesorios`, `costos_referencia`, `parametros_costo`, `minutos_producto`, `series_macro`, `avisos_costo`; vistas `v_costos_lote(_unitario)`, `v_costo_referencia`, `v_parametros_costo`, `v_conciliacion_recepcion`, `v_costo_producto`; `costos_productos(uuid[])`, `costo_producto(uuid)`, `formula_para_costo(uuid)`, `importe_neto_ars`, `convertir_cantidad` |
-| `…120400_carga_costos_apertura` | generada por `scripts/apertura/generar_costos_apertura.mjs` (587 códigos; supuestos en D-42) |
+| Migración                             | Qué                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `20261009120000_core_rol_finanzas`    | `FINANZAS` en `core.rol_enum` (solo, por el ADD VALUE)                                                                                                                                                                                                                                                                                                                                   |
+| `…120100_core_nombre_nazarena`        | «Nazarena Bakás» (por email)                                                                                                                                                                                                                                                                                                                                                             |
+| `…120200_gmp_contenido_neto_producto` | `gmp.productos.contenido_neto` + `unidad_contenido` (dato de rótulo, no precio)                                                                                                                                                                                                                                                                                                          |
+| `…120300_comercial_costos`            | `costos_lote`, `costos_accesorios`, `costos_referencia`, `parametros_costo`, `minutos_producto`, `series_macro`, `avisos_costo`; vistas `v_costos_lote(_unitario)`, `v_costo_referencia`, `v_parametros_costo`, `v_conciliacion_recepcion`, `v_costo_producto`; `costos_productos(uuid[])`, `costo_producto(uuid)`, `formula_para_costo(uuid)`, `importe_neto_ars`, `convertir_cantidad` |
+| `…120400_carga_costos_apertura`       | generada por `scripts/apertura/generar_costos_apertura.mjs` (587 códigos; supuestos en D-42)                                                                                                                                                                                                                                                                                             |
 
 Front: `src/features/costos/` (Insumos, Lotes, Recepciones, Productos, Avisos,
 Parámetros), costo opcional por lote en `FormularioRecepcion`, `/costos` en el
@@ -1895,11 +1897,11 @@ se queda sin memoria («Fatal process out of memory: Zone»).
 
 ### Fases 2, 3 y 4 — hechas, sin aplicar (2026-10-09)
 
-| Migración | Qué |
-| --- | --- |
-| `20261009130000_comercial_panel_producto` | foto mensual del costo (`fotos_costo_producto`, sin cron: D-47), `historia_precios`, stock valorizado de insumos y PT, sello de `cargado_en` en precios |
-| `…140000_comercial_gastos_y_resultado` | `factura_renglones` (D-49, con backfill), `categorias_gasto`, `gastos`, amortizaciones, `v_resultado_gestion` (equilibrio D-48), `v_resultado_mensual` toma gastos (D-46) |
-| `…150000_comercial_pareto_y_eficiencia` | parámetros «último no nulo» + cortes del Pareto, `pareto()`, rotación, precios por proveedor, alertas de precio (D-50) |
+| Migración                                 | Qué                                                                                                                                                                       |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `20261009130000_comercial_panel_producto` | foto mensual del costo (`fotos_costo_producto`, sin cron: D-47), `historia_precios`, stock valorizado de insumos y PT, sello de `cargado_en` en precios                   |
+| `…140000_comercial_gastos_y_resultado`    | `factura_renglones` (D-49, con backfill), `categorias_gasto`, `gastos`, amortizaciones, `v_resultado_gestion` (equilibrio D-48), `v_resultado_mensual` toma gastos (D-46) |
+| `…150000_comercial_pareto_y_eficiencia`   | parámetros «último no nulo» + cortes del Pareto, `pareto()`, rotación, precios por proveedor, alertas de precio (D-50)                                                    |
 
 Front: panel por producto (`/costos/producto/:id`), pestañas Stock y Gastos,
 `/resultado` (inicio de Finanzas) y `/eficiencia`; selector global de moneda en
@@ -1910,10 +1912,10 @@ Pruebas: `probar_panel_producto` (11), `probar_resultado` (15),
 
 ### Fases 5 y 6 — hechas, sin aplicar (2026-10-09)
 
-| Migración | Qué |
-| --- | --- |
+| Migración                            | Qué                                                                                                                               |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
 | `20261009160000_comercial_cotizador` | cotizaciones y líneas, contador correlativo (RN-55), clientes potenciales, emitir/anular/duplicar, PDF desde la foto (D-52, D-53) |
-| `…170000_comercial_importaciones` | registro de importaciones con hash y `importar_costos_referencia` (una transacción, D-54) |
+| `…170000_comercial_importaciones`    | registro de importaciones con hash y `importar_costos_referencia` (una transacción, D-54)                                         |
 
 Front: `/cotizaciones` (historial), `/cotizaciones/:id` (editor con cálculo en
 vivo, `src/lib/cotizador.ts`), `/cotizaciones/:id/pdf` (A4, sin costos: lo
@@ -1940,10 +1942,10 @@ Respuestas de Finanzas sobre la planilla (D-42, en «Resueltas»). Las cargas
 `…120400` y `…120410` siguen en la historia (commiteadas: no se tocan) y las
 corrige la migración nueva por rectificación.
 
-| Migración | Qué |
-| --- | --- |
-| `20261010120000_comercial_costos_d42` | IVA en `costos_referencia` (`incluye_iva`, `alicuota_iva`, `importe_neto`), `corte_apertura` en parámetros (2025-01-01 por defecto), apertura en dólares sin tipo de cambio propio y anulación por rectificación en `costos_lote`, `v_tipo_cambio_activo`, `costos_apertura_pendientes`, `v_costo_referencia` con `desactualizado` y `pendiente`, `v_costos_pendientes`, importación con IVA |
-| `…120100_rectifica_costos_apertura_d42` | generada por `scripts/apertura/generar_costos_apertura.mjs` (lee `inventario_apertura_unidades.csv`, que sale de `unidades_peso.mjs`: la unidad de PESO está en el formato de la celda) |
+| Migración                               | Qué                                                                                                                                                                                                                                                                                                                                                                                          |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `20261010120000_comercial_costos_d42`   | IVA en `costos_referencia` (`incluye_iva`, `alicuota_iva`, `importe_neto`), `corte_apertura` en parámetros (2025-01-01 por defecto), apertura en dólares sin tipo de cambio propio y anulación por rectificación en `costos_lote`, `v_tipo_cambio_activo`, `costos_apertura_pendientes`, `v_costo_referencia` con `desactualizado` y `pendiente`, `v_costos_pendientes`, importación con IVA |
+| `…120100_rectifica_costos_apertura_d42` | generada por `scripts/apertura/generar_costos_apertura.mjs` (lee `inventario_apertura_unidades.csv`, que sale de `unidades_peso.mjs`: la unidad de PESO está en el formato de la celda)                                                                                                                                                                                                      |
 
 Front: Costos › Insumos con filtros «Pendientes» y «Desactualizados», etiqueta
 DESACTUALIZADO, tipo de cambio aplicado y botón «Excel de pendientes» (formato
@@ -1960,15 +1962,16 @@ A3500 en Parámetros › Series macro.
 Migraciones aplicadas a `yxpzsxkefqfuhyvslkfw` (el usuario pidió aplicar
 todo): las 14 de costos de la rama, más:
 
-| Migración | Qué |
-| --- | --- |
-| `20261014120000_alta_direccion_tecnica_titular` | Anabella Gregorini, DIRECCION_TECNICA titular |
-| `20261014130000_remito_opcional_y_facturas_por_cargar` | `numero_remito` opcional; `comercial.v_recepciones_sin_comprobante` |
-| `20261014140000_carga_especificaciones_borrador` | 18 especificaciones en BORRADOR (D-55) |
-| `20261014150000` / `…150100` | motivo de bloqueo EJEMPLO; lote ACEITE AMOR de prueba bloqueado como «SOLO EJEMPLO» |
-| `20261014160000_comercial_costo_producto_planilla` | costo de producto de la hoja C.T., 301 productos (D-56) |
+| Migración                                              | Qué                                                                                 |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| `20261014120000_alta_direccion_tecnica_titular`        | Anabella Gregorini, DIRECCION_TECNICA titular                                       |
+| `20261014130000_remito_opcional_y_facturas_por_cargar` | `numero_remito` opcional; `comercial.v_recepciones_sin_comprobante`                 |
+| `20261014140000_carga_especificaciones_borrador`       | 18 especificaciones en BORRADOR (D-55)                                              |
+| `20261014150000` / `…150100`                           | motivo de bloqueo EJEMPLO; lote ACEITE AMOR de prueba bloqueado como «SOLO EJEMPLO» |
+| `20261014160000_comercial_costo_producto_planilla`     | costo de producto de la hoja C.T., 301 productos (D-56)                             |
 
 Front:
+
 - Recepción: remito opcional; «Comprobante del proveedor» oculto para DT y
   opcional para el resto. Lo que queda sin comprobante aparece a
   Administración en «Facturas por cargar», con «Cargar factura» por recepción.
@@ -1996,6 +1999,7 @@ proveedores con puntaje.
 
 `20261014170000_gmp_registros_analisis` y `…170100_gmp_granel_envasa_y_libera_dt`
 (la segunda corrige a la primera: el envasado no espera al granel).
+
 - `gmp.registros_analisis`: R.50.5.1 (insumo), R.50.6.1 (semielaborado = lote
   de insumo tipo SEMIELABORADO) y R.50.10.1 (granel de una orden). Numeración
   NNN/AAAA por registro, sin huecos. No se editan: se rectifican.
@@ -2006,9 +2010,9 @@ proveedores con puntaje.
 - `gmp.v_analisis_pendientes`: tablero de DT.
 - Batch record: R.50.10.1 completo en su etapa y tabla de análisis de cada
   insumo consumido.
-Probado en la base real dentro de una transacción revertida (granel y
-rectificación). El camino de aprobar un lote de insumo no se pudo probar: no
-hay lotes en análisis.
+  Probado en la base real dentro de una transacción revertida (granel y
+  rectificación). El camino de aprobar un lote de insumo no se pudo probar: no
+  hay lotes en análisis.
 
 ### Rol de operario: tareas de planta (2026-10-14, solo front)
 
@@ -2030,6 +2034,7 @@ hay lotes en análisis.
 
 Migraciones `20261014180000_gmp_tareas_planta`, `…180100_gmp_tareas_aviso_terminada`
 y `…180200_gmp_tareas_calidad_cierra`.
+
 - `gmp.tareas_planta`: tarea de etapa (orden + etapa) o libre (texto de
   Producción). Asignar es opcional; sin asignación la ven todos. Inicio, fin
   y «visto» los pone la base. Registrar una etapa de planta termina su tarea.
@@ -2043,7 +2048,7 @@ y `…180200_gmp_tareas_calidad_cierra`.
   aviso «Terminaron» con «Asignarle otra tarea» / «Visto», y puntito rojo en
   «Tablero» del menú.
 - Tareas de a varios: las carga uno solo (pedido del codirector).
-Probado en la base real en transacciones revertidas.
+  Probado en la base real en transacciones revertidas.
 
 ### «Tareas»: matriz de Eisenhower del equipo (2026-10-14, APLICADO)
 
@@ -2117,7 +2122,7 @@ trigger `trg_sellar_autores` de su tabla.
 1. Generar la clave: `openssl rand -hex 32`.
 2. Cargarla en Vault con el nombre `arca_registro_clave` (Dashboard →
    Project Settings → Vault, o `select vault.create_secret('<clave>',
-   'arca_registro_clave')`). No va en ninguna migración (invariante 5).
+'arca_registro_clave')`). No va en ninguna migración (invariante 5).
 3. `supabase secrets set ARCA_REGISTRO_CLAVE=<clave>`.
 4. `supabase db push`.
 5. `supabase functions deploy emitir-factura`.
