@@ -58,7 +58,7 @@ function Faltantes({ v }: { v: FilaVenta }) {
   const partes: string[] = [];
   if (v.stock_ok === false) partes.push(`Calle 5: ${v.stock_nota ?? 'falta'}`);
   if (v.a_producir > 0 && v.pedido_stock)
-    partes.push(`${numero(v.a_producir)} a producir (${v.pedido_stock})`);
+    partes.push(`${numero(v.a_producir)} a producir`);
   if (!partes.length && v.pendiente > 0 && !v.entregado_en) partes.push('por armar');
   return partes.length ? (
     <Text size="xs" c="orange.8" fw={600}>

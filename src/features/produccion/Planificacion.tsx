@@ -12,6 +12,7 @@ import {
   NumberInput,
   Paper,
   SegmentedControl,
+  Select,
   SimpleGrid,
   Skeleton,
   Stack,
@@ -31,10 +32,14 @@ import {
 import type { CSSProperties } from 'react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { useSesion, useTieneRol } from '@/features/auth/sesion';
-import { fecha, fechaISO, desdeCalendario } from '@/lib/formato';
+import { fecha, fechaISO, desdeCalendario, numero } from '@/lib/formato';
+import { useProductos } from '@/lib/consultas';
 import {
+  useAsignarProduccion,
+  useCrearProduccion,
   usePedidos,
   usePlanificarPedido,
+  type PedidoConConteoRow,
   type PedidoRow,
 } from '@/lib/consultasComercial';
 
@@ -58,13 +63,60 @@ const lunesDe = (dia: string) => {
 const DIAS_SEMANA = ['lu', 'ma', 'mi', 'ju', 'vi', 'sá', 'do'];
 
 /** Pedidos que Producción tiene por delante: enviados o en producción. */
-const abiertos = (pedidos: PedidoRow[]) =>
+const abiertos = <T extends PedidoRow>(pedidos: T[]) =>
   pedidos.filter(
     (p) =>
       p.eliminado_en === null &&
       !p.es_venta &&
       (p.estado === 'CONFIRMADO' || p.estado === 'EN_PRODUCCION'),
   );
+
+/** Ventas aprobadas y sin entregar: a las que se les puede asignar producción. */
+const ventasAprobadas = (pedidos: PedidoConConteoRow[]) =>
+  pedidos.filter(
+    (p) =>
+      p.es_venta &&
+      p.eliminado_en === null &&
+      (p.estado === 'CONFIRMADO' || p.estado === 'EN_PRODUCCION'),
+  );
+
+/** Nombre por id de producto, para rotular las barras. */
+function useNombresProducto() {
+  const productos = useProductos();
+  return new Map((productos.data ?? []).map((p) => [p.id, p.nombre]));
+}
+
+/**
+ * Rótulo de una producción: «Producto × cantidad» si lleva un solo producto
+ * (los S-xxxx desde 20261019140000), si no el número del pedido.
+ */
+const rotulo = (p: PedidoConConteoRow, nombres: Map<string, string>) => {
+  const [unico, ...resto] = p.productos;
+  return unico && resto.length === 0
+    ? `${nombres.get(unico.producto_id) ?? 'Producto'} × ${numero(unico.cantidad)}`
+    : p.numero;
+};
+
+/**
+ * Opciones de «Para»: stock, o una venta aprobada que lleve el producto, con
+ * cuánto pide y cuánto le falta producir.
+ */
+const opcionesPara = (ventas: PedidoConConteoRow[], productoId: string | null) => [
+  { value: 'stock', label: 'Para stock (sin pedido)' },
+  ...ventas.flatMap((v) => {
+    const r = v.productos.find((x) => x.producto_id === productoId);
+    return r
+      ? [
+          {
+            value: v.id,
+            label: `${v.numero} · ${v.cliente} · pide ${numero(r.cantidad)}${
+              r.a_producir ? `, faltan producir ${numero(r.a_producir)}` : ''
+            }`,
+          },
+        ]
+      : [];
+  }),
+];
 
 /** Último día planificado de producción (inclusive). */
 const finPlan = (p: PedidoRow) =>
@@ -91,13 +143,17 @@ export function Gantt({
   desde,
   dias,
   editable,
+  onAbrir,
 }: {
-  pedidos: PedidoRow[];
+  pedidos: PedidoConConteoRow[];
   desde: string;
   dias: number;
   editable: boolean;
+  /** Tocar el rótulo abre la producción (plan y destino). */
+  onAbrir?: (p: PedidoConConteoRow) => void;
 }) {
   const planificar = usePlanificarPedido();
+  const nombres = useNombresProducto();
   const [hoy] = useState(() => iso(new Date()));
   const filas = pedidos
     .filter((p) => p.plan_inicio && p.plan_dias)
@@ -109,7 +165,7 @@ export function Gantt({
   const columnas = Array.from({ length: dias }, (_, i) => sumarDias(desde, i));
   const plantilla = `minmax(170px, 1.4fr) repeat(${dias}, minmax(26px, 1fr))`;
 
-  const mover = (p: PedidoRow, inicio: number, largo: number) =>
+  const mover = (p: PedidoConConteoRow, inicio: number, largo: number) =>
     planificar.mutate({
       id: p.id,
       inicio: sumarDias(p.plan_inicio!, inicio),
@@ -166,11 +222,25 @@ export function Gantt({
                   borderTop: '1px solid var(--superficie-borde)',
                 }}
               >
-                <Anchor component={Link} to={`/pedidos/${p.id}`} size="sm" fw={600}>
-                  {p.numero}
-                </Anchor>
+                {onAbrir ? (
+                  <Anchor
+                    component="button"
+                    size="sm"
+                    fw={600}
+                    onClick={() => onAbrir(p)}
+                  >
+                    {rotulo(p, nombres)}
+                  </Anchor>
+                ) : (
+                  <Text size="sm" fw={600} truncate>
+                    {rotulo(p, nombres)}
+                  </Text>
+                )}
                 <Text size="xs" c="dimmed" truncate>
-                  {p.cliente}
+                  <Anchor component={Link} to={`/pedidos/${p.id}`} size="xs" c="dimmed">
+                    {p.numero}
+                  </Anchor>{' '}
+                  · {p.cliente}
                   {tarde ? ' · termina después de la entrega' : ''}
                 </Text>
               </Box>
@@ -280,8 +350,8 @@ function AccionesCortas({
   p,
   mover,
 }: {
-  p: PedidoRow;
-  mover: (p: PedidoRow, inicio: number, largo: number) => void;
+  p: PedidoConConteoRow;
+  mover: (p: PedidoConConteoRow, inicio: number, largo: number) => void;
 }) {
   return (
     <Menu position="bottom" withArrow shadow="md">
@@ -443,26 +513,58 @@ function MesNavegable({ pedidos }: { pedidos: PedidoRow[] }) {
 
 function ModalPlanificar({
   pedido,
+  ventas,
   onCerrar,
 }: {
-  pedido: PedidoRow | null;
+  pedido: PedidoConConteoRow | null;
+  ventas: PedidoConConteoRow[];
   onCerrar: () => void;
 }) {
   const planificar = usePlanificarPedido();
+  const asignar = useAsignarProduccion();
+  const nombres = useNombresProducto();
   const [inicio, setInicio] = useState<Date | null>(null);
   const [dias, setDias] = useState<number | string>(1);
+  const [para, setPara] = useState<string | null>(null);
   const inicial = pedido?.plan_inicio ? aFecha(pedido.plan_inicio) : new Date();
   const valorInicio = inicio ?? inicial;
   const n = typeof dias === 'number' ? dias : Number(dias || 0);
+  // El destino se elige en las producciones de un solo producto (D-ventas-pedidos-17).
+  const unico =
+    pedido && pedido.para_stock && !pedido.tercero_id && pedido.productos.length === 1
+      ? pedido.productos[0]!
+      : null;
+  const paraActual = pedido?.para_pedido_id ?? 'stock';
+  const paraElegido = para ?? paraActual;
+  const cerrar = () => {
+    setInicio(null);
+    setDias(1);
+    setPara(null);
+    onCerrar();
+  };
   return (
     <Modal
       opened={pedido !== null}
-      onClose={onCerrar}
-      title={pedido ? `Planificar ${pedido.numero} · ${pedido.cliente}` : ''}
+      onClose={cerrar}
+      title={pedido ? `${rotulo(pedido, nombres)} · ${pedido.numero}` : ''}
       centered
     >
       {pedido ? (
         <Stack gap="md">
+          <Text size="sm" c="dimmed">
+            {pedido.cliente}
+          </Text>
+          {unico ? (
+            <Select
+              label="Para"
+              description="Elegí para qué pedido de venta es esta producción, o dejala para stock. Al terminar en Calle 5 queda reservada para ese pedido."
+              data={opcionesPara(ventas, unico.producto_id)}
+              value={paraElegido}
+              onChange={(v) => setPara(v)}
+              allowDeselect={false}
+              size="md"
+            />
+          ) : null}
           {pedido.fecha_entrega ? (
             <Text size="sm">
               Entrega comprometida: <b>{fecha(pedido.fecha_entrega)}</b>
@@ -492,7 +594,7 @@ function ModalPlanificar({
                 onClick={() =>
                   planificar.mutate(
                     { id: pedido.id, inicio: null, dias: null },
-                    { onSuccess: onCerrar },
+                    { onSuccess: cerrar },
                   )
                 }
               >
@@ -502,20 +604,27 @@ function ModalPlanificar({
               <span />
             )}
             <Button
-              loading={planificar.isPending}
+              loading={planificar.isPending || asignar.isPending}
               disabled={n < 1 || n > 60}
               onClick={() =>
-                planificar.mutate(
-                  {
+                void (async () => {
+                  if (unico && paraElegido !== paraActual)
+                    await asignar.mutateAsync({
+                      id: pedido.id,
+                      paraPedidoId: paraElegido === 'stock' ? null : paraElegido,
+                    });
+                  await planificar.mutateAsync({
                     id: pedido.id,
                     inicio: iso(valorInicio),
                     dias:
                       pedido.plan_dias && inicio === null && dias === 1
                         ? pedido.plan_dias
                         : n,
-                  },
-                  { onSuccess: onCerrar },
-                )
+                  });
+                  cerrar();
+                })().catch(() => {
+                  /* El error ya lo muestra el onError de cada mutación. */
+                })
               }
             >
               Guardar
@@ -527,15 +636,136 @@ function ModalPlanificar({
   );
 }
 
+/**
+ * «Nueva producción» (D-ventas-pedidos-17): producir N de un producto, para un
+ * pedido de venta o para stock, ya en el plan.
+ */
+function ModalNuevaProduccion({
+  abierto,
+  ventas,
+  onCerrar,
+}: {
+  abierto: boolean;
+  ventas: PedidoConConteoRow[];
+  onCerrar: () => void;
+}) {
+  const productos = useProductos();
+  const crear = useCrearProduccion();
+  const [producto, setProducto] = useState<string | null>(null);
+  const [cantidad, setCantidad] = useState<number | string>('');
+  const [inicio, setInicio] = useState<Date | null>(() => new Date());
+  const [dias, setDias] = useState<number | string>(1);
+  const [para, setPara] = useState<string>('stock');
+  const cant = Number(cantidad) || 0;
+  const n = Number(dias) || 0;
+  const opciones = opcionesPara(ventas, producto);
+  const cerrar = () => {
+    setProducto(null);
+    setCantidad('');
+    setPara('stock');
+    onCerrar();
+  };
+  return (
+    <Modal opened={abierto} onClose={cerrar} title="Nueva producción" centered size="lg">
+      <Stack gap="md">
+        <Select
+          label="Producto"
+          withAsterisk
+          searchable
+          nothingFoundMessage="Sin coincidencias"
+          data={(productos.data ?? [])
+            .filter((p) => p.activo)
+            .map((p) => ({ value: p.id, label: `${p.codigo_interno} — ${p.nombre}` }))}
+          value={producto}
+          onChange={(v) => {
+            setProducto(v);
+            setPara('stock');
+          }}
+          size="md"
+        />
+        <NumberInput
+          label="Cantidad a producir"
+          withAsterisk
+          min={1}
+          allowDecimal={false}
+          value={cantidad}
+          onChange={setCantidad}
+          size="md"
+        />
+        <Select
+          label="Para"
+          description={
+            producto && opciones.length === 1
+              ? 'Ningún pedido de venta aprobado lleva este producto: va para stock.'
+              : 'Un pedido de venta aprobado que lleve este producto, o stock.'
+          }
+          data={opciones}
+          value={para}
+          onChange={(v) => setPara(v ?? 'stock')}
+          allowDeselect={false}
+          disabled={!producto}
+          size="md"
+        />
+        <Group grow>
+          <DateInput
+            label="Empieza a producirse"
+            valueFormat="DD/MM/YYYY"
+            clearable
+            value={inicio}
+            onChange={(v) => setInicio(desdeCalendario(v))}
+            size="md"
+          />
+          <NumberInput
+            label="Días de producción"
+            min={1}
+            max={60}
+            allowDecimal={false}
+            value={dias}
+            onChange={setDias}
+            disabled={!inicio}
+            size="md"
+          />
+        </Group>
+        <Group justify="flex-end">
+          <Button variant="default" onClick={cerrar}>
+            Volver
+          </Button>
+          <Button
+            size="md"
+            loading={crear.isPending}
+            disabled={!producto || cant <= 0 || (inicio !== null && (n < 1 || n > 60))}
+            onClick={() =>
+              producto &&
+              crear.mutate(
+                {
+                  productoId: producto,
+                  cantidad: cant,
+                  paraPedidoId: para === 'stock' ? null : para,
+                  inicio: inicio ? iso(inicio) : null,
+                  dias: n,
+                },
+                { onSuccess: cerrar },
+              )
+            }
+          >
+            Cargar producción
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
+  );
+}
+
 function SinPlanificar({
   pedidos,
   editable,
   onPlanificar,
 }: {
-  pedidos: PedidoRow[];
+  pedidos: PedidoConConteoRow[];
   editable: boolean;
-  onPlanificar: (p: PedidoRow) => void;
+  onPlanificar: (p: PedidoConConteoRow) => void;
 }) {
+  const nombres = useNombresProducto();
   const sin = pedidos
     .filter((p) => !p.plan_inicio)
     .sort((a, b) => (a.fecha_entrega ?? '9999').localeCompare(b.fecha_entrega ?? '9999'));
@@ -546,7 +776,11 @@ function SinPlanificar({
       {sin.map((p) => (
         <Group key={p.id} justify="space-between" wrap="nowrap">
           <Text size="sm">
-            <Anchor component={Link} to={`/pedidos/${p.id}`} fw={600}>
+            <Text span fw={600}>
+              {rotulo(p, nombres)}
+            </Text>{' '}
+            ·{' '}
+            <Anchor component={Link} to={`/pedidos/${p.id}`}>
               {p.numero}
             </Anchor>{' '}
             · {p.cliente} · entrega {fecha(p.fecha_entrega)}
@@ -580,16 +814,23 @@ export function PaginaPlanificacion() {
   const [hoy] = useState(() => iso(new Date()));
   const [desde, setDesde] = useState(() => lunesDe(iso(new Date())));
   const [vista, setVista] = useState<'gantt' | 'mes'>('gantt');
-  const [planificando, setPlanificando] = useState<PedidoRow | null>(null);
+  const [planificando, setPlanificando] = useState<PedidoConConteoRow | null>(null);
+  const [nueva, setNueva] = useState(false);
   const lista = abiertos(pedidos.data ?? []);
+  const ventas = ventasAprobadas(pedidos.data ?? []);
 
   return (
     <>
       <EncabezadoPagina
         titulo="Planificación"
-        descripcion="Qué se produce cada día y cuánto dura. La línea roja es la entrega comprometida."
+        descripcion="Qué se produce cada día y cuánto dura, producto por producto, y para qué pedido. La línea roja es la entrega comprometida."
         acciones={
           <Group gap="sm">
+            {editable ? (
+              <Button leftSection={<IconPlus size={18} />} onClick={() => setNueva(true)}>
+                Nueva producción
+              </Button>
+            ) : null}
             <SegmentedControl
               value={vista}
               onChange={(v) => setVista(v as 'gantt' | 'mes')}
@@ -624,7 +865,13 @@ export function PaginaPlanificacion() {
         <Stack gap="lg">
           <Paper withBorder p="md" style={{ borderColor: 'var(--superficie-borde)' }}>
             {vista === 'gantt' ? (
-              <Gantt pedidos={lista} desde={desde} dias={21} editable={editable} />
+              <Gantt
+                pedidos={lista}
+                desde={desde}
+                dias={21}
+                editable={editable}
+                {...(editable ? { onAbrir: setPlanificando } : {})}
+              />
             ) : (
               <>
                 <Title order={4} mb="sm" tt="capitalize">
@@ -665,7 +912,16 @@ export function PaginaPlanificacion() {
           </Paper>
         </Stack>
       )}
-      <ModalPlanificar pedido={planificando} onCerrar={() => setPlanificando(null)} />
+      <ModalPlanificar
+        pedido={planificando}
+        ventas={ventas}
+        onCerrar={() => setPlanificando(null)}
+      />
+      <ModalNuevaProduccion
+        abierto={nueva}
+        ventas={ventas}
+        onCerrar={() => setNueva(false)}
+      />
     </>
   );
 }

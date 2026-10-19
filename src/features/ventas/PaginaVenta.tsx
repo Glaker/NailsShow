@@ -444,7 +444,8 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
           )}
           {v!.pedido_stock ? (
             <Badge size="lg" variant="light" color="indigo">
-              {numero(v!.a_producir)} a producir en {v!.pedido_stock}
+              {/* Un S-xxxx por producto desde 20261019140000: no se nombra uno solo. */}
+              {numero(v!.a_producir)} a producir en Producción
             </Badge>
           ) : null}
           {v!.reservar_calle5 ? (

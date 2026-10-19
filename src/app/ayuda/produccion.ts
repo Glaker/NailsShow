@@ -539,6 +539,9 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
       'Qué se produce cada día y cuánto dura cada pedido. Hay dos vistas, que se cambian arriba: «Gantt» (una fila por pedido, con barras sobre tres semanas) y «Calendario» (el mes). La línea roja del Gantt es la entrega comprometida; si un pedido termina después de esa fecha, la fila lo avisa. Debajo, «Sin planificar» lista los pedidos abiertos que todavía no tienen fecha de producción.',
     porRol: {
       GERENCIA_PRODUCCION: [
+        'Cada fila es una producción: «Producto × cantidad», con su número y para quién es debajo («Para V-0012 — Cliente» o «Para stock»). Al aprobar una venta, lo que falta llega acá como una producción por producto.',
+        'Tocá el nombre de una producción para abrirla. En «Para» elegís a qué pedido de venta aprobado va (la lista muestra cuánto pide cada uno y cuánto le falta producir) o la dejás «Para stock». Al tocar «Terminado» en Calle 5, lo producido queda reservado para el pedido elegido en ese momento.',
+        '«Nueva producción», arriba, carga producir N de un producto: elegí el «Producto», la «Cantidad a producir», «Para» qué pedido o stock, y si querés ya la fecha de inicio y los días. Si sacás una producción de un pedido para dársela a otro, el primero queda sin esa producción: fijate en la lista cuánto le falta.',
         'Abajo, en «Sin planificar», tocá «Planificar» en un pedido. Elegí cuándo «Empieza a producirse» y los «Días de producción» (entre 1 y 60). Guardá.',
         'Para mover un pedido ya planificado usá los iconos del bloque en el Gantt (al pasar el cursor dicen «Un día antes», «Un día después», «Un día menos» y «Un día más»).',
         'Para sacarlo del plan, tocá su número en el texto de abajo (se listan hasta ocho pedidos planificados) y, en la ventana, «Sacar del plan». También podés cambiar desde ahí la fecha y los días.',

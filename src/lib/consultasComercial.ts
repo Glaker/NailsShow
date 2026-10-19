@@ -65,6 +65,8 @@ export interface PedidoRow {
 
 export interface PedidoConConteoRow extends PedidoRow {
   renglones: { count: number }[];
+  /** Productos no anulados: el Gantt rotula por producto (D-ventas-pedidos-17). */
+  productos: { producto_id: string; cantidad: number; a_producir: number | null }[];
 }
 
 export interface PedidoRenglonRow {
@@ -254,16 +256,33 @@ export function usePedidos() {
       // Los borrados no aparecen en ninguna bandeja. Los productos se cuentan
       // acá y no con `count` de PostgREST porque los quitados no cuentan.
       const { data, error } = await tablaComercial<
-        (PedidoRow & { renglones: { anulado: boolean }[] })[]
+        (PedidoRow & {
+          renglones: {
+            anulado: boolean;
+            producto_id: string;
+            cantidad: number;
+            a_producir: number | null;
+          }[];
+        })[]
       >('pedidos')
-        .select('*, renglones:pedido_renglones(anulado)')
+        .select(
+          '*, renglones:pedido_renglones(anulado, producto_id, cantidad, a_producir)',
+        )
         .is('eliminado_en', null)
         .order('fecha', { ascending: false });
       if (error) throw error;
-      return (data ?? []).map((p): PedidoConConteoRow => ({
-        ...p,
-        renglones: [{ count: p.renglones.filter((r) => !r.anulado).length }],
-      }));
+      return (data ?? []).map((p): PedidoConConteoRow => {
+        const vivos = p.renglones.filter((r) => !r.anulado);
+        return {
+          ...p,
+          renglones: [{ count: vivos.length }],
+          productos: vivos.map((r) => ({
+            producto_id: r.producto_id,
+            cantidad: Number(r.cantidad),
+            a_producir: r.a_producir === null ? null : Number(r.a_producir),
+          })),
+        };
+      });
     },
   });
 }
@@ -1152,6 +1171,58 @@ export function usePlanificarPedido() {
       if (!data || data.length === 0) throw new Error('No se pudo guardar el plan.');
     },
     onSuccess: (_d, v) => invalidarPedido(qc, v.id),
+    onError: avisarError,
+  });
+}
+
+/**
+ * Para qué es un pedido de producción: una venta aprobada o stock (null). La
+ * base valida el destino y ajusta depósito, rótulo y entrega (20261019140000).
+ */
+export function useAsignarProduccion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (p: { id: string; paraPedidoId: string | null }) => {
+      const { data, error } = await tablaComercial<{ id: string }[]>('pedidos')
+        .update({ para_pedido_id: p.paraPedidoId })
+        .eq('id', p.id)
+        .select('id');
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('No se pudo cambiar el destino.');
+    },
+    onSuccess: (_d, v) => {
+      invalidarPedido(qc, v.id);
+      avisarExito(
+        v.paraPedidoId ? 'Producción asignada al pedido.' : 'Producción pasada a stock.',
+      );
+    },
+    onError: avisarError,
+  });
+}
+
+/** Producir N de un producto, para una venta o para stock (comercial.crear_produccion). */
+export function useCrearProduccion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (p: {
+      productoId: string;
+      cantidad: number;
+      paraPedidoId: string | null;
+      inicio: string | null;
+      dias: number;
+    }) => {
+      const { error } = await comercial().rpc('crear_produccion', {
+        p_producto_id: p.productoId,
+        p_cantidad: p.cantidad,
+        ...(p.paraPedidoId ? { p_para_pedido_id: p.paraPedidoId } : {}),
+        ...(p.inicio ? { p_inicio: p.inicio, p_dias: p.dias } : {}),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['pedidos'] });
+      avisarExito('Producción cargada.');
+    },
     onError: avisarError,
   });
 }

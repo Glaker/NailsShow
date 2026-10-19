@@ -400,7 +400,7 @@ no tiene código en la planilla.
 fórmula de costo de la celda de al lado y está escrita, con su razón, en
 `scripts/lista_materiales/decisiones.mjs`. Por indicación: esencia siempre en
 ml, aceite de cutícula con la densidad de la vaselina líquida liviana
-(*Paraffinum liquidum perliquidum*, 0,845 g/ml a 20 °C), crema a granel
+(_Paraffinum liquidum perliquidum_, 0,845 g/ml a 20 °C), crema a granel
 (en kg en la planilla, en g en el sistema). Por lectura: monómero en litros;
 en el sanitizante el alcohol, el agua y la glicerina en ml y la fragancia, el
 pigmento y el aloe en g; alcoholes del cleanser en litros.
@@ -412,6 +412,7 @@ pigmento y el aloe en g; alcoholes del cleanser en litros.
 
 **Contexto.** Al dar de alta los insumos que faltaban (`20260923135000`) hubo
 que elegir cosas que la planilla no dice. Están marcadas para revisar:
+
 - **Primer, bonder y removedor a granel en ml**, como la esencia: se compran
   líquidos y no hay densidad medida.
 - **Primer, bonder y removedor marcados inflamables** (RN-48, al depósito
@@ -421,7 +422,7 @@ que elegir cosas que la planilla no dice. Están marcadas para revisar:
   saldo provisorio.
 - **Toalla**: la tela como materia prima sin protocolo y la estampa como
   etiqueta, hasta que se resuelva D-18.
-**Decide.** Dirección Técnica.
+  **Decide.** Dirección Técnica.
 
 ### D-30 · Factura a monotributistas: A, no B
 
@@ -485,20 +486,20 @@ de liquidación y qué reglas de comisión?
 **Contexto.** Pedido del 2026-09-29: el pedido se compara con Calle 5 y lo que
 falta se produce; Silveira despacha completo o con faltantes.
 **Preguntas.**
+
 - ¿Solo Calle 5, o también lo que está en fábrica (PTF)?
 - Lo que no salió en un despacho con faltantes, ¿sigue en el mismo pedido o
   genera uno nuevo por la diferencia?
 - El «Sale» suelto de Calle 5, ¿queda para venta de mostrador o se quita?
-**Supuesto adoptado.** Solo Calle 5; el faltante queda pendiente en el mismo
-pedido; el «Sale» suelto queda para mostrador.
-**Decide.** Gerencia.
+  **Supuesto adoptado.** Solo Calle 5; el faltante queda pendiente en el mismo
+  pedido; el «Sale» suelto queda para mostrador.
+  **Decide.** Gerencia.
 
 ### D-36 · De dónde sale el costo para el stock valorizado
 
 **Contexto.** El documento de Administración pide stock valorizado y el
 alcance (§4.12.2) lo modela con costo por lote y promedio ponderado móvil. El
-sistema no tiene costos: `movimientos_stock` no se valoriza (cabecera de
-20260910170000) y el comprobante del proveedor (20260929100000) trae el total,
+sistema no tiene costos: `movimientos_stock` no se valoriza (cabecera de 20260910170000) y el comprobante del proveedor (20260929100000) trae el total,
 no el precio por renglón.
 **Pregunta.** ¿El costo del insumo sale del comprobante del proveedor
 (cargando precio por renglón en la recepción) o de una lista de costos? ¿Y el
@@ -522,6 +523,7 @@ sistema tiene hoy un solo emisor vigente (`comercial.configuracion_fiscal`,
 `comercial.facturas` ya guarda CUIT y punto de venta por factura, así que el
 cambio de fondo es de configuración, elección y reportes, no de la factura.
 **Preguntas.**
+
 1. CUIT y condición frente al IVA de cada uno. Un emisor monotributista emite
    Factura C, no A ni B: la clase pasa a depender de emisor y receptor.
 2. Quién elige el emisor de cada factura, y si hay una regla (por cliente,
@@ -533,27 +535,29 @@ cambio de fondo es de configuración, elección y reportes, no de la factura.
    se registra que un emisor venda mercadería que compró otro? Esto decide si
    el stock, IVA Compras/Ventas y las cuentas corrientes se separan por
    titular o se siguen llevando como uno solo.
-**Implementado sin los datos** (20260930150000, en homologación): varios
-emisores vigentes con su condición frente al IVA, elección al facturar y
-Factura C para el emisor monotributista o exento. **Suposición a confirmar:**
-la C cobra el mismo total que una A o B del mismo pedido (neto + IVA de los
-renglones, sin discriminar IVA), porque el precio de lista es el precio final.
-Certificados: `AFIP_CERT_<CUIT>`/`AFIP_KEY_<CUIT>` por emisor, o
-`AFIP_CERT`/`AFIP_KEY` si los otros delegaron el servicio.
-**Falta:** los CUIT y condiciones reales (una fila por emisor en
-`comercial.configuracion_fiscal`) y la respuesta 4, que puede pedir separar
-IVA y cuentas corrientes por emisor.
-**Decide.** Gerencia, con el estudio contable.
+   **Implementado sin los datos** (20260930150000, en homologación): varios
+   emisores vigentes con su condición frente al IVA, elección al facturar y
+   Factura C para el emisor monotributista o exento. **Suposición a confirmar:**
+   la C cobra el mismo total que una A o B del mismo pedido (neto + IVA de los
+   renglones, sin discriminar IVA), porque el precio de lista es el precio final.
+   Certificados: `AFIP_CERT_<CUIT>`/`AFIP_KEY_<CUIT>` por emisor, o
+   `AFIP_CERT`/`AFIP_KEY` si los otros delegaron el servicio.
+   **Falta:** los CUIT y condiciones reales (una fila por emisor en
+   `comercial.configuracion_fiscal`) y la respuesta 4, que puede pedir separar
+   IVA y cuentas corrientes por emisor.
+   **Decide.** Gerencia, con el estudio contable.
 
 ## Rama sesion-15-oct (número definitivo al integrar en main)
 
 ### D-sesion-15-oct-1 · Comentarios en solicitudes de pago — adoptada 2026-10-15
+
 Pedido del usuario: Gerencia de Producción ve todas las solicitudes de pago,
 sin aprobarlas ni pagarlas, y quien ve una solicitud puede comentarla. Los
 comentarios son append-only, a nombre propio y con la hora de la base
 (20261015120000, §2.2 del documento de Administración).
 
 ### D-sesion-15-oct-2 · El Administrador del sistema no comenta — provisoria
+
 Ve todas las solicitudes (lectura completa, §3.5), y con la regla «comenta
 quien ve» habría pasado a escribir. Se lo excluye de comentar
 (20261015120100) por ser su acceso de lectura; sí comenta una solicitud que
@@ -566,6 +570,7 @@ Ventas, pedidos, roles y respaldos (2026-10-15). Número provisorio por rama
 (CLAUDE.md §6, Git).
 
 ### D-ventas-pedidos-1 · Agustina: producción y ventas
+
 **Contexto.** El modelo ya admite varios roles por usuario
 (`core.usuarios.roles_adicionales`, claim `roles`, `core.es_rol`). Agustina
 sería VENTAS con ENCARGADA_STOCK adicional («Pedidos a armar», lo que hoy hace
@@ -578,10 +583,12 @@ Silveira.
 **Decide.** Gerencia.
 
 ### D-ventas-pedidos-2 · Especificaciones y Gerencia de Producción — resuelta 2026-10-15
+
 Sale del menú de GP y **pierde también la escritura** en
 `gmp.especificaciones` (políticas de DT y GP). Va en la migración del bloque 2.
 
 ### D-ventas-pedidos-3 · Vendedores nuevos: Johana, María del Rosario, Silvina Alegre
+
 Pendientes, sin reglas inventadas: lista y escala de educadores (Johana);
 comisión de mayorista Santa Fe (María del Rosario); integración o carga manual
 de Tienda Nube (Silvina). Faltan los correos y los valores del atributo que las
@@ -589,17 +596,20 @@ distingue (canal, zona). No bloquea el bloque 3.
 **Decide.** Gerencia, en reunión.
 
 ### D-ventas-pedidos-4 · Pedido que vuelve a Nazarena — resuelta 2026-10-15
+
 Si Ventas cambia productos o cantidades después de la fecha propuesta, la fecha
 queda «a reconfirmar» y vuelve a la bandeja de GP. Si cambia solo precio,
 descuento o forma de pago, no vuelve. Mientras esté «a reconfirmar», el pedido
 no cuenta en estadísticas.
 
 ### D-ventas-pedidos-5 · Tope de descuento efectivo por rol — adoptada 2026-10-15
+
 Los descuentos se encadenan (`1 − Π(1 − dᵢ)`). Superar el tope del rol **no
 bloquea**: pide autorización de GERENCIA. Los valores por rol los fija
 Finanzas y son configurables.
 
 ### D-ventas-pedidos-6 · Pago antes de facturar: anticipo
+
 **Adoptado (modelo):** anticipo imputado al pedido y aplicado a la factura
 cuando se emite.
 **Abierto (fiscal):** por la Ley de IVA (art. 5), un anticipo que congela
@@ -608,11 +618,13 @@ lógica fiscal hasta que confirme el contador.
 **Decide.** Contador.
 
 ### D-ventas-pedidos-7 · Reproceso de mercadería devuelta desde Calle 5
+
 No existe en el sistema y el POE (RN-25) no está redactado. El bloque 5 queda
 diferido hasta que exista el POE; no se diseña el circuito antes.
 **Decide.** Dirección Técnica.
 
 ### D-ventas-pedidos-8 · Respaldos: destino, PITR y conservación
+
 - **Destino de la copia externa:** almacenamiento a nombre de la empresa, nunca
   una cuenta personal. Cuál, a confirmar. El workflow toma el destino por
   secreto, cifra la copia y la clave queda fuera del repo.
@@ -621,15 +633,16 @@ diferido hasta que exista el POE; no se diseña el circuito antes.
 - **Conservación propuesta:** copias diarias por 30 días, mensuales por 10
   años, y nunca borrar datos de la base viva. Fundamento: I.60.12 retiene
   muestras de archivo un año después del vencimiento (vida útil de 36 meses: al
-  menos cuatro años desde la fabricación); el Código Civil y Comercial (art.
-  328) exige conservar la documentación comercial diez años.
-**Decide.** Dirección Técnica y contador.
+  menos cuatro años desde la fabricación); el Código Civil y Comercial (art. 328) exige conservar la documentación comercial diez años.
+  **Decide.** Dirección Técnica y contador.
 
 ### D-ventas-pedidos-9 · Exportación completa — adoptada 2026-10-15
+
 Todas las tablas, incluidos costos y auditoría, solo para ADMINISTRADOR_SISTEMA
 y GERENCIA. Cada exportación queda registrada con autor y fecha.
 
 ### D-ventas-pedidos-10 · Foto del importe pedido y condición de estadísticas — adoptada 2026-10-15
+
 Un pedido cuenta en las estadísticas de ventas solo cuando Nazarena propuso
 fecha para el pedido **entero** (no solo para renglones demorados) y Ventas lo
 confirmó. En ese momento se congela una foto del importe pedido (cantidades,
@@ -638,6 +651,7 @@ importe enviado o facturado, nunca la foto. La foto se implementa antes de
 habilitar la edición en APROBADO.
 
 ### D-ventas-pedidos-11 · Rama base del trabajo
+
 `main` está 82 commits atrás de `costos-fase-1`, que es lo aplicado en la base
 real. `herramientas`, `sesion-15-oct` y `ventas-pedidos` salen de
 `costos-fase-1` (desde `main` no compilan: les faltan archivos como
@@ -645,6 +659,7 @@ real. `herramientas`, `sesion-15-oct` y `ventas-pedidos` salen de
 decidir cuándo se lleva todo a `main` (Vercel publica desde `main`).
 
 ### D-ventas-pedidos-12 · Árbol de trabajo ordenado — resuelta 2026-10-15
+
 Los cambios sin commitear eran del usuario, de otras sesiones: quedaron en
 `herramientas` (sesión A) y `sesion-15-oct` (sesión B), un commit por tema.
 Siguen sin commitear, a decisión del usuario: `react-doctor`, `shadcn`, el
@@ -652,6 +667,7 @@ script `doctor` y la clave `intent` de `package.json`; `AGENTS.md`;
 `.claude/skills/`; `.impeccable/review/`; `react-doctor.yml`.
 
 ### D-ventas-pedidos-13 · «Aprobado» se guarda como CONFIRMADO — a confirmar
+
 El plan aprobado hablaba de un estado nuevo APROBADO. En la base, el pedido de
 venta aprobado queda en el **CONFIRMADO** de siempre, porque es el estado que
 leen Calle 5, el armado, el despacho, la facturación y los S-xxxx (14
@@ -661,39 +677,52 @@ pantalla lo muestra como «Aprobado» en los pedidos de venta. Renombrarlo
 obligaría a reescribir todo el circuito posterior sin cambiar ninguna regla.
 
 ### D-ventas-pedidos-14 · Ventas confirmadas antes del circuito nuevo — resuelta 2026-10-19
+
 Los pedidos de venta que ya estaban CONFIRMADOS o CUMPLIDOS antes de
 20261019130100 no tienen foto y no aparecen en `comercial.v_ventas_pedidas`.
 **Resuelta por el usuario (2026-10-19):** sin foto retroactiva. La
-estadística de importe pedido arranca desde la puesta en servicio de
-20261019130100.
+estadística de importe pedido arranca desde la puesta en servicio de 20261019130100.
 
 Nota de numeración: el circuito se escribió como 20261015130000/130100 y se
 aplicó como 20261019130000/130100. Los números intermedios los usa la rama
 giorgio, cuyas 20261019110000 y 120000 ya están registradas en la base real.
 
 ### D-ventas-pedidos-16 · Giorgio en espera de la dirección — abierta
+
 Suspendido hasta que la dirección decida si se paga la API. Mientras tanto: no
 se trabaja en la rama `giorgio` ni en su worktree (queda commiteada y sin
 integrar); no se crea ninguna clave de API, ningún secreto
 `ANTHROPIC_API_KEY`, ninguna Edge Function de Giorgio ni ninguna tabla de su
 registro, en ninguna base; nada de Giorgio entra en las ramas en curso.
 **Diseño acordado para cuando se retome:**
+
 1. Primero una capa **sin IA**: ayuda por pantalla, tarjetas de «de dónde sale
    este número» armadas por el sistema, buscador con «Llevame a…» y preguntas
    frecuentes por rol.
 2. Una capa **con IA, apagada**, que se activa solo si el registro de uso
    muestra que hace falta, con tope mensual configurable.
-Las decisiones D-57 a D-60 de la rama `giorgio` se renumeran con la
-convención por rama (CLAUDE.md §6, Git) cuando se retome.
-**Decide.** Dirección.
+   Las decisiones D-57 a D-60 de la rama `giorgio` se renumeran con la
+   convención por rama (CLAUDE.md §6, Git) cuando se retome.
+   **Decide.** Dirección.
 
 ### D-ventas-pedidos-15 · Quién propone la fecha — adoptada
+
 Solo Gerencia de Producción (Nazarena). Gerencia no, porque la política de
 UPDATE de `comercial.pedidos` no la incluye y el pedido no pasaría a
 FECHA_PROPUESTA.
 **Abierta:** quién propone fechas cuando Nazarena está ausente.
 
-### D-ventas-pedidos-17 · Gantt por producción de producto, no por pedido — pendiente
+### D-ventas-pedidos-17 · Gantt por producción de producto, no por pedido — resuelta 2026-10-19
+
+**Resuelta (diseño aprobado por el usuario el 2026-10-19, 20261019140000):** la
+unidad sigue siendo el pedido de producción, pero cada S-xxxx nuevo lleva un
+solo producto (al aprobar una venta, uno por producto que falta). GP elige el
+destino de cada uno (`para_pedido_id`: una venta aprobada que lleve el producto,
+o stock) y carga producción nueva con `comercial.crear_produccion`. Consumos,
+«Terminado», lote y reserva no cambian. Límites aceptados: una producción va a
+un solo destino; reasignarla no avisa a la venta que la pierde.
+
+Planteo original:
 Pedido del usuario (2026-10-16), para después del bloque 3: en el Gantt,
 Nazarena no carga un pedido entero sino **producción de un producto**, y decide
 para qué pedido va o si es para tener en el depósito. Hoy el Gantt planifica
@@ -712,6 +741,7 @@ existen como documento con requisitos (I-E.50.11 a .17 polvos, .25 líquido
 acrílico, .26/.27/.28 cremas y aceite por variedad, .31 gel paint). Ninguna
 quedó aprobada: aprobar es un acto de DT.
 **Preguntas para DT.**
+
 - Ningún documento fuente está firmado (Emitió/Revisó/Aprobó vacíos).
 - Polvos: los archivos dicen I-E.40.x; se cargaron con la numeración I-E.50.11
   a .17 que citan los ME.40.x. ¿Correcto? Solo traen requisitos
@@ -726,7 +756,7 @@ quedó aprobada: aprobar es un acto de DT.
   .23, .29, .33 y .34, que citan los ME.
 - Ninguna fórmula apunta todavía a su especificación, y la liberación no lo
   exige. ¿Se exige?
-**Decide.** Dirección Técnica.
+  **Decide.** Dirección Técnica.
 
 ### D-56 · Costo de producto de la planilla C.T. como punto de partida
 
@@ -759,6 +789,7 @@ firma; no reemplaza los POE ni los registros del sistema. Sus respuestas son
 generadas por IA, pueden contener errores y se presentan así al usuario («Giorgio
 es una IA y puede equivocarse. No es un registro oficial.»).
 **Límites, impuestos en código y no solo en el texto:**
+
 - Solo lectura: su única herramienta en la fase 1, `ir_a`, ofrece un botón de
   navegación; no hay herramienta que escriba ni SQL libre.
 - Lo que lee lo lee con el token del usuario (RLS) y el contexto que recibe
@@ -766,13 +797,13 @@ es una IA y puede equivocarse. No es un registro oficial.»).
 - Los datos que lee se le entregan marcados como datos, nunca como
   instrucciones.
 - Límite diario por usuario y tope global diario de gasto (D-60).
-**Arquitectura.** Edge Function `giorgio`. CLAUDE.md §2 reserva las Edge
-Functions para integración fiscal y tareas programadas; esta es una tercera
-categoría, autorizada por pedido de la conducción del proyecto (2026-10-15), y
-sigue la regla de privilegios de §5: token del usuario, sin `service_role`, la
-clave de Anthropic solo como secreto (`ANTHROPIC_API_KEY`).
-**Estado.** No se afirma que el sistema esté validado. Falta la aprobación de
-esta declaración por la Dirección Técnica y la evaluación de la fase 4.
+  **Arquitectura.** Edge Function `giorgio`. CLAUDE.md §2 reserva las Edge
+  Functions para integración fiscal y tareas programadas; esta es una tercera
+  categoría, autorizada por pedido de la conducción del proyecto (2026-10-15), y
+  sigue la regla de privilegios de §5: token del usuario, sin `service_role`, la
+  clave de Anthropic solo como secreto (`ANTHROPIC_API_KEY`).
+  **Estado.** No se afirma que el sistema esté validado. Falta la aprobación de
+  esta declaración por la Dirección Técnica y la evaluación de la fase 4.
 
 ### D-58 · Registro de consultas: en core, con auditoría y sin retención — 2026-10-15, adoptada
 
@@ -813,6 +844,7 @@ siendo la alternativa si se arma para el CAE. Migración `20261019120000`.
 ### D-60 · Límites de uso de Giorgio — 2026-10-15, adoptada; actualizada 2026-10-19
 
 **Resolución** (conducción del proyecto, 2026-10-15):
+
 - Límite diario por usuario: 50 preguntas para OPERARIO, 150 para el resto
   (con varios roles rige el mayor). Sin límite por minuto.
 - Tope global **diario** de gasto, en dólares, configurable (valor inicial
@@ -820,10 +852,10 @@ siendo la alternativa si se arma para el CAE. Migración `20261019120000`.
   medianoche (hora de Argentina), en vez de avisar. Reemplaza al tope mensual
   del pedido original. **Confirmar** el valor del tope.
 - Interruptor general que apaga a Giorgio sin afectar la app.
-Los valores viven en `core.giorgio_config` y los cambia el Administrador del
-sistema.
-**Actualización 2026-10-19** (conducción del proyecto): el presupuesto de
-Giorgio es de USD 20 por mes, de los USD 40 mensuales de créditos de API.
+  Los valores viven en `core.giorgio_config` y los cambia el Administrador del
+  sistema.
+  **Actualización 2026-10-19** (conducción del proyecto): el presupuesto de
+  Giorgio es de USD 20 por mes, de los USD 40 mensuales de créditos de API.
 - Tope **mensual** de USD 20 (mes calendario, hora de Argentina): al llegar,
   Giorgio se apaga hasta el mes siguiente.
 - El tope **diario** baja a USD 1, con el mismo corte al 80 % (USD 0,80 por
@@ -953,6 +985,7 @@ el renglón con la fecha de costo más reciente. Los lotes de apertura sin costo
 los completa Finanzas desde Costos › Lotes.
 
 **Recuento de la planilla (2026-10-10, antes de cargar).** Hay 650 renglones:
+
 - **Fuera del catálogo** (herramientas, mobiliario, etc.): 237. No se cargan.
 - **En el catálogo sin costo:** 13.
 - **A cargar:** 400.
@@ -980,6 +1013,7 @@ en `20261010120000_comercial_costos_d42`.
 
 **Criterios fijados al implementar** (no los cubría la respuesta de Finanzas;
 revisar con Gaby):
+
 - **Tipo de cambio activo:** el último mes cargado de la serie A3500; en el
   mismo mes, el de cierre antes que el promedio (`v_tipo_cambio_activo`). Sin
   serie cargada, los costos en dólares quedan pendientes por falta de tipo de
@@ -1150,6 +1184,7 @@ contra los lotes (D-44).
 ### D-38 · Quién ve y quién carga costos — 2026-10-09, aprobada
 
 **Amplía §3.3 del alcance** («Ver costos, márgenes y rentabilidad»: ADM y GG).
+
 - Rol nuevo **FINANZAS** (Gabriel Lundin): lee todo lo económico; único que
   fija costo de referencia, costo hora, umbral, margen mínimo y series macro.
 - **GERENCIA** (Virginia Arleo, Jorge Bakás): lee todo; carga otros gastos y
@@ -1160,7 +1195,7 @@ contra los lotes (D-44).
   habilitaba §3.3); importación y exportación en la Fase 6.
 - **VENTAS** (Matías, Agustina), **OPERARIO**, **CONTROL_CALIDAD** y
   **ENCARGADA_STOCK**: no ven costos.
-**Dónde está.** Políticas de `20261009120300`. Excepción conocida: D-45.
+  **Dónde está.** Políticas de `20261009120300`. Excepción conocida: D-45.
 
 ### D-40 · Costos accesorios por recepción — 2026-10-09, aprobada
 
@@ -1204,10 +1239,10 @@ pago asociado en la base (consulta del 2026-10-09: 0 filas), así que **no hay
 nada que migrar**: la fecha de corte es la puesta en servicio de la Fase 3, y
 desde ahí `v_resultado_mensual` deja de contar egresos de tesorería como gasto.
 
-
 ### R-09 · Lote en el producto terminado y RN-51 — 2026-09-30
 
 **Resolución** del usuario, en tres respuestas:
+
 1. Lo que ya existe sin lote (conteo inicial, Calle 5) **sigue saliendo**,
    marcado «sin lote», como el saldo de apertura de insumos (R-05).
 2. «Terminado» **no exige orden**: si el pedido tiene la orden de ese
@@ -1215,11 +1250,11 @@ desde ahí `v_resultado_mensual` deja de contar egresos de tesorería como gasto
    si no la tiene, entra sin lote y sale igual. **Es un camino para vender
    sin liberar**, elegido a sabiendas para no frenar la planta.
 3. A Calle 5 va **solo lo liberado** o lo sin lote.
-**Dónde está.** `20260930160000`/`160100`: `gmp.impedimento_despacho_orden()`
-(la autoridad, CLAUDE.md §4), `movimientos_pt.orden_id` y el reparto por lote
-en `comercial.fn_movimiento_pt_lote`.
-**No cubre** el bloqueo de un lote de PT por retiro (RN-52): espera el módulo
-de retiro (PG.60.4).
+   **Dónde está.** `20260930160000`/`160100`: `gmp.impedimento_despacho_orden()`
+   (la autoridad, CLAUDE.md §4), `movimientos_pt.orden_id` y el reparto por lote
+   en `comercial.fn_movimiento_pt_lote`.
+   **No cubre** el bloqueo de un lote de PT por retiro (RN-52): espera el módulo
+   de retiro (PG.60.4).
 
 ### R-08 · Número de lote según I.40.25 (borrador) — 2026-09-30, provisorio
 

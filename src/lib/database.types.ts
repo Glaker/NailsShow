@@ -6756,6 +6756,16 @@ export type Database = {
           unidad: string
         }[]
       }
+      crear_produccion: {
+        Args: {
+          p_cantidad: number
+          p_dias?: number
+          p_inicio?: string
+          p_para_pedido_id?: string
+          p_producto_id: string
+        }
+        Returns: string
+      }
       cuit_valido: { Args: { p: string }; Returns: boolean }
       densidad_insumo: { Args: { p_insumo_id: string }; Returns: number }
       descartar_articulo: {
