@@ -122,7 +122,9 @@ Deno.serve(async (req) => {
     vis.data as Excepcion[],
   );
 
-  const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
+  // Sin espacios ni saltos de línea: una clave pegada con uno al final arma un
+  // encabezado inválido y el SDK lo informa como «Connection error».
+  const apiKey = Deno.env.get('ANTHROPIC_API_KEY')?.trim();
   // Sin ella la base rechaza el registro (D-59): mejor no gastar en la respuesta.
   const claveRegistro = Deno.env.get('GIORGIO_CLAVE_REGISTRO');
   if (!apiKey || !claveRegistro) {
@@ -212,7 +214,10 @@ Deno.serve(async (req) => {
     } catch (err) {
       error =
         err instanceof Anthropic.APIError
-          ? `API ${err.status ?? '?'}: ${err.message}`
+          ? // Un error de conexión trae la causa real (DNS, TLS, encabezado) en `cause`.
+            `API ${err.status ?? '?'}: ${err.message}${
+              err.cause instanceof Error ? ` (${err.cause.message})` : ''
+            }`
           : err instanceof Error
             ? err.message
             : String(err);
