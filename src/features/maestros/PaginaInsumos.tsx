@@ -38,7 +38,8 @@ import {
   useInsumos,
   type Insumo,
 } from '@/lib/consultas';
-import { etiquetaEnum } from '@/lib/formato';
+import { etiquetaEnum, etiquetaUnidad } from '@/lib/formato';
+import { UNIDADES_COSTO } from '@/lib/consultasCostos';
 import { useTieneRol } from '@/features/auth/sesion';
 
 const TIPOS = [
@@ -187,11 +188,28 @@ export function FormularioInsumo({
           </Grid.Col>
           {conUnidad ? (
             <Grid.Col span={{ base: 12, sm: 4 }}>
-              <TextInput
+              {/* Lista cerrada: el stock compara unidades letra por letra y
+                  «Kg» o «unidades» tipeados a mano no coinciden con nada. Una
+                  ficha vieja con otro valor lo muestra hasta que se corrija. */}
+              <Select
                 label="Unidad de medida"
-                placeholder="g, kg, ml…"
-                description="Vacía = pendiente. Sin unidad no se puede recepcionar."
+                placeholder="Pendiente"
+                description="Sin unidad no se puede recepcionar."
+                data={[
+                  ...UNIDADES_COSTO.map((u) => ({ value: u, label: etiquetaUnidad(u) })),
+                  ...(form.values.unidad_medida &&
+                  !UNIDADES_COSTO.includes(form.values.unidad_medida)
+                    ? [
+                        {
+                          value: form.values.unidad_medida,
+                          label: `${form.values.unidad_medida} (corregir)`,
+                        },
+                      ]
+                    : []),
+                ]}
+                clearable
                 {...form.getInputProps('unidad_medida')}
+                onChange={(u) => form.setFieldValue('unidad_medida', u ?? '')}
               />
             </Grid.Col>
           ) : null}

@@ -305,7 +305,7 @@ function TableroGeneral() {
                                 {l.insumo_nombre}
                               </Anchor>
                               <Text size="xs" c="dimmed">
-                                lote {l.lote_proveedor}
+                                lote {l.lote_proveedor ?? 's/lote'}
                               </Text>
                             </Table.Td>
                             <Table.Td>

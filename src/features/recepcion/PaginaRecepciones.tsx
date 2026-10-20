@@ -1,10 +1,13 @@
+import { useState } from 'react';
 import {
   Badge,
   Button,
   Group,
   Modal,
   Paper,
+  Select,
   Skeleton,
+  Stack,
   Table,
   Text,
   Tooltip,
@@ -19,8 +22,12 @@ import {
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { Vacio } from '@/components/Vacio';
 import { FormularioRecepcion } from './FormularioRecepcion';
-import { modals } from '@mantine/modals';
-import { useCargarRecepcionAStock, useRecepciones } from '@/lib/consultas';
+import {
+  useCargarRecepcionAStock,
+  useDepositoPorDefecto,
+  useDepositos,
+  useRecepciones,
+} from '@/lib/consultas';
 import { fechaHora, numero } from '@/lib/formato';
 import { useTieneRol } from '@/features/auth/sesion';
 import {
@@ -66,29 +73,7 @@ export function PaginaRecepciones() {
   );
 
   const filas = recepciones.data ?? [];
-
-  /**
-   * La carga a stock es un acto administrativo deliberado y posterior a la
-   * recepción física, no un efecto automático de ella: Depósito recibe y
-   * Administración concilia. Se confirma porque no tiene vuelta atrás por la
-   * vía fácil —deshacerla exige anular movimiento por movimiento (RN-54)—.
-   */
-  const confirmarCarga = (id: string, numeroRecepcion: string, lotes: number) => {
-    modals.openConfirmModal({
-      title: <Text fw={700}>Cargar a stock la recepción {numeroRecepcion}</Text>,
-      children: (
-        <Text size="sm">
-          Se registra una entrada por cada uno de los {numero(lotes)}{' '}
-          {lotes === 1 ? 'lote' : 'lotes'} de la recepción, en el depósito que tiene
-          asignado cada uno. Queda a tu nombre y no se deshace: un movimiento de stock no
-          se borra, se anula con su inverso.
-        </Text>
-      ),
-      labels: { confirm: 'Cargar a stock', cancel: 'Cancelar' },
-      confirmProps: { color: 'azul' },
-      onConfirm: () => cargar.mutate(id),
-    });
-  };
+  const [aCargar, setACargar] = useState<Recepcion | null>(null);
 
   return (
     <>
@@ -230,8 +215,10 @@ export function PaginaRecepciones() {
                               variant="light"
                               color="azul"
                               leftSection={<IconPackageImport size={15} />}
-                              loading={cargar.isPending && cargar.variables === r.id}
-                              onClick={() => confirmarCarga(r.id, r.numero, lotes.length)}
+                              loading={
+                                cargar.isPending && cargar.variables.recepcionId === r.id
+                              }
+                              onClick={() => setACargar(r)}
                             >
                               Cargar a stock
                             </Button>
@@ -255,6 +242,116 @@ export function PaginaRecepciones() {
       >
         <FormularioRecepcion onListo={modal.close} />
       </Modal>
+
+      <Modal
+        opened={aCargar !== null}
+        onClose={() => setACargar(null)}
+        title={<Text fw={700}>Cargar a stock la recepción {aCargar?.numero}</Text>}
+        size="lg"
+      >
+        {aCargar ? (
+          <CargarAStock
+            recepcion={aCargar}
+            enCurso={cargar.isPending}
+            onCancelar={() => setACargar(null)}
+            onConfirmar={(depositos) => {
+              cargar.mutate({ recepcionId: aCargar.id, depositos });
+              setACargar(null);
+            }}
+          />
+        ) : null}
+      </Modal>
     </>
+  );
+}
+
+type Recepcion = NonNullable<ReturnType<typeof useRecepciones>['data']>[number];
+
+/**
+ * La carga a stock es un acto administrativo deliberado y posterior a la
+ * recepción física, no un efecto automático de ella: Depósito recibe y
+ * Administración concilia. Se confirma porque no tiene vuelta atrás por la
+ * vía fácil —deshacerla exige anular movimiento por movimiento (RN-54)—.
+ *
+ * Un lote sin depósito (recibido antes de 20261020130000, o de un insumo sin
+ * cuarentena en la ficha) se resuelve acá mismo: se propone el de su tipo y
+ * se puede cambiar.
+ */
+function CargarAStock({
+  recepcion,
+  enCurso,
+  onCancelar,
+  onConfirmar,
+}: {
+  recepcion: Recepcion;
+  enCurso: boolean;
+  onCancelar: () => void;
+  onConfirmar: (depositos: Record<string, string>) => void;
+}) {
+  const lotes = recepcion.lotes;
+  const sinDeposito = lotes.filter((l) => !l.deposito_actual_id);
+  const depositos = useDepositos();
+  const sugeridos = useDepositoPorDefecto([
+    ...new Set(sinDeposito.map((l) => l.insumo_id)),
+  ]);
+  const [elegidos, setElegidos] = useState<Record<string, string>>({});
+  const elegido = (l: (typeof lotes)[number]) =>
+    elegidos[l.id] ?? sugeridos.data?.get(l.insumo_id) ?? null;
+  const faltan = sinDeposito.some((l) => !elegido(l));
+
+  const opciones = (depositos.data ?? [])
+    // Los mismos que acepta gmp.asignar_deposito_lote: cuarentena o inflamables.
+    .filter(
+      (d) =>
+        d.activo &&
+        (d.estado_admitido === 'CUARENTENA' || d.tipo_contenido === 'INFLAMABLES'),
+    )
+    .map((d) => ({ value: d.id, label: `${d.numero} — ${d.nombre}` }));
+
+  return (
+    <Stack gap="md">
+      <Text size="sm">
+        Se registra una entrada por cada uno de los {numero(lotes.length)}{' '}
+        {lotes.length === 1 ? 'lote' : 'lotes'} de la recepción, en el depósito de cada
+        uno. Queda a tu nombre y no se deshace: un movimiento de stock no se borra, se
+        anula con su inverso.
+      </Text>
+      {sinDeposito.length > 0 ? (
+        <Stack gap="sm">
+          <Text size="sm" fw={600}>
+            {sinDeposito.length === 1
+              ? 'Este lote no tiene depósito. Te propongo el de su tipo:'
+              : 'Estos lotes no tienen depósito. Te propongo el de su tipo:'}
+          </Text>
+          {sinDeposito.map((l) => (
+            <Select
+              key={l.id}
+              label={`${l.numero_registro_interno} · ${l.insumo?.nombre ?? ''}`}
+              data={opciones}
+              value={elegido(l)}
+              onChange={(v) => v && setElegidos((e) => ({ ...e, [l.id]: v }))}
+              allowDeselect={false}
+              searchable
+              disabled={sugeridos.isLoading}
+            />
+          ))}
+        </Stack>
+      ) : null}
+      <Group justify="flex-end">
+        <Button variant="subtle" color="gray" onClick={onCancelar}>
+          Cancelar
+        </Button>
+        <Button
+          color="azul"
+          loading={enCurso || sugeridos.isLoading}
+          disabled={faltan}
+          onClick={() =>
+            onConfirmar(Object.fromEntries(sinDeposito.map((l) => [l.id, elegido(l)!])))
+          }
+        >
+          Cargar a stock
+        </Button>
+      </Group>
+    </Stack>
   );
 }

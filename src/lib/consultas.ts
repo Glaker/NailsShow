@@ -295,7 +295,9 @@ export function useRecepciones() {
     queryFn: async () => {
       const { data, error } = await gmp()
         .from('recepciones')
-        .select('*, proveedor:proveedores(razon_social), lotes:lotes_insumo(id)')
+        .select(
+          '*, proveedor:proveedores(razon_social), lotes:lotes_insumo(id, numero_registro_interno, insumo_id, deposito_actual_id, insumo:insumos_catalogo(nombre))',
+        )
         .order('fecha_hora', { ascending: false })
         .limit(200);
       if (error) throw error;
@@ -306,7 +308,7 @@ export function useRecepciones() {
 
 export interface LoteNuevo {
   insumo_id: string;
-  lote_proveedor: string;
+  lote_proveedor: string | null;
   cantidad_bultos: number;
   cantidad_unidades: number | null;
   unidad: string;
@@ -811,6 +813,23 @@ export function useExistenciasPorLote(articuloId?: string) {
   });
 }
 
+/** Entradas a stock de un artículo, de la más vieja a la más nueva, con autor. */
+export function useEntradasDeArticulo(articuloId: string) {
+  return useQuery({
+    queryKey: ['stock-entradas', articuloId],
+    queryFn: async () => {
+      const { data, error } = await comercial()
+        .from('v_kardex')
+        .select('lote_insumo_id, ocurrido_en, registrado_por_nombre')
+        .eq('articulo_id', articuloId)
+        .in('tipo', ['ENTRADA_COMPRA', 'ENTRADA_SALDO_APERTURA'])
+        .order('ocurrido_en');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 /** Existencia de un lote, repartida por depósito. */
 export function useExistenciasDeLote(loteId: string | undefined) {
   return useQuery({
@@ -883,10 +902,47 @@ export function invalidarStock(qc: ReturnType<typeof useQueryClient>) {
  * da transacción entre llamadas: con tres lotes y un fallo en el segundo,
  * quedaría media recepción cargada y sin forma de deshacerlo (RN-54).
  */
+/** Dónde entraría un lote nuevo de cada insumo (gmp.deposito_por_defecto). */
+export function useDepositoPorDefecto(insumoIds: string[]) {
+  return useQuery({
+    queryKey: ['deposito-por-defecto', insumoIds],
+    enabled: insumoIds.length > 0,
+    queryFn: async () => {
+      const pares = await Promise.all(
+        insumoIds.map(async (id) => {
+          const { data, error } = await gmp().rpc('deposito_por_defecto', {
+            p_insumo_id: id,
+          });
+          if (error) throw error;
+          return [id, data] as const;
+        }),
+      );
+      return new Map<string, string | null>(pares);
+    },
+  });
+}
+
+/**
+ * Carga a stock. `depositos` completa antes el depósito de los lotes que no
+ * lo tienen (gmp.asignar_deposito_lote): sin destino la base rechaza la carga.
+ */
 export function useCargarRecepcionAStock() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (recepcionId: string) => {
+    mutationFn: async ({
+      recepcionId,
+      depositos = {},
+    }: {
+      recepcionId: string;
+      depositos?: Record<string, string>;
+    }) => {
+      for (const [lote, deposito] of Object.entries(depositos)) {
+        const { error } = await gmp().rpc('asignar_deposito_lote', {
+          p_lote_id: lote,
+          p_deposito_id: deposito,
+        });
+        if (error) throw error;
+      }
       const { data, error } = await comercial().rpc('cargar_recepcion_a_stock', {
         p_recepcion_id: recepcionId,
       });
@@ -898,6 +954,8 @@ export function useCargarRecepcionAStock() {
       const n = Array.isArray(data) ? data.length : 0;
       avisarExito(`${n} ${n === 1 ? 'lote cargado' : 'lotes cargados'} a stock.`);
     },
+    // Aunque la carga falle, los depósitos asignados antes ya quedaron.
+    onSettled: () => void qc.invalidateQueries({ queryKey: ['recepciones'] }),
     onError: avisarError,
   });
 }

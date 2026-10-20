@@ -749,6 +749,23 @@ no la menciona: es un dato de ficha sin regla de negocio todavía.
   cálculo firmado llega a depender de ella, ¿se congela como `codigo_interno`?
   **Decide.** Gerencia de Producción con Dirección Técnica.
 
+### D-unidad-solo-materia-prima-2 · Lote del proveedor optativo con remito
+
+**Pedido** del usuario (2026-10-20): que el lote del proveedor sea optativo,
+porque el remito ya da la trazabilidad hasta el lote final.
+`20261020130000` lo implementa: `gmp.lotes_insumo.lote_proveedor` admite NULL
+solo si la recepción tiene número de remito (si no, nada rastrea el material
+hacia atrás). **Contradice el alcance:** el esquema lo pedía NOT NULL y el
+rótulo R.20.2.1 y la etiqueta de muestreo R.50.4.1 listan «n° lote
+proveedor». Hoy el rótulo muestra «—» en ese campo.
+**Preguntas para DT.**
+
+- ¿Se acepta el remito como sustituto del lote del proveedor? ¿Para todos
+  los tipos, o solo envases y empaques (la materia prima con protocolo trae
+  lote en el certificado)?
+- ¿El rótulo debería mostrar el remito cuando falta el lote?
+  **Decide.** Dirección Técnica.
+
 ## Abiertas — 2026-10-14
 
 ### D-55 · Especificaciones cargadas en borrador: qué revisar antes de aprobar
