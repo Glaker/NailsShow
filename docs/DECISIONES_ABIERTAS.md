@@ -732,6 +732,23 @@ la unidad de planificación (producción de un producto con cantidad), cómo se
 asigna a uno o varios pedidos o a stock, y cómo convive con la fecha
 comprometida del bloque 3.
 
+## Abiertas — 2026-10-20
+
+### D-unidad-solo-materia-prima-1 · Capacidad del envase: para qué se usa
+
+**Pedido** del usuario (2026-10-20): que el alta de un material de envase pida
+su capacidad «para cálculos posteriores». `20261020120000` agrega
+`gmp.insumos_catalogo.capacidad` + `unidad_capacidad` (g o mL), solo en
+MATERIAL_ENVASE, optativa (tapas y pinceles no contienen producto). El alcance
+no la menciona: es un dato de ficha sin regla de negocio todavía.
+**Preguntas.**
+
+- ¿Qué cálculos la usan? (¿controlar que el envase de la orden coincida con el
+  contenido neto del producto? ¿estimar envases por lote?)
+- La capacidad se puede editar con lotes ya recibidos (queda auditada). Si un
+  cálculo firmado llega a depender de ella, ¿se congela como `codigo_interno`?
+  **Decide.** Gerencia de Producción con Dirección Técnica.
+
 ## Abiertas — 2026-10-14
 
 ### D-55 · Especificaciones cargadas en borrador: qué revisar antes de aprobar
