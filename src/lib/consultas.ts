@@ -409,6 +409,11 @@ export function useCrearRecepcion() {
 export function useInsumos() {
   return useQuery({
     queryKey: ['insumos'],
+    /* Un insumo dado de alta en otra pestaña (o por otra persona) tiene que
+       aparecer en la recepción abierta sin recargar. Releer el catálogo no
+       pisa lo tipeado: el formulario no se inicializa desde esta consulta. */
+    refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
     queryFn: async () => {
       const { data, error } = await gmp()
         .from('insumos_catalogo')
