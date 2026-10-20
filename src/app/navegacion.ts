@@ -300,7 +300,6 @@ export const NAVEGACION: ItemNavegacion[] = [
   },
 ];
 
-
 /** Pestañas que también se pueden mostrar u ocultar por rol. */
 export const PESTANIAS: { ruta: string; etiqueta: string; de: string; roles?: Rol[] }[] =
   [
