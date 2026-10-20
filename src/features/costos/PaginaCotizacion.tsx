@@ -196,6 +196,9 @@ function Cabecera({
   const crearPotencial = useCrearPotencial();
   const [nuevoPot, setNuevoPot] = useState({ razon_social: '', cuit: '', contacto: '' });
   const [titulo, setTitulo] = useState(c.titulo);
+  // CLIENTE y POTENCIAL se guardan recién con el id elegido: el CHECK
+  // cotizaciones_destino rechaza el destino sin su cliente.
+  const [destino, setDestino] = useState(c.destino);
   return (
     <Paper withBorder p="md" style={{ borderColor: 'var(--superficie-borde)' }}>
       <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
@@ -252,32 +255,37 @@ function Cabecera({
           Para
         </Text>
         <SegmentedControl
-          value={c.destino}
-          onChange={(v) =>
-            onCambiar({
-              destino: v as Cotizacion['destino'],
-              cliente_id: null,
-              cliente_potencial_id: null,
-            })
-          }
+          value={destino}
+          onChange={(v) => {
+            setDestino(v as Cotizacion['destino']);
+            if (v === 'INTERNO')
+              onCambiar({
+                destino: 'INTERNO',
+                cliente_id: null,
+                cliente_potencial_id: null,
+              });
+          }}
           data={[
             { label: 'Cliente', value: 'CLIENTE' },
             { label: 'Cliente potencial', value: 'POTENCIAL' },
             { label: 'Uso interno', value: 'INTERNO' },
           ]}
         />
-        {c.destino === 'CLIENTE' ? (
+        {destino === 'CLIENTE' ? (
           <Select
             placeholder="Elegí el cliente"
             searchable
             data={(clientes.data ?? [])
               .filter((x) => x.activo)
               .map((x) => ({ value: x.id, label: x.razon_social }))}
-            value={c.cliente_id}
-            onChange={(v) => v && onCambiar({ cliente_id: v })}
+            value={c.destino === 'CLIENTE' ? c.cliente_id : null}
+            onChange={(v) =>
+              v &&
+              onCambiar({ destino: 'CLIENTE', cliente_id: v, cliente_potencial_id: null })
+            }
           />
         ) : null}
-        {c.destino === 'POTENCIAL' ? (
+        {destino === 'POTENCIAL' ? (
           <Group align="flex-end" wrap="wrap">
             <Select
               placeholder="Elegí uno ya cargado"
@@ -286,8 +294,15 @@ function Cabecera({
                 value: x.id,
                 label: x.razon_social,
               }))}
-              value={c.cliente_potencial_id}
-              onChange={(v) => v && onCambiar({ cliente_potencial_id: v })}
+              value={c.destino === 'POTENCIAL' ? c.cliente_potencial_id : null}
+              onChange={(v) =>
+                v &&
+                onCambiar({
+                  destino: 'POTENCIAL',
+                  cliente_id: null,
+                  cliente_potencial_id: v,
+                })
+              }
               w={{ base: '100%', sm: 280 }}
             />
             <Text size="sm" c="dimmed">
@@ -331,7 +346,11 @@ function Cabecera({
                   },
                   {
                     onSuccess: (pid) => {
-                      onCambiar({ cliente_potencial_id: pid });
+                      onCambiar({
+                        destino: 'POTENCIAL',
+                        cliente_id: null,
+                        cliente_potencial_id: pid,
+                      });
                       setNuevoPot({ razon_social: '', cuit: '', contacto: '' });
                     },
                   },
@@ -342,7 +361,7 @@ function Cabecera({
             </Button>
           </Group>
         ) : null}
-        {c.destino === 'INTERNO' ? (
+        {destino === 'INTERNO' ? (
           <Text size="sm" c="dimmed">
             Sin cliente: para conocer costo y precio. El PDF lleva la marca «USO INTERNO».
           </Text>
