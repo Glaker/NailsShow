@@ -296,7 +296,7 @@ export function useRecepciones() {
       const { data, error } = await gmp()
         .from('recepciones')
         .select(
-          '*, proveedor:proveedores(razon_social), lotes:lotes_insumo(id, numero_registro_interno, insumo_id, deposito_actual_id, insumo:insumos_catalogo(nombre))',
+          '*, proveedor:proveedores(razon_social), lotes:lotes_insumo(id, numero_registro_interno, insumo_id, deposito_actual_id, estado, cantidad_bultos, insumo:insumos_catalogo(nombre, tipo, requiere_protocolo))',
         )
         .order('fecha_hora', { ascending: false })
         .limit(200);

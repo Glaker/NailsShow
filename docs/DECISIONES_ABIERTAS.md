@@ -766,6 +766,34 @@ proveedor». Hoy el rótulo muestra «—» en ese campo.
 - ¿El rótulo debería mostrar el remito cuando falta el lote?
   **Decide.** Dirección Técnica.
 
+### D-recepcion-1 · Rol Recepción y control rápido de materia prima
+
+**Decidido** por el codirector técnico (2026-10-20), como excepción a §3.4.
+Rol nuevo `RECEPCION` (`20261020140000`, `20261020140100`) para Silveira
+(Stefania): registra recepciones, las carga a stock, da de alta insumos (no
+edita fichas) y hace el control de materia prima. La misma persona recibe,
+muestrea y dictamina: para materia prima alcanza el control organoléptico
+(contenedor, rótulo, protocolo, aspecto transparente, olor característico).
+El control rápido usa las mismas funciones del circuito completo, así que
+quedan el muestreo con su etiqueta R.50.4.1, el R.50.5.1 numerado y el rótulo,
+todo a su nombre. Granel y producto terminado siguen con DT/CC, con el
+análisis fisicoquímico.
+
+**Pendiente.**
+
+- Incorporar el rol al organigrama PG.60.1 v03 (D-06): a diferencia de
+  ENCARGADA_STOCK, este sí toca registros regulados.
+- Riesgo conocido: como da de alta insumos y dictamina materia prima, puede
+  crear un insumo como «materia prima» y aprobarlo ella. El tipo queda
+  auditado. Si se quiere cerrar: que el alta de materia prima la confirme DT/GP
+  antes del primer control.
+- Preexistente, no lo abre este rol pero lo amplía: la política
+  `rotulos_insert_emision` no ata el rótulo al estado del lote, y
+  `lotes_insumo_update_circuito` deja cambiar `deposito_actual_id` por UPDATE
+  directo. Conviene cerrarlos para todos los roles.
+- `comercial.vincular_recepcion_compras` no admite RECEPCION: si recibe algo
+  de una compra pendiente, la vinculación la hace GP o Administración.
+
 ## Abiertas — 2026-10-14
 
 ### D-55 · Especificaciones cargadas en borrador: qué revisar antes de aprobar

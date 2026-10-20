@@ -3,7 +3,17 @@
     {
       "ruta": "/",
       "etiqueta": "Tablero",
-      "roles": null,
+      "roles": [
+        "OPERARIO",
+        "CONTROL_CALIDAD",
+        "DIRECCION_TECNICA",
+        "ADMINISTRACION",
+        "GERENCIA_PRODUCCION",
+        "GERENCIA",
+        "ENCARGADA_STOCK",
+        "VENTAS",
+        "FINANZAS"
+      ],
       "queEs": "Tu pantalla de inicio. Cada rol ve lo que le toca hacer hoy, y nada más: los números y las filas son atajos que llevan directo a la pantalla donde se resuelve. Los datos salen de lo que se registra en el resto del sistema (lotes, órdenes, pedidos), así que cambian solos a medida que el equipo trabaja."
     },
     {
@@ -74,7 +84,8 @@
         "ADMINISTRACION",
         "DIRECCION_TECNICA",
         "CONTROL_CALIDAD",
-        "VENTAS"
+        "VENTAS",
+        "RECEPCION"
       ],
       "queEs": "Todo lo de existencias, en pestañas: «Insumos», «Recepciones», «Stock de seguridad», «En fábrica» y «Conteo». Cada rol ve solo las pestañas que le tocan (se configuran en «Quién ve qué»). La pestaña elegida queda en el enlace. Los datos salen de los lotes recibidos, los movimientos de stock y los pedidos."
     },
@@ -295,7 +306,8 @@
       "roles": [
         "GERENCIA_PRODUCCION",
         "GERENCIA",
-        "CONTROL_CALIDAD"
+        "CONTROL_CALIDAD",
+        "RECEPCION"
       ],
       "queEs": null
     },
@@ -306,7 +318,8 @@
         "GERENCIA_PRODUCCION",
         "GERENCIA",
         "DIRECCION_TECNICA",
-        "CONTROL_CALIDAD"
+        "CONTROL_CALIDAD",
+        "RECEPCION"
       ],
       "queEs": null
     },

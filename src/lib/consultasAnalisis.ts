@@ -109,6 +109,49 @@ export function useDictaminarLote() {
   });
 }
 
+export interface ControlRapido {
+  loteId: string;
+  contenedorOk: boolean;
+  rotuloOk: boolean;
+  coincideProtocolo: boolean;
+  aspectoOk: boolean;
+  olorOk: boolean;
+  aprobado: boolean;
+  contenedores: number;
+  observacion: string;
+}
+
+/**
+ * Materia prima: muestreo + análisis organoléptico + veredicto en una sola
+ * transacción (gmp.control_rapido_materia_prima, D-recepcion-1).
+ */
+export function useControlRapidoMP() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (c: ControlRapido) => {
+      const { error } = await gmp().rpc('control_rapido_materia_prima', {
+        p_lote_id: c.loteId,
+        p_contenedor_ok: c.contenedorOk,
+        p_rotulo_ok: c.rotuloOk,
+        p_coincide_protocolo: c.coincideProtocolo,
+        p_aspecto_ok: c.aspectoOk,
+        p_olor_ok: c.olorOk,
+        p_aprobado: c.aprobado,
+        p_contenedores: c.contenedores,
+        p_observacion: c.observacion,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_, c) => {
+      invalidar(qc);
+      void qc.invalidateQueries({ queryKey: ['recepciones'] });
+      void qc.invalidateQueries({ queryKey: ['stock-existencias'] });
+      avisarExito(c.aprobado ? 'Lote aprobado.' : 'Lote rechazado.');
+    },
+    onError: avisarError,
+  });
+}
+
 /** Granel: R.50.10.1 y etapa CC_GRANEL con ese dictamen. */
 export function useDictaminarGranel() {
   const qc = useQueryClient();

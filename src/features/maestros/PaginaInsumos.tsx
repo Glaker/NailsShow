@@ -321,6 +321,13 @@ export function PaginaInsumos() {
     'GERENCIA_PRODUCCION',
     'ADMINISTRADOR_SISTEMA',
   );
+  // insumos_catalogo_insert_tecnicos: Recepción da de alta, no edita.
+  const puedeCrear = useTieneRol(
+    'DIRECCION_TECNICA',
+    'GERENCIA_PRODUCCION',
+    'ADMINISTRADOR_SISTEMA',
+    'RECEPCION',
+  );
 
   const abrirAlta = () => {
     setEnEdicion(undefined);
@@ -351,7 +358,7 @@ export function PaginaInsumos() {
         titulo="Catálogo de insumos"
         descripcion="Cada ficha define el circuito del material: qué exige al recibirlo y a qué depósito va."
         acciones={
-          puedeEditar ? (
+          puedeCrear ? (
             <Button leftSection={<IconPlus size={18} />} onClick={abrirAlta}>
               Nuevo insumo
             </Button>
@@ -371,7 +378,7 @@ export function PaginaInsumos() {
             titulo="El catálogo está vacío"
             descripcion="Cargá los insumos que la planta recibe. Sin catálogo no se puede registrar una recepción."
             accion={
-              puedeEditar ? (
+              puedeCrear ? (
                 <Button
                   variant="light"
                   leftSection={<IconPlus size={16} />}

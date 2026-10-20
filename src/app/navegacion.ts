@@ -64,11 +64,24 @@ const PRODUCCION: Rol[] = ['GERENCIA_PRODUCCION', 'GERENCIA'];
 
 export const NAVEGACION: ItemNavegacion[] = [
   {
-    // El contenido cambia según el rol principal (PaginaTablero).
+    // El contenido cambia según el rol principal (PaginaTablero). Recepción no
+    // lo tiene: ve solo recepciones, stock de insumos y su catálogo
+    // (pedido del 2026-10-20); PaginaTablero la manda a Recepciones.
     ruta: '/',
     etiqueta: 'Tablero',
     etiquetaCorta: 'Tablero',
     icono: IconLayoutDashboard,
+    roles: [
+      'OPERARIO',
+      'CONTROL_CALIDAD',
+      'DIRECCION_TECNICA',
+      'ADMINISTRACION',
+      'GERENCIA_PRODUCCION',
+      'GERENCIA',
+      'ENCARGADA_STOCK',
+      'VENTAS',
+      FINANZAS,
+    ],
     principal: true,
   },
   {
@@ -129,6 +142,7 @@ export const NAVEGACION: ItemNavegacion[] = [
       'DIRECCION_TECNICA',
       'CONTROL_CALIDAD',
       'VENTAS',
+      'RECEPCION',
     ],
     principal: true,
   },
@@ -307,14 +321,14 @@ export const PESTANIAS: { ruta: string; etiqueta: string; de: string; roles?: Ro
       ruta: '/stock?vista=insumos',
       etiqueta: 'Stock › Insumos (materia prima)',
       de: '/stock',
-      roles: [...PRODUCCION, 'CONTROL_CALIDAD'],
+      roles: [...PRODUCCION, 'CONTROL_CALIDAD', 'RECEPCION'],
     },
     {
       // La DT mira la recepción para aprobar calidad y cantidad.
       ruta: '/stock?vista=recepciones',
       etiqueta: 'Stock › Recepciones',
       de: '/stock',
-      roles: [...PRODUCCION, 'DIRECCION_TECNICA', 'CONTROL_CALIDAD'],
+      roles: [...PRODUCCION, 'DIRECCION_TECNICA', 'CONTROL_CALIDAD', 'RECEPCION'],
     },
     {
       ruta: '/stock?vista=seguridad',
@@ -354,6 +368,7 @@ export const ROLES_CONFIGURABLES: Rol[] = [
   'ENCARGADA_STOCK',
   'VENTAS',
   FINANZAS,
+  'RECEPCION',
 ];
 
 /** Lo que el código dice por defecto: sin `roles`, la ven todos. */

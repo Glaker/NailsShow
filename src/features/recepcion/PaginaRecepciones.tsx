@@ -15,6 +15,7 @@ import {
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconAlertTriangle,
+  IconFlask,
   IconPackageImport,
   IconPlus,
   IconTruckDelivery,
@@ -22,6 +23,7 @@ import {
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { Vacio } from '@/components/Vacio';
 import { FormularioRecepcion } from './FormularioRecepcion';
+import { ControlRapidoMP } from '@/features/calidad/ControlRapidoMP';
 import {
   useCargarRecepcionAStock,
   useDepositoPorDefecto,
@@ -64,13 +66,22 @@ export function PaginaRecepciones() {
     'DIRECCION_TECNICA',
     'ADMINISTRACION',
     'GERENCIA_PRODUCCION',
+    'RECEPCION',
   );
   const puedeRegistrar = useTieneRol(
     'OPERARIO',
     'CONTROL_CALIDAD',
     'DIRECCION_TECNICA',
     'GERENCIA_PRODUCCION',
+    'RECEPCION',
   );
+  /* gmp.control_rapido_materia_prima (D-recepcion-1). */
+  const haceControlRapido = useTieneRol(
+    'RECEPCION',
+    'CONTROL_CALIDAD',
+    'DIRECCION_TECNICA',
+  );
+  const [aControlar, setAControlar] = useState<LoteDeRecepcion[]>([]);
 
   const filas = recepciones.data ?? [];
   const [aCargar, setACargar] = useState<Recepcion | null>(null);
@@ -124,7 +135,7 @@ export function PaginaRecepciones() {
                   <Table.Th>Comprobante</Table.Th>
                   <Table.Th>Lotes</Table.Th>
                   <Table.Th>Estado administrativo</Table.Th>
-                  {puedeCargarStock ? <Table.Th /> : null}
+                  {puedeCargarStock || haceControlRapido ? <Table.Th /> : null}
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
@@ -207,9 +218,9 @@ export function PaginaRecepciones() {
                           </Text>
                         ) : null}
                       </Table.Td>
-                      {puedeCargarStock ? (
+                      {puedeCargarStock || haceControlRapido ? (
                         <Table.Td>
-                          {!r.cargado_a_stock ? (
+                          {puedeCargarStock && !r.cargado_a_stock ? (
                             <Button
                               size="compact-sm"
                               variant="light"
@@ -221,6 +232,18 @@ export function PaginaRecepciones() {
                               onClick={() => setACargar(r)}
                             >
                               Cargar a stock
+                            </Button>
+                          ) : null}
+                          {haceControlRapido && pendientesMP(r).length > 0 ? (
+                            <Button
+                              size="compact-sm"
+                              variant="light"
+                              color="estadoEnAnalisis"
+                              leftSection={<IconFlask size={15} />}
+                              mt={4}
+                              onClick={() => setAControlar(pendientesMP(r))}
+                            >
+                              Control de calidad ({pendientesMP(r).length})
                             </Button>
                           ) : null}
                         </Table.Td>
@@ -255,9 +278,45 @@ export function PaginaRecepciones() {
             enCurso={cargar.isPending}
             onCancelar={() => setACargar(null)}
             onConfirmar={(depositos) => {
-              cargar.mutate({ recepcionId: aCargar.id, depositos });
+              const recepcion = aCargar;
+              cargar.mutate(
+                { recepcionId: recepcion.id, depositos },
+                // Lo pidió la planta: al cargar a stock salta el control de
+                // la materia prima, de a un lote (D-recepcion-1).
+                {
+                  onSuccess: () => {
+                    if (haceControlRapido) setAControlar(pendientesMP(recepcion));
+                  },
+                },
+              );
               setACargar(null);
             }}
+          />
+        ) : null}
+      </Modal>
+
+      <Modal
+        opened={aControlar.length > 0}
+        onClose={() => setAControlar([])}
+        title={
+          <Text fw={700}>
+            Control de materia prima
+            {aControlar.length > 1 ? ` · quedan ${aControlar.length}` : ''}
+          </Text>
+        }
+        size="lg"
+      >
+        {aControlar[0] ? (
+          <ControlRapidoMP
+            key={aControlar[0].id}
+            lote={{
+              id: aControlar[0].id,
+              numero: aControlar[0].numero_registro_interno,
+              nombre: aControlar[0].insumo?.nombre ?? '',
+              requiereProtocolo: aControlar[0].insumo?.requiere_protocolo ?? false,
+              bultos: aControlar[0].cantidad_bultos,
+            }}
+            onListo={() => setAControlar((l) => l.slice(1))}
           />
         ) : null}
       </Modal>
@@ -266,6 +325,15 @@ export function PaginaRecepciones() {
 }
 
 type Recepcion = NonNullable<ReturnType<typeof useRecepciones>['data']>[number];
+type LoteDeRecepcion = Recepcion['lotes'][number];
+
+/** Materia prima de la recepción que todavía no tiene veredicto. */
+const pendientesMP = (r: Recepcion): LoteDeRecepcion[] =>
+  r.lotes.filter(
+    (l) =>
+      l.insumo?.tipo === 'MATERIA_PRIMA' &&
+      (l.estado === 'RECIBIDO' || l.estado === 'CUARENTENA'),
+  );
 
 /**
  * La carga a stock es un acto administrativo deliberado y posterior a la

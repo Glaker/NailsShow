@@ -190,13 +190,15 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
   const cargaCosto = useTieneRol(...ROLES_CARGAN_COSTO_LOTE);
   /* Dirección Técnica recibe material pero no ve la parte fiscal: el
      comprobante lo carga Administración (pedido del 2026-10-14). */
-  const veComprobante = !useTieneRol('DIRECCION_TECNICA');
+  /* Recepción tampoco: recibe y carga a stock, la factura es de Administración. */
+  const veComprobante = !useTieneRol('DIRECCION_TECNICA', 'RECEPCION');
   /* Alta de insumo sin salir de la recepción. Mismos roles que la política
      insumos_catalogo_insert_tecnicos. Guarda el índice del lote que lo pidió. */
   const creaInsumo = useTieneRol(
     'DIRECCION_TECNICA',
     'GERENCIA_PRODUCCION',
     'ADMINISTRADOR_SISTEMA',
+    'RECEPCION',
   );
   const [altaParaLote, setAltaParaLote] = useState<number | null>(null);
   /** Lo último tipeado en el buscador de insumos: pasa como nombre al alta. */
