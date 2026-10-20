@@ -300,13 +300,6 @@ export const NAVEGACION: ItemNavegacion[] = [
   },
 ];
 
-/** Quién tiene los catálogos en el menú del usuario. */
-export const ROLES_CATALOGOS: Rol[] = [
-  'GERENCIA_PRODUCCION',
-  'DIRECCION_TECNICA',
-  'CONTROL_CALIDAD',
-  'GERENCIA',
-];
 
 /** Pestañas que también se pueden mostrar u ocultar por rol. */
 export const PESTANIAS: { ruta: string; etiqueta: string; de: string; roles?: Rol[] }[] =

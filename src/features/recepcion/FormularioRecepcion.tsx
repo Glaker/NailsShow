@@ -7,6 +7,7 @@ import {
   Divider,
   Grid,
   Group,
+  Modal,
   NumberInput,
   Paper,
   ScrollArea,
@@ -59,6 +60,7 @@ import {
   costoCompleto,
   type ValorCosto,
 } from '@/features/costos/CamposCosto';
+import { FormularioInsumo } from '@/features/maestros/PaginaInsumos';
 
 /*
  * Esquema derivado de las restricciones reales de la base. La aplicación
@@ -170,6 +172,16 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
   /* Dirección Técnica recibe material pero no ve la parte fiscal: el
      comprobante lo carga Administración (pedido del 2026-10-14). */
   const veComprobante = !useTieneRol('DIRECCION_TECNICA');
+  /* Alta de insumo sin salir de la recepción. Mismos roles que la política
+     insumos_catalogo_insert_tecnicos. Guarda el índice del lote que lo pidió. */
+  const creaInsumo = useTieneRol(
+    'DIRECCION_TECNICA',
+    'GERENCIA_PRODUCCION',
+    'ADMINISTRADOR_SISTEMA',
+  );
+  const [altaParaLote, setAltaParaLote] = useState<number | null>(null);
+  /** Lo último tipeado en el buscador de insumos: pasa como nombre al alta. */
+  const [buscado, setBuscado] = useState('');
   const referencias = useCostosReferencia();
   const cargarCostos = useCargarCostosLote();
   /** Compras pendientes que llegaron con esta recepción: id → llegó completa. */
@@ -250,6 +262,14 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
         : `${i.codigo_interno} — ${i.nombre} · sin unidad de medida definida`,
       disabled: !i.unidad_medida,
     }));
+
+  /** Elegido en la lista o recién dado de alta: el lote toma su unidad. */
+  const elegirInsumo = (i: number, insumo: Insumo) => {
+    form.setFieldValue(`lotes.${i}.insumo_id`, insumo.id);
+    const u = insumo.unidad_medida ?? '';
+    form.setFieldValue(`lotes.${i}.unidad`, u);
+    if (UNIDADES_COSTO.includes(u)) form.setFieldValue(`lotes.${i}.costo.unidad`, u);
+  };
 
   const enviar = form.onSubmit(async (valores) => {
     /* Validaciones que dependen de la ficha del insumo y por eso no entran en
@@ -516,20 +536,27 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
                       placeholder="Buscar en el catálogo"
                       data={opcionesInsumo}
                       searchable
-                      nothingFoundMessage="Sin coincidencias"
+                      onSearchChange={setBuscado}
+                      nothingFoundMessage={
+                        creaInsumo ? (
+                          <Button
+                            fullWidth
+                            size="md"
+                            variant="light"
+                            leftSection={<IconPlus size={18} />}
+                            onClick={() => setAltaParaLote(i)}
+                          >
+                            Nuevo insumo
+                          </Button>
+                        ) : (
+                          'No está en el catálogo. El alta la hace Dirección Técnica o Gerencia de Producción.'
+                        )
+                      }
                       {...form.getInputProps(`lotes.${i}.insumo_id`)}
                       onChange={(valor) => {
                         form.setFieldValue(`lotes.${i}.insumo_id`, valor ?? '');
                         const elegido = valor ? porId.get(valor) : undefined;
-                        if (elegido) {
-                          form.setFieldValue(
-                            `lotes.${i}.unidad`,
-                            elegido.unidad_medida ?? '',
-                          );
-                          const u = elegido.unidad_medida ?? '';
-                          if (UNIDADES_COSTO.includes(u))
-                            form.setFieldValue(`lotes.${i}.costo.unidad`, u);
-                        }
+                        if (elegido) elegirInsumo(i, elegido);
                       }}
                     />
                   </Grid.Col>
@@ -752,6 +779,21 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
           </Button>
         </Group>
       </Stack>
+
+      <Modal
+        opened={altaParaLote !== null}
+        onClose={() => setAltaParaLote(null)}
+        title={<Text fw={700}>Nuevo insumo</Text>}
+        size="lg"
+      >
+        <FormularioInsumo
+          nombreInicial={buscado.trim()}
+          onListo={(creado) => {
+            if (creado && altaParaLote !== null) elegirInsumo(altaParaLote, creado);
+            setAltaParaLote(null);
+          }}
+        />
+      </Modal>
     </form>
   );
 }

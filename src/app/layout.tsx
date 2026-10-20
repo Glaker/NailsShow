@@ -32,7 +32,7 @@ import {
   IconSun,
 } from '@tabler/icons-react';
 import { Marca } from '@/components/Marca';
-import { ROLES_CATALOGOS, useItemsVisibles, type ItemNavegacion } from './navegacion';
+import { useItemsVisibles, type ItemNavegacion } from './navegacion';
 import { useAvisosTareas } from '@/lib/consultasTareas';
 import { BotonTareas } from '@/features/tareas/BotonTareas';
 
@@ -173,20 +173,14 @@ function TarjetaUsuario({ compacto = false }: { compacto?: boolean }) {
           </Text>
         </Menu.Item>
         <Menu.Divider />
-        {claims.roles.some(
-          (r) => r === 'ADMINISTRADOR_SISTEMA' || ROLES_CATALOGOS.includes(r),
-        ) ? (
-          <Menu.Item
-            component={Link}
-            to="/catalogos"
-            leftSection={<IconBooks size={16} />}
-          >
-            Catálogos
-            <Text size="xs" c="dimmed">
-              Productos, insumos, proveedores y depósitos
-            </Text>
-          </Menu.Item>
-        ) : null}
+        {/* Para todos los roles: la base deja consultar los catálogos a
+            cualquiera (§3.3). Quién edita lo decide RLS. */}
+        <Menu.Item component={Link} to="/catalogos" leftSection={<IconBooks size={16} />}>
+          Catálogos
+          <Text size="xs" c="dimmed">
+            Productos, insumos, proveedores y depósitos
+          </Text>
+        </Menu.Item>
         <Menu.Item
           leftSection={esquema.oscuro ? <IconSun size={16} /> : <IconMoon size={16} />}
           onClick={esquema.alternar}

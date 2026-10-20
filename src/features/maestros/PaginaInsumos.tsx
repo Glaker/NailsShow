@@ -72,12 +72,16 @@ type ValoresInsumo = z.infer<typeof esquema>;
  * conjunto de campos y las mismas reglas, así que separarlos en dos
  * componentes sería duplicar para que después se desincronicen.
  */
-function FormularioInsumo({
+export function FormularioInsumo({
   insumo,
+  nombreInicial = '',
   onListo,
 }: {
   insumo?: Insumo | undefined;
-  onListo: () => void;
+  /** Lo que se buscó en la recepción y no estaba: arranca como nombre. */
+  nombreInicial?: string;
+  /** En el alta recibe la ficha creada (la recepción la elige en el lote). */
+  onListo: (creado?: Insumo) => void;
 }) {
   const crear = useCrearInsumo();
   const actualizar = useActualizarInsumo();
@@ -88,7 +92,7 @@ function FormularioInsumo({
     mode: 'controlled',
     initialValues: {
       codigo_interno: insumo?.codigo_interno ?? '',
-      nombre: insumo?.nombre ?? '',
+      nombre: insumo?.nombre ?? nombreInicial,
       tipo: insumo?.tipo ?? 'MATERIA_PRIMA',
       unidad_medida: insumo?.unidad_medida ?? (insumo ? '' : 'kg'),
       es_inflamable: insumo?.es_inflamable ?? false,
@@ -110,17 +114,22 @@ function FormularioInsumo({
 
   return (
     <form
-      onSubmit={form.onSubmit(async (v) => {
-        /* La unidad vacía va como null: '' en la base no es «sin unidad»,
-           es ruido que después hay que limpiar. */
-        const campos = { ...v, unidad_medida: v.unidad_medida || null };
-        if (insumo) {
-          await actualizar.mutateAsync({ id: insumo.id, cambios: campos });
-        } else {
-          await crear.mutateAsync(campos);
-        }
-        onListo();
-      })}
+      onSubmit={(e) => {
+        /* Abierto desde la recepción, el modal está dentro de otro formulario:
+           en React el submit atraviesa el portal y dispararía el de afuera. */
+        e.stopPropagation();
+        form.onSubmit(async (v) => {
+          /* La unidad vacía va como null: '' en la base no es «sin unidad»,
+             es ruido que después hay que limpiar. */
+          const campos = { ...v, unidad_medida: v.unidad_medida || null };
+          if (insumo) {
+            await actualizar.mutateAsync({ id: insumo.id, cambios: campos });
+            onListo();
+          } else {
+            onListo(await crear.mutateAsync(campos));
+          }
+        })(e);
+      }}
     >
       <Stack gap="md">
         <Grid gutter="md">
