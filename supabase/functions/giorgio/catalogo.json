@@ -352,12 +352,7 @@
     {
       "ruta": "/catalogos",
       "etiqueta": "Catálogos (productos, insumos, proveedores y depósitos)",
-      "roles": [
-        "GERENCIA_PRODUCCION",
-        "DIRECCION_TECNICA",
-        "CONTROL_CALIDAD",
-        "GERENCIA"
-      ],
+      "roles": null,
       "queEs": "Los listados maestros del sistema en cuatro pestañas: «Productos», «Insumos», «Proveedores» y «Depósitos» (se abre en «Productos»). Todo lo demás (recepciones, órdenes, fórmulas) se arma sobre ellos. Cada pestaña es una tabla con buscador; los datos los carga el equipo desde acá."
     }
   ],

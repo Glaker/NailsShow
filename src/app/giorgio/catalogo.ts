@@ -1,4 +1,4 @@
-import { NAVEGACION, PESTANIAS, ROLES_CATALOGOS } from '@/app/navegacion';
+import { NAVEGACION, PESTANIAS } from '@/app/navegacion';
 import { AYUDA_PRODUCCION } from '@/app/ayuda/produccion';
 import { AYUDA_COMERCIAL } from '@/app/ayuda/comercial';
 import { AYUDA_COSTOS } from '@/app/ayuda/costos';
@@ -67,11 +67,8 @@ export function armarCatalogo(): Catalogo {
     pantallas: [
       ...NAVEGACION.map((i) => pantalla(i.ruta, i.etiqueta, i.roles)),
       ...PESTANIAS.map((p) => pantalla(p.ruta, p.etiqueta, p.roles)),
-      pantalla(
-        '/catalogos',
-        'Catálogos (productos, insumos, proveedores y depósitos)',
-        ROLES_CATALOGOS,
-      ),
+      // Sin roles: los catálogos están en el menú de todos.
+      pantalla('/catalogos', 'Catálogos (productos, insumos, proveedores y depósitos)'),
     ],
     subrutas: SUBRUTAS,
   };

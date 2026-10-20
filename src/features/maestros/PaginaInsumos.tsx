@@ -216,7 +216,7 @@ export function FormularioInsumo({
         </Stack>
 
         <Group justify="flex-end">
-          <Button variant="subtle" color="gray" onClick={onListo}>
+          <Button variant="subtle" color="gray" onClick={() => onListo()}>
             Cancelar
           </Button>
           <Button type="submit" loading={crear.isPending || actualizar.isPending}>
