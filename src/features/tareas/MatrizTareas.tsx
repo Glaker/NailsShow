@@ -12,11 +12,11 @@ import {
 } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 import { useSesion } from '@/features/auth/sesion';
-import { fechaHora } from '@/lib/formato';
 import { useNomina } from '@/lib/consultasComercial';
 import {
   useCerrarTareaEquipo,
   useCrearTareaEquipo,
+  useEditarTareaEquipo,
   useMoverTareaEquipo,
   useTareasEquipo,
   type TareaEquipo,
@@ -94,6 +94,7 @@ export function MatrizTareas() {
   const [abierta, setAbierta] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<'todas' | 'mias'>('todas');
   const [cargando, setCargando] = useState(false);
+  const [editando, setEditando] = useState<string | null>(null);
 
   const nombre = (id: string | null) => (id ? (nomina.data?.get(id) ?? '') : '');
   const visibles = (tareas.data ?? []).filter(
@@ -212,7 +213,12 @@ export function MatrizTareas() {
             <Popover
               key={t.id}
               opened={abierta === t.id}
-              onChange={(o) => !o && setAbierta(null)}
+              onChange={(o) => {
+                if (!o) {
+                  setAbierta(null);
+                  setEditando(null);
+                }
+              }}
               position="right-start"
               withArrow
               shadow="md"
@@ -243,61 +249,70 @@ export function MatrizTareas() {
                 </div>
               </Popover.Target>
               <Popover.Dropdown>
-                <Stack gap={6}>
-                  <Group gap="xs" wrap="nowrap">
-                    <span
-                      style={{
-                        width: 12,
-                        height: 12,
-                        borderRadius: '50%',
-                        background: colorDe(autor),
-                        flexShrink: 0,
-                      }}
-                    />
-                    <Text fw={700} style={{ wordBreak: 'break-word' }}>
-                      {t.titulo}
-                    </Text>
-                  </Group>
-                  {t.detalle ? (
-                    <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
-                      {t.detalle}
-                    </Text>
-                  ) : null}
-                  <Text size="xs" c="dimmed">
-                    La asignó {autor || '—'} · {fechaHora(t.creada_en)}
-                  </Text>
-                  {t.movida_por ? (
+                {editando === t.id ? (
+                  <EditarTarea t={t} onListo={() => setEditando(null)} />
+                ) : (
+                  <Stack gap={6}>
+                    <Group gap="xs" wrap="nowrap">
+                      <span
+                        style={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: '50%',
+                          background: colorDe(autor),
+                          flexShrink: 0,
+                        }}
+                      />
+                      <Text fw={700} style={{ wordBreak: 'break-word' }}>
+                        {t.titulo}
+                      </Text>
+                    </Group>
+                    {t.detalle ? (
+                      <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
+                        {t.detalle}
+                      </Text>
+                    ) : null}
                     <Text size="xs" c="dimmed">
-                      La movió {nombre(t.movida_por)} · {fechaHora(t.movida_en)}
+                      Creado por {autor || '—'} el {diaMes(t.creada_en)}
                     </Text>
-                  ) : null}
-                  <Badge
-                    variant="light"
-                    color={t.compartida ? 'azul' : 'gray'}
-                    w="fit-content"
-                  >
-                    {t.compartida ? 'Común: la ven todos' : 'Propia: solo vos'}
-                  </Badge>
-                  <Group gap="xs" mt={4}>
-                    <Button
-                      size="compact-md"
-                      color="estadoAprobado"
-                      onClick={() => cerrar.mutate({ id: t.id, como: 'hecha' })}
+                    <Badge
+                      variant="light"
+                      color={t.compartida ? 'azul' : 'gray'}
+                      w="fit-content"
                     >
-                      Hecha
-                    </Button>
-                    {t.creada_por === yo ? (
+                      {t.compartida ? 'Común: la ven todos' : 'Propia: solo vos'}
+                    </Badge>
+                    <Group gap="xs" mt={4}>
                       <Button
                         size="compact-md"
-                        variant="subtle"
-                        color="gray"
-                        onClick={() => cerrar.mutate({ id: t.id, como: 'archivada' })}
+                        color="estadoAprobado"
+                        onClick={() => cerrar.mutate({ id: t.id, como: 'hecha' })}
                       >
-                        Sacar
+                        Hecha
                       </Button>
-                    ) : null}
-                  </Group>
-                </Stack>
+                      {/* Solo quien la cargó la cambia o la saca. */}
+                      {t.creada_por === yo ? (
+                        <>
+                          <Button
+                            size="compact-md"
+                            variant="light"
+                            onClick={() => setEditando(t.id)}
+                          >
+                            Modificar
+                          </Button>
+                          <Button
+                            size="compact-md"
+                            variant="subtle"
+                            color="gray"
+                            onClick={() => cerrar.mutate({ id: t.id, como: 'archivada' })}
+                          >
+                            Sacar
+                          </Button>
+                        </>
+                      ) : null}
+                    </Group>
+                  </Stack>
+                )}
               </Popover.Dropdown>
             </Popover>
           );
@@ -325,6 +340,72 @@ export function MatrizTareas() {
           Todavía no hay tareas. Tocá «Nueva tarea» y después arrastrá el pin donde va.
         </Text>
       )}
+    </Stack>
+  );
+}
+
+/** «Creado por … el 21/10»: sin hora (pedido del 2026-10-21). */
+const diaMes = (iso: string) =>
+  new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+
+/** Cambiar el texto, el detalle o si es común. Solo quien la cargó. */
+function EditarTarea({ t, onListo }: { t: TareaEquipo; onListo: () => void }) {
+  const editar = useEditarTareaEquipo();
+  const [titulo, setTitulo] = useState(t.titulo);
+  const [detalle, setDetalle] = useState(t.detalle ?? '');
+  const [compartida, setCompartida] = useState(t.compartida);
+  return (
+    <Stack gap="xs">
+      <TextInput
+        size="sm"
+        label="Tarea"
+        maxLength={120}
+        value={titulo}
+        onChange={(e) => setTitulo(e.currentTarget.value)}
+        data-autofocus
+      />
+      <Textarea
+        size="sm"
+        label="Detalle (opcional)"
+        autosize
+        minRows={1}
+        maxRows={4}
+        value={detalle}
+        onChange={(e) => setDetalle(e.currentTarget.value)}
+      />
+      <SegmentedControl
+        size="xs"
+        fullWidth
+        value={compartida ? 'comun' : 'propia'}
+        onChange={(v) => setCompartida(v === 'comun')}
+        data={[
+          { value: 'comun', label: 'Común' },
+          { value: 'propia', label: 'Solo yo' },
+        ]}
+      />
+      <Group justify="flex-end" gap="xs">
+        <Button size="sm" variant="subtle" color="gray" onClick={onListo}>
+          Cancelar
+        </Button>
+        <Button
+          size="sm"
+          disabled={!titulo.trim()}
+          loading={editar.isPending}
+          onClick={() =>
+            editar.mutate(
+              {
+                id: t.id,
+                titulo: titulo.trim(),
+                detalle: detalle.trim() || null,
+                compartida,
+              },
+              { onSuccess: onListo },
+            )
+          }
+        >
+          Guardar
+        </Button>
+      </Group>
     </Stack>
   );
 }

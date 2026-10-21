@@ -87,9 +87,9 @@ export function PaginaTablero() {
       // La pesada suele hacerla ella: tiene las mismas tareas que planta.
       return (
         <Stack gap="xl">
-          {/* Arriba de todo: cuánto falta etiquetar (D-etiquetado-1). */}
-          <PanelEtiquetado />
-          <InicioPedidos />
+          {/* El saludo siempre arriba; lo primero debajo, cuánto falta
+              etiquetar (D-etiquetado-1). */}
+          <InicioPedidos debajoDelSaludo={<PanelEtiquetado />} />
           <Stack gap="sm">
             <Title order={2}>Tareas de planta</Title>
             <Text c="dimmed">
