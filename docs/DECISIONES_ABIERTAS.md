@@ -734,6 +734,25 @@ comprometida del bloque 3.
 
 ## Abiertas — 2026-10-21
 
+### D-costo-estimado-1 · Costo aproximado de Gerencia de Producción
+
+**Pedido** del usuario (2026-10-21): que Naza, al completar qué lleva cada
+producto, pueda cargar opcionalmente un costo aproximado de cada insumo
+(envase, etiqueta, extras) y el precio a granel de cada materia prima de la
+fórmula («el tacho de 20 L de alcohol sale tanto»). `20261021140000`:
+`comercial.costos_estimados`, append-only, el último vale. Entra **último** en
+`v_costo_referencia` (Finanzas > último lote > apertura > estimado) y siempre
+como provisorio: no compite con D-38 (el precio de referencia lo fija
+Finanzas) ni pisa lo pagado.
+
+**Pendiente.**
+
+- Si se compra en kg y el insumo se mide en ml (o al revés), sin densidad
+  cargada el estimado no se puede pasar a la unidad del catálogo y queda sin
+  costo. La pantalla lo avisa.
+- ¿Finanzas quiere ver una lista de insumos que solo tienen costo estimado,
+  para confirmarlos? Hoy se ven en Costos con el origen «Estimado (planta)».
+
 ### D-etiquetado-1 · Envase etiquetado como paso intermedio de todos los productos
 
 **Decidido** por el codirector técnico (2026-10-20), implementado en

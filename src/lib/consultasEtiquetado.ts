@@ -218,6 +218,41 @@ export function useExtrasDeProducto(productoId: string) {
   });
 }
 
+/** Insumos de la última fórmula del producto, para estimarles el costo. */
+export function useInsumosDeFormula(productoId: string, habilitado: boolean) {
+  return useQuery({
+    queryKey: ['formulas', 'insumos-de-producto', productoId],
+    enabled: habilitado,
+    queryFn: async () => {
+      const { data: f, error: e1 } = await gmpST()
+        .from('formulas_fabricacion')
+        .select('id')
+        .eq('producto_id', productoId)
+        .order('creado_en', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (e1) throw e1;
+      if (!f) return [];
+      const { data, error } = await gmpST()
+        .from('formula_componentes')
+        .select(
+          'insumo_id, insumo:insumos_catalogo(nombre, codigo_interno, unidad_medida)',
+        )
+        .eq('formula_id', f.id)
+        .not('insumo_id', 'is', null);
+      if (error) throw error;
+      return (data ?? []) as unknown as {
+        insumo_id: string;
+        insumo: {
+          nombre: string;
+          codigo_interno: string;
+          unidad_medida: string | null;
+        } | null;
+      }[];
+    },
+  });
+}
+
 /** «No corresponde»: el producto no lleva fórmula. */
 export function useMarcarSinFormula() {
   const qc = useQueryClient();
