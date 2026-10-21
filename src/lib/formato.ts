@@ -81,6 +81,11 @@ export function diasHasta(valor: string | null | undefined): number | null {
   return Math.round((objetivo.getTime() - hoy.getTime()) / 86_400_000);
 }
 
+/** Cómo se lee una unidad de UNIDADES_COSTO ('UNIDAD' se guarda así). */
+export function etiquetaUnidad(u: string): string {
+  return u === 'UNIDAD' ? 'unidades' : u === 'l' ? 'L' : u;
+}
+
 /** Convierte SCREAMING_SNAKE_CASE de un enum a texto legible. */
 export function etiquetaEnum(valor: string | null | undefined): string {
   if (!valor) return '—';

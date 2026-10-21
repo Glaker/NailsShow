@@ -39,7 +39,7 @@ import {
   useProveedores,
   type Insumo,
 } from '@/lib/consultas';
-import { desdeCalendario, fechaISO, numero } from '@/lib/formato';
+import { desdeCalendario, etiquetaUnidad, fechaISO, numero } from '@/lib/formato';
 import {
   useAvisosCompra,
   useVincularCompras,
@@ -69,9 +69,18 @@ import { FormularioInsumo } from '@/features/maestros/PaginaInsumos';
  */
 const esquemaLote = z.object({
   insumo_id: z.string().min(1, 'Elegí el insumo'),
-  lote_proveedor: z.string().trim().min(1, 'Falta el lote del proveedor'),
+  /* Optativo si la recepción tiene remito (superRefine de abajo y
+     gmp.fn_validar_lote_insumo, D-unidad-solo-materia-prima-2). */
+  lote_proveedor: z.string(),
   cantidad_bultos: z.number().int().positive('Al menos un bulto'),
-  cantidad_unidades: z.number().nonnegative().nullable(),
+  /* Sin cantidad, comercial.cargar_recepcion_a_stock rechaza el lote: se pide
+     acá y no recién al cargar a stock. */
+  cantidad_unidades: z
+    .number()
+    .positive('La cantidad tiene que ser mayor que cero')
+    .nullable()
+    // Sin predicado de tipo: el formulario arranca en null y tiene que admitirlo.
+    .refine((n): boolean => n !== null, 'Falta la cantidad'),
   unidad: z.string().trim().min(1, 'Falta la unidad'),
   plazo_validez: z.date().nullable(),
   /* 'si' | 'no' | 'na' — I.20.1 paso 3 admite que no aplique. */
@@ -116,6 +125,16 @@ const esquemaRecepcion = z
     lotes: z.array(esquemaLote).min(1, 'Cargá al menos un lote'),
   })
   .superRefine((v, ctx) => {
+    if (!v.numero_remito.trim()) {
+      v.lotes.forEach((l, i) => {
+        if (!l.lote_proveedor.trim())
+          ctx.addIssue({
+            code: 'custom',
+            path: ['lotes', i, 'lote_proveedor'],
+            message: 'Sin remito, el lote del proveedor es lo único que lo rastrea',
+          });
+      });
+    }
     const c = v.comprobante;
     if (!v.con_comprobante || c.tipo === 'SIN_FACTURA') return;
     const falta = (campo: string, message: string) =>
@@ -171,13 +190,15 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
   const cargaCosto = useTieneRol(...ROLES_CARGAN_COSTO_LOTE);
   /* Dirección Técnica recibe material pero no ve la parte fiscal: el
      comprobante lo carga Administración (pedido del 2026-10-14). */
-  const veComprobante = !useTieneRol('DIRECCION_TECNICA');
+  /* Recepción tampoco: recibe y carga a stock, la factura es de Administración. */
+  const veComprobante = !useTieneRol('DIRECCION_TECNICA', 'RECEPCION');
   /* Alta de insumo sin salir de la recepción. Mismos roles que la política
      insumos_catalogo_insert_tecnicos. Guarda el índice del lote que lo pidió. */
   const creaInsumo = useTieneRol(
     'DIRECCION_TECNICA',
     'GERENCIA_PRODUCCION',
     'ADMINISTRADOR_SISTEMA',
+    'RECEPCION',
   );
   const [altaParaLote, setAltaParaLote] = useState<number | null>(null);
   /** Lo último tipeado en el buscador de insumos: pasa como nombre al alta. */
@@ -318,7 +339,7 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
       rotularEnCuarentena: valores.rotularEnCuarentena,
       lotes: valores.lotes.map((l) => ({
         insumo_id: l.insumo_id,
-        lote_proveedor: l.lote_proveedor.trim(),
+        lote_proveedor: l.lote_proveedor.trim() || null,
         cantidad_bultos: l.cantidad_bultos,
         cantidad_unidades: l.cantidad_unidades,
         unidad: l.unidad.trim(),
@@ -562,8 +583,17 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
                   </Grid.Col>
                   <Grid.Col span={{ base: 12, sm: 5 }}>
                     <TextInput
-                      label="Lote del proveedor"
+                      label={
+                        form.values.numero_remito.trim()
+                          ? 'Lote del proveedor (opcional)'
+                          : 'Lote del proveedor'
+                      }
                       placeholder="Como figura en el envase"
+                      description={
+                        form.values.numero_remito.trim()
+                          ? 'Si no viene, el remito sostiene la trazabilidad.'
+                          : 'Sin remito es obligatorio.'
+                      }
                       {...form.getInputProps(`lotes.${i}.lote_proveedor`)}
                     />
                   </Grid.Col>
@@ -578,16 +608,33 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
                   </Grid.Col>
                   <Grid.Col span={{ base: 6, sm: 3 }}>
                     <NumberInput
-                      label="Cantidad"
+                      label={
+                        lote.unidad
+                          ? `Cantidad (${etiquetaUnidad(lote.unidad)})`
+                          : 'Cantidad'
+                      }
                       min={0}
                       decimalScale={3}
                       {...form.getInputProps(`lotes.${i}.cantidad_unidades`)}
+                      onChange={(n) =>
+                        form.setFieldValue(
+                          `lotes.${i}.cantidad_unidades`,
+                          typeof n === 'number' ? n : null,
+                        )
+                      }
                     />
                   </Grid.Col>
                   <Grid.Col span={{ base: 6, sm: 3 }}>
+                    {/* La del catálogo, no se tipea: el stock y los consumos
+                        comparan la unidad del lote con la de la ficha, y «Kg»
+                        no es «kg». Si llegó en otra, se convierte la cantidad. */}
                     <TextInput
                       label="Unidad"
-                      {...form.getInputProps(`lotes.${i}.unidad`)}
+                      value={lote.unidad ? etiquetaUnidad(lote.unidad) : ''}
+                      placeholder="Elegí el insumo"
+                      description="La de la ficha del insumo"
+                      readOnly
+                      error={form.errors[`lotes.${i}.unidad`]}
                     />
                   </Grid.Col>
                   <Grid.Col span={{ base: 6, sm: 3 }}>

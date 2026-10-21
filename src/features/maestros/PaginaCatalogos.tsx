@@ -10,6 +10,7 @@ import { PaginaProductos } from './PaginaProductos';
 import { PaginaInsumos } from './PaginaInsumos';
 import { PaginaProveedores } from './PaginaProveedores';
 import { PaginaDepositos } from './PaginaDepositos';
+import { useSesion } from '@/features/auth/sesion';
 
 const VISTAS = ['productos', 'insumos', 'proveedores', 'depositos'] as const;
 type VistaCatalogo = (typeof VISTAS)[number];
@@ -26,8 +27,12 @@ export function RedirigirACatalogo({ vista }: { vista: VistaCatalogo }) {
  */
 export function PaginaCatalogos() {
   const [params, setParams] = useSearchParams();
+  const { claims } = useSesion();
   const pedida = params.get('vista') as VistaCatalogo | null;
   const vista = pedida && VISTAS.includes(pedida) ? pedida : 'productos';
+
+  /* Recepción ve solo el catálogo de insumos (pedido del 2026-10-20). */
+  if (claims?.roles.every((r) => r === 'RECEPCION')) return <PaginaInsumos />;
 
   return (
     <Tabs

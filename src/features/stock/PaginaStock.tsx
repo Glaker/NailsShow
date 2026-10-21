@@ -34,10 +34,14 @@ import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { InsigniaEstado } from '@/components/InsigniaEstado';
 import { TarjetaIndicador } from '@/components/TarjetaIndicador';
 import { Vacio } from '@/components/Vacio';
-import { useExistenciasPorLote, useStockPorArticulo } from '@/lib/consultas';
+import {
+  useEntradasDeArticulo,
+  useExistenciasPorLote,
+  useStockPorArticulo,
+} from '@/lib/consultas';
 import { useDescartarArticulo } from '@/lib/consultasComercial';
 import { useTieneRol } from '@/features/auth/sesion';
-import { fecha, numero } from '@/lib/formato';
+import { fecha, fechaHora, numero } from '@/lib/formato';
 import { PanelReservas } from '@/features/tercerizados/PanelReservas';
 
 type Filtro = 'todos' | 'con-saldo' | 'bajo-minimo' | 'no-despachable';
@@ -60,7 +64,12 @@ export function PaginaStock() {
 
   const filas = useMemo(() => {
     const busqueda = texto.trim().toLowerCase();
-    return (articulos.data ?? []).filter((a) => {
+    /* Lo último que se movió arriba (pedido del 2026-10-20): lo recién
+       recibido es lo que se busca. Sin movimientos, al final. */
+    const recientes = [...(articulos.data ?? [])].sort((a, b) =>
+      (b.ultimo_movimiento ?? '').localeCompare(a.ultimo_movimiento ?? ''),
+    );
+    return recientes.filter((a) => {
       const saldo = Number(a.saldo_total ?? 0);
       const despachable = Number(a.saldo_despachable ?? 0);
       if (filtro === 'con-saldo' && saldo <= 0) return false;
@@ -302,6 +311,7 @@ export function PaginaStock() {
 /** Desglose de un artículo: una fila por lote y depósito, que es la posición real. */
 function Desglose({ articuloId }: { articuloId: string }) {
   const posiciones = useExistenciasPorLote(articuloId);
+  const entradas = useEntradasDeArticulo(articuloId);
   // Los roles de la política de INSERT de movimientos_stock.
   const puedeMover = useTieneRol(
     'DIRECCION_TECNICA',
@@ -314,7 +324,20 @@ function Desglose({ articuloId }: { articuloId: string }) {
 
   if (posiciones.isLoading) return <Skeleton h={90} m="md" />;
 
-  const filas = posiciones.data ?? [];
+  /* La entrada más vieja de cada lote es su carga a stock: cuándo y quién. */
+  const cargaDe = new Map<string, { ocurrido_en: string; por: string }>();
+  for (const m of entradas.data ?? []) {
+    if (m.lote_insumo_id && m.ocurrido_en && !cargaDe.has(m.lote_insumo_id))
+      cargaDe.set(m.lote_insumo_id, {
+        ocurrido_en: m.ocurrido_en,
+        por: m.registrado_por_nombre ?? '—',
+      });
+  }
+  const filas = [...(posiciones.data ?? [])].sort((a, b) =>
+    (cargaDe.get(b.lote_insumo_id ?? '')?.ocurrido_en ?? '').localeCompare(
+      cargaDe.get(a.lote_insumo_id ?? '')?.ocurrido_en ?? '',
+    ),
+  );
   if (filas.length === 0) {
     return (
       <Text size="sm" c="dimmed" p="md">
@@ -392,6 +415,7 @@ function Desglose({ articuloId }: { articuloId: string }) {
         <Table.Thead>
           <Table.Tr>
             <Table.Th>Lote</Table.Th>
+            <Table.Th>Cargado</Table.Th>
             <Table.Th>Estado</Table.Th>
             <Table.Th>Depósito</Table.Th>
             <Table.Th ta="right">Saldo</Table.Th>
@@ -407,8 +431,24 @@ function Desglose({ articuloId }: { articuloId: string }) {
                   {p.numero_registro_interno}
                 </Anchor>
                 <Text size="xs" c="dimmed">
-                  prov. {p.lote_proveedor}
+                  prov. {p.lote_proveedor ?? 's/lote'}
                 </Text>
+              </Table.Td>
+              <Table.Td>
+                {cargaDe.has(p.lote_insumo_id ?? '') ? (
+                  <>
+                    <Text size="sm">
+                      {fechaHora(cargaDe.get(p.lote_insumo_id ?? '')!.ocurrido_en)}
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                      {cargaDe.get(p.lote_insumo_id ?? '')!.por}
+                    </Text>
+                  </>
+                ) : (
+                  <Text size="sm" c="dimmed">
+                    —
+                  </Text>
+                )}
               </Table.Td>
               <Table.Td>
                 {p.estado ? <InsigniaEstado estado={p.estado} size="sm" /> : null}

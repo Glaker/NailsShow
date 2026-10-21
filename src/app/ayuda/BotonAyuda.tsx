@@ -21,6 +21,7 @@ export const NOMBRE_ROL: Record<Rol, string> = {
   VENTAS: 'Ventas',
   ADMINISTRADOR_SISTEMA: 'Administrador del sistema',
   FINANZAS: 'Finanzas',
+  RECEPCION: 'Recepción',
 };
 
 /**

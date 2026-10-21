@@ -185,7 +185,7 @@ export function FormularioMuestreo({ lote, onListo }: Props) {
               {lote.insumo_nombre}
             </Text>
             <Text size="xs" c="dimmed">
-              {lote.numero_registro_interno} · lote {lote.lote_proveedor} ·{' '}
+              {lote.numero_registro_interno} · lote {lote.lote_proveedor ?? 's/lote'} ·{' '}
               {lote.proveedor}
             </Text>
           </Paper>

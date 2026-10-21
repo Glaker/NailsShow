@@ -13,7 +13,7 @@ import {
   Text,
   Title,
 } from '@mantine/core';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import {
   IconAlertTriangle,
   IconCalendarClock,
@@ -46,6 +46,8 @@ import { PaginaAdministracion } from '@/features/administracion/PaginaAdministra
 import { PaginaArmado } from '@/features/ventas/PaginaArmado';
 import { TableroDT } from './TableroDT';
 import { TareasProduccion } from '@/features/produccion/TareasProduccion';
+import { PanelEtiquetado } from '@/features/produccion/PanelEtiquetado';
+import { TareasCarga } from '@/features/produccion/TareasCarga';
 
 function TarjetaPanel({
   titulo,
@@ -85,6 +87,8 @@ export function PaginaTablero() {
       // La pesada suele hacerla ella: tiene las mismas tareas que planta.
       return (
         <Stack gap="xl">
+          {/* Arriba de todo: cuánto falta etiquetar (D-etiquetado-1). */}
+          <PanelEtiquetado />
           <InicioPedidos />
           <Stack gap="sm">
             <Title order={2}>Tareas de planta</Title>
@@ -93,6 +97,7 @@ export function PaginaTablero() {
             </Text>
             <TareasProduccion titulo={false} />
           </Stack>
+          <TareasCarga />
         </Stack>
       );
     case 'OPERARIO':
@@ -101,6 +106,9 @@ export function PaginaTablero() {
       return <InicioPedidos descripcion="Así vienen los pedidos." soloEntregas />;
     case 'ENCARGADA_STOCK':
       return <PaginaArmado />;
+    case 'RECEPCION':
+      // Sin tablero: entra directo a lo suyo (pedido del 2026-10-20).
+      return <Navigate to="/stock?vista=recepciones" replace />;
     default:
       return <TableroGeneral />;
   }
@@ -305,7 +313,7 @@ function TableroGeneral() {
                                 {l.insumo_nombre}
                               </Anchor>
                               <Text size="xs" c="dimmed">
-                                lote {l.lote_proveedor}
+                                lote {l.lote_proveedor ?? 's/lote'}
                               </Text>
                             </Table.Td>
                             <Table.Td>

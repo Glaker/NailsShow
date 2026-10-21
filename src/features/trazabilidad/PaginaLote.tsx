@@ -216,7 +216,8 @@ export function PaginaLote() {
             <InsigniaEstado estado={estado} size="lg" />
           </Group>
           <Text c="dimmed" size="sm">
-            {l.numero_registro_interno} · lote {l.lote_proveedor} · {l.proveedor}
+            {l.numero_registro_interno} · lote {l.lote_proveedor ?? 's/lote'} ·{' '}
+            {l.proveedor}
           </Text>
         </Stack>
 

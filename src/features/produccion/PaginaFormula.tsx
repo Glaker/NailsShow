@@ -421,9 +421,13 @@ export function PaginaFormula() {
   const datos = useFormulaCompleta(id);
   const actualizar = useActualizarFormula();
   const eliminarComponente = useEliminarComponenteFormula();
-  const puedeEditar = useTieneRol('DIRECCION_TECNICA');
+  const esDT = useTieneRol('DIRECCION_TECNICA');
+  /* GP carga borradores (D-etiquetado-1, formulas_actualiza_dt); dejarla
+     vigente sigue siendo de DT. */
+  const esGP = useTieneRol('GERENCIA_PRODUCCION');
 
   const f = datos.data?.formula;
+  const puedeEditar = esDT || (esGP && f?.estado === 'BORRADOR');
   const componentes = useMemo(() => datos.data?.componentes ?? [], [datos.data]);
 
   if (datos.isLoading) {
@@ -445,7 +449,7 @@ export function PaginaFormula() {
   const hayCsp = componentes.some((c) => c.es_csp);
   // Sin densidad medida alcanza con que sea estimable: lo controla la base
   // (gmp.fn_formula_densidad_vigente).
-  const puedeMarcarVigente = editableBorrador;
+  const puedeMarcarVigente = editableBorrador && esDT;
 
   const confirmarVigente = () => {
     modals.openConfirmModal({
@@ -494,7 +498,7 @@ export function PaginaFormula() {
           </Text>
         </Stack>
 
-        {editableBorrador ? (
+        {editableBorrador && esDT ? (
           <Tooltip
             label="Cargá la densidad del producto terminado antes de pasar a vigente."
             disabled={puedeMarcarVigente}
@@ -503,13 +507,17 @@ export function PaginaFormula() {
               Marcar como vigente
             </Button>
           </Tooltip>
+        ) : editableBorrador ? (
+          <Text size="sm" c="dimmed" maw={260}>
+            Borrador: la deja vigente Dirección Técnica.
+          </Text>
         ) : null}
       </Group>
 
       {!puedeEditar ? (
         <Alert color="azul" variant="light" radius="md" mb="md">
-          Estás viendo esta fórmula en modo lectura: solo Dirección Técnica la edita
-          (§3.3).
+          Estás viendo esta fórmula en modo lectura: la edita Dirección Técnica, y
+          Gerencia de Producción mientras está en borrador (§3.3).
         </Alert>
       ) : f.estado !== 'BORRADOR' ? (
         <Alert color="estadoEnAnalisis" variant="light" radius="md" mb="md">
@@ -521,7 +529,9 @@ export function PaginaFormula() {
       <PanelDensidadProducto
         key={f.id}
         formula={f}
-        editable={puedeEditar && (f.estado === 'BORRADOR' || f.estado === 'VIGENTE')}
+        editable={
+          esDT ? f.estado === 'BORRADOR' || f.estado === 'VIGENTE' : editableBorrador
+        }
       />
 
       <ResumenPorcentajes componentes={componentes} />

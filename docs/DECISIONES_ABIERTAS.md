@@ -732,6 +732,102 @@ la unidad de planificación (producción de un producto con cantidad), cómo se
 asigna a uno o varios pedidos o a stock, y cómo convive con la fecha
 comprometida del bloque 3.
 
+## Abiertas — 2026-10-21
+
+### D-etiquetado-1 · Envase etiquetado como paso intermedio de todos los productos
+
+**Decidido** por el codirector técnico (2026-10-20), implementado en
+`20261021120000`. Envase + etiqueta = envase etiquetado, para todos los
+productos de Nail Show:
+
+- Gerencia de Producción carga cada día cuántos etiquetó por producto; en ese
+  momento se descuentan envase y etiqueta de lotes **aprobados**, del que vence
+  primero (como al terminar un pedido).
+- «Faltan etiquetar» = unidades de pedidos CONFIRMADO o EN_PRODUCCION − envases
+  etiquetados sin usar. Va arriba de todo en el Tablero de GP.
+- Al terminar un pedido se toman primero los envases etiquetados (del más viejo
+  al más nuevo); el envase y la etiqueta sueltos solo se descuentan por lo que
+  no cubran. Los faltantes de compra cuentan lo etiquetado como envase y
+  etiqueta disponibles.
+- Gerencia de Producción carga fórmulas en BORRADOR; dejarlas VIGENTE sigue
+  siendo de Dirección Técnica. «No corresponde» marca los productos que no
+  llevan fórmula (`gmp.productos.sin_formula`).
+
+- Un etiquetado mal cargado no se borra (RN-54): se anula con su registro
+  rectificativo, que devuelve envase y etiqueta, mientras ningún pedido lo
+  haya usado. Después, la diferencia va por ajuste de inventario.
+- La trazabilidad del lote de producto terminado (`v_trazabilidad_orden`)
+  llega a los lotes de envase y etiqueta que vinieron etiquetados, prorrateado.
+- Los productos de clientes tercerizados no se etiquetan en este circuito.
+
+**Pendiente.**
+
+- La lista de materiales cargada antes (142 renglones de 26 productos) quedó
+  sin rol: hay que marcar en «Tareas pendientes de carga» cuál es el envase y
+  cuál la etiqueta de cada uno.
+
+## Abiertas — 2026-10-20
+
+### D-unidad-solo-materia-prima-1 · Capacidad del envase: para qué se usa
+
+**Pedido** del usuario (2026-10-20): que el alta de un material de envase pida
+su capacidad «para cálculos posteriores». `20261020120000` agrega
+`gmp.insumos_catalogo.capacidad` + `unidad_capacidad` (g o mL), solo en
+MATERIAL_ENVASE, optativa (tapas y pinceles no contienen producto). El alcance
+no la menciona: es un dato de ficha sin regla de negocio todavía.
+**Preguntas.**
+
+- ¿Qué cálculos la usan? (¿controlar que el envase de la orden coincida con el
+  contenido neto del producto? ¿estimar envases por lote?)
+- La capacidad se puede editar con lotes ya recibidos (queda auditada). Si un
+  cálculo firmado llega a depender de ella, ¿se congela como `codigo_interno`?
+  **Decide.** Gerencia de Producción con Dirección Técnica.
+
+### D-unidad-solo-materia-prima-2 · Lote del proveedor optativo con remito
+
+**Pedido** del usuario (2026-10-20): que el lote del proveedor sea optativo,
+porque el remito ya da la trazabilidad hasta el lote final.
+`20261020130000` lo implementa: `gmp.lotes_insumo.lote_proveedor` admite NULL
+solo si la recepción tiene número de remito (si no, nada rastrea el material
+hacia atrás). **Contradice el alcance:** el esquema lo pedía NOT NULL y el
+rótulo R.20.2.1 y la etiqueta de muestreo R.50.4.1 listan «n° lote
+proveedor». Hoy el rótulo muestra «—» en ese campo.
+**Preguntas para DT.**
+
+- ¿Se acepta el remito como sustituto del lote del proveedor? ¿Para todos
+  los tipos, o solo envases y empaques (la materia prima con protocolo trae
+  lote en el certificado)?
+- ¿El rótulo debería mostrar el remito cuando falta el lote?
+  **Decide.** Dirección Técnica.
+
+### D-recepcion-1 · Rol Recepción y control rápido de materia prima
+
+**Decidido** por el codirector técnico (2026-10-20), como excepción a §3.4.
+Rol nuevo `RECEPCION` (`20261020140000`, `20261020140100`) para Silveira
+(Stefania): registra recepciones, las carga a stock, da de alta insumos (no
+edita fichas) y hace el control de materia prima. La misma persona recibe,
+muestrea y dictamina: para materia prima alcanza el control organoléptico
+(contenedor, rótulo, protocolo, aspecto transparente, olor característico).
+El control rápido usa las mismas funciones del circuito completo, así que
+quedan el muestreo con su etiqueta R.50.4.1, el R.50.5.1 numerado y el rótulo,
+todo a su nombre. Granel y producto terminado siguen con DT/CC, con el
+análisis fisicoquímico.
+
+**Pendiente.**
+
+- Incorporar el rol al organigrama PG.60.1 v03 (D-06): a diferencia de
+  ENCARGADA_STOCK, este sí toca registros regulados.
+- Riesgo conocido: como da de alta insumos y dictamina materia prima, puede
+  crear un insumo como «materia prima» y aprobarlo ella. El tipo queda
+  auditado. Si se quiere cerrar: que el alta de materia prima la confirme DT/GP
+  antes del primer control.
+- Preexistente, no lo abre este rol pero lo amplía: la política
+  `rotulos_insert_emision` no ata el rótulo al estado del lote, y
+  `lotes_insumo_update_circuito` deja cambiar `deposito_actual_id` por UPDATE
+  directo. Conviene cerrarlos para todos los roles.
+- `comercial.vincular_recepcion_compras` no admite RECEPCION: si recibe algo
+  de una compra pendiente, la vinculación la hace GP o Administración.
+
 ## Abiertas — 2026-10-14
 
 ### D-55 · Especificaciones cargadas en borrador: qué revisar antes de aprobar

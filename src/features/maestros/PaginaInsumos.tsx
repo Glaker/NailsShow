@@ -5,7 +5,9 @@ import {
   Grid,
   Group,
   Modal,
+  NumberInput,
   Paper,
+  SegmentedControl,
   Select,
   Skeleton,
   Stack,
@@ -36,7 +38,8 @@ import {
   useInsumos,
   type Insumo,
 } from '@/lib/consultas';
-import { etiquetaEnum } from '@/lib/formato';
+import { etiquetaEnum, etiquetaUnidad } from '@/lib/formato';
+import { UNIDADES_COSTO } from '@/lib/consultasCostos';
 import { useTieneRol } from '@/features/auth/sesion';
 
 const TIPOS = [
@@ -55,6 +58,10 @@ const esquema = z.object({
      mientras lo esté la base rechaza recepcionar este insumo. Un valor
      inventado sería peor que el hueco. */
   unidad_medida: z.string().trim(),
+  /* Solo envases (CHECK insumos_catalogo_capacidad_solo_envase). Vacía en
+     lo que no contiene producto: tapas, pinceles. */
+  capacidad: z.number().positive('La capacidad tiene que ser mayor que cero').nullable(),
+  unidad_capacidad: z.enum(['mL', 'g']),
   es_inflamable: z.boolean(),
   requiere_protocolo: z.boolean(),
   requiere_pesada_recepcion: z.boolean(),
@@ -64,6 +71,10 @@ const esquema = z.object({
 });
 
 type ValoresInsumo = z.infer<typeof esquema>;
+
+/** Se pesan o miden: la unidad se elige. Lo demás (envases, etiquetas) se
+    cuenta por unidad, como el resto del catálogo. */
+const CON_UNIDAD: readonly string[] = ['MATERIA_PRIMA', 'SEMIELABORADO'];
 
 /**
  * Alta y edición de la ficha, en el mismo formulario.
@@ -75,11 +86,14 @@ type ValoresInsumo = z.infer<typeof esquema>;
 export function FormularioInsumo({
   insumo,
   nombreInicial = '',
+  tipoInicial = 'MATERIA_PRIMA',
   onListo,
 }: {
   insumo?: Insumo | undefined;
   /** Lo que se buscó en la recepción y no estaba: arranca como nombre. */
   nombreInicial?: string;
+  /** Desde «Tareas pendientes de carga»: envase, etiqueta o extra. */
+  tipoInicial?: (typeof TIPOS)[number];
   /** En el alta recibe la ficha creada (la recepción la elige en el lote). */
   onListo: (creado?: Insumo) => void;
 }) {
@@ -93,12 +107,14 @@ export function FormularioInsumo({
     initialValues: {
       codigo_interno: insumo?.codigo_interno ?? '',
       nombre: insumo?.nombre ?? nombreInicial,
-      tipo: insumo?.tipo ?? 'MATERIA_PRIMA',
+      tipo: insumo?.tipo ?? tipoInicial,
       unidad_medida: insumo?.unidad_medida ?? (insumo ? '' : 'kg'),
+      capacidad: insumo?.capacidad ?? null,
+      unidad_capacidad: insumo?.unidad_capacidad === 'g' ? 'g' : 'mL',
       es_inflamable: insumo?.es_inflamable ?? false,
       /* I.20.1 paso 5 exige protocolo en materia prima: se propone marcado y se
          puede desmarcar, no al revés. */
-      requiere_protocolo: insumo?.requiere_protocolo ?? true,
+      requiere_protocolo: insumo?.requiere_protocolo ?? tipoInicial === 'MATERIA_PRIMA',
       requiere_pesada_recepcion: insumo?.requiere_pesada_recepcion ?? false,
       deposito_cuarentena_id: insumo?.deposito_cuarentena_id ?? null,
       deposito_aprobado_id: insumo?.deposito_aprobado_id ?? null,
@@ -106,6 +122,8 @@ export function FormularioInsumo({
     },
     validate: zod4Resolver(esquema),
   });
+
+  const conUnidad = CON_UNIDAD.includes(form.values.tipo);
 
   const opcionesDeposito = (depositos.data ?? []).map((d) => ({
     value: d.id,
@@ -120,8 +138,19 @@ export function FormularioInsumo({
         e.stopPropagation();
         form.onSubmit(async (v) => {
           /* La unidad vacía va como null: '' en la base no es «sin unidad»,
-             es ruido que después hay que limpiar. */
-          const campos = { ...v, unidad_medida: v.unidad_medida || null };
+             es ruido que después hay que limpiar. Lo que se cuenta va en
+             UNIDAD; una ficha que ya tenía unidad la conserva, porque sus
+             lotes están en esa unidad. */
+          const unidad = CON_UNIDAD.includes(v.tipo)
+            ? v.unidad_medida || null
+            : (insumo?.unidad_medida ?? 'UNIDAD');
+          const capacidad = v.tipo === 'MATERIAL_ENVASE' ? v.capacidad : null;
+          const campos = {
+            ...v,
+            unidad_medida: unidad,
+            capacidad,
+            unidad_capacidad: capacidad === null ? null : v.unidad_capacidad,
+          };
           if (insumo) {
             await actualizar.mutateAsync({ id: insumo.id, cambios: campos });
             onListo();
@@ -152,7 +181,7 @@ export function FormularioInsumo({
               {...form.getInputProps('nombre')}
             />
           </Grid.Col>
-          <Grid.Col span={{ base: 12, sm: 8 }}>
+          <Grid.Col span={{ base: 12, sm: conUnidad ? 8 : 12 }}>
             <Select
               label="Tipo"
               data={TIPOS.map((t) => ({ value: t, label: etiquetaEnum(t) }))}
@@ -160,14 +189,61 @@ export function FormularioInsumo({
               {...form.getInputProps('tipo')}
             />
           </Grid.Col>
-          <Grid.Col span={{ base: 12, sm: 4 }}>
-            <TextInput
-              label="Unidad de medida"
-              placeholder="g, kg, unidad…"
-              description="Vacía = pendiente. Sin unidad no se puede recepcionar."
-              {...form.getInputProps('unidad_medida')}
-            />
-          </Grid.Col>
+          {conUnidad ? (
+            <Grid.Col span={{ base: 12, sm: 4 }}>
+              {/* Lista cerrada: el stock compara unidades letra por letra y
+                  «Kg» o «unidades» tipeados a mano no coinciden con nada. Una
+                  ficha vieja con otro valor lo muestra hasta que se corrija. */}
+              <Select
+                label="Unidad de medida"
+                placeholder="Pendiente"
+                description="Sin unidad no se puede recepcionar."
+                data={[
+                  ...UNIDADES_COSTO.map((u) => ({ value: u, label: etiquetaUnidad(u) })),
+                  ...(form.values.unidad_medida &&
+                  !UNIDADES_COSTO.includes(form.values.unidad_medida)
+                    ? [
+                        {
+                          value: form.values.unidad_medida,
+                          label: `${form.values.unidad_medida} (corregir)`,
+                        },
+                      ]
+                    : []),
+                ]}
+                clearable
+                {...form.getInputProps('unidad_medida')}
+                onChange={(u) => form.setFieldValue('unidad_medida', u ?? '')}
+              />
+            </Grid.Col>
+          ) : null}
+          {form.values.tipo === 'MATERIAL_ENVASE' ? (
+            <>
+              <Grid.Col span={{ base: 7, sm: 8 }}>
+                <NumberInput
+                  label="Capacidad del envase"
+                  placeholder="15"
+                  description="Cuánto producto entra. Vacía si no contiene (tapas, pinceles)."
+                  min={0}
+                  decimalScale={3}
+                  decimalSeparator=","
+                  {...form.getInputProps('capacidad')}
+                  onChange={(n) =>
+                    form.setFieldValue('capacidad', typeof n === 'number' ? n : null)
+                  }
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 5, sm: 4 }}>
+                <Text size="sm" fw={500} mb={6}>
+                  En
+                </Text>
+                <SegmentedControl
+                  fullWidth
+                  data={['mL', 'g']}
+                  {...form.getInputProps('unidad_capacidad')}
+                />
+              </Grid.Col>
+            </>
+          ) : null}
           <Grid.Col span={{ base: 12, sm: 6 }}>
             <Select
               label="Depósito de cuarentena"
@@ -248,6 +324,13 @@ export function PaginaInsumos() {
     'GERENCIA_PRODUCCION',
     'ADMINISTRADOR_SISTEMA',
   );
+  // insumos_catalogo_insert_tecnicos: Recepción da de alta, no edita.
+  const puedeCrear = useTieneRol(
+    'DIRECCION_TECNICA',
+    'GERENCIA_PRODUCCION',
+    'ADMINISTRADOR_SISTEMA',
+    'RECEPCION',
+  );
 
   const abrirAlta = () => {
     setEnEdicion(undefined);
@@ -278,7 +361,7 @@ export function PaginaInsumos() {
         titulo="Catálogo de insumos"
         descripcion="Cada ficha define el circuito del material: qué exige al recibirlo y a qué depósito va."
         acciones={
-          puedeEditar ? (
+          puedeCrear ? (
             <Button leftSection={<IconPlus size={18} />} onClick={abrirAlta}>
               Nuevo insumo
             </Button>
@@ -298,7 +381,7 @@ export function PaginaInsumos() {
             titulo="El catálogo está vacío"
             descripcion="Cargá los insumos que la planta recibe. Sin catálogo no se puede registrar una recepción."
             accion={
-              puedeEditar ? (
+              puedeCrear ? (
                 <Button
                   variant="light"
                   leftSection={<IconPlus size={16} />}
@@ -350,7 +433,12 @@ export function PaginaInsumos() {
                       </Table.Td>
                       <Table.Td>
                         {i.unidad_medida ? (
-                          <Text size="sm">{i.unidad_medida}</Text>
+                          <Text size="sm">
+                            {i.unidad_medida}
+                            {i.capacidad !== null
+                              ? ` · ${Number(i.capacidad).toLocaleString('es-AR')} ${i.unidad_capacidad}`
+                              : ''}
+                          </Text>
                         ) : (
                           <Tooltip label="Pendiente de confirmación en planta. Sin unidad no se puede recepcionar este insumo.">
                             <Text size="sm" c="dimmed">

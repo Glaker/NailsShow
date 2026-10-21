@@ -31,6 +31,7 @@ const ROLES: Rol[] = [
   'ADMINISTRADOR_SISTEMA',
   'ENCARGADA_STOCK',
   'VENTAS',
+  'RECEPCION',
 ];
 
 const SECTORES: Sector[] = [

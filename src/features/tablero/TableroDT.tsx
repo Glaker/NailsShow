@@ -182,7 +182,8 @@ export function TableroDT() {
                             {l.insumo_nombre}
                           </Anchor>
                           <Text size="xs" c="dimmed" ff="monospace">
-                            {l.numero_registro_interno} · lote {l.lote_proveedor}
+                            {l.numero_registro_interno} · lote{' '}
+                            {l.lote_proveedor ?? 's/lote'}
                           </Text>
                         </Table.Td>
                         <Table.Td ta="right" ff="monospace">
