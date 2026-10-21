@@ -116,7 +116,8 @@ export function comprobanteDeRecepcion(
 // Filas (puente, ver arriba)
 // ---------------------------------------------------------------------------
 
-export type OrigenReferencia = 'MANUAL' | 'ULTIMO_LOTE' | 'APERTURA';
+/** ESTIMADO: lo aproximó Gerencia de Producción; vale último (20261021140000). */
+export type OrigenReferencia = 'MANUAL' | 'ULTIMO_LOTE' | 'APERTURA' | 'ESTIMADO';
 
 export interface CostoReferencia {
   insumo_id: string;
@@ -714,6 +715,31 @@ export function useFijarCostoReferencia() {
     onSuccess: () => {
       invalidarCostos(qc);
       avisarExito('Costo de referencia fijado. Lo pagado en cada lote no cambia.');
+    },
+    onError: avisarError,
+  });
+}
+
+/**
+ * Costo aproximado de Gerencia de Producción (D-costo-estimado-1): «$ 85.000
+ * por 20 l». Solo rige si el insumo no tiene precio de Finanzas, compra ni
+ * apertura; el último cargado reemplaza al anterior.
+ */
+export function useCargarCostoEstimado() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (e: {
+      insumo_id: string;
+      importe: number;
+      cantidad: number;
+      unidad: string;
+    }) => {
+      const { error } = await sinTipos().from('costos_estimados').insert(e);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidarCostos(qc);
+      avisarExito('Costo aproximado guardado.');
     },
     onError: avisarError,
   });

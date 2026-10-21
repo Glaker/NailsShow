@@ -9,6 +9,13 @@ import { fileURLToPath } from 'node:url';
 const RAIZ = fileURLToPath(new URL('../../../', import.meta.url)).replace(/[\/]$/, '');
 const MIG = `${RAIZ}/supabase/migrations`;
 
+// Migraciones que corrigen una fila puntual de la base real y fallan a
+// propósito si no la encuentran. En una base de prueba esa fila no existe:
+// se saltean, y lo que prueban las suites no depende de ellas.
+const SOLO_PRODUCCION = new Set([
+  '20261020130000_comercial_restituye_recepcion_00003.sql', // la recepción 00003/2026 real
+]);
+
 export async function reconstruir({ silencioso = false } = {}) {
   const db = new PGlite({ extensions: { pgcrypto } });
   await db.exec(`
@@ -37,6 +44,10 @@ export async function reconstruir({ silencioso = false } = {}) {
     ...borradores.map((f) => [f, new URL(f, BOR)]),
   ].sort((a, b) => a[0].localeCompare(b[0]));
   for (const [f, ruta] of todos) {
+    if (SOLO_PRODUCCION.has(f)) {
+      if (!silencioso) console.log('omit ', f, '(corrige datos de la base real)');
+      continue;
+    }
     if (f.startsWith('20260910140000_')) {
       await db.exec(`insert into core.usuarios (id, nombre_completo, email, rol, sector, es_dt_titular)
         values ('a5898868-e25d-4123-bcd9-fbe217f6ca19','Cuenta de verificación',
@@ -45,6 +56,13 @@ export async function reconstruir({ silencioso = false } = {}) {
     if (f.startsWith('20260924120000_')) {
       await db.exec(`insert into core.usuarios (nombre_completo, email, rol, sector)
         values ('Mati','corporativo.nailshow@gmail.com','OPERARIO','ADMINISTRACION');`);
+    }
+    // 20261020120000_comercial_vaciar_stock_viejo anula a nombre de la cuenta
+    // real de Administración: tiene que existir activa.
+    if (f === '20261020120000_comercial_vaciar_stock_viejo.sql') {
+      await db.exec(`insert into core.usuarios (nombre_completo, email, rol, sector)
+        values ('Administración','nailshowargentina@hotmail.com','ADMINISTRACION','ADMINISTRACION')
+        on conflict (email) do nothing;`);
     }
     if (f.startsWith('20260922190000_')) {
       await db.exec(`insert into core.usuarios (nombre_completo, email, rol, sector)

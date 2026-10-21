@@ -39,7 +39,8 @@ import {
   type FormulaFabricacionRow,
 } from '@/lib/consultas';
 import { numero } from '@/lib/formato';
-import { useTieneRol } from '@/features/auth/sesion';
+import { FINANZAS, useTieneRol } from '@/features/auth/sesion';
+import { CostoAprox } from './TareasCarga';
 import { BadgeEstadoFormula } from './estadoFormula';
 import { PanelProcedimiento } from './PanelProcedimiento';
 
@@ -425,6 +426,7 @@ export function PaginaFormula() {
   /* GP carga borradores (D-etiquetado-1, formulas_actualiza_dt); dejarla
      vigente sigue siendo de DT. */
   const esGP = useTieneRol('GERENCIA_PRODUCCION');
+  const cargaCostoAprox = useTieneRol('GERENCIA_PRODUCCION', FINANZAS);
 
   const f = datos.data?.formula;
   const puedeEditar = esDT || (esGP && f?.estado === 'BORRADOR');
@@ -573,6 +575,10 @@ export function PaginaFormula() {
                         <Text size="xs" c="dimmed">
                           {c.insumo.codigo_interno}
                         </Text>
+                      ) : null}
+                      {/* Costo a granel aproximado, opcional (D-costo-estimado-1). */}
+                      {cargaCostoAprox && c.insumo_id ? (
+                        <CostoAprox insumoId={c.insumo_id} unidad={null} sangria={0} />
                       ) : null}
                     </Table.Td>
                     <Table.Td ta="right">
