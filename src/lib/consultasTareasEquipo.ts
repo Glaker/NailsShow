@@ -73,6 +73,30 @@ export function useMoverTareaEquipo() {
   });
 }
 
+/**
+ * Cambiar el texto o la visibilidad: solo quien la cargó (lo hace cumplir
+ * comercial.fn_tarea_equipo, 20261014190000).
+ */
+export function useEditarTareaEquipo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (e: {
+      id: string;
+      titulo: string;
+      detalle: string | null;
+      compartida: boolean;
+    }) => {
+      const { error } = await comercial()
+        .from('tareas_equipo')
+        .update({ titulo: e.titulo, detalle: e.detalle, compartida: e.compartida })
+        .eq('id', e.id);
+      if (error) throw error;
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: CLAVE }),
+    onError: avisarError,
+  });
+}
+
 /** Hecha (cualquiera) o archivada (quien la cargó): sale de la matriz. */
 export function useCerrarTareaEquipo() {
   const qc = useQueryClient();

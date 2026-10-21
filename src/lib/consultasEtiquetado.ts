@@ -35,6 +35,9 @@ export interface TareaCarga {
   extras: number;
   tiene_formula: boolean;
   pendientes: number;
+  /** «No la sé»: la carga Dirección Técnica (20261021150000). */
+  formula_consultada: boolean;
+  solo_reventa: boolean;
 }
 
 export type RolMaterial = 'ENVASE' | 'ETIQUETA' | 'EXTRA';
@@ -140,16 +143,24 @@ function invalidarCarga(qc: ReturnType<typeof useQueryClient>) {
 }
 
 /**
- * Asigna el envase, la etiqueta o un extra de un producto. Envase y etiqueta
- * son uno por producto: el anterior se da de baja (no se borra). La fila
- * (producto, insumo) es única en la base, así que si ya existía se reactiva.
+ * Agrega un material a un producto: envase, etiqueta o extra, con su
+ * categoría («Etiqueta trasera», «Guarnición»). El envase es uno por
+ * producto: el anterior se da de baja (no se borra); etiquetas y extras se
+ * suman (20261021150000). La fila (producto, insumo) es única en la base, así
+ * que si ya existía se reactiva.
  */
 export function useAsignarMaterial() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (m: { productoId: string; insumoId: string; rol: RolMaterial }) => {
+    mutationFn: async (m: {
+      productoId: string;
+      insumoId: string;
+      rol: RolMaterial;
+      categoria?: string | null;
+    }) => {
       const tabla = () => gmpST().from('materiales_acondicionamiento');
-      if (m.rol !== 'EXTRA') {
+      const categoria = m.categoria?.trim() || null;
+      if (m.rol === 'ENVASE') {
         const { error } = await tabla()
           .update({ activo: false })
           .eq('producto_id', m.productoId)
@@ -166,7 +177,7 @@ export function useAsignarMaterial() {
       if (e1) throw e1;
       const { error } = existe
         ? await tabla()
-            .update({ rol: m.rol, activo: true })
+            .update({ rol: m.rol, categoria, activo: true })
             .eq('producto_id', m.productoId)
             .eq('insumo_id', m.insumoId)
         : await tabla().insert({
@@ -174,6 +185,7 @@ export function useAsignarMaterial() {
             insumo_id: m.insumoId,
             cantidad_por_unidad: 1,
             rol: m.rol,
+            categoria,
           });
       if (error) throw error;
     },
@@ -182,7 +194,7 @@ export function useAsignarMaterial() {
   });
 }
 
-export function useQuitarExtra() {
+export function useQuitarMaterial() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (m: { productoId: string; insumoId: string }) => {
@@ -198,22 +210,93 @@ export function useQuitarExtra() {
   });
 }
 
-/** Extras vigentes de un producto (lo que no es envase ni etiqueta). */
-export function useExtrasDeProducto(productoId: string) {
+export interface MaterialProducto {
+  insumo_id: string;
+  rol: RolMaterial | null;
+  categoria: string | null;
+  insumo: { nombre: string; codigo_interno: string; unidad_medida: string | null } | null;
+}
+
+/** Todo lo que lleva un producto hoy: envase, etiquetas y extras, con su categoría. */
+export function useMaterialesProducto(productoId: string, habilitado = true) {
   return useQuery({
-    queryKey: ['materiales', 'extras', productoId],
+    queryKey: ['materiales', 'producto', productoId],
+    enabled: habilitado,
     queryFn: async () => {
       const { data, error } = await gmpST()
         .from('materiales_acondicionamiento')
-        .select('insumo_id, insumo:insumos_catalogo(nombre, codigo_interno)')
+        .select(
+          'insumo_id, rol, categoria, insumo:insumos_catalogo(nombre, codigo_interno, unidad_medida)',
+        )
         .eq('producto_id', productoId)
-        .eq('activo', true)
-        .eq('rol', 'EXTRA');
+        .eq('activo', true);
       if (error) throw error;
-      return (data ?? []) as unknown as {
-        insumo_id: string;
-        insumo: { nombre: string; codigo_interno: string } | null;
-      }[];
+      const orden = { ENVASE: 0, ETIQUETA: 1, EXTRA: 2 } as Record<string, number>;
+      return ((data ?? []) as unknown as MaterialProducto[]).sort(
+        (a, b) => (orden[a.rol ?? ''] ?? 3) - (orden[b.rol ?? ''] ?? 3),
+      );
+    },
+  });
+}
+
+/** «No la sé»: la fórmula pasa a Fórmulas › Pendientes de Dirección Técnica. */
+export function useConsultarFormula() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (productoId: string) => {
+      const { error } = await gmpST().rpc('consultar_formula', {
+        p_producto_id: productoId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidarCarga(qc);
+      avisarExito('Listo: Dirección Técnica la ve en Fórmulas › Pendientes.');
+    },
+    onError: avisarError,
+  });
+}
+
+/** Producto de reventa: no lleva envase, etiqueta ni fórmula. */
+export function useMarcarReventa() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (p: { productoId: string; reventa: boolean }) => {
+      const { error } = await gmpST()
+        .from('productos')
+        .update({ solo_reventa: p.reventa })
+        .eq('id', p.productoId);
+      if (error) throw error;
+    },
+    onSuccess: (_, p) => {
+      invalidarCarga(qc);
+      avisarExito(
+        p.reventa ? 'Marcado como reventa: sale de las tareas.' : 'Ya no es reventa.',
+      );
+    },
+    onError: avisarError,
+  });
+}
+
+export interface FormulaConsultada {
+  producto_id: string;
+  codigo_interno: string;
+  nombre: string;
+  formula_consultada_en: string;
+  consultada_por: string | null;
+}
+
+/** Fórmulas que Gerencia de Producción derivó a Dirección Técnica. */
+export function useFormulasConsultadas() {
+  return useQuery({
+    queryKey: ['formulas', 'consultadas'],
+    queryFn: async () => {
+      const { data, error } = await gmpST()
+        .from('v_formulas_consultadas')
+        .select('*')
+        .order('formula_consultada_en');
+      if (error) throw error;
+      return (data ?? []) as FormulaConsultada[];
     },
   });
 }

@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  Accordion,
   ActionIcon,
+  Autocomplete,
   Badge,
   Button,
+  Grid,
   Group,
   Modal,
   NumberInput,
@@ -15,7 +18,13 @@ import {
   TextInput,
   Title,
 } from '@mantine/core';
-import { IconChecklist, IconPlus, IconSearch, IconX } from '@tabler/icons-react';
+import {
+  IconCheck,
+  IconChecklist,
+  IconPlus,
+  IconSearch,
+  IconX,
+} from '@tabler/icons-react';
 import { useInsumos, type Insumo } from '@/lib/consultas';
 import {
   UNIDADES_COSTO,
@@ -25,11 +34,14 @@ import {
 import { ORIGEN_PRECIO } from '@/features/costos/comun';
 import {
   useAsignarMaterial,
-  useExtrasDeProducto,
+  useConsultarFormula,
   useInsumosDeFormula,
+  useMarcarReventa,
   useMarcarSinFormula,
-  useQuitarExtra,
+  useMaterialesProducto,
+  useQuitarMaterial,
   useTareasCarga,
+  type MaterialProducto,
   type RolMaterial,
   type TareaCarga,
 } from '@/lib/consultasEtiquetado';
@@ -47,7 +59,7 @@ type TipoInsumo = Insumo['tipo'];
 export function CostoAprox({
   insumoId,
   unidad,
-  sangria = 88,
+  sangria = 0,
 }: {
   insumoId: string;
   unidad: string | null;
@@ -83,7 +95,7 @@ export function CostoAprox({
   if (!abierto) {
     return (
       <Group pl={sangria}>
-        <Button size="compact-sm" variant="subtle" onClick={() => setAbierto(true)}>
+        <Button size="compact-xs" variant="subtle" onClick={() => setAbierto(true)}>
           + Costo aproximado (opcional)
         </Button>
       </Group>
@@ -155,17 +167,15 @@ function CostosFormula({ productoId }: { productoId: string }) {
   const insumos = useInsumosDeFormula(productoId, ver);
   if (!ver)
     return (
-      <Group pl={88}>
-        <Button size="compact-sm" variant="subtle" onClick={() => setVer(true)}>
-          Costos de la fórmula a granel (opcional)
-        </Button>
-      </Group>
+      <Button size="compact-sm" variant="subtle" onClick={() => setVer(true)}>
+        Costos de la fórmula a granel (opcional)
+      </Button>
     );
-  if (insumos.isLoading) return <Skeleton h={40} ml={88} />;
+  if (insumos.isLoading) return <Skeleton h={40} />;
   const filas = insumos.data ?? [];
   if (filas.length === 0)
     return (
-      <Text size="xs" c="dimmed" pl={88}>
+      <Text size="xs" c="dimmed">
         La fórmula todavía no tiene materias primas cargadas.
       </Text>
     );
@@ -173,7 +183,7 @@ function CostosFormula({ productoId }: { productoId: string }) {
     <Stack gap={6}>
       {filas.map((c) => (
         <Stack key={c.insumo_id} gap={2}>
-          <Text size="sm" pl={88}>
+          <Text size="sm">
             {c.insumo?.codigo_interno} — {c.insumo?.nombre}
           </Text>
           <CostoAprox insumoId={c.insumo_id} unidad={c.insumo?.unidad_medida ?? null} />
@@ -183,25 +193,25 @@ function CostosFormula({ productoId }: { productoId: string }) {
   );
 }
 
-/** Alta de insumo abierta desde un buscador que no lo encontró. */
-interface Alta {
-  rol: RolMaterial;
-  tipo: TipoInsumo;
-  nombre: string;
-}
+/** Lo que puede ser cada cosa que se agrega, en palabras de planta. */
+const QUE_ES: { valor: string; rol: RolMaterial; tipos: TipoInsumo[] }[] = [
+  { valor: 'Etiqueta', rol: 'ETIQUETA', tipos: ['ETIQUETA'] },
+  { valor: 'Guarnición', rol: 'EXTRA', tipos: ['MATERIAL_ENVASE', 'MATERIAL_EMPAQUE'] },
+  { valor: 'Tapa', rol: 'EXTRA', tipos: ['MATERIAL_ENVASE'] },
+  { valor: 'Pincel', rol: 'EXTRA', tipos: ['MATERIAL_ENVASE'] },
+  { valor: 'Caja', rol: 'EXTRA', tipos: ['MATERIAL_EMPAQUE'] },
+  { valor: 'Bolsa', rol: 'EXTRA', tipos: ['MATERIAL_EMPAQUE'] },
+];
+const TIPOS_EXTRA: TipoInsumo[] = ['MATERIAL_ENVASE', 'MATERIAL_EMPAQUE', 'ETIQUETA'];
 
-/** Un buscador de insumos del tipo pedido, con «Nuevo» si no está. */
+/** Un buscador de insumos del tipo pedido, con «Nuevo insumo» si no está. */
 function ElegirInsumo({
-  etiqueta,
   tipos,
-  valor,
   onElegir,
   onNuevo,
   placeholder,
 }: {
-  etiqueta: string;
   tipos: TipoInsumo[];
-  valor: string | null;
   onElegir: (id: string) => void;
   onNuevo: (nombre: string) => void;
   placeholder: string;
@@ -212,202 +222,440 @@ function ElegirInsumo({
     .filter((i) => i.activo && tipos.includes(i.tipo))
     .map((i) => ({ value: i.id, label: `${i.codigo_interno} — ${i.nombre}` }));
   return (
-    <Group wrap="nowrap" gap="sm" align="center">
-      <Text fw={600} w={80}>
-        {etiqueta}
-      </Text>
-      <Select
-        flex={1}
-        size="md"
-        placeholder={placeholder}
-        data={opciones}
-        value={valor}
-        searchable
-        onSearchChange={setBuscado}
-        onChange={(v) => v && onElegir(v)}
-        nothingFoundMessage={
-          <Button
-            fullWidth
-            variant="light"
-            leftSection={<IconPlus size={16} />}
-            onClick={() => onNuevo(buscado.trim())}
-          >
-            Nuevo insumo
-          </Button>
-        }
-      />
-    </Group>
+    <Select
+      size="md"
+      placeholder={placeholder}
+      data={opciones}
+      value={null}
+      searchable
+      onSearchChange={setBuscado}
+      onChange={(v) => v && onElegir(v)}
+      nothingFoundMessage={
+        <Button
+          fullWidth
+          variant="light"
+          leftSection={<IconPlus size={16} />}
+          onClick={() => onNuevo(buscado.trim())}
+        >
+          Nuevo insumo
+        </Button>
+      }
+    />
   );
 }
 
-function Extras({
+/** Pedido de alta de un insumo que no estaba, con lo que va a ser. */
+interface Alta {
+  rol: RolMaterial;
+  tipo: TipoInsumo;
+  nombre: string;
+  categoria: string | null;
+}
+
+/** Un material que lleva el producto: qué es, cuál, su costo y quitar. */
+function FilaMaterial({
+  m,
   productoId,
+  onClasificar,
+}: {
+  m: MaterialProducto;
+  productoId: string;
+  onClasificar: (rol: RolMaterial) => void;
+}) {
+  const quitar = useQuitarMaterial();
+  const etiqueta =
+    m.categoria ??
+    (m.rol === 'ENVASE'
+      ? 'Envase'
+      : m.rol === 'ETIQUETA'
+        ? 'Etiqueta'
+        : m.rol
+          ? 'Extra'
+          : 'Sin clasificar');
+  return (
+    <Paper
+      withBorder
+      p="sm"
+      radius="md"
+      style={{ borderColor: 'var(--superficie-borde)' }}
+    >
+      <Group justify="space-between" wrap="nowrap" align="flex-start">
+        <Stack gap={4}>
+          <Group gap="xs">
+            <Badge
+              variant="light"
+              radius="sm"
+              color={
+                m.rol === 'ENVASE'
+                  ? 'azul'
+                  : m.rol === 'ETIQUETA'
+                    ? 'grape'
+                    : m.rol
+                      ? 'gray'
+                      : 'orange'
+              }
+            >
+              {etiqueta}
+            </Badge>
+            <Text size="sm" fw={600}>
+              {m.insumo?.nombre}
+            </Text>
+            <Text size="xs" c="dimmed" ff="monospace">
+              {m.insumo?.codigo_interno}
+            </Text>
+          </Group>
+          {m.rol ? (
+            <CostoAprox insumoId={m.insumo_id} unidad={m.insumo?.unidad_medida ?? null} />
+          ) : (
+            <Group gap="xs">
+              <Text size="xs" c="dimmed">
+                Cargado antes, sin decir qué es:
+              </Text>
+              <Button
+                size="compact-xs"
+                variant="light"
+                onClick={() => onClasificar('ENVASE')}
+              >
+                Es el envase
+              </Button>
+              <Button
+                size="compact-xs"
+                variant="light"
+                onClick={() => onClasificar('ETIQUETA')}
+              >
+                Es etiqueta
+              </Button>
+              <Button
+                size="compact-xs"
+                variant="light"
+                onClick={() => onClasificar('EXTRA')}
+              >
+                Es otra cosa
+              </Button>
+            </Group>
+          )}
+        </Stack>
+        <ActionIcon
+          variant="subtle"
+          color="gray"
+          size="lg"
+          aria-label={`Quitar ${m.insumo?.nombre ?? ''}`}
+          onClick={() => quitar.mutate({ productoId, insumoId: m.insumo_id })}
+        >
+          <IconX size={18} />
+        </ActionIcon>
+      </Group>
+    </Paper>
+  );
+}
+
+/** «+ Agregar»: qué es y cuál. La categoría se elige o se escribe. */
+function Agregar({
+  texto,
+  fijo,
+  onElegir,
   onNuevo,
 }: {
-  productoId: string;
-  onNuevo: (n: string) => void;
+  texto: string;
+  /** Si viene, no se pregunta qué es (p. ej. «+ Agregar etiqueta»). */
+  fijo?: { rol: RolMaterial; categoria: string | null; tipos: TipoInsumo[] };
+  onElegir: (id: string, rol: RolMaterial, categoria: string | null) => void;
+  onNuevo: (a: Alta) => void;
 }) {
-  const extras = useExtrasDeProducto(productoId);
-  const asignar = useAsignarMaterial();
-  const quitar = useQuitarExtra();
+  const [abierto, setAbierto] = useState(false);
+  const [queEs, setQueEs] = useState('');
+  if (!abierto)
+    return (
+      <Button
+        variant="subtle"
+        size="sm"
+        leftSection={<IconPlus size={16} />}
+        onClick={() => setAbierto(true)}
+        style={{ alignSelf: 'flex-start' }}
+      >
+        {texto}
+      </Button>
+    );
+  const conocido = QUE_ES.find(
+    (q) => q.valor.toLowerCase() === queEs.trim().toLowerCase(),
+  );
+  const destino = fijo ?? {
+    rol: conocido?.rol ?? 'EXTRA',
+    categoria: queEs.trim() || null,
+    tipos: conocido?.tipos ?? TIPOS_EXTRA,
+  };
+  const listo = Boolean(fijo) || queEs.trim().length > 0;
+  return (
+    <Paper
+      withBorder
+      p="sm"
+      radius="md"
+      style={{ borderColor: 'var(--superficie-borde)' }}
+    >
+      <Stack gap="xs">
+        {fijo ? null : (
+          <Autocomplete
+            label="¿Qué es?"
+            placeholder="Guarnición, tapa, otra etiqueta…"
+            data={QUE_ES.map((q) => q.valor)}
+            value={queEs}
+            onChange={setQueEs}
+            size="md"
+          />
+        )}
+        {listo ? (
+          <ElegirInsumo
+            tipos={destino.tipos}
+            placeholder="Buscá el insumo"
+            onElegir={(id) => {
+              onElegir(id, destino.rol, destino.categoria);
+              setAbierto(false);
+              setQueEs('');
+            }}
+            onNuevo={(nombre) => {
+              onNuevo({
+                rol: destino.rol,
+                tipo: destino.rol === 'ETIQUETA' ? 'ETIQUETA' : 'MATERIAL_ENVASE',
+                nombre,
+                categoria: destino.categoria,
+              });
+              setAbierto(false);
+            }}
+          />
+        ) : null}
+        <Button
+          variant="subtle"
+          color="gray"
+          size="compact-sm"
+          onClick={() => setAbierto(false)}
+          style={{ alignSelf: 'flex-start' }}
+        >
+          Cancelar
+        </Button>
+      </Stack>
+    </Paper>
+  );
+}
+
+/** Una sección de la derecha: título y lo que va adentro. */
+function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <Stack gap={6}>
-      {(extras.data ?? []).map((x) => (
-        <Stack key={x.insumo_id} gap={2}>
-          <Group gap="xs" pl={88}>
-            <Text size="sm">
-              {x.insumo?.codigo_interno} — {x.insumo?.nombre}
-            </Text>
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              aria-label="Quitar extra"
-              onClick={() => quitar.mutate({ productoId, insumoId: x.insumo_id })}
-            >
-              <IconX size={16} />
-            </ActionIcon>
-          </Group>
-          <CostoAprox insumoId={x.insumo_id} unidad="UNIDAD" />
-        </Stack>
-      ))}
-      <ElegirInsumo
-        etiqueta="+ Extra"
-        tipos={['MATERIAL_ENVASE', 'MATERIAL_EMPAQUE']}
-        valor={null}
-        placeholder="Tapa, pincel, caja… (opcional)"
-        onElegir={(id) => asignar.mutate({ productoId, insumoId: id, rol: 'EXTRA' })}
-        onNuevo={onNuevo}
-      />
+      <Text size="xs" fw={700} c="dimmed" tt="uppercase">
+        {titulo}
+      </Text>
+      {children}
     </Stack>
   );
 }
 
-/** Producto = etiqueta + envase + fórmula + extra, uno debajo del otro. */
-function Tarea({
+/**
+ * Tarjeta abierta: a la izquierda el producto; a la derecha, uno debajo del
+ * otro, lo que lleva (envase, etiquetas, fórmula y lo demás).
+ */
+function DetalleProducto({
   t,
   completo,
   onTocar,
   onListo,
 }: {
   t: TareaCarga;
-  /** Ya no le falta nada: queda a la vista para cargar costos hasta «Listo». */
   completo: boolean;
-  /** Lo que acaba de cambiar, para que la tarjeta retenida no quede vieja. */
   onTocar: (cambio: Partial<TareaCarga>) => void;
   onListo: () => void;
 }) {
+  const materiales = useMaterialesProducto(t.producto_id);
   const asignar = useAsignarMaterial();
   const sinFormula = useMarcarSinFormula();
+  const consultar = useConsultarFormula();
+  const reventa = useMarcarReventa();
   const navegar = useNavigate();
   const [alta, setAlta] = useState<Alta | null>(null);
   const [formula, setFormula] = useState(false);
-  const elegir = (rol: RolMaterial) => (id: string) => {
+
+  const filas = materiales.data ?? [];
+  const envase = filas.filter((m) => m.rol === 'ENVASE');
+  const etiquetas = filas.filter((m) => m.rol === 'ETIQUETA');
+  const otros = filas.filter((m) => m.rol === 'EXTRA');
+  const sinClasificar = filas.filter((m) => !m.rol);
+
+  const agregar = (insumoId: string, rol: RolMaterial, categoria: string | null) => {
     onTocar(
       rol === 'ENVASE'
-        ? { envase_id: id }
+        ? { envase_id: insumoId }
         : rol === 'ETIQUETA'
-          ? { etiqueta_id: id }
+          ? { etiqueta_id: insumoId }
           : {},
     );
-    asignar.mutate({ productoId: t.producto_id, insumoId: id, rol });
+    asignar.mutate({ productoId: t.producto_id, insumoId, rol, categoria });
   };
+  const fila = (m: MaterialProducto) => (
+    <FilaMaterial
+      key={m.insumo_id}
+      m={m}
+      productoId={t.producto_id}
+      onClasificar={(rol) => agregar(m.insumo_id, rol, null)}
+    />
+  );
 
   return (
-    <Paper withBorder p="md" style={{ borderColor: 'var(--superficie-borde)' }}>
-      <Group justify="space-between" mb="sm">
-        <div>
-          <Text fw={700}>{t.nombre}</Text>
-          <Text size="xs" c="dimmed" ff="monospace">
+    <Grid gutter="xl">
+      <Grid.Col span={{ base: 12, md: 4 }}>
+        <Stack gap="sm">
+          <Title order={3}>{t.nombre}</Title>
+          <Text size="sm" c="dimmed" ff="monospace">
             {t.codigo_interno}
           </Text>
-        </div>
-        <Group gap="xs">
           {t.pendientes > 0 ? (
-            <Badge variant="light" color="azul" radius="sm">
+            <Badge variant="light" color="azul" radius="sm" size="lg">
               {numero(t.pendientes)} en pedidos
             </Badge>
           ) : null}
           {completo ? (
-            <>
-              <Badge variant="light" color="estadoAprobado" radius="sm">
-                Completo
-              </Badge>
-              <Button size="compact-sm" onClick={onListo}>
-                Listo
-              </Button>
-            </>
+            <Button
+              size="md"
+              color="estadoAprobado"
+              leftSection={<IconCheck size={18} />}
+              onClick={onListo}
+            >
+              Listo, ya está completo
+            </Button>
           ) : null}
-        </Group>
-      </Group>
-      <Stack gap="sm">
-        <ElegirInsumo
-          etiqueta="Etiqueta"
-          tipos={['ETIQUETA']}
-          valor={t.etiqueta_id}
-          placeholder="Elegí la etiqueta"
-          onElegir={elegir('ETIQUETA')}
-          onNuevo={(nombre) => setAlta({ rol: 'ETIQUETA', tipo: 'ETIQUETA', nombre })}
-        />
-        {t.etiqueta_id ? <CostoAprox insumoId={t.etiqueta_id} unidad="UNIDAD" /> : null}
-        <ElegirInsumo
-          etiqueta="+ Envase"
-          tipos={['MATERIAL_ENVASE']}
-          valor={t.envase_id}
-          placeholder="Elegí el envase"
-          onElegir={elegir('ENVASE')}
-          onNuevo={(nombre) =>
-            setAlta({ rol: 'ENVASE', tipo: 'MATERIAL_ENVASE', nombre })
-          }
-        />
-        {t.envase_id ? <CostoAprox insumoId={t.envase_id} unidad="UNIDAD" /> : null}
-        <Group wrap="nowrap" gap="sm">
-          <Text fw={600} w={80}>
-            + Fórmula
-          </Text>
-          {t.tiene_formula ? (
-            <Text size="sm" c="dimmed">
-              Cargada
+          <Paper
+            withBorder
+            p="sm"
+            radius="md"
+            style={{ borderColor: 'var(--superficie-borde)' }}
+          >
+            <Text size="sm" mb={6}>
+              ¿Se compra hecho y se revende? Entonces no lleva envase, etiqueta ni
+              fórmula.
             </Text>
-          ) : t.sin_formula ? (
-            <Group gap="xs">
-              <Text size="sm" c="dimmed">
-                No corresponde
-              </Text>
-              <Button
-                size="compact-sm"
-                variant="subtle"
-                onClick={() =>
-                  sinFormula.mutate({ productoId: t.producto_id, sinFormula: false })
+            <Button
+              variant="default"
+              loading={reventa.isPending}
+              onClick={() => {
+                onTocar({ solo_reventa: true });
+                reventa.mutate({ productoId: t.producto_id, reventa: true });
+              }}
+            >
+              No corresponde: es de reventa
+            </Button>
+          </Paper>
+        </Stack>
+      </Grid.Col>
+
+      <Grid.Col span={{ base: 12, md: 8 }}>
+        {materiales.isLoading ? (
+          <Skeleton h={160} />
+        ) : (
+          <Stack gap="lg">
+            {sinClasificar.length > 0 ? (
+              <Seccion titulo="Cargado antes">{sinClasificar.map(fila)}</Seccion>
+            ) : null}
+
+            <Seccion titulo="Envase">
+              {envase.map(fila)}
+              {envase.length === 0 ? (
+                <Agregar
+                  texto="Elegir el envase"
+                  fijo={{ rol: 'ENVASE', categoria: null, tipos: ['MATERIAL_ENVASE'] }}
+                  onElegir={agregar}
+                  onNuevo={setAlta}
+                />
+              ) : null}
+            </Seccion>
+
+            <Seccion titulo="Etiquetas">
+              {etiquetas.map(fila)}
+              <Agregar
+                texto={
+                  etiquetas.length === 0 ? 'Elegir la etiqueta' : 'Agregar otra etiqueta'
                 }
-              >
-                Deshacer
-              </Button>
-            </Group>
-          ) : (
-            <Group gap="xs">
-              <Button size="md" variant="light" onClick={() => setFormula(true)}>
-                Cargar fórmula
-              </Button>
-              <Button
-                size="md"
-                variant="default"
-                loading={sinFormula.isPending}
-                onClick={() => {
-                  onTocar({ sin_formula: true });
-                  sinFormula.mutate({ productoId: t.producto_id, sinFormula: true });
+                fijo={{
+                  rol: 'ETIQUETA',
+                  categoria: etiquetas.length === 0 ? null : 'Otra etiqueta',
+                  tipos: ['ETIQUETA'],
                 }}
+                onElegir={agregar}
+                onNuevo={setAlta}
+              />
+            </Seccion>
+
+            <Seccion titulo="Fórmula">
+              <Paper
+                withBorder
+                p="sm"
+                radius="md"
+                style={{ borderColor: 'var(--superficie-borde)' }}
               >
-                No corresponde
-              </Button>
-            </Group>
-          )}
-        </Group>
-        {t.tiene_formula ? <CostosFormula productoId={t.producto_id} /> : null}
-        <Extras
-          productoId={t.producto_id}
-          onNuevo={(nombre) => setAlta({ rol: 'EXTRA', tipo: 'MATERIAL_ENVASE', nombre })}
-        />
-      </Stack>
+                {t.tiene_formula ? (
+                  <Stack gap="xs">
+                    <Text size="sm">Cargada.</Text>
+                    <CostosFormula productoId={t.producto_id} />
+                  </Stack>
+                ) : t.sin_formula ? (
+                  <Group gap="xs">
+                    <Text size="sm">No lleva fórmula.</Text>
+                    <Button
+                      size="compact-sm"
+                      variant="subtle"
+                      onClick={() =>
+                        sinFormula.mutate({
+                          productoId: t.producto_id,
+                          sinFormula: false,
+                        })
+                      }
+                    >
+                      Deshacer
+                    </Button>
+                  </Group>
+                ) : t.formula_consultada ? (
+                  <Text size="sm">
+                    La carga Dirección Técnica (Fórmulas › Pendientes).
+                  </Text>
+                ) : (
+                  <Group gap="xs">
+                    <Button size="md" variant="light" onClick={() => setFormula(true)}>
+                      Cargar fórmula
+                    </Button>
+                    <Button
+                      size="md"
+                      variant="default"
+                      loading={consultar.isPending}
+                      onClick={() => {
+                        onTocar({ formula_consultada: true });
+                        consultar.mutate(t.producto_id);
+                      }}
+                    >
+                      No la sé
+                    </Button>
+                    <Button
+                      size="md"
+                      variant="default"
+                      loading={sinFormula.isPending}
+                      onClick={() => {
+                        onTocar({ sin_formula: true });
+                        sinFormula.mutate({
+                          productoId: t.producto_id,
+                          sinFormula: true,
+                        });
+                      }}
+                    >
+                      No lleva
+                    </Button>
+                  </Group>
+                )}
+              </Paper>
+            </Seccion>
+
+            <Seccion titulo="Además lleva">
+              {otros.map(fila)}
+              <Agregar texto="Agregar" onElegir={agregar} onNuevo={setAlta} />
+            </Seccion>
+          </Stack>
+        )}
+      </Grid.Col>
 
       <Modal
         opened={alta !== null}
@@ -420,12 +668,7 @@ function Tarea({
             nombreInicial={alta.nombre}
             tipoInicial={alta.tipo}
             onListo={(creado) => {
-              if (creado)
-                asignar.mutate({
-                  productoId: t.producto_id,
-                  insumoId: creado.id,
-                  rol: alta.rol,
-                });
+              if (creado) agregar(creado.id, alta.rol, alta.categoria);
               setAlta(null);
             }}
           />
@@ -445,26 +688,43 @@ function Tarea({
           }}
         />
       </Modal>
-    </Paper>
+    </Grid>
+  );
+}
+
+/** Señal de la tarjeta cerrada: tiene o le falta. */
+function Senal({ ok, texto }: { ok: boolean; texto: string }) {
+  return (
+    <Badge
+      variant={ok ? 'light' : 'outline'}
+      color={ok ? 'estadoAprobado' : 'gray'}
+      radius="sm"
+      leftSection={ok ? <IconCheck size={12} /> : null}
+    >
+      {texto}
+    </Badge>
   );
 }
 
 /**
- * Lo que el sistema no sabe de cada producto: qué etiqueta y qué envase lleva
- * (el envase etiquetado), qué fórmula, o que no lleva (D-etiquetado-1). Los
- * que están en pedidos primero.
+ * Lo que el sistema no sabe de cada producto: qué envase y qué etiquetas
+ * lleva (el envase etiquetado), qué fórmula y qué más (D-etiquetado-1 y -2).
+ * Tarjetas que se abren; los que están en pedidos, primero.
  */
 export function TareasCarga() {
   const tareas = useTareasCarga();
   const [busqueda, setBusqueda] = useState('');
-  const [cuantos, setCuantos] = useState(8);
+  const [cuantos, setCuantos] = useState(10);
+  const [abierta, setAbierta] = useState<string | null>(null);
   /* Lo que tocó en esta sesión: si se completa y sale de la vista, queda a
      mano para cargar costos hasta que toque «Listo». */
   const [tocados, setTocados] = useState<Map<string, TareaCarga>>(new Map());
   const q = busqueda.trim().toLowerCase();
   const pendientes = tareas.data ?? [];
   const ids = new Set(pendientes.map((t) => t.producto_id));
-  const completos = [...tocados.values()].filter((t) => !ids.has(t.producto_id));
+  const completos = [...tocados.values()].filter(
+    (t) => !ids.has(t.producto_id) && !t.solo_reventa,
+  );
   const filas = [...completos, ...pendientes].filter(
     (t) =>
       !q ||
@@ -475,12 +735,14 @@ export function TareasCarga() {
     setTocados((m) =>
       new Map(m).set(t.producto_id, { ...m.get(t.producto_id), ...t, ...cambio }),
     );
-  const soltar = (id: string) => () =>
+  const soltar = (id: string) => () => {
+    setAbierta(null);
     setTocados((m) => {
       const n = new Map(m);
       n.delete(id);
       return n;
     });
+  };
 
   return (
     <Paper withBorder p="lg" style={{ borderColor: 'var(--superficie-borde)' }}>
@@ -510,17 +772,63 @@ export function TareasCarga() {
         </Text>
       ) : (
         <Stack gap="md">
-          {filas.slice(0, cuantos).map((t) => (
-            <Tarea
-              key={t.producto_id}
-              t={t}
-              completo={!ids.has(t.producto_id)}
-              onTocar={tocar(t)}
-              onListo={soltar(t.producto_id)}
-            />
-          ))}
+          <Accordion
+            variant="separated"
+            radius="md"
+            value={abierta}
+            onChange={setAbierta}
+          >
+            {filas.slice(0, cuantos).map((t) => {
+              const completo = !ids.has(t.producto_id);
+              return (
+                <Accordion.Item key={t.producto_id} value={t.producto_id}>
+                  <Accordion.Control>
+                    <Group justify="space-between" wrap="wrap" gap="sm" pr="sm">
+                      <div>
+                        <Text fw={700}>{t.nombre}</Text>
+                        <Text size="xs" c="dimmed" ff="monospace">
+                          {t.codigo_interno}
+                          {t.pendientes > 0
+                            ? ` · ${numero(t.pendientes)} en pedidos`
+                            : ''}
+                        </Text>
+                      </div>
+                      <Group gap={6}>
+                        {completo ? (
+                          <Badge color="estadoAprobado" radius="sm">
+                            Completo
+                          </Badge>
+                        ) : (
+                          <>
+                            <Senal ok={Boolean(t.envase_id)} texto="Envase" />
+                            <Senal ok={Boolean(t.etiqueta_id)} texto="Etiqueta" />
+                            <Senal
+                              ok={
+                                t.tiene_formula || t.sin_formula || t.formula_consultada
+                              }
+                              texto={t.formula_consultada ? 'Fórmula: DT' : 'Fórmula'}
+                            />
+                          </>
+                        )}
+                      </Group>
+                    </Group>
+                  </Accordion.Control>
+                  <Accordion.Panel>
+                    {abierta === t.producto_id ? (
+                      <DetalleProducto
+                        t={t}
+                        completo={completo}
+                        onTocar={tocar(t)}
+                        onListo={soltar(t.producto_id)}
+                      />
+                    ) : null}
+                  </Accordion.Panel>
+                </Accordion.Item>
+              );
+            })}
+          </Accordion>
           {filas.length > cuantos ? (
-            <Button variant="subtle" onClick={() => setCuantos((n) => n + 8)}>
+            <Button variant="subtle" onClick={() => setCuantos((n) => n + 10)}>
               Ver más ({numero(filas.length - cuantos)} pendientes)
             </Button>
           ) : null}

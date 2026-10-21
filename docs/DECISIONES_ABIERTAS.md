@@ -734,6 +734,27 @@ comprometida del bloque 3.
 
 ## Abiertas — 2026-10-21
 
+### D-etiquetado-2 · Varias etiquetas, «No la sé» y reventa
+
+**Pedido** del usuario (2026-10-21), `20261021150000`:
+
+- Un producto lleva **un envase y una o más etiquetas** (frente, trasera); al
+  etiquetar se descuentan todas. Cada material lleva una **categoría** libre
+  que elige Naza («Guarnición», «Tapa», «Etiqueta trasera»).
+- **«No la sé»**: Gerencia de Producción deriva la fórmula a Dirección
+  Técnica, que la ve en Fórmulas › Pendientes. Quién y cuándo lo registra la
+  base (`gmp.consultar_formula`); un cambio a mano se rechaza.
+- **Reventa** (`gmp.productos.solo_reventa`): producto que se compra hecho;
+  no lleva envase, etiqueta ni fórmula y sale de las tareas y del etiquetado.
+
+**Pendiente.**
+
+- Un producto de reventa que entra en un pedido igual se registra como
+  «producido» al terminar el pedido (`ENTRADA_PRODUCCION`). ¿Cómo entra la
+  reventa al stock de producto terminado: por compra, con su remito?
+- Una fórmula en BORRADOR ya saca el producto de las tareas y de Pendientes;
+  dejarla VIGENTE sigue siendo de DT.
+
 ### D-costo-estimado-1 · Costo aproximado de Gerencia de Producción
 
 **Pedido** del usuario (2026-10-21): que Naza, al completar qué lleva cada

@@ -964,10 +964,13 @@ function Contador({
 export function InicioPedidos({
   descripcion,
   soloEntregas = false,
+  debajoDelSaludo,
 }: {
   descripcion?: string;
   /** Ventas (bloque 2.3): sin Gantt, y el calendario solo con las entregas. */
   soloEntregas?: boolean;
+  /** Lo primero después del saludo, que siempre va arriba de todo. */
+  debajoDelSaludo?: React.ReactNode;
 }) {
   const { claims } = useSesion();
   const pedidos = usePedidos();
@@ -998,6 +1001,8 @@ export function InicioPedidos({
               : `Tenés ${lista.length} pedidos por delante.`)}
         </Text>
       </div>
+
+      {debajoDelSaludo}
 
       <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
         <Contador i={0} valor={lista.length} etiqueta="Pedidos pendientes" color="azul" />
