@@ -35,11 +35,23 @@ const esquema = z.object({
 type Valores = z.infer<typeof esquema>;
 
 /** Alta de una fórmula nueva: arranca siempre en BORRADOR (RN implícita del CHECK de la base). */
-function FormularioNuevaFormula({ onListo }: { onListo: (id: string) => void }) {
+export function FormularioNuevaFormula({
+  onListo,
+  productoInicial = '',
+}: {
+  onListo: (id: string) => void;
+  /** Desde «Tareas pendientes de carga»: el producto ya viene elegido. */
+  productoInicial?: string;
+}) {
   const productos = useProductos();
   const crear = useCrearFormula();
   const form = useForm<Valores>({
-    initialValues: { producto_id: '', variedad: '', codigo_me: '', version: '1' },
+    initialValues: {
+      producto_id: productoInicial,
+      variedad: '',
+      codigo_me: '',
+      version: '1',
+    },
     validate: zod4Resolver(esquema),
   });
 
@@ -102,15 +114,17 @@ function FormularioNuevaFormula({ onListo }: { onListo: (id: string) => void }) 
 /**
  * Listado de fórmulas de fabricación, agrupadas por producto (PG.60.8).
  *
- * Solo Dirección Técnica da de alta o edita: §3.3 reserva la fórmula maestra a
- * ese rol, y la política `formulas_escribe_dt` la hace cumplir en la base. El
+ * Dirección Técnica da de alta y la deja vigente: §3.3 reserva la fórmula
+ * maestra a ese rol. Gerencia de Producción carga borradores (D-etiquetado-1).
+ * La política `formulas_escribe_dt` lo hace cumplir en la base. El
  * resto de los roles ve la lista en modo lectura, que es lo que necesitan para
  * saber qué fórmula está vigente antes de pesar un lote.
  */
 export function PaginaFormulas() {
   const formulas = useFormulasFabricacion();
   const [abierto, modal] = useDisclosure(false);
-  const puedeEditar = useTieneRol('DIRECCION_TECNICA');
+  // GP la crea en borrador (D-etiquetado-1); dejarla vigente es de DT.
+  const puedeEditar = useTieneRol('DIRECCION_TECNICA', 'GERENCIA_PRODUCCION');
   const navegar = useNavigate();
 
   const alCrear = (id: string) => {

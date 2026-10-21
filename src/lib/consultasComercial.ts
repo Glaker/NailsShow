@@ -696,7 +696,11 @@ export function useFaltantesEnCurso() {
   });
 }
 
-/** Lo que la lista de materiales dice que consume el pedido (teórico). */
+/**
+ * Lo que consume el pedido al terminarse (teórico): la lista de materiales,
+ * menos el envase y la etiqueta que ya cubren los envases etiquetados. Es la
+ * misma cuenta que usa comercial.terminar_pedido (D-etiquetado-1).
+ */
 export function useNecesidadPedido(pedidoId: string | undefined, habilitado = true) {
   return useQuery({
     queryKey: ['pedido-necesidad', pedidoId],
@@ -704,7 +708,7 @@ export function useNecesidadPedido(pedidoId: string | undefined, habilitado = tr
     queryFn: async () => {
       const { data, error } = await rpcComercial<
         { insumo_id: string; necesario: number }[]
-      >('necesidad_pedido', { p_pedido_id: pedidoId! });
+      >('necesidad_pedido_neta', { p_pedido_id: pedidoId! });
       if (error) throw error;
       return data ?? [];
     },

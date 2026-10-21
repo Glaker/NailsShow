@@ -46,6 +46,8 @@ import { PaginaAdministracion } from '@/features/administracion/PaginaAdministra
 import { PaginaArmado } from '@/features/ventas/PaginaArmado';
 import { TableroDT } from './TableroDT';
 import { TareasProduccion } from '@/features/produccion/TareasProduccion';
+import { PanelEtiquetado } from '@/features/produccion/PanelEtiquetado';
+import { TareasCarga } from '@/features/produccion/TareasCarga';
 
 function TarjetaPanel({
   titulo,
@@ -85,6 +87,8 @@ export function PaginaTablero() {
       // La pesada suele hacerla ella: tiene las mismas tareas que planta.
       return (
         <Stack gap="xl">
+          {/* Arriba de todo: cuánto falta etiquetar (D-etiquetado-1). */}
+          <PanelEtiquetado />
           <InicioPedidos />
           <Stack gap="sm">
             <Title order={2}>Tareas de planta</Title>
@@ -93,6 +97,7 @@ export function PaginaTablero() {
             </Text>
             <TareasProduccion titulo={false} />
           </Stack>
+          <TareasCarga />
         </Stack>
       );
     case 'OPERARIO':

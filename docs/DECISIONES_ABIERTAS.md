@@ -732,6 +732,40 @@ la unidad de planificación (producción de un producto con cantidad), cómo se
 asigna a uno o varios pedidos o a stock, y cómo convive con la fecha
 comprometida del bloque 3.
 
+## Abiertas — 2026-10-21
+
+### D-etiquetado-1 · Envase etiquetado como paso intermedio de todos los productos
+
+**Decidido** por el codirector técnico (2026-10-20), implementado en
+`20261021120000`. Envase + etiqueta = envase etiquetado, para todos los
+productos de Nail Show:
+
+- Gerencia de Producción carga cada día cuántos etiquetó por producto; en ese
+  momento se descuentan envase y etiqueta de lotes **aprobados**, del que vence
+  primero (como al terminar un pedido).
+- «Faltan etiquetar» = unidades de pedidos CONFIRMADO o EN_PRODUCCION − envases
+  etiquetados sin usar. Va arriba de todo en el Tablero de GP.
+- Al terminar un pedido se toman primero los envases etiquetados (del más viejo
+  al más nuevo); el envase y la etiqueta sueltos solo se descuentan por lo que
+  no cubran. Los faltantes de compra cuentan lo etiquetado como envase y
+  etiqueta disponibles.
+- Gerencia de Producción carga fórmulas en BORRADOR; dejarlas VIGENTE sigue
+  siendo de Dirección Técnica. «No corresponde» marca los productos que no
+  llevan fórmula (`gmp.productos.sin_formula`).
+
+- Un etiquetado mal cargado no se borra (RN-54): se anula con su registro
+  rectificativo, que devuelve envase y etiqueta, mientras ningún pedido lo
+  haya usado. Después, la diferencia va por ajuste de inventario.
+- La trazabilidad del lote de producto terminado (`v_trazabilidad_orden`)
+  llega a los lotes de envase y etiqueta que vinieron etiquetados, prorrateado.
+- Los productos de clientes tercerizados no se etiquetan en este circuito.
+
+**Pendiente.**
+
+- La lista de materiales cargada antes (142 renglones de 26 productos) quedó
+  sin rol: hay que marcar en «Tareas pendientes de carga» cuál es el envase y
+  cuál la etiqueta de cada uno.
+
 ## Abiertas — 2026-10-20
 
 ### D-unidad-solo-materia-prima-1 · Capacidad del envase: para qué se usa

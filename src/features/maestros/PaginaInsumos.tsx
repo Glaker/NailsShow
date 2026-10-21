@@ -86,11 +86,14 @@ const CON_UNIDAD: readonly string[] = ['MATERIA_PRIMA', 'SEMIELABORADO'];
 export function FormularioInsumo({
   insumo,
   nombreInicial = '',
+  tipoInicial = 'MATERIA_PRIMA',
   onListo,
 }: {
   insumo?: Insumo | undefined;
   /** Lo que se buscó en la recepción y no estaba: arranca como nombre. */
   nombreInicial?: string;
+  /** Desde «Tareas pendientes de carga»: envase, etiqueta o extra. */
+  tipoInicial?: (typeof TIPOS)[number];
   /** En el alta recibe la ficha creada (la recepción la elige en el lote). */
   onListo: (creado?: Insumo) => void;
 }) {
@@ -104,14 +107,14 @@ export function FormularioInsumo({
     initialValues: {
       codigo_interno: insumo?.codigo_interno ?? '',
       nombre: insumo?.nombre ?? nombreInicial,
-      tipo: insumo?.tipo ?? 'MATERIA_PRIMA',
+      tipo: insumo?.tipo ?? tipoInicial,
       unidad_medida: insumo?.unidad_medida ?? (insumo ? '' : 'kg'),
       capacidad: insumo?.capacidad ?? null,
       unidad_capacidad: insumo?.unidad_capacidad === 'g' ? 'g' : 'mL',
       es_inflamable: insumo?.es_inflamable ?? false,
       /* I.20.1 paso 5 exige protocolo en materia prima: se propone marcado y se
          puede desmarcar, no al revés. */
-      requiere_protocolo: insumo?.requiere_protocolo ?? true,
+      requiere_protocolo: insumo?.requiere_protocolo ?? tipoInicial === 'MATERIA_PRIMA',
       requiere_pesada_recepcion: insumo?.requiere_pesada_recepcion ?? false,
       deposito_cuarentena_id: insumo?.deposito_cuarentena_id ?? null,
       deposito_aprobado_id: insumo?.deposito_aprobado_id ?? null,
