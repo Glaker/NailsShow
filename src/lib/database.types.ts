@@ -1277,6 +1277,20 @@ export type Database = {
             referencedColumns: ["producto_id"]
           },
           {
+            foreignKeyName: "costos_producto_planilla_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "costos_producto_planilla_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
+          {
             foreignKeyName: "costos_producto_planilla_reemplaza_a_fkey"
             columns: ["reemplaza_a"]
             isOneToOne: true
@@ -1660,6 +1674,20 @@ export type Database = {
             referencedRelation: "v_costo_producto"
             referencedColumns: ["producto_id"]
           },
+          {
+            foreignKeyName: "cotizaciones_producto_base_id_fkey"
+            columns: ["producto_base_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "cotizaciones_producto_base_id_fkey"
+            columns: ["producto_base_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
         ]
       }
       cuentas_fondos: {
@@ -1757,6 +1785,20 @@ export type Database = {
             referencedRelation: "v_costo_producto"
             referencedColumns: ["producto_id"]
           },
+          {
+            foreignKeyName: "descuentos_cliente_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "descuentos_cliente_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
         ]
       }
       despacho_diferencias: {
@@ -1848,6 +1890,20 @@ export type Database = {
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "despacho_diferencias_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "despacho_diferencias_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
             referencedColumns: ["producto_id"]
           },
         ]
@@ -1955,6 +2011,172 @@ export type Database = {
         }
         Relationships: []
       }
+      etiquetado_anulaciones: {
+        Row: {
+          anulado_en: string
+          anulado_por: string
+          etiquetado_id: string
+          motivo: string
+        }
+        Insert: {
+          anulado_en?: string
+          anulado_por?: string
+          etiquetado_id: string
+          motivo: string
+        }
+        Update: {
+          anulado_en?: string
+          anulado_por?: string
+          etiquetado_id?: string
+          motivo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etiquetado_anulaciones_etiquetado_id_fkey"
+            columns: ["etiquetado_id"]
+            isOneToOne: true
+            referencedRelation: "etiquetados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "etiquetado_anulaciones_etiquetado_id_fkey"
+            columns: ["etiquetado_id"]
+            isOneToOne: true
+            referencedRelation: "v_etiquetados_saldo"
+            referencedColumns: ["etiquetado_id"]
+          },
+        ]
+      }
+      etiquetado_consumos: {
+        Row: {
+          cantidad: number
+          etiquetado_id: string
+          id: string
+          insumo_id: string
+          unidad: string
+        }
+        Insert: {
+          cantidad: number
+          etiquetado_id: string
+          id?: string
+          insumo_id: string
+          unidad: string
+        }
+        Update: {
+          cantidad?: number
+          etiquetado_id?: string
+          id?: string
+          insumo_id?: string
+          unidad?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etiquetado_consumos_etiquetado_id_fkey"
+            columns: ["etiquetado_id"]
+            isOneToOne: false
+            referencedRelation: "etiquetados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "etiquetado_consumos_etiquetado_id_fkey"
+            columns: ["etiquetado_id"]
+            isOneToOne: false
+            referencedRelation: "v_etiquetados_saldo"
+            referencedColumns: ["etiquetado_id"]
+          },
+          {
+            foreignKeyName: "etiquetado_consumos_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_costo_referencia"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "etiquetado_consumos_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_costos_pendientes"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "etiquetado_consumos_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_disponible_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "etiquetado_consumos_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_existencias"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "etiquetado_consumos_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_proveedores_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "etiquetado_consumos_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_stock_por_articulo"
+            referencedColumns: ["insumo_id"]
+          },
+        ]
+      }
+      etiquetados: {
+        Row: {
+          cantidad: number
+          fecha: string
+          id: string
+          producto_id: string
+          registrado_en: string
+          registrado_por: string
+        }
+        Insert: {
+          cantidad: number
+          fecha?: string
+          id?: string
+          producto_id: string
+          registrado_en?: string
+          registrado_por?: string
+        }
+        Update: {
+          cantidad?: number
+          fecha?: string
+          id?: string
+          producto_id?: string
+          registrado_en?: string
+          registrado_por?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etiquetados_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "etiquetados_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "etiquetados_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
+        ]
+      }
       factura_renglones: {
         Row: {
           alicuota_iva: number
@@ -2006,6 +2228,20 @@ export type Database = {
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "factura_renglones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "factura_renglones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
             referencedColumns: ["producto_id"]
           },
         ]
@@ -2228,6 +2464,20 @@ export type Database = {
             referencedRelation: "v_costo_producto"
             referencedColumns: ["producto_id"]
           },
+          {
+            foreignKeyName: "fotos_costo_producto_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "fotos_costo_producto_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
         ]
       }
       fotos_pedido: {
@@ -2385,6 +2635,20 @@ export type Database = {
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "fotos_pedido_renglones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "fotos_pedido_renglones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
             referencedColumns: ["producto_id"]
           },
           {
@@ -2679,6 +2943,20 @@ export type Database = {
             referencedRelation: "v_costo_producto"
             referencedColumns: ["producto_id"]
           },
+          {
+            foreignKeyName: "lista_mayorista_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "lista_mayorista_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
         ]
       }
       metas_stock_seguridad: {
@@ -2760,6 +3038,20 @@ export type Database = {
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "minutos_producto_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "minutos_producto_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
             referencedColumns: ["producto_id"]
           },
         ]
@@ -2936,6 +3228,20 @@ export type Database = {
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "movimientos_pt_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "movimientos_pt_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
             referencedColumns: ["producto_id"]
           },
         ]
@@ -3297,6 +3603,111 @@ export type Database = {
           },
         ]
       }
+      pedido_etiquetados: {
+        Row: {
+          cantidad: number
+          creado_en: string
+          etiquetado_id: string
+          id: string
+          pedido_id: string
+          producto_id: string
+        }
+        Insert: {
+          cantidad: number
+          creado_en?: string
+          etiquetado_id: string
+          id?: string
+          pedido_id: string
+          producto_id: string
+        }
+        Update: {
+          cantidad?: number
+          creado_en?: string
+          etiquetado_id?: string
+          id?: string
+          pedido_id?: string
+          producto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_etiquetados_etiquetado_id_fkey"
+            columns: ["etiquetado_id"]
+            isOneToOne: false
+            referencedRelation: "etiquetados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_etiquetados_etiquetado_id_fkey"
+            columns: ["etiquetado_id"]
+            isOneToOne: false
+            referencedRelation: "v_etiquetados_saldo"
+            referencedColumns: ["etiquetado_id"]
+          },
+          {
+            foreignKeyName: "pedido_etiquetados_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_etiquetados_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_calle5_tomado_ventas"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_etiquetados_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pendientes_despacho"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_etiquetados_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_etiquetados_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["pedido_stock_id"]
+          },
+          {
+            foreignKeyName: "pedido_etiquetados_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas_pedidas"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_etiquetados_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "pedido_etiquetados_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "pedido_etiquetados_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
+        ]
+      }
       pedido_ordenes: {
         Row: {
           creado_en: string
@@ -3575,6 +3986,20 @@ export type Database = {
             referencedRelation: "v_costo_producto"
             referencedColumns: ["producto_id"]
           },
+          {
+            foreignKeyName: "pedido_renglones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "pedido_renglones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
         ]
       }
       pedidos: {
@@ -3779,6 +4204,20 @@ export type Database = {
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "precios_producto_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "precios_producto_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
             referencedColumns: ["producto_id"]
           },
         ]
@@ -4003,6 +4442,20 @@ export type Database = {
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "reservas_pt_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "reservas_pt_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
             referencedColumns: ["producto_id"]
           },
         ]
@@ -4395,6 +4848,20 @@ export type Database = {
             referencedRelation: "v_costo_producto"
             referencedColumns: ["producto_id"]
           },
+          {
+            foreignKeyName: "stock_seguridad_sku_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: true
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "stock_seguridad_sku_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: true
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
         ]
       }
       tareas_equipo: {
@@ -4488,6 +4955,20 @@ export type Database = {
             referencedRelation: "v_costo_producto"
             referencedColumns: ["producto_id"]
           },
+          {
+            foreignKeyName: "fotos_costo_producto_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "fotos_costo_producto_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
         ]
       }
       v_amortizaciones: {
@@ -4529,6 +5010,20 @@ export type Database = {
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "pedido_renglones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "pedido_renglones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
             referencedColumns: ["producto_id"]
           },
         ]
@@ -4756,6 +5251,20 @@ export type Database = {
             referencedColumns: ["producto_id"]
           },
           {
+            foreignKeyName: "costos_producto_planilla_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "costos_producto_planilla_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
+          {
             foreignKeyName: "costos_producto_planilla_reemplaza_a_fkey"
             columns: ["reemplaza_a"]
             isOneToOne: true
@@ -4822,6 +5331,20 @@ export type Database = {
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "factura_renglones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "factura_renglones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
             referencedColumns: ["producto_id"]
           },
         ]
@@ -5113,6 +5636,20 @@ export type Database = {
             referencedRelation: "v_costo_producto"
             referencedColumns: ["producto_id"]
           },
+          {
+            foreignKeyName: "descuentos_cliente_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "descuentos_cliente_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
         ]
       }
       v_disponible_calle5: {
@@ -5129,6 +5666,20 @@ export type Database = {
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "movimientos_pt_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "movimientos_pt_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
             referencedColumns: ["producto_id"]
           },
         ]
@@ -5168,6 +5719,40 @@ export type Database = {
           vigente_desde?: string | null
         }
         Relationships: []
+      }
+      v_etiquetados_saldo: {
+        Row: {
+          anulado: boolean | null
+          cantidad: number | null
+          etiquetado_id: string | null
+          fecha: string | null
+          producto_id: string | null
+          registrado_en: string | null
+          saldo: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etiquetados_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "etiquetados_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "etiquetados_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
+        ]
       }
       v_existencias: {
         Row: {
@@ -5291,6 +5876,19 @@ export type Database = {
             referencedColumns: ["pedido_id"]
           },
         ]
+      }
+      v_faltan_etiquetar: {
+        Row: {
+          codigo_interno: string | null
+          definido: boolean | null
+          en_stock: number | null
+          etiquetados_hoy: number | null
+          faltan: number | null
+          nombre: string | null
+          pendientes: number | null
+          producto_id: string | null
+        }
+        Relationships: []
       }
       v_gastos: {
         Row: {
@@ -5453,6 +6051,20 @@ export type Database = {
             referencedRelation: "v_costo_producto"
             referencedColumns: ["producto_id"]
           },
+          {
+            foreignKeyName: "lista_mayorista_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "lista_mayorista_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
         ]
       }
       v_parametros_costo: {
@@ -5493,6 +6105,20 @@ export type Database = {
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "pedido_renglones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "pedido_renglones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
             referencedColumns: ["producto_id"]
           },
           {
@@ -5604,6 +6230,20 @@ export type Database = {
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "precios_producto_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "precios_producto_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
             referencedColumns: ["producto_id"]
           },
         ]
@@ -6074,6 +6714,20 @@ export type Database = {
             referencedRelation: "v_costo_producto"
             referencedColumns: ["producto_id"]
           },
+          {
+            foreignKeyName: "movimientos_pt_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "movimientos_pt_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
         ]
       }
       v_stock_pt_lotes: {
@@ -6099,6 +6753,20 @@ export type Database = {
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "movimientos_pt_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "movimientos_pt_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
             referencedColumns: ["producto_id"]
           },
         ]
@@ -6141,6 +6809,20 @@ export type Database = {
             columns: ["producto_id"]
             isOneToOne: true
             referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "stock_seguridad_sku_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: true
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "stock_seguridad_sku_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: true
+            referencedRelation: "v_tareas_carga"
             referencedColumns: ["producto_id"]
           },
         ]
@@ -6305,7 +6987,35 @@ export type Database = {
             referencedRelation: "v_costo_producto"
             referencedColumns: ["producto_id"]
           },
+          {
+            foreignKeyName: "movimientos_pt_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "movimientos_pt_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
         ]
+      }
+      v_tareas_carga: {
+        Row: {
+          codigo_interno: string | null
+          envase_id: string | null
+          etiqueta_id: string | null
+          extras: number | null
+          nombre: string | null
+          pendientes: number | null
+          producto_id: string | null
+          sin_formula: boolean | null
+          tiene_formula: boolean | null
+        }
+        Relationships: []
       }
       v_tipo_cambio_activo: {
         Row: {
@@ -6526,6 +7236,20 @@ export type Database = {
             referencedRelation: "v_costo_producto"
             referencedColumns: ["producto_id"]
           },
+          {
+            foreignKeyName: "factura_renglones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "factura_renglones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
         ]
       }
     }
@@ -6542,6 +7266,10 @@ export type Database = {
       }
       anular_cotizacion: {
         Args: { p_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      anular_etiquetado: {
+        Args: { p_etiquetado_id: string; p_motivo: string }
         Returns: undefined
       }
       anular_movimiento: {
@@ -6828,6 +7556,7 @@ export type Database = {
         Args: { p_id: string; p_justificacion?: string }
         Returns: number
       }
+      en_etiquetados: { Args: { p_insumo_id: string }; Returns: number }
       entregar_pedido: { Args: { p_pedido_id: string }; Returns: undefined }
       enviar_armado: {
         Args: { p_motivo?: string; p_pedido_id: string; p_renglones: Json }
@@ -6837,6 +7566,7 @@ export type Database = {
         Args: { p_de_calle5?: Json; p_pedido_id: string }
         Returns: Json
       }
+      etiquetados_en_stock: { Args: { p_producto_id: string }; Returns: number }
       explotar_pedido: {
         Args: { p_pedido_id: string }
         Returns: Database["comercial"]["CompositeTypes"]["renglon_faltante"][]
@@ -6970,6 +7700,13 @@ export type Database = {
           necesario: number
         }[]
       }
+      necesidad_pedido_neta: {
+        Args: { p_pedido_id: string }
+        Returns: {
+          insumo_id: string
+          necesario: number
+        }[]
+      }
       origen_insumo: {
         Args: { p_insumo_id: string; p_pedido_id: string }
         Returns: string
@@ -7074,6 +7811,23 @@ export type Database = {
           p_producto_id: string
         }
         Returns: number
+      }
+      registrar_etiquetado: {
+        Args: { p_cantidad: number; p_producto_id: string }
+        Returns: {
+          cantidad: number
+          fecha: string
+          id: string
+          producto_id: string
+          registrado_en: string
+          registrado_por: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "etiquetados"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       registrar_pago_proveedor: {
         Args: {
@@ -7757,6 +8511,7 @@ export type Database = {
         | "ENCARGADA_STOCK"
         | "VENTAS"
         | "FINANZAS"
+        | "RECEPCION"
       sector_enum:
         | "ADMINISTRACION"
         | "RECEPCION_EXPEDICION"
@@ -8547,6 +9302,7 @@ export type Database = {
       insumos_catalogo: {
         Row: {
           activo: boolean
+          capacidad: number | null
           codigo_interno: string
           creado_en: string
           densidad_referencia_id: string | null
@@ -8559,10 +9315,12 @@ export type Database = {
           requiere_protocolo: boolean
           tercero_id: string | null
           tipo: Database["gmp"]["Enums"]["tipo_insumo_enum"]
+          unidad_capacidad: string | null
           unidad_medida: string | null
         }
         Insert: {
           activo?: boolean
+          capacidad?: number | null
           codigo_interno: string
           creado_en?: string
           densidad_referencia_id?: string | null
@@ -8575,10 +9333,12 @@ export type Database = {
           requiere_protocolo?: boolean
           tercero_id?: string | null
           tipo: Database["gmp"]["Enums"]["tipo_insumo_enum"]
+          unidad_capacidad?: string | null
           unidad_medida?: string | null
         }
         Update: {
           activo?: boolean
+          capacidad?: number | null
           codigo_interno?: string
           creado_en?: string
           densidad_referencia_id?: string | null
@@ -8591,6 +9351,7 @@ export type Database = {
           requiere_protocolo?: boolean
           tercero_id?: string | null
           tipo?: Database["gmp"]["Enums"]["tipo_insumo_enum"]
+          unidad_capacidad?: string | null
           unidad_medida?: string | null
         }
         Relationships: [
@@ -8638,7 +9399,7 @@ export type Database = {
           etiquetas_por_plancha: number | null
           id: string
           insumo_id: string
-          lote_proveedor: string
+          lote_proveedor: string | null
           migracion_apertura_id: string | null
           numero_registro_interno: string
           peso_pigmento_kg: number | null
@@ -8666,7 +9427,7 @@ export type Database = {
           etiquetas_por_plancha?: number | null
           id?: string
           insumo_id: string
-          lote_proveedor: string
+          lote_proveedor?: string | null
           migracion_apertura_id?: string | null
           numero_registro_interno?: string
           peso_pigmento_kg?: number | null
@@ -8694,7 +9455,7 @@ export type Database = {
           etiquetas_por_plancha?: number | null
           id?: string
           insumo_id?: string
-          lote_proveedor?: string
+          lote_proveedor?: string | null
           migracion_apertura_id?: string | null
           numero_registro_interno?: string
           peso_pigmento_kg?: number | null
@@ -8778,6 +9539,7 @@ export type Database = {
           merma: number
           origen: string | null
           producto_id: string
+          rol: string | null
         }
         Insert: {
           activo?: boolean
@@ -8788,6 +9550,7 @@ export type Database = {
           merma?: number
           origen?: string | null
           producto_id: string
+          rol?: string | null
         }
         Update: {
           activo?: boolean
@@ -8798,6 +9561,7 @@ export type Database = {
           merma?: number
           origen?: string | null
           producto_id?: string
+          rol?: string | null
         }
         Relationships: [
           {
@@ -9156,6 +9920,7 @@ export type Database = {
           nombre: string
           origen: Database["gmp"]["Enums"]["origen_producto_enum"] | null
           producto_base_id: string | null
+          sin_formula: boolean
           tercero_id: string | null
           tipo: string | null
           unidad_contenido: string | null
@@ -9172,6 +9937,7 @@ export type Database = {
           nombre: string
           origen?: Database["gmp"]["Enums"]["origen_producto_enum"] | null
           producto_base_id?: string | null
+          sin_formula?: boolean
           tercero_id?: string | null
           tipo?: string | null
           unidad_contenido?: string | null
@@ -9188,6 +9954,7 @@ export type Database = {
           nombre?: string
           origen?: Database["gmp"]["Enums"]["origen_producto_enum"] | null
           producto_base_id?: string | null
+          sin_formula?: boolean
           tercero_id?: string | null
           tipo?: string | null
           unidad_contenido?: string | null
@@ -9862,6 +10629,7 @@ export type Database = {
         }
         Returns: {
           activo: boolean
+          capacidad: number | null
           codigo_interno: string
           creado_en: string
           densidad_referencia_id: string | null
@@ -9874,6 +10642,7 @@ export type Database = {
           requiere_protocolo: boolean
           tercero_id: string | null
           tipo: Database["gmp"]["Enums"]["tipo_insumo_enum"]
+          unidad_capacidad: string | null
           unidad_medida: string | null
         }
         SetofOptions: {
@@ -9900,6 +10669,7 @@ export type Database = {
           nombre: string
           origen: Database["gmp"]["Enums"]["origen_producto_enum"] | null
           producto_base_id: string | null
+          sin_formula: boolean
           tercero_id: string | null
           tipo: string | null
           unidad_contenido: string | null
@@ -9923,6 +10693,10 @@ export type Database = {
       }
       aprobar_especificacion: {
         Args: { p_id: string; p_vigencia?: string }
+        Returns: undefined
+      }
+      asignar_deposito_lote: {
+        Args: { p_deposito_id: string; p_lote_id: string }
         Returns: undefined
       }
       asignar_etapa: {
@@ -9955,6 +10729,41 @@ export type Database = {
       color_rotulo: {
         Args: { p_estado: Database["gmp"]["Enums"]["estado_calidad_enum"] }
         Returns: string
+      }
+      control_rapido_materia_prima: {
+        Args: {
+          p_aprobado: boolean
+          p_aspecto_ok: boolean
+          p_coincide_protocolo: boolean
+          p_contenedor_ok: boolean
+          p_contenedores: number
+          p_lote_id: string
+          p_observacion?: string
+          p_olor_ok: boolean
+          p_rotulo_ok: boolean
+        }
+        Returns: {
+          aprobado: boolean
+          conclusiones: string
+          controlo_en: string
+          controlo_por: string
+          descripcion: string
+          fecha: string
+          id: string
+          lote_insumo_id: string | null
+          motivo: string | null
+          numero: string
+          orden_id: string | null
+          rectifica_a: string | null
+          registro: string
+          tamano_muestra: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "registros_analisis"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       cumple_parametro: {
         Args: { p_parametro_id: string; p_valor: number }
@@ -9989,6 +10798,7 @@ export type Database = {
           volumen_exceso_molar: number
         }[]
       }
+      deposito_por_defecto: { Args: { p_insumo_id: string }; Returns: string }
       destino_sobrante_sugerido: {
         Args: {
           p_categoria: Database["gmp"]["Enums"]["categoria_muestreo_enum"]
@@ -10121,6 +10931,7 @@ export type Database = {
           falta: string
         }[]
       }
+      formula_en_borrador: { Args: { p_formula_id: string }; Returns: boolean }
       grado_alcoholico_a_pp: { Args: { p_pct_vv: number }; Returns: number }
       impedimento_consumo: { Args: { p_lote_id: string }; Returns: string }
       impedimento_despacho: { Args: { p_lote_id: string }; Returns: string }
@@ -10144,6 +10955,7 @@ export type Database = {
       }
       lote_consumible: { Args: { p_lote_id: string }; Returns: boolean }
       lote_despachable: { Args: { p_lote_id: string }; Returns: boolean }
+      lote_es_materia_prima: { Args: { p_lote_id: string }; Returns: boolean }
       marcar_tarea_vista: { Args: { p_id: string }; Returns: undefined }
       nueva_version_especificacion: {
         Args: { p_id: string; p_motivo: string }
@@ -10597,6 +11409,7 @@ export const Constants = {
         "ENCARGADA_STOCK",
         "VENTAS",
         "FINANZAS",
+        "RECEPCION",
       ],
       sector_enum: [
         "ADMINISTRACION",
