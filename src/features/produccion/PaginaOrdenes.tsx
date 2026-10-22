@@ -8,6 +8,7 @@ import {
   Modal,
   NumberInput,
   Paper,
+  SegmentedControl,
   Select,
   Skeleton,
   Stack,
@@ -16,7 +17,7 @@ import {
   TextInput,
 } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
-import { IconClipboardList, IconTool } from '@tabler/icons-react';
+import { IconClipboardList, IconPlus, IconTool } from '@tabler/icons-react';
 import { Vacio } from '@/components/Vacio';
 import { useTieneRol } from '@/features/auth/sesion';
 import { useFormulasFabricacion, useProductos } from '@/lib/consultas';
@@ -34,6 +35,7 @@ import {
   useOrdenes,
 } from '@/lib/consultasOrdenes';
 import { COLOR_ESTADO_ORDEN } from './etapasOrden';
+import { CabeceraEspecificacion } from './PaginaEspecificaciones';
 
 /** `/ordenes` es una pestaña de Planificación (pedido del 2026-10-22). */
 export function PaginaOrdenes() {
@@ -188,11 +190,13 @@ export function ModalAbrirOrden({
   const [formulaId, setFormulaId] = useState<string | null>(null);
   const [productoId, setProductoId] = useState<string | null>(productoInicial ?? null);
   const [especId, setEspecId] = useState<string | null>(null);
+  const [nuevaEspec, setNuevaEspec] = useState(false);
   const [jornada, setJornada] = useState<Date | null>(new Date());
   const [partida, setPartida] = useState<number | string>(1);
   const [presentacion, setPresentacion] = useState<number | string>(1);
   const [presentacionTexto, setPresentacionTexto] = useState('');
   const [cantidad, setCantidad] = useState<number | string>('');
+  const [unidad, setUnidad] = useState<'kg' | 'L'>('kg');
   const [vencimiento, setVencimiento] = useState<Date | null>(null);
   const formula = (formulas.data ?? []).find((f) => f.id === formulaId);
   const producto = productoId ?? formula?.producto_id ?? null;
@@ -282,19 +286,47 @@ export function ModalAbrirOrden({
           value={producto}
           onChange={setProductoId}
         />
-        <Select
-          label="Especificación"
-          description="Contra la que se controla el producto terminado"
-          clearable
-          data={(especificaciones.data ?? [])
-            .filter((e) => e.estado === 'VIGENTE')
-            .map((e) => ({
-              value: e.id,
-              label: `${e.codigo_poe} v${e.version} · ${e.denominacion}`,
-            }))}
-          value={especId}
-          onChange={setEspecId}
-        />
+        <Group align="flex-end" wrap="nowrap">
+          <Select
+            style={{ flex: 1 }}
+            label="Especificación"
+            description="Contra la que se controla el producto terminado. Un borrador lo aprueba la DT."
+            clearable
+            searchable
+            nothingFoundMessage="Sin coincidencias: cargala con «Nueva»"
+            data={(especificaciones.data ?? [])
+              .filter((e) => e.estado === 'VIGENTE' || e.estado === 'BORRADOR')
+              .map((e) => ({
+                value: e.id,
+                label: `${e.codigo_poe} v${e.version} · ${e.denominacion}${
+                  e.estado === 'BORRADOR' ? ' (borrador)' : ''
+                }`,
+              }))}
+            value={especId}
+            onChange={setEspecId}
+          />
+          <Button
+            size="md"
+            variant="light"
+            leftSection={<IconPlus size={18} />}
+            onClick={() => setNuevaEspec(true)}
+          >
+            Nueva
+          </Button>
+        </Group>
+        <Modal
+          opened={nuevaEspec}
+          onClose={() => setNuevaEspec(false)}
+          title="Nueva especificación"
+          centered
+        >
+          <CabeceraEspecificacion
+            onListo={(id) => {
+              setNuevaEspec(false);
+              setEspecId(id);
+            }}
+          />
+        </Modal>
         <Group grow>
           <DateInput
             label="Fecha de elaboración"
@@ -302,13 +334,24 @@ export function ModalAbrirOrden({
             value={jornada}
             onChange={(v) => setJornada(desdeCalendario(v))}
           />
-          <NumberInput
-            label="Cantidad teórica (kg)"
-            min={0}
-            decimalScale={3}
-            value={cantidad}
-            onChange={setCantidad}
-          />
+          <Stack gap={6}>
+            <NumberInput
+              label={`Cantidad teórica (${unidad})`}
+              min={0}
+              decimalScale={3}
+              value={cantidad}
+              onChange={setCantidad}
+            />
+            {/* En litros, la pesada pasa a kg con la densidad de la fórmula (calcular_lote). */}
+            <SegmentedControl
+              value={unidad}
+              onChange={(v) => setUnidad(v as 'kg' | 'L')}
+              data={[
+                { label: 'kg', value: 'kg' },
+                { label: 'L', value: 'L' },
+              ]}
+            />
+          </Stack>
         </Group>
         <Group grow>
           <NumberInput
@@ -391,7 +434,7 @@ export function ModalAbrirOrden({
                   presentacion: n(presentacion),
                   presentacion_texto: presentacionTexto.trim() || null,
                   cantidad_teorica: n(cantidad),
-                  unidad: 'kg',
+                  unidad,
                   vencimiento: fechaISO(vencimiento),
                   especificacion_id: especId,
                   pedidoId: pedidoId ?? elegido?.pedidoId ?? nueva ?? null,

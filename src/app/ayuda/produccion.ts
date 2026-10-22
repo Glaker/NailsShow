@@ -61,7 +61,7 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
         'Ves tus tareas de planta: por cada orden que abrió Gerencia de Producción, el próximo paso (pesada, elaboración o fraccionamiento), más las tareas que te pidió («Poner etiquetas a…»). Las marcadas «Para todos» las puede hacer cualquiera; las que tienen tu nombre son tuyas.',
         'Elegí una y tocá «Hacer». Desde ese momento el sistema anota la hora de inicio: no la tenés que escribir.',
         'Contestá las verificaciones previas (área limpia, balanza, vestimenta según protocolo…). Si alguna da «No», anotá el desvío en observaciones: sin eso no se puede registrar.',
-        'Completá lo que pide el POE: en la pesada, cuánto pesaste de cada materia prima, el lote y la balanza; en la elaboración, cada paso con su equipo; en el fraccionamiento, envases, horarios y canastas.',
+        'Completá lo que pide el POE: en la pesada, cuánto pesaste de cada materia prima, el lote y la balanza; en la elaboración, cada paso con su equipo; en el fraccionamiento, envases, horarios y cuántas cajas se llenaron.',
         'Horarios, fechas, tu nombre y el número de pesada los completa el sistema (dicen «automático»). Al agregar un paso nuevo se cierra la hora del anterior.',
         'Tocá «Listo, hecho»: ese es tu ok y queda en el batch record a tu nombre. A Producción le llega el aviso.',
         'En las tareas libres tocá «Empezar» al arrancar y «Listo» al terminar.',

@@ -509,15 +509,17 @@ export function useFaltantesLiberacion(id: string | undefined, habilitado: boole
 /** Renglones de pesada teóricos: gmp.calcular_lote con la masa de la orden. */
 export function usePesadaTeorica(
   formulaId: string | undefined,
-  masaKg: number | undefined,
+  cantidad: number | undefined,
+  unidad = 'kg',
 ) {
   return useQuery({
-    queryKey: ['pesada-teorica', formulaId, masaKg],
-    enabled: Boolean(formulaId) && Boolean(masaKg),
+    queryKey: ['pesada-teorica', formulaId, cantidad, unidad],
+    enabled: Boolean(formulaId) && Boolean(cantidad),
     queryFn: async () => {
+      // En litros, la base pasa a masa con la densidad de la fórmula.
       const { data, error } = await gmp().rpc('calcular_lote', {
         p_formula_id: formulaId!,
-        p_masa_kg: masaKg!,
+        ...(unidad === 'L' ? { p_volumen_l: cantidad! } : { p_masa_kg: cantidad! }),
       });
       if (error) throw error;
       return data;

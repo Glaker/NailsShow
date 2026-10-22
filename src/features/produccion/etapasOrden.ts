@@ -163,8 +163,9 @@ export const CONFIG_ETAPAS: Record<EtapaOrden, ConfigEtapa> = {
       'Balanza portátil en perfecto estado de funcionamiento',
     ],
     campos: [
-      { clave: 'canastas', titulo: 'N° de canastas', tipo: 'numero' },
-      { clave: 'por_canasta', titulo: 'N° de unidades por canasta', tipo: 'numero' },
+      // Las claves siguen siendo «canastas» para no romper lo ya registrado.
+      { clave: 'canastas', titulo: 'N° de cajas llenas', tipo: 'numero' },
+      { clave: 'por_canasta', titulo: 'Unidades en cada caja', tipo: 'numero' },
     ],
   },
   MUESTREO_PT: {

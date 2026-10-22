@@ -140,7 +140,7 @@ export function PaginaEspecificaciones() {
         title="Nueva especificación"
         centered
       >
-        <Cabecera
+        <CabeceraEspecificacion
           onListo={(id) => {
             setNueva(false);
             setAbierta(id);
@@ -152,7 +152,7 @@ export function PaginaEspecificaciones() {
 }
 
 /** Datos generales (§7.1: denominación, composición, almacenamiento, muestreo, reanálisis, vida útil). */
-function Cabecera({
+export function CabeceraEspecificacion({
   actual,
   onListo,
 }: {
@@ -326,7 +326,7 @@ function FichaEspecificacion({
       </Group>
 
       {editando ? (
-        <Cabecera actual={s} onListo={() => setEditando(false)} />
+        <CabeceraEspecificacion actual={s} onListo={() => setEditando(false)} />
       ) : (
         <SimpleGrid cols={{ base: 1, sm: 2 }}>
           <Text size="sm">
