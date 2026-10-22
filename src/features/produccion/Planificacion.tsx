@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   ActionIcon,
   Anchor,
@@ -16,6 +16,7 @@ import {
   SimpleGrid,
   Skeleton,
   Stack,
+  Tabs,
   Text,
   Title,
   Tooltip,
@@ -27,8 +28,11 @@ import {
   IconMinus,
   IconPlus,
   IconCalendarPlus,
+  IconCalculator,
   IconDots,
 } from '@tabler/icons-react';
+import { ListaOrdenes, ModalAbrirOrden } from './PaginaOrdenes';
+import { CalcularProduccion } from './CalcularProduccion';
 import type { CSSProperties } from 'react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { useSesion, useTieneRol } from '@/features/auth/sesion';
@@ -729,19 +733,26 @@ function ModalNuevaProduccion({
   const [producto, setProducto] = useState<string | null>(null);
   const [cantidad, setCantidad] = useState<number | string>('');
   const [inicio, setInicio] = useState<Date | null>(() => new Date());
-  const [dias, setDias] = useState<number | string>(1);
+  /* null = no la tocó: va la recomendada (pedido del 2026-10-22). */
+  const [dias, setDias] = useState<number | string | null>(null);
   const [para, setPara] = useState<string>('stock');
   const cant = Number(cantidad) || 0;
-  const n = Number(dias) || 0;
+  const rec =
+    producto && cant > 0
+      ? recomendar([{ producto_id: producto, cantidad: cant }], tiempos)
+      : null;
+  const diasValor = dias ?? rec?.dias ?? 1;
+  const n = Number(diasValor) || 0;
   const opciones = opcionesPara(ventas, producto);
   const cerrar = () => {
     setProducto(null);
     setCantidad('');
+    setDias(null);
     setPara('stock');
     onCerrar();
   };
   return (
-    <Modal opened={abierto} onClose={cerrar} title="Nueva producción" centered size="lg">
+    <Modal opened={abierto} onClose={cerrar} title="Planificación" centered size="lg">
       <Stack gap="md">
         <Select
           label="Producto"
@@ -792,23 +803,24 @@ function ModalNuevaProduccion({
           />
           <NumberInput
             label="Días de producción"
+            description={
+              rec
+                ? `Recomendado: ${rec.dias} (${horasMinutos(rec.minutos)} de envasado)`
+                : 'Sin tiempo de envasado cargado'
+            }
             min={1}
             max={60}
             allowDecimal={false}
-            value={dias}
+            value={diasValor}
             onChange={setDias}
             disabled={!inicio}
             size="md"
           />
         </Group>
-        {producto && cant > 0 ? (
-          <Recomendado
-            rec={recomendar([{ producto_id: producto, cantidad: cant }], tiempos)}
-            onUsar={(d) => {
-              if (!inicio) setInicio(new Date());
-              setDias(d);
-            }}
-          />
+        {dias !== null && rec && Number(dias) !== rec.dias ? (
+          <Button variant="subtle" size="compact-sm" onClick={() => setDias(null)}>
+            Volver a los {rec.dias} días recomendados
+          </Button>
         ) : null}
         <Group justify="flex-end">
           <Button variant="default" onClick={cerrar}>
@@ -832,7 +844,7 @@ function ModalNuevaProduccion({
               )
             }
           >
-            Cargar producción
+            Cargar a la planificación
           </Button>
         </Group>
       </Stack>
@@ -900,21 +912,63 @@ export function PaginaPlanificacion() {
   const [vista, setVista] = useState<'gantt' | 'mes'>('gantt');
   const [planificando, setPlanificando] = useState<PedidoConConteoRow | null>(null);
   const [nueva, setNueva] = useState(false);
+  const [orden, setOrden] = useState(false);
+  const [calcular, setCalcular] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const pestania = params.get('vista') === 'ordenes' ? 'ordenes' : 'plan';
   const lista = abiertos(pedidos.data ?? []);
   const ventas = ventasAprobadas(pedidos.data ?? []);
 
   return (
     <>
       <EncabezadoPagina
-        titulo="Planificación"
-        descripcion="Qué se produce cada día y cuánto dura, producto por producto, y para qué pedido. La línea roja es la entrega comprometida."
+        titulo="Planificación y producción"
+        descripcion="Qué se produce cada día y cuánto dura, y las órdenes de producción de cada lote. La línea roja es la entrega comprometida."
         acciones={
           <Group gap="sm">
             {editable ? (
-              <Button leftSection={<IconPlus size={18} />} onClick={() => setNueva(true)}>
-                Nueva producción
-              </Button>
+              <>
+                <Button
+                  leftSection={<IconPlus size={18} />}
+                  onClick={() => setNueva(true)}
+                >
+                  Planificación
+                </Button>
+                <Button
+                  leftSection={<IconPlus size={18} />}
+                  onClick={() => setOrden(true)}
+                >
+                  Producción
+                </Button>
+              </>
             ) : null}
+            <Button
+              variant="light"
+              leftSection={<IconCalculator size={18} />}
+              onClick={() => setCalcular(true)}
+            >
+              Calcular producción
+            </Button>
+          </Group>
+        }
+      />
+      <Tabs
+        value={pestania}
+        onChange={(v) =>
+          setParams(v === 'ordenes' ? { vista: 'ordenes' } : {}, { replace: true })
+        }
+        color="azul"
+        keepMounted={false}
+      >
+        <Tabs.List mb="lg">
+          <Tabs.Tab value="plan">Planificación</Tabs.Tab>
+          <Tabs.Tab value="ordenes">Órdenes de producción</Tabs.Tab>
+        </Tabs.List>
+        <Tabs.Panel value="ordenes">
+          <ListaOrdenes />
+        </Tabs.Panel>
+        <Tabs.Panel value="plan">
+          <Group gap="sm" justify="flex-end" mb="md">
             <SegmentedControl
               value={vista}
               onChange={(v) => setVista(v as 'gantt' | 'mes')}
@@ -941,61 +995,63 @@ export function PaginaPlanificacion() {
               <IconChevronRight size={18} />
             </ActionIcon>
           </Group>
-        }
-      />
-      {pedidos.isLoading ? (
-        <Skeleton h={300} />
-      ) : (
-        <Stack gap="lg">
-          <Paper withBorder p="md" style={{ borderColor: 'var(--superficie-borde)' }}>
-            {vista === 'gantt' ? (
-              <Gantt
-                pedidos={lista}
-                desde={desde}
-                dias={21}
-                editable={editable}
-                {...(editable ? { onAbrir: setPlanificando } : {})}
-              />
-            ) : (
-              <>
-                <Title order={4} mb="sm" tt="capitalize">
-                  {aFecha(sumarDias(desde, 7)).toLocaleDateString('es-AR', {
-                    month: 'long',
-                    year: 'numeric',
-                  })}
-                </Title>
-                <CalendarioMes pedidos={lista} mes={sumarDias(desde, 7)} />
-              </>
-            )}
-          </Paper>
-          <Paper withBorder p="md" style={{ borderColor: 'var(--superficie-borde)' }}>
-            <SinPlanificar
-              pedidos={lista}
-              editable={editable}
-              onPlanificar={setPlanificando}
-            />
-            {editable ? (
-              <Text size="xs" c="dimmed" mt="sm">
-                Para cambiar un pedido ya planificado, usá las flechas y los botones del
-                bloque, o{' '}
-                {lista
-                  .filter((p) => p.plan_inicio)
-                  .slice(0, 8)
-                  .map((p) => (
-                    <Anchor
-                      key={p.id}
-                      size="xs"
-                      onClick={() => setPlanificando(p)}
-                      mr={6}
-                    >
-                      {p.numero}
-                    </Anchor>
-                  ))}
-              </Text>
-            ) : null}
-          </Paper>
-        </Stack>
-      )}
+          {pedidos.isLoading ? (
+            <Skeleton h={300} />
+          ) : (
+            <Stack gap="lg">
+              <Paper withBorder p="md" style={{ borderColor: 'var(--superficie-borde)' }}>
+                {vista === 'gantt' ? (
+                  <Gantt
+                    pedidos={lista}
+                    desde={desde}
+                    dias={21}
+                    editable={editable}
+                    {...(editable ? { onAbrir: setPlanificando } : {})}
+                  />
+                ) : (
+                  <>
+                    <Title order={4} mb="sm" tt="capitalize">
+                      {aFecha(sumarDias(desde, 7)).toLocaleDateString('es-AR', {
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </Title>
+                    <CalendarioMes pedidos={lista} mes={sumarDias(desde, 7)} />
+                  </>
+                )}
+              </Paper>
+              <Paper withBorder p="md" style={{ borderColor: 'var(--superficie-borde)' }}>
+                <SinPlanificar
+                  pedidos={lista}
+                  editable={editable}
+                  onPlanificar={setPlanificando}
+                />
+                {editable ? (
+                  <Text size="xs" c="dimmed" mt="sm">
+                    Para cambiar un pedido ya planificado, usá las flechas y los botones
+                    del bloque, o{' '}
+                    {lista
+                      .filter((p) => p.plan_inicio)
+                      .slice(0, 8)
+                      .map((p) => (
+                        <Anchor
+                          key={p.id}
+                          size="xs"
+                          onClick={() => setPlanificando(p)}
+                          mr={6}
+                        >
+                          {p.numero}
+                        </Anchor>
+                      ))}
+                  </Text>
+                ) : null}
+              </Paper>
+            </Stack>
+          )}
+        </Tabs.Panel>
+      </Tabs>
+      <ModalAbrirOrden abierto={orden} onCerrar={() => setOrden(false)} pedidoId={null} />
+      <CalcularProduccion abierto={calcular} onCerrar={() => setCalcular(false)} />
       <ModalPlanificar
         pedido={planificando}
         ventas={ventas}

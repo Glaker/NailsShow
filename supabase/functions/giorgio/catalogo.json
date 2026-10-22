@@ -47,22 +47,13 @@
     },
     {
       "ruta": "/planificacion",
-      "etiqueta": "Planificación",
-      "roles": [
-        "GERENCIA_PRODUCCION",
-        "GERENCIA"
-      ],
-      "queEs": "Qué se produce cada día y cuánto dura cada pedido. Hay dos vistas, que se cambian arriba: «Gantt» (una fila por pedido, con barras sobre tres semanas) y «Calendario» (el mes). La línea roja del Gantt es la entrega comprometida; si un pedido termina después de esa fecha, la fila lo avisa. Debajo, «Sin planificar» lista los pedidos abiertos que todavía no tienen fecha de producción."
-    },
-    {
-      "ruta": "/ordenes",
-      "etiqueta": "Órdenes de producción",
+      "etiqueta": "Planificación y producción",
       "roles": [
         "GERENCIA_PRODUCCION",
         "GERENCIA",
         "CONTROL_CALIDAD"
       ],
-      "queEs": "Las órdenes de producción: una por lote, con su registro de la pesada a la liberación. La tabla muestra orden, producto, lote, vencimiento, cantidad y estado. Cada orden toma la fórmula y guía las etapas que se registran en su ficha; de ahí sale el batch record."
+      "queEs": "Qué se produce cada día y cuánto dura cada pedido. Hay dos vistas, que se cambian arriba: «Gantt» (una fila por pedido, con barras sobre tres semanas) y «Calendario» (el mes). La línea roja del Gantt es la entrega comprometida; si un pedido termina después de esa fecha, la fila lo avisa. Debajo, «Sin planificar» lista los pedidos abiertos que todavía no tienen fecha de producción."
     },
     {
       "ruta": "/formulas",
@@ -378,12 +369,12 @@
     {
       "patron": "/ordenes/:id",
       "etiqueta": "Detalle de una orden de producción",
-      "de": "/ordenes"
+      "de": "/planificacion"
     },
     {
       "patron": "/ordenes/:id/batch-record",
       "etiqueta": "Batch record de una orden",
-      "de": "/ordenes"
+      "de": "/planificacion"
     },
     {
       "patron": "/formulas/:id",

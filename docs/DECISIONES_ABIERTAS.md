@@ -753,6 +753,25 @@ liberado (RN-51). Los pedidos se siguen despachando desde C5 o PTF.
 **Pendiente.** Si Berna despacha pedidos de clientes.
 **Dónde está.** `20261022150200_comercial_deposito_berna.sql`.
 
+### D-loteo-1 · Hoja de loteo impresa desde el sistema — adoptada 2026-10-22
+
+**Decisión del codirector técnico.** «Lotear» va en el tablero de Gerencia de
+Producción, una fila por orden abierta, y en la ficha de cada orden. Imprime
+la hoja de la plantilla de la planta («lote 20102026.pptx»): 72 etiquetas de
+15 × 8 mm en las mismas posiciones, Calibri 8 pt. No se cambia ninguna
+medida. Los dos renglones se editan una vez y valen para las 72.
+- Primer renglón por defecto: la fecha de la orden en DDMMAAAA.
+- Segundo renglón por defecto: `v:MM/AA` con el vencimiento de la orden, que
+  es fecha de elaboración más vida útil. La plantilla dice 10/29 para un lote
+  de 10/26, o sea 3 años, aunque el pedido hablaba de 2.
+
+Se imprime en A4 al 100 %: la diapositiva de PowerPoint va centrada en la
+hoja, como la imprime PowerPoint sin «ajustar al papel».
+**Pendiente.** Confirmar con la primera hoja impresa que las etiquetas coinciden
+con las que salían de PowerPoint. Si PowerPoint las escalaba al papel, salían
+un poco más grandes.
+**Dónde está.** `src/features/produccion/Loteo.tsx`, `posicionesLoteo.ts`, `global.css`.
+
 ### D-recepcion-3 · Eliminar una recepción sin motivo — adoptada 2026-10-22
 
 **Decisión del codirector técnico.** Quien registra recepciones (RECEPCION,

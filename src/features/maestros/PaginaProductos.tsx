@@ -47,6 +47,13 @@ const esquema = z.object({
   /* Nullable de verdad: un 0 sería un dato falso. Sin vida útil, el vencimiento
      del lote se completa después. */
   vida_util_meses: z.number().int().positive().nullable(),
+  /* D-tiempo-envasado-1: solo se edita; el '' del NumberInput vacío cuenta como null. */
+  minutos_envasado_unidad: z.preprocess(
+    (v) => (v === '' ? null : v),
+    z.number().positive().nullable(),
+  ),
+  personas_envasado: z.number().int().min(1).max(50),
+  margen_envasado_pct: z.number().min(0).max(100),
   activo: z.boolean(),
 });
 
@@ -66,6 +73,14 @@ function FormularioProducto({
   const crear = useCrearProducto();
   const actualizar = useActualizarProducto();
   const editando = Boolean(producto);
+  /* D-tiempo-envasado-1: columnas de gmp.productos aún no en database.types.ts. */
+  const tiempo = producto as unknown as
+    | {
+        minutos_envasado_unidad?: number | string | null;
+        margen_envasado_pct?: number | string | null;
+        personas_envasado?: number | null;
+      }
+    | undefined;
   const form = useForm<Valores>({
     mode: 'controlled',
     initialValues: {
@@ -76,6 +91,12 @@ function FormularioProducto({
       forma_cosmetica: producto?.forma_cosmetica ?? '',
       origen: (producto?.origen as Valores['origen']) ?? (producto ? null : 'FABRICADO'),
       vida_util_meses: producto?.vida_util_meses ?? null,
+      minutos_envasado_unidad: tiempo?.minutos_envasado_unidad
+        ? Number(tiempo.minutos_envasado_unidad)
+        : null,
+      personas_envasado: tiempo?.personas_envasado ?? 1,
+      margen_envasado_pct:
+        tiempo?.margen_envasado_pct != null ? Number(tiempo.margen_envasado_pct) : 10,
       activo: producto?.activo ?? true,
     },
     validate: zod4Resolver(esquema),
@@ -97,7 +118,18 @@ function FormularioProducto({
           activo: v.activo,
         };
         if (producto) {
-          await actualizar.mutateAsync({ id: producto.id, cambios: campos });
+          /* D-tiempo-envasado-1: mismo update; el cast cubre columnas no tipadas. */
+          const minutos =
+            typeof v.minutos_envasado_unidad === 'number'
+              ? v.minutos_envasado_unidad
+              : null;
+          const cambios = {
+            ...campos,
+            minutos_envasado_unidad: minutos,
+            personas_envasado: v.personas_envasado,
+            margen_envasado_pct: v.margen_envasado_pct,
+          } as unknown as Parameters<typeof actualizar.mutateAsync>[0]['cambios'];
+          await actualizar.mutateAsync({ id: producto.id, cambios });
         } else {
           await crear.mutateAsync(campos);
         }
@@ -160,6 +192,39 @@ function FormularioProducto({
               {...form.getInputProps('vida_util_meses')}
             />
           </Grid.Col>
+          {editando ? (
+            <>
+              <Grid.Col span={{ base: 12, sm: 4 }}>
+                <NumberInput
+                  label="Minutos de envasado por unidad"
+                  description="Lo que tarda una persona en envasar una unidad"
+                  placeholder="Opcional"
+                  min={0}
+                  decimalScale={2}
+                  hideControls
+                  {...form.getInputProps('minutos_envasado_unidad')}
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, sm: 4 }}>
+                <NumberInput
+                  label="Personas que envasan"
+                  min={1}
+                  max={50}
+                  allowDecimal={false}
+                  {...form.getInputProps('personas_envasado')}
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, sm: 4 }}>
+                <NumberInput
+                  label="Margen de seguridad"
+                  suffix=" %"
+                  min={0}
+                  max={100}
+                  {...form.getInputProps('margen_envasado_pct')}
+                />
+              </Grid.Col>
+            </>
+          ) : null}
         </Grid>
 
         {editando ? (

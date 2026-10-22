@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import {
   Anchor,
   Badge,
@@ -16,8 +16,7 @@ import {
   TextInput,
 } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
-import { IconClipboardList, IconPlus } from '@tabler/icons-react';
-import { EncabezadoPagina } from '@/components/EncabezadoPagina';
+import { IconClipboardList, IconTool } from '@tabler/icons-react';
 import { Vacio } from '@/components/Vacio';
 import { useTieneRol } from '@/features/auth/sesion';
 import { useFormulasFabricacion, useProductos } from '@/lib/consultas';
@@ -36,15 +35,20 @@ import {
 } from '@/lib/consultasOrdenes';
 import { COLOR_ESTADO_ORDEN } from './etapasOrden';
 
+/** `/ordenes` es una pestaña de Planificación (pedido del 2026-10-22). */
+export function PaginaOrdenes() {
+  return <Navigate to="/planificacion?vista=ordenes" replace />;
+}
+
 /**
  * Órdenes de producción (ítem 5 de la cola del 24/09): cada lote con su
- * registro de etapas, del que sale el batch record.
+ * registro de etapas, del que sale el batch record. Vive como pestaña de
+ * «Planificación y producción»; «+ Producción» la abre desde el encabezado.
  */
-export function PaginaOrdenes() {
+export function ListaOrdenes() {
   const ordenes = useOrdenes();
   const productos = useProductos();
   const puede = useTieneRol('GERENCIA_PRODUCCION', 'DIRECCION_TECNICA');
-  const [abriendo, setAbriendo] = useState(false);
   const [equipos, setEquipos] = useState(false);
   const nombre = (id: string) =>
     (productos.data ?? []).find((p) => p.id === id)?.nombre ?? '';
@@ -52,25 +56,17 @@ export function PaginaOrdenes() {
 
   return (
     <>
-      <EncabezadoPagina
-        titulo="Órdenes de producción"
-        descripcion="Cada lote con su registro, de la pesada a la liberación. El batch record sale de acá."
-        acciones={
-          puede ? (
-            <Group gap="sm">
-              <Button variant="default" onClick={() => setEquipos(true)}>
-                Equipos
-              </Button>
-              <Button
-                leftSection={<IconPlus size={18} />}
-                onClick={() => setAbriendo(true)}
-              >
-                Abrir orden
-              </Button>
-            </Group>
-          ) : null
-        }
-      />
+      {puede ? (
+        <Group justify="flex-end" mb="sm">
+          <Button
+            variant="default"
+            leftSection={<IconTool size={16} />}
+            onClick={() => setEquipos(true)}
+          >
+            Equipos
+          </Button>
+        </Group>
+      ) : null}
       {ordenes.isLoading ? (
         <Skeleton h={240} />
       ) : filas.length === 0 ? (
@@ -127,11 +123,6 @@ export function PaginaOrdenes() {
           </Table.ScrollContainer>
         </Paper>
       )}
-      <ModalAbrirOrden
-        abierto={abriendo}
-        onCerrar={() => setAbriendo(false)}
-        pedidoId={null}
-      />
       <ModalEquipos abierto={equipos} onCerrar={() => setEquipos(false)} />
     </>
   );

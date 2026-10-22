@@ -181,6 +181,43 @@ textarea {
 }
 
 /*
+ * Hoja de loteo (pedido del 2026-10-22): la plantilla «lote 20102026.pptx»
+ * tal cual. La diapositiva A4 de PowerPoint mide 190,5 × 275,17 mm y se
+ * imprime centrada en la hoja A4; cada etiqueta es de 15 × 8 mm, Calibri 8 pt,
+ * centrada y sin márgenes internos. No se ajusta ninguna medida.
+ */
+.hoja-loteo {
+  position: relative;
+  width: 210mm;
+  height: 297mm;
+  background: #fff;
+}
+
+.hoja-loteo-diapositiva {
+  position: absolute;
+  left: 9.75mm;
+  top: 10.9167mm;
+  width: 190.5mm;
+  height: 275.1667mm;
+}
+
+.etiqueta-loteo {
+  position: absolute;
+  width: 15mm;
+  height: 8mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  padding: 0;
+  font-family: Calibri, Carlito, sans-serif;
+  font-size: 8pt;
+  line-height: normal;
+  color: #000;
+  white-space: nowrap;
+}
+
+/*
  * Impresión del rótulo. El rótulo se imprime, se corta y se pega en el cuerpo
  * del recipiente (I.20.2, RN-06). Todo lo que no sea el rótulo desaparece.
  */
@@ -218,6 +255,20 @@ textarea {
   @page {
     size: A6 landscape;
     margin: 8mm;
+  }
+
+  /* Loteo: A4 sin márgenes, la hoja ya trae los suyos (los de PowerPoint). */
+  body.imprimiendo-rotulo {
+    margin: 0;
+  }
+
+  #impresion-rotulo .hoja-loteo {
+    page: loteo;
+  }
+
+  @page loteo {
+    size: A4 portrait;
+    margin: 0;
   }
 
   /* La cotización va en A4 vertical: página con nombre, no pisa la del rótulo. */

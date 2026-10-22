@@ -48,6 +48,7 @@ import { TableroDT } from './TableroDT';
 import { TareasProduccion } from '@/features/produccion/TareasProduccion';
 import { PanelEtiquetado } from '@/features/produccion/PanelEtiquetado';
 import { TareasCarga } from '@/features/produccion/TareasCarga';
+import { PanelLoteo } from '@/features/produccion/Loteo';
 
 function TarjetaPanel({
   titulo,
@@ -87,9 +88,10 @@ export function PaginaTablero() {
       // La pesada suele hacerla ella: tiene las mismas tareas que planta.
       return (
         <Stack gap="xl">
-          {/* El saludo siempre arriba; lo primero debajo, cuánto falta
-              etiquetar (D-etiquetado-1). */}
-          <InicioPedidos debajoDelSaludo={<PanelEtiquetado />} />
+          {/* El saludo siempre arriba; lo primero debajo, «Lotear» (pedido del
+              2026-10-22). Lo que falta etiquetar baja, antes de las tareas de
+              carga. */}
+          <InicioPedidos debajoDelSaludo={<PanelLoteo />} />
           <Stack gap="sm">
             <Title order={2}>Tareas de planta</Title>
             <Text c="dimmed">
@@ -97,6 +99,7 @@ export function PaginaTablero() {
             </Text>
             <TareasProduccion titulo={false} />
           </Stack>
+          <PanelEtiquetado />
           <TareasCarga />
         </Stack>
       );
