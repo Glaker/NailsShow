@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { notifications } from '@mantine/notifications';
 import { comercial, core, gmp } from './supabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 
 /* ------------------------------------------------------------------------- *
@@ -955,6 +956,29 @@ export function useDepositoPorDefecto(insumoIds: string[]) {
       );
       return new Map<string, string | null>(pares);
     },
+  });
+}
+
+/**
+ * Eliminar una recepción mal cargada, sin motivo (D-recepcion-3). La base la
+ * deja intacta y la oculta; solo antes de cargarla a stock.
+ */
+export function useEliminarRecepcion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (recepcionId: string) => {
+      const { error } = await (gmp() as unknown as SupabaseClient).rpc(
+        'eliminar_recepcion',
+        { p_recepcion_id: recepcionId },
+      );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      for (const k of ['recepciones', 'lotes', 'tablero', 'lotes-por-estado', 'analisis'])
+        void qc.invalidateQueries({ queryKey: [k] });
+      avisarExito('Recepción eliminada.');
+    },
+    onError: avisarError,
   });
 }
 
