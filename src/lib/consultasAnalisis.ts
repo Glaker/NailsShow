@@ -158,6 +158,25 @@ export function useControlRapidoMP() {
  * confirmación para todos, sin repetir lo que ya se anotó en la recepción
  * (pedido del 2026-10-22). Cada uno queda con su muestreo y su R.50.5.1.
  */
+/**
+ * Completa «contenedores limpiados» en lotes recibidos donde quedó sin tildar
+ * (D-recepcion-4, 20261022180000): solo de no a sí, con el lote RECIBIDO; la
+ * base lo exige y la auditoría guarda quién y cuándo.
+ */
+export function useCompletarContenedoresLimpiados() {
+  return useMutation({
+    mutationFn: async (loteIds: string[]) => {
+      if (loteIds.length === 0) return;
+      const { error } = await gmp()
+        .from('lotes_insumo')
+        .update({ contenedores_limpiados: true })
+        .in('id', loteIds);
+      if (error) throw error;
+    },
+    onError: avisarError,
+  });
+}
+
 export function useAprobarEnvases() {
   const qc = useQueryClient();
   return useMutation({

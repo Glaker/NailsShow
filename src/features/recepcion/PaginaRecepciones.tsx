@@ -29,7 +29,10 @@ import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { Vacio } from '@/components/Vacio';
 import { FormularioRecepcion } from './FormularioRecepcion';
 import { ControlRapidoMP } from '@/features/calidad/ControlRapidoMP';
-import { useAprobarEnvases } from '@/lib/consultasAnalisis';
+import {
+  useAprobarEnvases,
+  useCompletarContenedoresLimpiados,
+} from '@/lib/consultasAnalisis';
 import {
   useCargarRecepcionAStock,
   useDepositoPorDefecto,
@@ -112,6 +115,14 @@ export function PaginaRecepciones() {
   /* gmp.control_recepcion_envase (D-recepcion-2): quien recibe controla
      los envases antes de cargarlos, y entran a aprobados. */
   const aprobarEnvases = useAprobarEnvases();
+  /* D-recepcion-4: si a un envase le quedó sin tildar «contenedores
+     limpiados», se completa antes de darlo por controlado. */
+  const completar = useCompletarContenedoresLimpiados();
+  const [aCompletar, setACompletar] = useState<{
+    recepcion: Recepcion;
+    lotes: LoteDeRecepcion[];
+  } | null>(null);
+  const [tildados, setTildados] = useState<string[]>([]);
   const controlaEnvases = useTieneRol(
     'RECEPCION',
     'GERENCIA_PRODUCCION',
@@ -320,11 +331,17 @@ export function PaginaRecepciones() {
                               leftSection={<IconCheck size={15} />}
                               mt={4}
                               loading={aprobarEnvases.isPending}
-                              onClick={() =>
-                                aprobarEnvases.mutate(
-                                  envasesPendientes(r).map((l) => l.id),
-                                )
-                              }
+                              onClick={() => {
+                                const faltan = sinContenedorLimpio(envasesPendientes(r));
+                                if (faltan.length > 0) {
+                                  setTildados([]);
+                                  setACompletar({ recepcion: r, lotes: faltan });
+                                } else {
+                                  aprobarEnvases.mutate(
+                                    envasesPendientes(r).map((l) => l.id),
+                                  );
+                                }
+                              }}
                             >
                               Dar envases por controlados ({envasesPendientes(r).length})
                             </Button>
@@ -347,6 +364,54 @@ export function PaginaRecepciones() {
         size="xl"
       >
         <FormularioRecepcion onListo={modal.close} />
+      </Modal>
+
+      <Modal
+        opened={aCompletar !== null}
+        onClose={() => setACompletar(null)}
+        title={<Text fw={700}>Falta marcar algo en la recepción {aCompletar?.recepcion.numero}</Text>}
+        centered
+      >
+        {aCompletar ? (
+          <Stack gap="md">
+            <Text size="sm">
+              I.20.1 pide los contenedores limpios antes de pasar a cuarentena, y estos
+              lotes quedaron sin la casilla. Tildala si se limpiaron: queda registrado a
+              tu nombre, con la hora.
+            </Text>
+            {aCompletar.lotes.map((l) => (
+              <Switch
+                key={l.id}
+                size="md"
+                label={`${l.insumo?.nombre ?? 'Lote'} · ${l.numero_registro_interno}: contenedores limpiados`}
+                checked={tildados.includes(l.id)}
+                onChange={(e) => {
+                  const si = e.currentTarget.checked;
+                  setTildados((t) => (si ? [...t, l.id] : t.filter((x) => x !== l.id)));
+                }}
+              />
+            ))}
+            <Group justify="flex-end">
+              <Button variant="default" onClick={() => setACompletar(null)}>
+                Cancelar
+              </Button>
+              <Button
+                color="estadoAprobado"
+                disabled={tildados.length !== aCompletar.lotes.length}
+                loading={completar.isPending || aprobarEnvases.isPending}
+                onClick={() => {
+                  const r = aCompletar.recepcion;
+                  void completar.mutateAsync(tildados).then(() => {
+                    setACompletar(null);
+                    aprobarEnvases.mutate(envasesPendientes(r).map((l) => l.id));
+                  });
+                }}
+              >
+                Guardar y dar por controlados
+              </Button>
+            </Group>
+          </Stack>
+        ) : null}
       </Modal>
 
       <Modal
@@ -417,6 +482,10 @@ export function PaginaRecepciones() {
 
 type Recepcion = NonNullable<ReturnType<typeof useRecepciones>['data']>[number];
 type LoteDeRecepcion = Recepcion['lotes'][number];
+
+/** Los que todavía no pueden pasar a cuarentena: I.20.1 pide contenedores limpios. */
+const sinContenedorLimpio = (lotes: LoteDeRecepcion[]) =>
+  lotes.filter((l) => l.estado === 'RECIBIDO' && !l.contenedores_limpiados);
 
 /** Envases, empaques y etiquetas de la recepción sin veredicto (D-recepcion-2). */
 const envasesPendientes = (r: Recepcion): LoteDeRecepcion[] =>
