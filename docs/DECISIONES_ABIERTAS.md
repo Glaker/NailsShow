@@ -755,15 +755,17 @@ liberado (RN-51). Los pedidos se siguen despachando desde C5 o PTF.
 
 ### D-loteo-1 · Hoja de loteo impresa desde el sistema — adoptada 2026-10-22
 
-**Decisión del codirector técnico.** «Lotear» va en el tablero de Gerencia de
-Producción, una fila por orden abierta, y en la ficha de cada orden. Imprime
-la hoja de la plantilla de la planta («lote 20102026.pptx»): 72 etiquetas de
-15 × 8 mm en las mismas posiciones, Calibri 8 pt. No se cambia ninguna
-medida. Los dos renglones se editan una vez y valen para las 72.
-- Primer renglón por defecto: la fecha de la orden en DDMMAAAA.
-- Segundo renglón por defecto: `v:MM/AA` con el vencimiento de la orden, que
-  es fecha de elaboración más vida útil. La plantilla dice 10/29 para un lote
-  de 10/26, o sea 3 años, aunque el pedido hablaba de 2.
+**Decisión del codirector técnico.** «Lotear» es una función propia, que no
+depende de las órdenes de producción. Va como tarjeta chica en el tablero de
+Gerencia de Producción y abre la hoja directamente. Imprime la hoja de la
+plantilla de la planta («lote 20102026.pptx»): 72 etiquetas de 15 × 8 mm en
+las mismas posiciones, Calibri 8 pt. No se cambia ninguna medida. Los dos
+renglones se editan una vez y valen para las 72.
+- Primer renglón por defecto: la fecha de hoy en DDMMAAAA.
+- Segundo renglón por defecto: `v:MM/AA` a dos años.
+
+Desde la ficha de una orden, «Lotear» propone en cambio la fecha y el
+vencimiento de esa orden.
 
 Se imprime en A4 al 100 %: la diapositiva de PowerPoint va centrada en la
 hoja, como la imprime PowerPoint sin «ajustar al papel».
