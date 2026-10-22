@@ -181,6 +181,16 @@ textarea {
 }
 
 /*
+ * Planilla de rótulos (D-rotulos-1): en pantalla, dos de ancho al tamaño de
+ * diseño (440 px); la vista previa la achica con zoom.
+ */
+.planilla-rotulos {
+  display: grid;
+  grid-template-columns: repeat(2, 440px);
+  gap: 12px;
+}
+
+/*
  * Impresión del rótulo. El rótulo se imprime, se corta y se pega en el cuerpo
  * del recipiente (I.20.2, RN-06). Todo lo que no sea el rótulo desaparece.
  */
@@ -218,6 +228,28 @@ textarea {
   @page {
     size: A6 landscape;
     margin: 8mm;
+  }
+
+  /* Planilla: A4 vertical, dos de ancho y cuatro de alto (8 por hoja). Cada
+     rótulo conserva sus proporciones: se diseña a 440 px y se lleva a 91 mm
+     con zoom (0,78), sin reacomodar el contenido. Probado en Chrome: entran
+     8 por hoja mientras el rótulo no pase de 330 px de alto de diseño. */
+  #impresion-rotulo .planilla-rotulos {
+    page: planilla;
+    grid-template-columns: repeat(2, 91mm);
+    gap: 3mm;
+    justify-content: center;
+  }
+
+  .planilla-rotulos .planilla-celda {
+    width: 440px;
+    zoom: 0.78;
+    break-inside: avoid;
+  }
+
+  @page planilla {
+    size: A4 portrait;
+    margin: 6mm;
   }
 
   /* La cotización va en A4 vertical: página con nombre, no pisa la del rótulo. */

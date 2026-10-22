@@ -805,6 +805,24 @@ la auditoría. Si se quiere cerrar, esos dos campos vuelven a DT/GP con un
 trigger.
 **Dónde está.** `20261022160100_gmp_catalogo_editable_por_todos.sql`.
 
+### D-rotulos-1 · Planilla de rótulos impresos por adelantado — adoptada 2026-10-22
+
+**Decisión del codirector técnico.** «Imprimir rótulos» arma una hoja A4 con
+8 rótulos (dos de ancho), de uno o varios lotes. Cada uno lleva el estado que
+se elija aunque el lote todavía no lo tenga, la cantidad de copias y un
+renglón «Reservado:» (Nail Show, un tercero, texto libre o vacío para
+completar a mano). Se imprimen por adelantado para no volver a imprimir
+cuando el lote cambia de estado.
+**Riesgo conocido.** Un rótulo de APROBADO impreso antes de tiempo puede
+terminar pegado antes de tiempo. Quien lo pega es responsable de hacerlo
+solo cuando el sistema muestra ese estado. El QR lleva a la ficha con el
+estado real, y el pie dice «Impreso» en lugar de «Emitido». La emisión del
+rótulo en el sistema (`gmp.rotulos`) sigue atada al estado: esto es solo
+papel.
+**Pendiente.** «Reservado» no sale de una reserva del sistema: se elige al
+imprimir.
+**Dónde está.** `src/features/rotulos/PlanillaRotulos.tsx`.
+
 ## Abiertas — 2026-10-21
 
 ### D-etiquetado-2 · Varias etiquetas, «No la sé» y reventa
