@@ -11,10 +11,10 @@ export interface LoteAControlar {
   bultos: number;
 }
 
-type Respuesta = boolean | null;
+export type Respuesta = boolean | null;
 
 /** Una pregunta, dos botones grandes. Arranca sin responder: hay que mirar. */
-function Pregunta({
+export function Pregunta({
   texto,
   valor,
   onCambiar,

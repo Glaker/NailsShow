@@ -889,6 +889,31 @@ análisis fisicoquímico.
 - `comercial.vincular_recepcion_compras` no admite RECEPCION: si recibe algo
   de una compra pendiente, la vinculación la hace GP o Administración.
 
+### D-recepcion-2 · Envases aprobados en la recepción, sin cuarentena física
+
+**Decidido** por el codirector técnico (2026-10-21), como excepción a §3.4.
+Quien recibe envases, empaques o etiquetas (RECEPCION o GERENCIA_PRODUCCION;
+también CC y DT) los controla al cargar a stock con
+`gmp.control_recepcion_envase` (`20261021160000`): embalaje, identificación,
+cantidad contra el remito y aspecto. Muestra del 5 % (RN-08) a reutilización
+(RN-11). La cuarentena se comprime: el lote pasa por CUARENTENA, MUESTREADO y
+EN_ANALISIS en la misma transacción. Si se aprueba antes de cargar, el stock
+nace en el depósito de aprobados de la ficha o en «Envases aprobados»
+(ENV-APR). Lo que no se controla entra a cuarentena como antes. La materia
+prima no cambia (D-recepcion-1).
+
+Con el cambio, RN-10 pasó a la tabla: `muestreos_rn10_verificaciones_previas`
+(NOT VALID, solo filas nuevas) impide un muestreo con contenedor, rótulo o
+certificado mal también por escritura directa.
+
+**Pendiente.**
+
+- Un envase con `requiere_protocolo` no va por este control, lo dictamina
+  Calidad.
+- RECEPCION y GP también pueden aprobar envases por el circuito largo. RN-10
+  ya está en la tabla, pero el resto de los chequeos de aspecto y cantidad
+  solo existen en la función.
+
 ## Abiertas — 2026-10-14
 
 ### D-55 · Especificaciones cargadas en borrador: qué revisar antes de aprobar

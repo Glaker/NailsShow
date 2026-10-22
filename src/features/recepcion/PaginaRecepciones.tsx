@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Alert,
   Badge,
   Button,
   Group,
@@ -24,6 +25,7 @@ import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { Vacio } from '@/components/Vacio';
 import { FormularioRecepcion } from './FormularioRecepcion';
 import { ControlRapidoMP } from '@/features/calidad/ControlRapidoMP';
+import { ControlEnvase } from '@/features/calidad/ControlEnvase';
 import {
   useCargarRecepcionAStock,
   useDepositoPorDefecto,
@@ -81,10 +83,27 @@ export function PaginaRecepciones() {
     'CONTROL_CALIDAD',
     'DIRECCION_TECNICA',
   );
+  /* gmp.control_recepcion_envase (D-recepcion-2): quien recibe controla
+     los envases antes de cargarlos, y entran a aprobados. */
+  const controlaEnvases = useTieneRol(
+    'RECEPCION',
+    'GERENCIA_PRODUCCION',
+    'CONTROL_CALIDAD',
+    'DIRECCION_TECNICA',
+  );
   const [aControlar, setAControlar] = useState<LoteDeRecepcion[]>([]);
+  /* Lo que el usuario puede controlar de una recepción: la materia prima
+     (D-recepcion-1) y los envases (D-recepcion-2). */
+  const aControlarDe = (r: Recepcion): LoteDeRecepcion[] => [
+    ...(haceControlRapido ? pendientesMP(r) : []),
+    ...(controlaEnvases ? envasesPendientes(r) : []),
+  ];
 
   const filas = recepciones.data ?? [];
-  const [aCargar, setACargar] = useState<Recepcion | null>(null);
+  /* El id y no la fila: tras cada control la recepción se relee y el modal
+     tiene que ver el estado nuevo de sus lotes. */
+  const [aCargarId, setACargar] = useState<string | null>(null);
+  const aCargar = filas.find((r) => r.id === aCargarId) ?? null;
 
   return (
     <>
@@ -229,21 +248,21 @@ export function PaginaRecepciones() {
                               loading={
                                 cargar.isPending && cargar.variables.recepcionId === r.id
                               }
-                              onClick={() => setACargar(r)}
+                              onClick={() => setACargar(r.id)}
                             >
                               Cargar a stock
                             </Button>
                           ) : null}
-                          {haceControlRapido && pendientesMP(r).length > 0 ? (
+                          {aControlarDe(r).length > 0 ? (
                             <Button
                               size="compact-sm"
                               variant="light"
                               color="estadoEnAnalisis"
                               leftSection={<IconFlask size={15} />}
                               mt={4}
-                              onClick={() => setAControlar(pendientesMP(r))}
+                              onClick={() => setAControlar(aControlarDe(r))}
                             >
-                              Control de calidad ({pendientesMP(r).length})
+                              Control de calidad ({aControlarDe(r).length})
                             </Button>
                           ) : null}
                         </Table.Td>
@@ -275,6 +294,7 @@ export function PaginaRecepciones() {
         {aCargar ? (
           <CargarAStock
             recepcion={aCargar}
+            controlaEnvases={controlaEnvases}
             enCurso={cargar.isPending}
             onCancelar={() => setACargar(null)}
             onConfirmar={(depositos) => {
@@ -300,13 +320,23 @@ export function PaginaRecepciones() {
         onClose={() => setAControlar([])}
         title={
           <Text fw={700}>
-            Control de materia prima
+            Control de recepción
             {aControlar.length > 1 ? ` · quedan ${aControlar.length}` : ''}
           </Text>
         }
         size="lg"
       >
-        {aControlar[0] ? (
+        {aControlar[0] && aControlar[0].insumo?.tipo !== 'MATERIA_PRIMA' ? (
+          <ControlEnvase
+            key={aControlar[0].id}
+            lote={{
+              id: aControlar[0].id,
+              numero: aControlar[0].numero_registro_interno,
+              nombre: aControlar[0].insumo?.nombre ?? '',
+            }}
+            onListo={() => setAControlar((l) => l.slice(1))}
+          />
+        ) : aControlar[0] ? (
           <ControlRapidoMP
             key={aControlar[0].id}
             lote={{
@@ -326,6 +356,16 @@ export function PaginaRecepciones() {
 
 type Recepcion = NonNullable<ReturnType<typeof useRecepciones>['data']>[number];
 type LoteDeRecepcion = Recepcion['lotes'][number];
+
+/** Envases, empaques y etiquetas de la recepción sin veredicto (D-recepcion-2). */
+const envasesPendientes = (r: Recepcion): LoteDeRecepcion[] =>
+  r.lotes.filter(
+    (l) =>
+      (l.insumo?.tipo === 'MATERIAL_ENVASE' ||
+        l.insumo?.tipo === 'MATERIAL_EMPAQUE' ||
+        l.insumo?.tipo === 'ETIQUETA') &&
+      (l.estado === 'RECIBIDO' || l.estado === 'CUARENTENA'),
+  );
 
 /** Materia prima de la recepción que todavía no tiene veredicto. */
 const pendientesMP = (r: Recepcion): LoteDeRecepcion[] =>
@@ -347,16 +387,19 @@ const pendientesMP = (r: Recepcion): LoteDeRecepcion[] =>
  */
 function CargarAStock({
   recepcion,
+  controlaEnvases,
   enCurso,
   onCancelar,
   onConfirmar,
 }: {
   recepcion: Recepcion;
+  controlaEnvases: boolean;
   enCurso: boolean;
   onCancelar: () => void;
   onConfirmar: (depositos: Record<string, string>) => void;
 }) {
   const lotes = recepcion.lotes;
+  const envases = controlaEnvases ? envasesPendientes(recepcion) : [];
   const sinDeposito = lotes.filter((l) => !l.deposito_actual_id);
   const depositos = useDepositos();
   const sugeridos = useDepositoPorDefecto([
@@ -384,6 +427,31 @@ function CargarAStock({
         uno. Queda a tu nombre y no se deshace: un movimiento de stock no se borra, se
         anula con su inverso.
       </Text>
+      {envases.length > 0 ? (
+        <Stack gap="md">
+          <Alert color="azul" variant="light" icon={<IconFlask size={18} />}>
+            Antes de cargar, controlá {envases.length === 1 ? 'el envase' : 'los envases'}: lo que
+            apruebes entra directo a «Envases aprobados». Lo que no controles entra a cuarentena.
+          </Alert>
+          {envases.map((l) => (
+            <Paper
+              key={l.id}
+              withBorder
+              p="md"
+              radius="md"
+              style={{ borderColor: 'var(--superficie-borde)' }}
+            >
+              <ControlEnvase
+                lote={{
+                  id: l.id,
+                  numero: l.numero_registro_interno,
+                  nombre: l.insumo?.nombre ?? '',
+                }}
+              />
+            </Paper>
+          ))}
+        </Stack>
+      ) : null}
       {sinDeposito.length > 0 ? (
         <Stack gap="sm">
           <Text size="sm" fw={600}>

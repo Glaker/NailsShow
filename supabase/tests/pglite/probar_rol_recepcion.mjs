@@ -120,11 +120,11 @@ await rechaza(
   `select gmp.control_rapido_materia_prima('${loteEnv}', true, true, true, true, true, true, 1)`,
   /solo para materia prima/,
 );
-await rechaza(
-  'ni puede muestrear un envase por el circuito largo',
-  `select gmp.registrar_muestreo('${loteEnv}', 5, 'UNIDAD', 'Recepción', true, true, true, 1, 'REUTILIZACION_ENVASE')`,
-  /./,
-);
+// Desde 20261021160000 (D-recepcion-2) Recepción sí controla envases: lo
+// prueba probar_envase_en_recepcion.mjs.
+await prueba('el envase lo controla en la recepción (D-recepcion-2)', async () => {
+  await q(`select gmp.control_recepcion_envase($1, true, true, true, true, true)`, [loteEnv]);
+});
 await rechaza(
   'ni ve nada que no sea suyo: no puede dictaminar granel',
   `insert into gmp.registros_analisis (orden_id, tamano_muestra, descripcion, conclusiones, aprobado, fecha)

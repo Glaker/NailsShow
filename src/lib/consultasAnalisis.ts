@@ -5,6 +5,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 import { avisarError, avisarExito } from './consultas';
 import { gmp } from './supabase';
@@ -147,6 +148,48 @@ export function useControlRapidoMP() {
       void qc.invalidateQueries({ queryKey: ['recepciones'] });
       void qc.invalidateQueries({ queryKey: ['stock-existencias'] });
       avisarExito(c.aprobado ? 'Lote aprobado.' : 'Lote rechazado.');
+    },
+    onError: avisarError,
+  });
+}
+
+export interface ControlEnvase {
+  loteId: string;
+  contenedorOk: boolean;
+  rotuloOk: boolean;
+  cantidadOk: boolean;
+  aspectoOk: boolean;
+  aprobado: boolean;
+  observacion: string;
+}
+
+/**
+ * Envase, empaque o etiqueta: control en la recepción. Si se aprueba antes de
+ * cargar a stock, el lote pasa a «Envases aprobados» (D-recepcion-2).
+ */
+export function useControlEnvase() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (c: ControlEnvase) => {
+      const { error } = await (gmp() as unknown as SupabaseClient).rpc(
+        'control_recepcion_envase',
+        {
+          p_lote_id: c.loteId,
+          p_contenedor_ok: c.contenedorOk,
+          p_rotulo_ok: c.rotuloOk,
+          p_cantidad_ok: c.cantidadOk,
+          p_aspecto_ok: c.aspectoOk,
+          p_aprobado: c.aprobado,
+          p_observacion: c.observacion,
+        },
+      );
+      if (error) throw error;
+    },
+    onSuccess: (_, c) => {
+      invalidar(qc);
+      void qc.invalidateQueries({ queryKey: ['recepciones'] });
+      void qc.invalidateQueries({ queryKey: ['stock-existencias'] });
+      avisarExito(c.aprobado ? 'Aprobado: entra a «Envases aprobados».' : 'Rechazado.');
     },
     onError: avisarError,
   });
