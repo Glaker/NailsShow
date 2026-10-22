@@ -48,7 +48,7 @@ import { TableroDT } from './TableroDT';
 import { TareasProduccion } from '@/features/produccion/TareasProduccion';
 import { PanelEtiquetado } from '@/features/produccion/PanelEtiquetado';
 import { TareasCarga } from '@/features/produccion/TareasCarga';
-import { PanelLoteo } from '@/features/produccion/Loteo';
+import { TarjetaLotear } from '@/features/produccion/Loteo';
 
 function TarjetaPanel({
   titulo,
@@ -91,7 +91,7 @@ export function PaginaTablero() {
           {/* El saludo siempre arriba; lo primero debajo, «Lotear» (pedido del
               2026-10-22). Lo que falta etiquetar baja, antes de las tareas de
               carga. */}
-          <InicioPedidos debajoDelSaludo={<PanelLoteo />} />
+          <InicioPedidos debajoDelSaludo={<TarjetaLotear />} />
           <Stack gap="sm">
             <Title order={2}>Tareas de planta</Title>
             <Text c="dimmed">

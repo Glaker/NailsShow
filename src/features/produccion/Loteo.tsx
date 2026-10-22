@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  Badge,
   Box,
   Button,
   Group,
@@ -8,14 +7,13 @@ import {
   Paper,
   Stack,
   Text,
+  UnstyledButton,
   TextInput,
-  Title,
 } from '@mantine/core';
 import { IconPrinter, IconTag } from '@tabler/icons-react';
-import { useProductos } from '@/lib/consultas';
-import { useOrdenes } from '@/lib/consultasOrdenes';
 import { imprimirRotulo } from '@/features/rotulos/imprimir';
 import { POSICIONES_LOTEO, textoLote, textoVencimiento } from './posicionesLoteo';
+import { fechaISO } from '@/lib/formato';
 
 /** EMU de PowerPoint a milímetros. */
 const mm = (emu: number) => `${emu / 36000}mm`;
@@ -152,52 +150,56 @@ export function BotonLotear({ orden }: { orden: OrdenALotear }) {
   );
 }
 
+/** Hoy en ISO (día local), para el texto por defecto. */
+const hoyISO = () => fechaISO(new Date())!;
+
 /**
- * «Lotear» en el tablero de Gerencia de Producción: una fila por orden en
- * producción (abierta), con su botón. Arriba, para encontrarlo rápido.
+ * «Lotear» en el tablero (pedido del 2026-10-22): una tarjeta chica que abre la
+ * hoja directamente, sin orden de producción. Por defecto, el lote es hoy y el
+ * vencimiento a dos años; los dos renglones se editan antes de imprimir.
  */
-export function PanelLoteo() {
-  const ordenes = useOrdenes();
-  const productos = useProductos();
-  const nombre = (id: string) =>
-    (productos.data ?? []).find((p) => p.id === id)?.nombre ?? '';
-  const abiertas = (ordenes.data ?? []).filter((o) => o.estado === 'ABIERTA');
+export function TarjetaLotear() {
+  const [abierto, setAbierto] = useState(false);
+  const [hoy, setHoy] = useState(hoyISO);
+  const vence = `${Number(hoy.slice(0, 4)) + 2}${hoy.slice(4)}`;
   return (
-    <Paper withBorder p="lg" style={{ borderColor: 'var(--superficie-borde)' }}>
-      <Group gap="sm" mb="sm">
-        <IconTag size={22} />
-        <Title order={3}>Lotear</Title>
-        <Badge variant="light" radius="sm" size="lg">
-          {abiertas.length}
-        </Badge>
-      </Group>
-      {abiertas.length === 0 ? (
-        <Text size="sm" c="dimmed">
-          No hay órdenes en producción. Cuando abras una, su loteo aparece acá.
-        </Text>
-      ) : (
-        <Stack gap="xs">
-          {abiertas.map((o) => (
-            <Group key={o.id} justify="space-between" wrap="nowrap">
-              <div>
-                <Text fw={600}>{nombre(o.producto_id)}</Text>
-                <Text size="xs" c="dimmed" ff="monospace">
-                  {o.numero} · lote {o.numero_lote}
-                </Text>
-              </div>
-              <BotonLotear
-                orden={{
-                  id: o.id,
-                  jornada: o.jornada,
-                  vencimiento: o.vencimiento,
-                  numero_lote: o.numero_lote,
-                  producto: nombre(o.producto_id),
-                }}
-              />
-            </Group>
-          ))}
-        </Stack>
-      )}
-    </Paper>
+    <>
+      <UnstyledButton
+        onClick={() => {
+          setHoy(hoyISO());
+          setAbierto(true);
+        }}
+        className="tarjeta-enlace"
+        w={{ base: '100%', xs: 240 }}
+      >
+        <Paper
+          withBorder
+          p="md"
+          radius="md"
+          style={{ borderColor: 'var(--superficie-borde)' }}
+        >
+          <Group gap="sm" wrap="nowrap">
+            <IconTag size={28} />
+            <div>
+              <Text fw={700} fz="lg">
+                Lotear
+              </Text>
+              <Text size="xs" c="dimmed">
+                Imprimir la hoja de etiquetas de lote
+              </Text>
+            </div>
+          </Group>
+        </Paper>
+      </UnstyledButton>
+      {abierto ? (
+        <PlanillaLoteo
+          abierto
+          onCerrar={() => setAbierto(false)}
+          titulo="hoja de etiquetas"
+          linea1Inicial={textoLote(hoy)}
+          linea2Inicial={textoVencimiento(vence)}
+        />
+      ) : null}
+    </>
   );
 }
