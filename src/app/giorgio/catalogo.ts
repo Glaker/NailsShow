@@ -67,8 +67,6 @@ export function armarCatalogo(): Catalogo {
     pantallas: [
       ...NAVEGACION.map((i) => pantalla(i.ruta, i.etiqueta, i.roles)),
       ...PESTANIAS.map((p) => pantalla(p.ruta, p.etiqueta, p.roles)),
-      // Sin roles: los catálogos están en el menú de todos.
-      pantalla('/catalogos', 'Catálogos (productos, insumos, proveedores y depósitos)'),
     ],
     subrutas: SUBRUTAS,
   };

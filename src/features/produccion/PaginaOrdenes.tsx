@@ -21,6 +21,11 @@ import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { Vacio } from '@/components/Vacio';
 import { useTieneRol } from '@/features/auth/sesion';
 import { useFormulasFabricacion, useProductos } from '@/lib/consultas';
+import {
+  useCrearProduccion,
+  usePedidos,
+  type PedidoConConteoRow,
+} from '@/lib/consultasComercial';
 import { fecha, fechaISO, numero, desdeCalendario } from '@/lib/formato';
 import {
   useAbrirOrden,
@@ -132,6 +137,41 @@ export function PaginaOrdenes() {
   );
 }
 
+/** Lo que el Gantt tiene para un día: un renglón por producto de cada producción. */
+interface EnElPlan {
+  clave: string;
+  pedidoId: string;
+  productoId: string;
+  cantidad: number;
+}
+
+/** Último día del plan (inclusive), como en Planificación. */
+const finDelPlan = (inicio: string, dias: number) => {
+  const d = new Date(`${inicio}T12:00:00`);
+  d.setDate(d.getDate() + dias - 1);
+  return fechaISO(d)!;
+};
+
+const enElPlan = (pedidos: PedidoConConteoRow[], dia: string): EnElPlan[] =>
+  pedidos
+    .filter(
+      (p) =>
+        !p.es_venta &&
+        (p.estado === 'CONFIRMADO' || p.estado === 'EN_PRODUCCION') &&
+        p.plan_inicio !== null &&
+        p.plan_dias !== null &&
+        dia >= p.plan_inicio &&
+        dia <= finDelPlan(p.plan_inicio, p.plan_dias),
+    )
+    .flatMap((p) =>
+      p.productos.map((r) => ({
+        clave: `${p.id}|${r.producto_id}`,
+        pedidoId: p.id,
+        productoId: r.producto_id,
+        cantidad: Number(r.cantidad),
+      })),
+    );
+
 /** Abrir una orden: fórmula, presentación, jornada y partida (I.40.25). */
 export function ModalAbrirOrden({
   abierto,
@@ -148,6 +188,12 @@ export function ModalAbrirOrden({
   const productos = useProductos();
   const especificaciones = useEspecificaciones();
   const abrir = useAbrirOrden();
+  const pedidos = usePedidos();
+  const crearProduccion = useCrearProduccion();
+  /* Lo que el plan dice para la jornada (pedido del 2026-10-21): elegir uno
+     completa producto y fórmula y vincula la orden; «Otro» la suma al plan. */
+  const [eleccion, setEleccion] = useState<string | null>(null);
+  const [unidades, setUnidades] = useState<number | string>('');
   const [formulaId, setFormulaId] = useState<string | null>(null);
   const [productoId, setProductoId] = useState<string | null>(productoInicial ?? null);
   const [especId, setEspecId] = useState<string | null>(null);
@@ -160,6 +206,21 @@ export function ModalAbrirOrden({
   const formula = (formulas.data ?? []).find((f) => f.id === formulaId);
   const producto = productoId ?? formula?.producto_id ?? null;
   const n = (v: number | string) => (typeof v === 'number' ? v : Number(v || 0));
+  const delDia =
+    pedidoId === null && jornada ? enElPlan(pedidos.data ?? [], fechaISO(jornada)!) : [];
+  const elegido = delDia.find((x) => x.clave === eleccion) ?? null;
+  const otro =
+    pedidoId === null && !elegido && (eleccion === 'otro' || delDia.length === 0);
+  const nombreProducto = (id: string) =>
+    (productos.data ?? []).find((x) => x.id === id)?.nombre ?? 'Producto';
+  const elegir = (x: EnElPlan) => {
+    setEleccion(x.clave);
+    setProductoId(x.productoId);
+    // Las vigentes vienen primero (useFormulasFabricacion).
+    setFormulaId(
+      (formulas.data ?? []).find((f) => f.producto_id === x.productoId)?.id ?? null,
+    );
+  };
   const dd = jornada
     ? `${String(jornada.getDate()).padStart(2, '0')}/${String(jornada.getMonth() + 1).padStart(2, '0')}/${String(jornada.getFullYear()).slice(2)}`
     : '';
@@ -173,6 +234,40 @@ export function ModalAbrirOrden({
       centered
     >
       <Stack gap="md">
+        {pedidoId === null ? (
+          <Stack gap={6}>
+            <Text size="sm" fw={600}>
+              {delDia.length > 0
+                ? 'Según la planificación, ese día se produce:'
+                : 'La planificación no tiene nada para ese día.'}
+            </Text>
+            {delDia.length > 0 ? (
+              <Group gap="xs">
+                {delDia.map((x) => (
+                  <Button
+                    key={x.clave}
+                    size="md"
+                    variant={eleccion === x.clave ? 'filled' : 'default'}
+                    onClick={() => elegir(x)}
+                  >
+                    {nombreProducto(x.productoId)} × {numero(x.cantidad)}
+                  </Button>
+                ))}
+                <Button
+                  size="md"
+                  variant={eleccion === 'otro' ? 'filled' : 'default'}
+                  onClick={() => {
+                    setEleccion('otro');
+                    setProductoId(null);
+                    setFormulaId(null);
+                  }}
+                >
+                  Otro
+                </Button>
+              </Group>
+            ) : null}
+          </Stack>
+        ) : null}
         <Select
           label="Fórmula"
           withAsterisk
@@ -260,6 +355,16 @@ export function ModalAbrirOrden({
             onChange={(v) => setVencimiento(desdeCalendario(v))}
           />
         </Group>
+        {otro ? (
+          <NumberInput
+            label="Unidades a envasar (opcional)"
+            description="Si las cargás, la producción se suma a la planificación de ese día."
+            min={1}
+            allowDecimal={false}
+            value={unidades}
+            onChange={setUnidades}
+          />
+        ) : null}
         <Text size="sm">
           Lote:{' '}
           <b>
@@ -269,17 +374,28 @@ export function ModalAbrirOrden({
         </Text>
         <Group justify="flex-end">
           <Button
-            loading={abrir.isPending}
+            loading={abrir.isPending || crearProduccion.isPending}
             disabled={!formula || !producto || !jornada || n(cantidad) <= 0}
             onClick={() =>
-              formula &&
-              producto &&
-              jornada &&
-              abrir.mutate(
-                {
+              void (async () => {
+                if (!formula || !producto || !jornada) return;
+                const dia = fechaISO(jornada)!;
+                // ponytail: dos llamadas, no una transacción. Si la orden falla,
+                // la producción queda en el plan y se saca desde Planificación.
+                const nueva =
+                  otro && n(unidades) > 0
+                    ? await crearProduccion.mutateAsync({
+                        productoId: producto,
+                        cantidad: n(unidades),
+                        paraPedidoId: null,
+                        inicio: dia,
+                        dias: 1,
+                      })
+                    : null;
+                await abrir.mutateAsync({
                   formula_id: formula.id,
                   producto_id: producto,
-                  jornada: fechaISO(jornada)!,
+                  jornada: dia,
                   partida: n(partida),
                   presentacion: n(presentacion),
                   presentacion_texto: presentacionTexto.trim() || null,
@@ -287,10 +403,14 @@ export function ModalAbrirOrden({
                   unidad: 'kg',
                   vencimiento: fechaISO(vencimiento),
                   especificacion_id: especId,
-                  pedidoId,
-                },
-                { onSuccess: onCerrar },
-              )
+                  pedidoId: pedidoId ?? elegido?.pedidoId ?? nueva ?? null,
+                });
+                setEleccion(null);
+                setUnidades('');
+                onCerrar();
+              })().catch(() => {
+                /* El error ya lo muestra el onError de cada mutación. */
+              })
             }
           >
             Abrir orden

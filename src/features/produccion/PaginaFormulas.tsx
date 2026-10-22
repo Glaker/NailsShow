@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Anchor,
@@ -18,7 +18,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
 import { zod4Resolver } from 'mantine-form-zod-resolver';
 import { z } from 'zod';
-import { IconFlask, IconPlus } from '@tabler/icons-react';
+import { IconFlask, IconPlus, IconSearch } from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { Vacio } from '@/components/Vacio';
 import { useCrearFormula, useFormulasFabricacion, useProductos } from '@/lib/consultas';
@@ -126,6 +126,7 @@ export function PaginaFormulas() {
   // GP la crea en borrador (D-etiquetado-1); dejarla vigente es de DT.
   const puedeEditar = useTieneRol('DIRECCION_TECNICA', 'GERENCIA_PRODUCCION');
   const navegar = useNavigate();
+  const [busqueda, setBusqueda] = useState('');
 
   const alCrear = (id: string) => {
     modal.close();
@@ -141,8 +142,21 @@ export function PaginaFormulas() {
       if (!mapa.has(clave)) mapa.set(clave, { nombre, filas: [] });
       mapa.get(clave)!.filas.push(f);
     }
-    return Array.from(mapa.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
-  }, [formulas.data]);
+    const q = busqueda.trim().toLowerCase();
+    return Array.from(mapa.values())
+      .map((g) =>
+        !q || g.nombre.toLowerCase().includes(q)
+          ? g
+          : {
+              ...g,
+              filas: g.filas.filter((f) =>
+                [f.variedad, f.codigo_me].some((x) => x?.toLowerCase().includes(q)),
+              ),
+            },
+      )
+      .filter((g) => g.filas.length > 0)
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [formulas.data, busqueda]);
 
   return (
     <>
@@ -158,8 +172,20 @@ export function PaginaFormulas() {
         }
       />
 
+      <TextInput
+        placeholder="Buscar por producto, variedad o código ME"
+        leftSection={<IconSearch size={16} />}
+        value={busqueda}
+        onChange={(e) => setBusqueda(e.currentTarget.value)}
+        mb="md"
+        size="md"
+      />
       {formulas.isLoading ? (
         <Skeleton h={260} />
+      ) : grupos.length === 0 && busqueda.trim() ? (
+        <Text c="dimmed" size="sm">
+          Ninguna fórmula coincide con «{busqueda.trim()}».
+        </Text>
       ) : grupos.length === 0 ? (
         <Paper withBorder style={{ borderColor: 'var(--superficie-borde)' }}>
           <Vacio

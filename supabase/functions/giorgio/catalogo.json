@@ -101,6 +101,22 @@
       "queEs": "La lista de todos los lotes de insumo que se recibieron, cada uno con su estado en el circuito de calidad y su rótulo vigente. Cada fila muestra el insumo (con una llama si es inflamable), el N° interno, el lote del proveedor, el proveedor, el estado, el depósito, el vencimiento y la cantidad. Los lotes nacen cuando se registra una recepción en Stock; desde acá se busca uno y se abre su ficha."
     },
     {
+      "ruta": "/catalogos",
+      "etiqueta": "Catálogos",
+      "roles": [
+        "CONTROL_CALIDAD",
+        "DIRECCION_TECNICA",
+        "ADMINISTRACION",
+        "GERENCIA_PRODUCCION",
+        "GERENCIA",
+        "ENCARGADA_STOCK",
+        "VENTAS",
+        "FINANZAS",
+        "RECEPCION"
+      ],
+      "queEs": "Los listados maestros del sistema en cuatro pestañas: «Productos», «Insumos», «Proveedores» y «Depósitos» (se abre en «Productos»). Todo lo demás (recepciones, órdenes, fórmulas) se arma sobre ellos. Cada pestaña es una tabla con buscador; los datos los carga el equipo desde acá."
+    },
+    {
       "ruta": "/liberacion",
       "etiqueta": "Liberación de lotes",
       "roles": [
@@ -333,25 +349,15 @@
       "queEs": null
     },
     {
-      "ruta": "/stock?vista=fabrica",
-      "etiqueta": "Stock › En fábrica",
-      "roles": [
-        "GERENCIA_PRODUCCION",
-        "GERENCIA",
-        "ADMINISTRACION"
-      ],
-      "queEs": null
-    },
-    {
-      "ruta": "/stock?vista=calle5",
-      "etiqueta": "Stock › Calle 5",
+      "ruta": "/stock?vista=depositos",
+      "etiqueta": "Stock › Depósitos",
       "roles": [
         "GERENCIA_PRODUCCION",
         "GERENCIA",
         "ADMINISTRACION",
         "VENTAS"
       ],
-      "queEs": "Es el stock de producto terminado de Calle 5, el local. Entra lo que manda la planta y sale lo que se vende o se descarta. Arriba hay dos contadores: «Unidades en el local» y «Productos con stock». Después viene la tabla con cada producto, sus unidades (con las que están retenidas por lote sin liberar) y la fecha del último movimiento. Más abajo hay tres pestañas («Pedidos a despachar», «Por producto» y «Reservas») y la lista de últimos movimientos. Todo movimiento queda en un libro del que no se borra nada."
+      "queEs": "Arriba hay un cuadradito por depósito de producto terminado: Fábrica, Calle 5 y Berna. Tocá uno para ver su stock; «Enviar a otro depósito» mueve mercadería entre los tres. Lo que sigue describe Calle 5, el local; Fábrica y Berna funcionan igual, sin la parte de pedidos. Es el stock de producto terminado de Calle 5, el local. Entra lo que manda la planta y sale lo que se vende o se descarta. Arriba hay dos contadores: «Unidades en el local» y «Productos con stock». Después viene la tabla con cada producto, sus unidades (con las que están retenidas por lote sin liberar) y la fecha del último movimiento. Más abajo hay tres pestañas («Pedidos a despachar», «Por producto» y «Reservas») y la lista de últimos movimientos. Todo movimiento queda en un libro del que no se borra nada."
     },
     {
       "ruta": "/stock?vista=conteo",
@@ -361,12 +367,6 @@
         "GERENCIA"
       ],
       "queEs": null
-    },
-    {
-      "ruta": "/catalogos",
-      "etiqueta": "Catálogos (productos, insumos, proveedores y depósitos)",
-      "roles": null,
-      "queEs": "Los listados maestros del sistema en cuatro pestañas: «Productos», «Insumos», «Proveedores» y «Depósitos» (se abre en «Productos»). Todo lo demás (recepciones, órdenes, fórmulas) se arma sobre ellos. Cada pestaña es una tabla con buscador; los datos los carga el equipo desde acá."
     }
   ],
   "subrutas": [

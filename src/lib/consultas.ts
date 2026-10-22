@@ -540,6 +540,20 @@ export function useActualizarProducto() {
   });
 }
 
+/** Dan de alta y editan los catálogos: todos menos operarios (D-catalogo-1). */
+export const ROLES_CATALOGO: Database['core']['Enums']['rol_enum'][] = [
+  'DIRECCION_TECNICA',
+  'CONTROL_CALIDAD',
+  'GERENCIA_PRODUCCION',
+  'GERENCIA',
+  'ADMINISTRACION',
+  'FINANZAS',
+  'VENTAS',
+  'ENCARGADA_STOCK',
+  'RECEPCION',
+  'ADMINISTRADOR_SISTEMA',
+];
+
 export function useProveedores() {
   return useQuery({
     queryKey: ['proveedores'],
@@ -570,6 +584,28 @@ export function useCrearProveedor() {
       void qc.invalidateQueries({ queryKey: ['proveedores'] });
       void qc.invalidateQueries({ queryKey: ['tablero'] });
       avisarExito('Proveedor dado de alta, pendiente de aprobación.');
+    },
+    onError: avisarError,
+  });
+}
+
+/** Editar la ficha de un proveedor (D-catalogo-1). La aprobación va aparte. */
+export function useActualizarProveedor() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      cambios,
+    }: {
+      id: string;
+      cambios: Database['gmp']['Tables']['proveedores']['Update'];
+    }) => {
+      const { error } = await gmp().from('proveedores').update(cambios).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['proveedores'] });
+      avisarExito('Proveedor actualizado.');
     },
     onError: avisarError,
   });

@@ -47,6 +47,7 @@ import {
 } from '@/lib/consultasEtiquetado';
 import { FormularioInsumo } from '@/features/maestros/PaginaInsumos';
 import { FormularioNuevaFormula } from './PaginaFormulas';
+import { TiempoEnvasado } from './TiempoEnvasado';
 import { etiquetaUnidad, numero } from '@/lib/formato';
 
 type TipoInsumo = Insumo['tipo'];
@@ -652,6 +653,13 @@ function DetalleProducto({
             <Seccion titulo="Además lleva">
               {otros.map(fila)}
               <Agregar texto="Agregar" onElegir={agregar} onNuevo={setAlta} />
+            </Seccion>
+
+            <Seccion titulo="Tiempo de envasado (opcional)">
+              <TiempoEnvasado
+                productoId={t.producto_id}
+                cantidadSugerida={t.pendientes}
+              />
             </Seccion>
           </Stack>
         )}

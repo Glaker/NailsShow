@@ -42,6 +42,13 @@ import {
   type PedidoConConteoRow,
   type PedidoRow,
 } from '@/lib/consultasComercial';
+import {
+  horasMinutos,
+  recomendacion,
+  tiempoDe,
+  type ProductoConTiempo,
+  type TiempoEnvasado,
+} from '@/lib/envasado';
 
 /* ---------------------------- fechas ISO (día) ---------------------------- */
 
@@ -84,6 +91,61 @@ const ventasAprobadas = (pedidos: PedidoConConteoRow[]) =>
 function useNombresProducto() {
   const productos = useProductos();
   return new Map((productos.data ?? []).map((p) => [p.id, p.nombre]));
+}
+
+/** Tiempo de envasado por id de producto (D-tiempo-envasado-1). */
+function useTiempos() {
+  const productos = useProductos();
+  return new Map(
+    (productos.data ?? []).map((p) => [p.id, tiempoDe(p as ProductoConTiempo)]),
+  );
+}
+
+/** Días recomendados para una producción, según el tiempo de envasado. */
+const recomendar = (
+  renglones: { producto_id: string; cantidad: number }[],
+  tiempos: Map<string, TiempoEnvasado | null>,
+) =>
+  recomendacion(
+    renglones.map((r) => ({
+      cantidad: Number(r.cantidad),
+      tiempo: tiempos.get(r.producto_id) ?? null,
+    })),
+  );
+
+/** «Recomendado: N días», con el botón para usarlo. */
+function Recomendado({
+  rec,
+  onUsar,
+}: {
+  rec: ReturnType<typeof recomendacion>;
+  onUsar: (dias: number) => void;
+}) {
+  if (!rec) {
+    return (
+      <Text size="xs" c="dimmed">
+        Sin tiempo de envasado cargado: no hay días recomendados (se carga en Tareas
+        pendientes de carga).
+      </Text>
+    );
+  }
+  return (
+    <Group gap="xs" wrap="nowrap">
+      <Text size="sm">
+        Recomendado:{' '}
+        <b>
+          {rec.dias} {rec.dias === 1 ? 'día' : 'días'}
+        </b>{' '}
+        <Text span size="xs" c="dimmed">
+          ({horasMinutos(rec.minutos)} de envasado, margen incluido
+          {rec.faltan > 0 ? `; ${rec.faltan} sin tiempo cargado` : ''})
+        </Text>
+      </Text>
+      <Button size="compact-sm" variant="light" onClick={() => onUsar(rec.dias)}>
+        Usar
+      </Button>
+    </Group>
+  );
 }
 
 /**
@@ -154,6 +216,7 @@ export function Gantt({
 }) {
   const planificar = usePlanificarPedido();
   const nombres = useNombresProducto();
+  const tiempos = useTiempos();
   const [hoy] = useState(() => iso(new Date()));
   const filas = pedidos
     .filter((p) => p.plan_inicio && p.plan_dias)
@@ -208,6 +271,7 @@ export function Gantt({
           const fin = Math.min(diasEntre(desde, finPlan(p)!), dias - 1);
           const entrega = p.fecha_entrega ? diasEntre(desde, p.fecha_entrega) : null;
           const tarde = p.fecha_entrega !== null && finPlan(p)! > p.fecha_entrega;
+          const rec = recomendar(p.productos, tiempos);
           return (
             <Box
               key={p.id}
@@ -242,6 +306,7 @@ export function Gantt({
                   </Anchor>{' '}
                   · {p.cliente}
                   {tarde ? ' · termina después de la entrega' : ''}
+                  {rec && rec.dias !== p.plan_dias ? ` · recomendado: ${rec.dias} d` : ''}
                 </Text>
               </Box>
               {columnas.map((d, i) => (
@@ -523,6 +588,7 @@ function ModalPlanificar({
   const planificar = usePlanificarPedido();
   const asignar = useAsignarProduccion();
   const nombres = useNombresProducto();
+  const tiempos = useTiempos();
   const [inicio, setInicio] = useState<Date | null>(null);
   const [dias, setDias] = useState<number | string>(1);
   const [para, setPara] = useState<string | null>(null);
@@ -585,6 +651,14 @@ function ModalPlanificar({
               pedido.plan_dias && inicio === null && dias === 1 ? pedido.plan_dias : dias
             }
             onChange={setDias}
+          />
+          <Recomendado
+            rec={recomendar(pedido.productos, tiempos)}
+            onUsar={(d) => {
+              // Con inicio elegido, el campo muestra `dias` y no el plan guardado.
+              setInicio(valorInicio);
+              setDias(d);
+            }}
           />
           <Group justify="space-between">
             {pedido.plan_inicio ? (
@@ -651,6 +725,7 @@ function ModalNuevaProduccion({
 }) {
   const productos = useProductos();
   const crear = useCrearProduccion();
+  const tiempos = useTiempos();
   const [producto, setProducto] = useState<string | null>(null);
   const [cantidad, setCantidad] = useState<number | string>('');
   const [inicio, setInicio] = useState<Date | null>(() => new Date());
@@ -726,6 +801,15 @@ function ModalNuevaProduccion({
             size="md"
           />
         </Group>
+        {producto && cant > 0 ? (
+          <Recomendado
+            rec={recomendar([{ producto_id: producto, cantidad: cant }], tiempos)}
+            onUsar={(d) => {
+              if (!inicio) setInicio(new Date());
+              setDias(d);
+            }}
+          />
+        ) : null}
         <Group justify="flex-end">
           <Button variant="default" onClick={cerrar}>
             Volver

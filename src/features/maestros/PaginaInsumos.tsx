@@ -25,6 +25,7 @@ import {
   IconFileCheck,
   IconFlame,
   IconFlask,
+  IconPencil,
   IconPlus,
   IconScale,
   IconSearch,
@@ -36,6 +37,7 @@ import {
   useCrearInsumo,
   useDepositos,
   useInsumos,
+  ROLES_CATALOGO,
   type Insumo,
 } from '@/lib/consultas';
 import { etiquetaEnum, etiquetaUnidad } from '@/lib/formato';
@@ -319,18 +321,9 @@ export function PaginaInsumos() {
      editando. Un solo estado para los dos casos, que son el mismo formulario. */
   const [enEdicion, setEnEdicion] = useState<Insumo | undefined>();
   const [busqueda, setBusqueda] = useDebouncedState('', 200);
-  const puedeEditar = useTieneRol(
-    'DIRECCION_TECNICA',
-    'GERENCIA_PRODUCCION',
-    'ADMINISTRADOR_SISTEMA',
-  );
-  // insumos_catalogo_insert_tecnicos: Recepción da de alta, no edita.
-  const puedeCrear = useTieneRol(
-    'DIRECCION_TECNICA',
-    'GERENCIA_PRODUCCION',
-    'ADMINISTRADOR_SISTEMA',
-    'RECEPCION',
-  );
+  // insumos_catalogo_insert/update_tecnicos (D-catalogo-1).
+  const puedeEditar = useTieneRol(...ROLES_CATALOGO);
+  const puedeCrear = puedeEditar;
 
   const abrirAlta = () => {
     setEnEdicion(undefined);
@@ -411,6 +404,7 @@ export function PaginaInsumos() {
                     <Table.Th>Unidad</Table.Th>
                     <Table.Th>Circuito</Table.Th>
                     <Table.Th>Estado</Table.Th>
+                    {puedeEditar ? <Table.Th /> : null}
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
@@ -481,6 +475,21 @@ export function PaginaInsumos() {
                           {i.activo ? 'Activo' : 'Inactivo'}
                         </Badge>
                       </Table.Td>
+                      {puedeEditar ? (
+                        <Table.Td>
+                          <Button
+                            size="compact-md"
+                            variant="light"
+                            leftSection={<IconPencil size={15} />}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              abrirEdicion(i);
+                            }}
+                          >
+                            Editar
+                          </Button>
+                        </Table.Td>
+                      ) : null}
                     </Table.Tr>
                   ))}
                 </Table.Tbody>
