@@ -153,48 +153,6 @@ export function useControlRapidoMP() {
   });
 }
 
-export interface ControlEnvase {
-  loteId: string;
-  contenedorOk: boolean;
-  rotuloOk: boolean;
-  cantidadOk: boolean;
-  aspectoOk: boolean;
-  aprobado: boolean;
-  observacion: string;
-}
-
-/**
- * Envase, empaque o etiqueta: control en la recepción. Si se aprueba antes de
- * cargar a stock, el lote pasa a «Envases aprobados» (D-recepcion-2).
- */
-export function useControlEnvase() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (c: ControlEnvase) => {
-      const { error } = await (gmp() as unknown as SupabaseClient).rpc(
-        'control_recepcion_envase',
-        {
-          p_lote_id: c.loteId,
-          p_contenedor_ok: c.contenedorOk,
-          p_rotulo_ok: c.rotuloOk,
-          p_cantidad_ok: c.cantidadOk,
-          p_aspecto_ok: c.aspectoOk,
-          p_aprobado: c.aprobado,
-          p_observacion: c.observacion,
-        },
-      );
-      if (error) throw error;
-    },
-    onSuccess: (_, c) => {
-      invalidar(qc);
-      void qc.invalidateQueries({ queryKey: ['recepciones'] });
-      void qc.invalidateQueries({ queryKey: ['stock-existencias'] });
-      avisarExito(c.aprobado ? 'Aprobado: entra a «Envases aprobados».' : 'Rechazado.');
-    },
-    onError: avisarError,
-  });
-}
-
 /**
  * Envases que quien recibe da por bien al cargar a stock: una sola
  * confirmación para todos, sin repetir lo que ya se anotó en la recepción
@@ -223,6 +181,12 @@ export function useAprobarEnvases() {
         if (error) throw error;
       }
     },
+    onSuccess: (_, ids) =>
+      avisarExito(
+        ids.length === 1
+          ? 'Envase dado por controlado.'
+          : `${ids.length} envases dados por controlados.`,
+      ),
     onSettled: () => {
       invalidar(qc);
       void qc.invalidateQueries({ queryKey: ['recepciones'] });

@@ -18,6 +18,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { modals } from '@mantine/modals';
 import {
   IconAlertTriangle,
+  IconCheck,
   IconFlask,
   IconPackageImport,
   IconPlus,
@@ -29,7 +30,6 @@ import { Vacio } from '@/components/Vacio';
 import { FormularioRecepcion } from './FormularioRecepcion';
 import { ControlRapidoMP } from '@/features/calidad/ControlRapidoMP';
 import { useAprobarEnvases } from '@/lib/consultasAnalisis';
-import { ControlEnvase } from '@/features/calidad/ControlEnvase';
 import {
   useCargarRecepcionAStock,
   useDepositoPorDefecto,
@@ -123,7 +123,6 @@ export function PaginaRecepciones() {
      (D-recepcion-1) y los envases (D-recepcion-2). */
   const aControlarDe = (r: Recepcion): LoteDeRecepcion[] => [
     ...(haceControlRapido ? pendientesMP(r) : []),
-    ...(controlaEnvases ? envasesPendientes(r) : []),
   ];
 
   const filas = recepciones.data ?? [];
@@ -311,6 +310,25 @@ export function PaginaRecepciones() {
                               Control de calidad ({aControlarDe(r).length})
                             </Button>
                           ) : null}
+                          {/* Envases que quedaron en cuarentena: lo constatado al
+                              recibirlos es el control, sin preguntas. */}
+                          {controlaEnvases && envasesPendientes(r).length > 0 ? (
+                            <Button
+                              size="compact-sm"
+                              variant="light"
+                              color="estadoAprobado"
+                              leftSection={<IconCheck size={15} />}
+                              mt={4}
+                              loading={aprobarEnvases.isPending}
+                              onClick={() =>
+                                aprobarEnvases.mutate(
+                                  envasesPendientes(r).map((l) => l.id),
+                                )
+                              }
+                            >
+                              Dar envases por controlados ({envasesPendientes(r).length})
+                            </Button>
+                          ) : null}
                         </Table.Td>
                       ) : null}
                     </Table.Tr>
@@ -379,17 +397,7 @@ export function PaginaRecepciones() {
         }
         size="lg"
       >
-        {aControlar[0] && aControlar[0].insumo?.tipo !== 'MATERIA_PRIMA' ? (
-          <ControlEnvase
-            key={aControlar[0].id}
-            lote={{
-              id: aControlar[0].id,
-              numero: aControlar[0].numero_registro_interno,
-              nombre: aControlar[0].insumo?.nombre ?? '',
-            }}
-            onListo={() => setAControlar((l) => l.slice(1))}
-          />
-        ) : aControlar[0] ? (
+        {aControlar[0] ? (
           <ControlRapidoMP
             key={aControlar[0].id}
             lote={{

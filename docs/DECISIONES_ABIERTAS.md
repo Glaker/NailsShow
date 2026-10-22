@@ -753,6 +753,26 @@ liberado (RN-51). Los pedidos se siguen despachando desde C5 o PTF.
 **Pendiente.** Si Berna despacha pedidos de clientes.
 **Dónde está.** `20261022150200_comercial_deposito_berna.sql`.
 
+### D-liberacion-1 · La DT revisa la orden después de que Producción la termina — adoptada 2026-10-22
+
+**Decisión del codirector técnico.** Terminada la orden, todas las etapas se
+siguen registrando y controlando hasta que se libera, se rechaza o se anula.
+Antes solo se registraba la revisión del batch record: lo que había quedado
+sin controlar, y el análisis del granel, trababa para siempre la liberación
+(`gmp.faltantes_liberacion` exige todo registrado y controlado). Lo que se
+registra después de terminar queda con su fecha real y a nombre de quien lo
+hace.
+**Dónde está.** `20261022170000_gmp_revision_tras_terminar.sql`.
+
+### D-recepcion-2 ter · Envases controlados al registrar la recepción — adoptada 2026-10-22
+
+**Decisión del codirector técnico.** Lo que se constata en la recepción es el
+control de los envases, empaques y etiquetas: se dan por controlados al
+guardar la recepción, sin preguntas. Los que habían quedado en cuarentena se
+dan por controlados con un clic desde Recepciones. Si su recepción ya se
+había cargado a stock, siguen en el depósito donde se cargaron: pasarlos a
+aprobados es una transferencia.
+
 ### D-loteo-1 · Hoja de loteo impresa desde el sistema — adoptada 2026-10-22
 
 **Decisión del codirector técnico.** «Lotear» es una función propia, que no
