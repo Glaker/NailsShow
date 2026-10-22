@@ -43,9 +43,20 @@ function Campo({ etiqueta, valor }: { etiqueta: string; valor: string }) {
 
 interface Props {
   lote: LoteVista;
-  rotulo: Rotulo;
+  rotulo: Pick<Rotulo, 'estado' | 'version_formato' | 'emitido_en'>;
   /** Lote bloqueado como EJEMPLO: lleva la marca de agua. */
   ejemplo?: boolean;
+  /**
+   * Para quién está reservado el material (pedido del 2026-10-22). Ausente,
+   * no hay renglón; vacío, queda la línea para escribirlo a mano.
+   */
+  reservado?: string;
+  /**
+   * Impreso desde la planilla (D-rotulos-1): el pie dice cuándo se imprimió,
+   * no cuándo se emitió, porque puede ser un estado que el lote todavía no
+   * tiene.
+   */
+  impreso?: string;
 }
 
 /**
@@ -57,7 +68,7 @@ interface Props {
  * cartel pegado en un tambor en una entrada de trazabilidad consultable desde
  * el teléfono, sin tipear un número de veinte caracteres con guantes puestos.
  */
-export function RotuloLote({ lote, rotulo, ejemplo = false }: Props) {
+export function RotuloLote({ lote, rotulo, ejemplo = false, reservado, impreso }: Props) {
   const [qr, setQr] = useState<string | null>(null);
   const estado = rotulo.estado;
   const tinta = TINTA[estado];
@@ -152,6 +163,22 @@ export function RotuloLote({ lote, rotulo, ejemplo = false }: Props) {
         </Stack>
       </Group>
 
+      {reservado !== undefined ? (
+        <Group gap={6} px="md" pb="xs" wrap="nowrap" align="flex-end">
+          <Text fz={11} fw={700} style={{ letterSpacing: 0.8, opacity: 0.7 }}>
+            RESERVADO:
+          </Text>
+          <Text
+            fz={15}
+            fw={700}
+            lh={1.2}
+            style={{ flex: 1, borderBottom: '1px solid #868e96', minHeight: 20 }}
+          >
+            {reservado}
+          </Text>
+        </Group>
+      ) : null}
+
       <Group
         justify="space-between"
         px="md"
@@ -159,7 +186,7 @@ export function RotuloLote({ lote, rotulo, ejemplo = false }: Props) {
         style={{ borderTop: '1px solid #dee2e6', background: '#fafafa' }}
       >
         <Text fz={9} c="dimmed">
-          Emitido {fechaHora(rotulo.emitido_en)}
+          {impreso ? `Impreso ${impreso}` : `Emitido ${fechaHora(rotulo.emitido_en)}`}
         </Text>
         <Text fz={9} c="dimmed">
           Adherir al cuerpo del recipiente, nunca a la tapa (I.20.2)

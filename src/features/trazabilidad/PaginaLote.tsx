@@ -44,6 +44,7 @@ import {
 import { fecha, fechaHora, numero } from '@/lib/formato';
 import { useSesion, type Rol } from '@/features/auth/sesion';
 import { imprimirRotulo } from '@/features/rotulos/imprimir';
+import { PlanillaRotulos } from '@/features/rotulos/PlanillaRotulos';
 import { useState } from 'react';
 import { useDictaminarLote, useRegistrosAnalisis } from '@/lib/consultasAnalisis';
 import { FichaAnalisis, FormularioAnalisis } from '@/features/calidad/RegistroAnalisis';
@@ -126,6 +127,7 @@ export function PaginaLote() {
   const emitir = useEmitirRotulo();
   const { claims } = useSesion();
   const [muestreoAbierto, modalMuestreo] = useDisclosure(false);
+  const [planillaAbierta, planilla] = useDisclosure(false);
   const analisis = useRegistrosAnalisis({ loteId: id });
   const dictaminar = useDictaminarLote();
   /* Aprobar o rechazar abre el registro de análisis (I.50.5, I.50.6). */
@@ -157,7 +159,7 @@ export function PaginaLote() {
   const ejemplo = (bloqueos.data ?? []).some(
     (b) => b.motivo === 'EJEMPLO' && !b.levantado,
   );
-  const imprimir = (cual: 'rotulo' | 'muestra') =>
+  const imprimir = (cual: 'muestra') =>
     imprimirRotulo(document.querySelector<HTMLElement>(`[data-rotulo="${cual}"]`));
   const registroAnalisis = l.insumo_tipo === 'SEMIELABORADO' ? 'R.50.6.1' : 'R.50.5.1';
   const puedeMuestrear =
@@ -227,15 +229,13 @@ export function PaginaLote() {
               Registrar muestreo
             </Button>
           ) : null}
-          {rotuloVigente ? (
-            <Button
-              variant="light"
-              leftSection={<IconPrinter size={18} />}
-              onClick={() => imprimir('rotulo')}
-            >
-              Imprimir rótulo
-            </Button>
-          ) : null}
+          <Button
+            variant="light"
+            leftSection={<IconPrinter size={18} />}
+            onClick={planilla.open}
+          >
+            Imprimir rótulos
+          </Button>
           {opciones.map((t) => (
             <Button
               key={t.destino}
@@ -572,6 +572,15 @@ export function PaginaLote() {
       >
         <FormularioMuestreo lote={l} onListo={modalMuestreo.close} />
       </Modal>
+      {planillaAbierta ? (
+        <PlanillaRotulos
+          abierto
+          onCerrar={planilla.close}
+          lote={l}
+          rotuloVigente={rotuloVigente}
+          ejemplo={ejemplo}
+        />
+      ) : null}
     </>
   );
 }
