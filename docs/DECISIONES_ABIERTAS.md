@@ -762,7 +762,7 @@ plantilla de la planta («lote 20102026.pptx»): 72 etiquetas de 15 × 8 mm en
 las mismas posiciones, Calibri 8 pt. No se cambia ninguna medida. Los dos
 renglones se editan una vez y valen para las 72.
 - Primer renglón por defecto: la fecha de hoy en DDMMAAAA.
-- Segundo renglón por defecto: `v:MM/AA` a dos años.
+- Segundo renglón por defecto: `v:MM/AA` a tres años, como la plantilla.
 
 Desde la ficha de una orden, «Lotear» propone en cambio la fecha y el
 vencimiento de esa orden.
