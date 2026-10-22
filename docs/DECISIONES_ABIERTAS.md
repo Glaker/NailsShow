@@ -753,6 +753,37 @@ liberado (RN-51). Los pedidos se siguen despachando desde C5 o PTF.
 **Pendiente.** Si Berna despacha pedidos de clientes.
 **Dónde está.** `20261022150200_comercial_deposito_berna.sql`.
 
+### D-tiempo-envasado-1 · Tiempo de envasado y días recomendados — adoptada 2026-10-22
+
+**Decisión del codirector técnico (pedido del 2026-10-21).** Cada producto
+lleva cuántos minutos tarda una persona por unidad, un margen (10 % por
+defecto) y cuántas personas lo envasan. Gerencia de Producción lo carga en la
+tarjeta de «Tareas pendientes de carga» y ahí ve el cálculo para N unidades.
+El Gantt y los modales de planificación muestran «Recomendado: N días» con la
+jornada de 8 a 15 y 30 min de descanso (390 min). Es una recomendación, no
+bloquea nada.
+**Pendiente.** La jornada está fija en la aplicación (`src/lib/envasado.ts`).
+Si cambia o hay turnos, pasa a configuración. Los productos que ya salieron
+de las tareas de carga no tienen dónde cargar el tiempo todavía.
+**Dónde está.** `20261022160000_gmp_tiempo_envasado.sql`.
+
+### D-catalogo-1 · Catálogo de insumos y proveedores editable por todos — adoptada 2026-10-22
+
+**Decisión del codirector técnico.** Todos los roles menos operario dan de
+alta y editan fichas de insumo y de proveedor: nombre, tipo, unidad,
+depósitos, protocolo, contacto. DT carga una materia prima nueva sin salir de
+la fórmula. Siguen en pie:
+- aprobar o rechazar un proveedor es solo de DT;
+- el código de un insumo con lotes no cambia;
+- nada se borra;
+- todo queda auditado a nombre de quien lo hizo.
+
+**Riesgo conocido.** Cualquiera puede cambiar el tipo de un insumo o sacarle
+«exige protocolo», y eso cambia su circuito de recepción y control. Queda en
+la auditoría. Si se quiere cerrar, esos dos campos vuelven a DT/GP con un
+trigger.
+**Dónde está.** `20261022160100_gmp_catalogo_editable_por_todos.sql`.
+
 ## Abiertas — 2026-10-21
 
 ### D-etiquetado-2 · Varias etiquetas, «No la sé» y reventa

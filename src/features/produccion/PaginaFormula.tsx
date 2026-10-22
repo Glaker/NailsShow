@@ -10,6 +10,7 @@ import {
   Divider,
   Grid,
   Group,
+  Modal,
   NumberInput,
   Paper,
   Radio,
@@ -27,6 +28,7 @@ import { useForm } from '@mantine/form';
 import { zod4Resolver } from 'mantine-form-zod-resolver';
 import { z } from 'zod';
 import { IconArrowLeft, IconPlus, IconTrash } from '@tabler/icons-react';
+import { FormularioInsumo } from '@/features/maestros/PaginaInsumos';
 import {
   useActualizarFormula,
   useCrearComponenteFormula,
@@ -96,6 +98,10 @@ function FormularioComponente({
   const insumos = useInsumos();
   const densidades = useDensidadesReferencia();
   const crear = useCrearComponenteFormula();
+  /* Lo que se buscó y no está: se da de alta acá mismo y queda elegido
+     (pedido del 2026-10-21). */
+  const [buscado, setBuscado] = useState('');
+  const [alta, setAlta] = useState(false);
 
   const form = useForm<ValoresComponente>({
     initialValues: {
@@ -149,6 +155,18 @@ function FormularioComponente({
               value: i.id,
               label: `${i.nombre} (${i.codigo_interno})`,
             }))}
+            onSearchChange={setBuscado}
+            nothingFoundMessage={
+              <Button
+                fullWidth
+                size="md"
+                variant="light"
+                leftSection={<IconPlus size={18} />}
+                onClick={() => setAlta(true)}
+              >
+                Nuevo insumo
+              </Button>
+            }
             {...form.getInputProps('insumo_id')}
             onChange={(id) => {
               form.setFieldValue('insumo_id', id);
@@ -232,6 +250,23 @@ function FormularioComponente({
           </Button>
         </Group>
       </Stack>
+      <Modal
+        opened={alta}
+        onClose={() => setAlta(false)}
+        title={<Text fw={700}>Nuevo insumo</Text>}
+        size="lg"
+      >
+        <FormularioInsumo
+          nombreInicial={buscado.trim()}
+          onListo={(creado) => {
+            if (creado) {
+              form.setFieldValue('insumo_id', creado.id);
+              form.setFieldValue('densidad_id', creado.densidad_referencia_id ?? null);
+            }
+            setAlta(false);
+          }}
+        />
+      </Modal>
     </form>
   );
 }

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Badge,
   Button,
@@ -21,14 +22,19 @@ import {
   IconAddressBook,
   IconCircleCheck,
   IconCircleX,
+  IconPencil,
   IconPlus,
+  IconSearch,
 } from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { Vacio } from '@/components/Vacio';
 import {
+  useActualizarProveedor,
   useCrearProveedor,
   useDictaminarProveedor,
+  ROLES_CATALOGO,
   useProveedores,
+  type Proveedor,
 } from '@/lib/consultas';
 import { fechaHora } from '@/lib/formato';
 import { useTieneRol } from '@/features/auth/sesion';
@@ -58,18 +64,28 @@ const COLOR_ESTADO = {
   RECHAZADO: 'estadoRechazado',
 } as const;
 
-/** Alta de proveedor (DT, Administración y GP, §3.3). El dictamen sigue siendo de la DT. */
-export function FormularioProveedor({ onListo }: { onListo: () => void }) {
+/**
+ * Alta y edición de proveedor (todos menos operarios, D-catalogo-1). El
+ * dictamen sigue siendo de la DT. `proveedor` presente = edición.
+ */
+export function FormularioProveedor({
+  proveedor,
+  onListo,
+}: {
+  proveedor?: Proveedor | undefined;
+  onListo: () => void;
+}) {
   const crear = useCrearProveedor();
+  const actualizar = useActualizarProveedor();
   const form = useForm({
     mode: 'controlled',
     initialValues: {
-      razon_social: '',
-      cuit: '',
-      contacto_nombre: '',
-      contacto_telefono: '',
-      contacto_email: '',
-      domicilio: '',
+      razon_social: proveedor?.razon_social ?? '',
+      cuit: proveedor?.cuit ?? '',
+      contacto_nombre: proveedor?.contacto_nombre ?? '',
+      contacto_telefono: proveedor?.contacto_telefono ?? '',
+      contacto_email: proveedor?.contacto_email ?? '',
+      domicilio: proveedor?.domicilio ?? '',
     },
     validate: zod4Resolver(esquema),
   });
@@ -77,14 +93,17 @@ export function FormularioProveedor({ onListo }: { onListo: () => void }) {
   return (
     <form
       onSubmit={form.onSubmit(async (v) => {
-        await crear.mutateAsync({
+        const campos = {
           razon_social: v.razon_social.trim(),
           cuit: v.cuit.trim() || null,
           contacto_nombre: v.contacto_nombre.trim() || null,
           contacto_telefono: v.contacto_telefono.trim() || null,
           contacto_email: v.contacto_email.trim() || null,
           domicilio: v.domicilio.trim() || null,
-        });
+        };
+        if (proveedor)
+          await actualizar.mutateAsync({ id: proveedor.id, cambios: campos });
+        else await crear.mutateAsync(campos);
         onListo();
       })}
     >
@@ -114,17 +133,19 @@ export function FormularioProveedor({ onListo }: { onListo: () => void }) {
           </Grid.Col>
         </Grid>
 
-        <Text size="xs" c="dimmed">
-          El proveedor queda pendiente de aprobación. Solo Dirección Técnica puede
-          aprobarlo o rechazarlo (§3.3).
-        </Text>
+        {proveedor ? null : (
+          <Text size="xs" c="dimmed">
+            El proveedor queda pendiente de aprobación. Solo Dirección Técnica puede
+            aprobarlo o rechazarlo (§3.3).
+          </Text>
+        )}
 
         <Group justify="flex-end">
           <Button variant="subtle" color="gray" onClick={onListo}>
             Cancelar
           </Button>
-          <Button type="submit" loading={crear.isPending}>
-            Dar de alta
+          <Button type="submit" loading={crear.isPending || actualizar.isPending}>
+            {proveedor ? 'Guardar cambios' : 'Dar de alta'}
           </Button>
         </Group>
       </Stack>
@@ -136,12 +157,23 @@ export function PaginaProveedores() {
   const proveedores = useProveedores();
   const dictaminar = useDictaminarProveedor();
   const [abierto, modal] = useDisclosure(false);
-  const puedeAlta = useTieneRol(
-    'DIRECCION_TECNICA',
-    'ADMINISTRACION',
-    'GERENCIA_PRODUCCION',
-  );
+  /* `undefined` = alta; con una ficha = edición, como en insumos. */
+  const [enEdicion, setEnEdicion] = useState<Proveedor | undefined>();
+  const [busqueda, setBusqueda] = useState('');
+  const puedeAlta = useTieneRol(...ROLES_CATALOGO);
   const puedeDictaminar = useTieneRol('DIRECCION_TECNICA');
+  const abrirAlta = () => {
+    setEnEdicion(undefined);
+    modal.open();
+  };
+  const q = busqueda.trim().toLowerCase();
+  const filas = (proveedores.data ?? []).filter(
+    (p) =>
+      !q ||
+      [p.razon_social, p.cuit, p.contacto_nombre].some((x) =>
+        x?.toLowerCase().includes(q),
+      ),
+  );
 
   const confirmar = (id: string, razon: string, estado: 'APROBADO' | 'RECHAZADO') => {
     let observaciones = '';
@@ -183,7 +215,7 @@ export function PaginaProveedores() {
         descripcion="Alta de proveedores y dictamen de aprobación. La aprobación es competencia exclusiva de Dirección Técnica."
         acciones={
           puedeAlta ? (
-            <Button leftSection={<IconPlus size={18} />} onClick={modal.open}>
+            <Button leftSection={<IconPlus size={18} />} onClick={abrirAlta}>
               Nuevo proveedor
             </Button>
           ) : null
@@ -206,7 +238,7 @@ export function PaginaProveedores() {
                 <Button
                   variant="light"
                   leftSection={<IconPlus size={16} />}
-                  onClick={modal.open}
+                  onClick={abrirAlta}
                 >
                   Nuevo proveedor
                 </Button>
@@ -214,94 +246,133 @@ export function PaginaProveedores() {
             }
           />
         ) : (
-          <Table.ScrollContainer minWidth={820}>
-            <Table verticalSpacing="sm" highlightOnHover>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>Razón social</Table.Th>
-                  <Table.Th>CUIT</Table.Th>
-                  <Table.Th>Contacto</Table.Th>
-                  <Table.Th>Aprobación</Table.Th>
-                  <Table.Th />
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {(proveedores.data ?? []).map((p) => (
-                  <Table.Tr key={p.id}>
-                    <Table.Td>
-                      <Text size="sm" fw={600}>
-                        {p.razon_social}
-                      </Text>
-                      {p.domicilio ? (
-                        <Text size="xs" c="dimmed">
-                          {p.domicilio}
-                        </Text>
-                      ) : null}
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm" ff="monospace">
-                        {p.cuit ?? '—'}
-                      </Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm">{p.contacto_nombre ?? '—'}</Text>
-                      <Text size="xs" c="dimmed">
-                        {p.contacto_telefono ?? p.contacto_email ?? ''}
-                      </Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Badge
-                        variant="light"
-                        radius="sm"
-                        color={COLOR_ESTADO[p.estado_aprobacion]}
-                      >
-                        {p.estado_aprobacion.toLowerCase()}
-                      </Badge>
-                      {p.aprobado_en ? (
-                        <Text size="xs" c="dimmed">
-                          {fechaHora(p.aprobado_en)}
-                        </Text>
-                      ) : null}
-                    </Table.Td>
-                    <Table.Td>
-                      {puedeDictaminar && p.estado_aprobacion === 'PENDIENTE' ? (
-                        <Group gap="xs" wrap="nowrap">
-                          <Button
-                            size="xs"
-                            variant="light"
-                            color="estadoAprobado"
-                            leftSection={<IconCircleCheck size={15} />}
-                            onClick={() => confirmar(p.id, p.razon_social, 'APROBADO')}
-                          >
-                            Aprobar
-                          </Button>
-                          <Button
-                            size="xs"
-                            variant="subtle"
-                            color="estadoRechazado"
-                            leftSection={<IconCircleX size={15} />}
-                            onClick={() => confirmar(p.id, p.razon_social, 'RECHAZADO')}
-                          >
-                            Rechazar
-                          </Button>
-                        </Group>
-                      ) : null}
-                    </Table.Td>
+          <>
+            <TextInput
+              placeholder="Buscar por razón social, CUIT o contacto"
+              leftSection={<IconSearch size={16} />}
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.currentTarget.value)}
+              styles={{ input: { border: 'none' } }}
+            />
+            <Table.ScrollContainer minWidth={820}>
+              <Table verticalSpacing="sm" highlightOnHover>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Razón social</Table.Th>
+                    <Table.Th>CUIT</Table.Th>
+                    <Table.Th>Contacto</Table.Th>
+                    <Table.Th>Aprobación</Table.Th>
+                    <Table.Th />
                   </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </Table.ScrollContainer>
+                </Table.Thead>
+                <Table.Tbody>
+                  {filas.map((p) => (
+                    <Table.Tr key={p.id}>
+                      <Table.Td>
+                        <Text size="sm" fw={600}>
+                          {p.razon_social}
+                        </Text>
+                        {p.domicilio ? (
+                          <Text size="xs" c="dimmed">
+                            {p.domicilio}
+                          </Text>
+                        ) : null}
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="sm" ff="monospace">
+                          {p.cuit ?? '—'}
+                        </Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="sm">{p.contacto_nombre ?? '—'}</Text>
+                        <Text size="xs" c="dimmed">
+                          {p.contacto_telefono ?? p.contacto_email ?? ''}
+                        </Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Badge
+                          variant="light"
+                          radius="sm"
+                          color={COLOR_ESTADO[p.estado_aprobacion]}
+                        >
+                          {p.estado_aprobacion.toLowerCase()}
+                        </Badge>
+                        {p.aprobado_en ? (
+                          <Text size="xs" c="dimmed">
+                            {fechaHora(p.aprobado_en)}
+                          </Text>
+                        ) : null}
+                      </Table.Td>
+                      <Table.Td>
+                        <Group gap="xs" wrap="nowrap">
+                          {puedeAlta ? (
+                            <Button
+                              size="compact-md"
+                              variant="light"
+                              leftSection={<IconPencil size={15} />}
+                              onClick={() => {
+                                setEnEdicion(p);
+                                modal.open();
+                              }}
+                            >
+                              Editar
+                            </Button>
+                          ) : null}
+                          {puedeDictaminar && p.estado_aprobacion === 'PENDIENTE' ? (
+                            <>
+                              <Button
+                                size="xs"
+                                variant="light"
+                                color="estadoAprobado"
+                                leftSection={<IconCircleCheck size={15} />}
+                                onClick={() =>
+                                  confirmar(p.id, p.razon_social, 'APROBADO')
+                                }
+                              >
+                                Aprobar
+                              </Button>
+                              <Button
+                                size="xs"
+                                variant="subtle"
+                                color="estadoRechazado"
+                                leftSection={<IconCircleX size={15} />}
+                                onClick={() =>
+                                  confirmar(p.id, p.razon_social, 'RECHAZADO')
+                                }
+                              >
+                                Rechazar
+                              </Button>
+                            </>
+                          ) : null}
+                        </Group>
+                      </Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            </Table.ScrollContainer>
+            {filas.length === 0 ? (
+              <Text size="sm" c="dimmed" ta="center" py="xl">
+                Ningún proveedor coincide con «{busqueda.trim()}».
+              </Text>
+            ) : null}
+          </>
         )}
       </Paper>
 
       <Modal
         opened={abierto}
         onClose={modal.close}
-        title={<Text fw={700}>Nuevo proveedor</Text>}
+        title={
+          <Text fw={700}>{enEdicion ? enEdicion.razon_social : 'Nuevo proveedor'}</Text>
+        }
         size="lg"
       >
-        <FormularioProveedor onListo={modal.close} />
+        <FormularioProveedor
+          key={enEdicion?.id ?? 'alta'}
+          proveedor={enEdicion}
+          onListo={modal.close}
+        />
       </Modal>
     </>
   );

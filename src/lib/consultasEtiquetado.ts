@@ -169,17 +169,21 @@ export function useAsignarMaterial() {
           .neq('insumo_id', m.insumoId);
         if (error) throw error;
       }
+      /* Solo la fila vigente: una quitada no se reactiva
+         (gmp.fn_material_sin_reactivar), se agrega una nueva. */
       const { data: existe, error: e1 } = await tabla()
         .select('producto_id')
         .eq('producto_id', m.productoId)
         .eq('insumo_id', m.insumoId)
+        .eq('activo', true)
         .maybeSingle();
       if (e1) throw e1;
       const { error } = existe
         ? await tabla()
-            .update({ rol: m.rol, categoria, activo: true })
+            .update({ rol: m.rol, categoria })
             .eq('producto_id', m.productoId)
             .eq('insumo_id', m.insumoId)
+            .eq('activo', true)
         : await tabla().insert({
             producto_id: m.productoId,
             insumo_id: m.insumoId,
@@ -202,7 +206,8 @@ export function useQuitarMaterial() {
         .from('materiales_acondicionamiento')
         .update({ activo: false })
         .eq('producto_id', m.productoId)
-        .eq('insumo_id', m.insumoId);
+        .eq('insumo_id', m.insumoId)
+        .eq('activo', true);
       if (error) throw error;
     },
     onSuccess: () => invalidarCarga(qc),
@@ -348,6 +353,34 @@ export function useMarcarSinFormula() {
       if (error) throw error;
     },
     onSuccess: () => invalidarCarga(qc),
+    onError: avisarError,
+  });
+}
+
+/** Tiempo de envasado del producto (D-tiempo-envasado-1). */
+export function useGuardarTiempoEnvasado() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (p: {
+      productoId: string;
+      minutosUnidad: number | null;
+      margenPct: number;
+      personas: number;
+    }) => {
+      const { error } = await gmpST()
+        .from('productos')
+        .update({
+          minutos_envasado_unidad: p.minutosUnidad,
+          margen_envasado_pct: p.margenPct,
+          personas_envasado: p.personas,
+        })
+        .eq('id', p.productoId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['productos'] });
+      avisarExito('Tiempo de envasado guardado.');
+    },
     onError: avisarError,
   });
 }

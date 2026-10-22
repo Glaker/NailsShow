@@ -1,4 +1,5 @@
 import {
+  IconBooks,
   IconLayoutDashboard,
   IconPackages,
   IconPackage,
@@ -52,8 +53,8 @@ export interface ItemNavegacion {
 
 /*
  * Reparto por rol (pedido del 2026-10-01): cada uno ve lo suyo y nada más.
- * Los catálogos (productos, insumos, proveedores, depósitos) no son sección:
- * se abren desde el menú del usuario (`/catalogos`). La calculadora y «qué
+ * Los catálogos (productos, insumos, proveedores, depósitos) son una sola
+ * sección (`/catalogos`), también en el menú del usuario. La calculadora y «qué
  * lleva cada producto» viven dentro de Fórmulas.
  */
 /*
@@ -153,6 +154,25 @@ export const NAVEGACION: ItemNavegacion[] = [
     icono: IconPackages,
     roles: [...PRODUCCION, 'DIRECCION_TECNICA', 'CONTROL_CALIDAD'],
     principal: true,
+  },
+  {
+    // Para todos menos operarios (pedido del 2026-10-21: en el menú del
+    // usuario no lo encontraban). Quién edita lo decide RLS.
+    ruta: '/catalogos',
+    etiqueta: 'Catálogos',
+    etiquetaCorta: 'Catálogos',
+    icono: IconBooks,
+    roles: [
+      'CONTROL_CALIDAD',
+      'DIRECCION_TECNICA',
+      'ADMINISTRACION',
+      'GERENCIA_PRODUCCION',
+      'GERENCIA',
+      'ENCARGADA_STOCK',
+      'VENTAS',
+      FINANZAS,
+      'RECEPCION',
+    ],
   },
   {
     // Lo que la DT libera: lotes de producto terminado y su batch record.

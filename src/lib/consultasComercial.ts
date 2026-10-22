@@ -1215,13 +1215,14 @@ export function useCrearProduccion() {
       inicio: string | null;
       dias: number;
     }) => {
-      const { error } = await comercial().rpc('crear_produccion', {
+      const { data, error } = await comercial().rpc('crear_produccion', {
         p_producto_id: p.productoId,
         p_cantidad: p.cantidad,
         ...(p.paraPedidoId ? { p_para_pedido_id: p.paraPedidoId } : {}),
         ...(p.inicio ? { p_inicio: p.inicio, p_dias: p.dias } : {}),
       });
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['pedidos'] });

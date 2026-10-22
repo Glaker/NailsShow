@@ -20,11 +20,12 @@ await prueba('da de alta insumos', async () => {
     )
   ).id;
 });
-await prueba('pero no edita una ficha (la política no le deja la fila)', async () => {
+// Desde 20261022160100 (D-catalogo-1) también edita la ficha.
+await prueba('y edita una ficha', async () => {
   const tocadas = await q(
-    `update gmp.insumos_catalogo set nombre = 'otro' where codigo_interno = 'MP-R1' returning id`,
+    `update gmp.insumos_catalogo set nombre = 'Aceite R' where codigo_interno = 'MP-R1' returning id`,
   );
-  if (tocadas.length !== 0) throw new Error('editó la ficha');
+  if (tocadas.length !== 1) throw new Error('no editó la ficha');
 });
 await prueba('registra la recepción y sus lotes, rotulados en cuarentena', async () => {
   const prov = (
