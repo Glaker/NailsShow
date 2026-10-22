@@ -439,7 +439,8 @@ export function useTerminarOrden() {
   const inv = useInvalidarOrden();
   return useMutation({
     mutationFn: async (t: { id: string; cantidad: number; unidades: number }) => {
-      const { error } = await gmp().rpc('terminar_orden', {
+      // 20261022150100: la de comercial termina la orden y carga lo obtenido en PTF.
+      const { error } = await comercial().rpc('terminar_orden', {
         p_id: t.id,
         p_cantidad: t.cantidad,
         p_unidades: t.unidades,
@@ -448,7 +449,9 @@ export function useTerminarOrden() {
     },
     onSuccess: (_d, v) => {
       inv(v.id);
-      avisarExito('Orden terminada. Falta la revisión y la liberación de la DT.');
+      avisarExito(
+        'Orden terminada: lo obtenido ya está en el stock de fábrica, retenido hasta que la DT libere.',
+      );
     },
     onError: avisarError,
   });

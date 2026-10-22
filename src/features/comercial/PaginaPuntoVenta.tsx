@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Alert,
   Badge,
+  Box,
   Button,
   Group,
   Modal,
@@ -9,12 +11,14 @@ import {
   Paper,
   SegmentedControl,
   Select,
+  SimpleGrid,
   Skeleton,
   Stack,
   Table,
   Text,
   TextInput,
   Textarea,
+  UnstyledButton,
 } from '@mantine/core';
 import {
   IconArrowDown,
@@ -37,7 +41,7 @@ import {
   useStockPuntoVenta,
 } from '@/lib/consultasComercial';
 import { useRegistrarConteoPt } from '@/lib/consultasStockSeguridad';
-import { useTransferirPt } from '@/lib/consultasCalle5';
+import { type DepositoPt, useTransferirPt } from '@/lib/consultasCalle5';
 import { PanelCalle5 } from './Calle5';
 
 /**
@@ -75,6 +79,100 @@ const FABRICA: ConfigDeposito = {
     'Empezá por el conteo inicial: «Contar» deja cada producto en lo que hay de verdad.',
 };
 
+const BERNA: ConfigDeposito = {
+  numero: 'BER',
+  titulo: 'Berna',
+  descripcion: 'Stock de producto terminado en Berna. A Berna va solo lo liberado.',
+  unidadesEn: 'Unidades en Berna',
+  vacioTitulo: 'Berna todavía no tiene stock',
+  vacioDescripcion: 'Empezá por el conteo inicial o enviá desde la fábrica.',
+};
+
+/** Los depósitos de producto terminado, en el orden de los cuadraditos. */
+const DEPOSITOS_PT = [
+  { config: FABRICA, nombre: 'Fábrica', color: 'blue' },
+  { config: CALLE5, nombre: 'Calle 5', color: 'teal' },
+  { config: BERNA, nombre: 'Berna', color: 'grape' },
+];
+
+/**
+ * Producto terminado por depósito (pedido del 2026-10-22): un cuadradito por
+ * depósito, como los de tercerizados, y debajo la pantalla del elegido. El
+ * elegido va en la URL (`dep`) para que un enlace lleve a él.
+ */
+export function PaginaDepositos() {
+  const [params, setParams] = useSearchParams();
+  const depositos = useDepositos();
+  const stock = useStockPuntoVenta();
+  const elegido =
+    DEPOSITOS_PT.find((d) => d.config.numero === params.get('dep')) ?? DEPOSITOS_PT[0]!;
+
+  return (
+    <Stack gap="lg">
+      <SimpleGrid cols={{ base: 1, xs: 3 }} spacing="md">
+        {DEPOSITOS_PT.map((d) => {
+          const id = (depositos.data ?? []).find((x) => x.numero === d.config.numero)?.id;
+          const filas = (stock.data ?? []).filter((f) => f.deposito_id === id);
+          const unidades = filas.reduce((a, f) => a + Number(f.saldo), 0);
+          const productos = filas.filter((f) => Number(f.saldo) > 0).length;
+          const retenidas = filas.reduce((a, f) => a + Number(f.retenido), 0);
+          const activo = d === elegido;
+          return (
+            <UnstyledButton
+              key={d.config.numero}
+              onClick={() => {
+                params.set('dep', d.config.numero);
+                setParams(params, { replace: true });
+              }}
+              aria-label={`Ver ${d.nombre}`}
+              aria-pressed={activo}
+            >
+              <Paper
+                withBorder
+                radius="lg"
+                className="cuadrito-tercero"
+                style={{
+                  borderColor: activo
+                    ? `var(--mantine-color-${d.color}-6)`
+                    : 'var(--superficie-borde)',
+                  borderWidth: activo ? 2 : 1,
+                  overflow: 'hidden',
+                }}
+              >
+                <Box h={10} bg={`${d.color}.6`} />
+                <Stack gap="sm" p="md">
+                  <Text fz={22} fw={800} truncate>
+                    {d.nombre}
+                  </Text>
+                  <SimpleGrid cols={3} spacing="xs">
+                    <Cifra valor={unidades} etiqueta="unidades" color={d.color} />
+                    <Cifra valor={productos} etiqueta="productos" color={d.color} />
+                    <Cifra valor={retenidas} etiqueta="retenidas" color="estadoEnAnalisis" />
+                  </SimpleGrid>
+                </Stack>
+              </Paper>
+            </UnstyledButton>
+          );
+        })}
+      </SimpleGrid>
+      <PaginaPuntoVenta key={elegido.config.numero} config={elegido.config} />
+    </Stack>
+  );
+}
+
+function Cifra({ valor, etiqueta, color }: { valor: number; etiqueta: string; color: string }) {
+  return (
+    <Stack gap={0} align="flex-start">
+      <Text fz={28} lh={1} c={valor > 0 ? color : 'dimmed'} className="cifra">
+        {numero(valor, 0)}
+      </Text>
+      <Text size="xs" c="dimmed" lh={1.2}>
+        {etiqueta}
+      </Text>
+    </Stack>
+  );
+}
+
 /**
  * Punto de venta de Calle 5.
  *
@@ -82,11 +180,6 @@ const FABRICA: ConfigDeposito = {
  * algo— y el saldo siempre a la vista. El signo del movimiento lo resuelve el
  * hook según el tipo; acá nadie escribe números negativos.
  */
-/** Stock de producto terminado en fábrica (PTF): misma pantalla, otro depósito. */
-export function PaginaStockFabrica() {
-  return <PaginaPuntoVenta config={FABRICA} />;
-}
-
 export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito }) {
   const depositos = useDepositos();
   const stockTodos = useStockPuntoVenta();
@@ -102,6 +195,8 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
   const [enviando, setEnviando] = useState(false);
   const [envioProducto, setEnvioProducto] = useState<string | null>(null);
   const [envioCantidad, setEnvioCantidad] = useState<number | ''>('');
+  const destinos = DEPOSITOS_PT.filter((d) => d.config.numero !== config.numero);
+  const [envioDestino, setEnvioDestino] = useState<string>(destinos[0]!.config.numero);
 
   const deposito = (depositos.data ?? []).find((d) => d.numero === config.numero) ?? null;
   // La vista trae todos los depósitos comerciales: acá solo el de la pantalla.
@@ -205,16 +300,14 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
             >
               Entró
             </Button>
-            {esCalle5 ? null : (
-              <Button
-                size="md"
-                variant="light"
-                leftSection={<IconBuildingStore size={18} />}
-                onClick={() => setEnviando(true)}
-              >
-                Enviar a Calle 5
-              </Button>
-            )}
+            <Button
+              size="md"
+              variant="light"
+              leftSection={<IconBuildingStore size={18} />}
+              onClick={() => setEnviando(true)}
+            >
+              Enviar a otro depósito
+            </Button>
             <Button
               size="md"
               color="azul"
@@ -410,22 +503,28 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
       <Modal
         opened={enviando}
         onClose={() => setEnviando(false)}
-        title="Enviar de fábrica a Calle 5"
+        title={`Enviar desde ${config.titulo}`}
         centered
         radius="md"
       >
         <Stack gap="md">
           <Text size="sm">
-            Pasa producto terminado del stock de fábrica al local. Sale del stock de
-            seguridad y queda libre en Calle 5.
+            Pasa producto terminado a otro depósito. Fuera de la fábrica va solo lo
+            liberado por la DT.
           </Text>
+          <SegmentedControl
+            fullWidth
+            value={envioDestino}
+            onChange={setEnvioDestino}
+            data={destinos.map((d) => ({ value: d.config.numero, label: d.nombre }))}
+          />
           <Select
             label="Producto"
             searchable
-            nothingFoundMessage="Sin stock en fábrica"
+            nothingFoundMessage="Sin stock en este depósito"
             data={conStock.map((f) => ({
               value: f.producto_id,
-              // A Calle 5 va solo lo liberado o sin lote (R-09).
+              // Fuera de la fábrica va solo lo liberado o sin lote (R-09).
               label: `${f.producto} · ${numero(Number(f.saldo) - Number(f.retenido), 0)} para enviar`,
             }))}
             value={envioProducto}
@@ -459,8 +558,8 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
                   {
                     productoId: envioProducto,
                     cantidad: envioCantidad,
-                    origen: 'PTF',
-                    destino: 'C5',
+                    origen: config.numero as DepositoPt,
+                    destino: envioDestino as DepositoPt,
                   },
                   {
                     onSuccess: () => {

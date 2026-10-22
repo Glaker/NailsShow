@@ -337,17 +337,11 @@ export const PESTANIAS: { ruta: string; etiqueta: string; de: string; roles?: Ro
       roles: PRODUCCION,
     },
     {
-      ruta: '/stock?vista=fabrica',
-      etiqueta: 'Stock › En fábrica',
+      // Fábrica, Calle 5 y Berna (2026-10-22; antes «En fábrica» y «Calle 5»).
+      ruta: '/stock?vista=depositos',
+      etiqueta: 'Stock › Depósitos',
       de: '/stock',
-      roles: [...PRODUCCION, 'ADMINISTRACION'],
-    },
-    {
-      // El local: antes era la sección «Calle 5» (/punto-venta).
-      ruta: '/stock?vista=calle5',
-      etiqueta: 'Stock › Calle 5',
-      de: '/stock',
-      roles: ['GERENCIA_PRODUCCION', 'GERENCIA', 'ADMINISTRACION', 'VENTAS'],
+      roles: [...PRODUCCION, 'ADMINISTRACION', 'VENTAS'],
     },
     {
       ruta: '/stock?vista=conteo',

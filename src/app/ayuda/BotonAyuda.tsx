@@ -26,7 +26,7 @@ export const NOMBRE_ROL: Record<Rol, string> = {
 
 /**
  * La ayuda de la ruta actual, si hay. Clave = `path` de routes.tsx, o una
- * pestaña con su propia ayuda (`/stock?vista=calle5`), que gana sobre la de
+ * pestaña con su propia ayuda (`/stock?vista=depositos`), que gana sobre la de
  * la página.
  */
 export function ayudaDe(pathname: string, search = ''): AyudaPantalla | null {

@@ -578,8 +578,8 @@ Silveira).
 **Resuelto (2026-10-15):** Tercerizados se abre **solo a Agustina**, no a todo
 VENTAS. Como el menú y RLS son por rol, hace falta un permiso por usuario o un
 rol propio: se define al implementar el bloque 2.
-**Pendiente.** Si Silveira conserva ENCARGADA_STOCK. Correos de Agustina y
-Silveira.
+**Resuelto (2026-10-22):** Agustina es VENTAS con ENCARGADA_STOCK adicional y
+Silveira conserva ENCARGADA_STOCK (`20261022150000`, `20261022150300`).
 **Decide.** Gerencia.
 
 ### D-ventas-pedidos-2 · Especificaciones y Gerencia de Producción — resuelta 2026-10-15
@@ -731,6 +731,27 @@ venta va a Producción como un S-xxxx entero (`para_pedido_id`). **A diseñar**:
 la unidad de planificación (producción de un producto con cantidad), cómo se
 asigna a uno o varios pedidos o a stock, y cómo convive con la fecha
 comprometida del bloque 3.
+
+## Rama stock-pt-orden (número definitivo al integrar en main)
+
+### D-stock-pt-orden-1 · La orden terminada carga el stock — adoptada 2026-10-22
+
+**Decisión del codirector técnico.** Al terminar la orden, Gerencia de
+Producción carga lo obtenido en la fábrica (PTF) con el lote, retenido; cuando
+la DT libera, queda disponible. Si la orden tiene pedido, la entrada va a
+nombre del pedido y su «Terminado» no la repite. El control de calidad y la
+liberación siguen siendo de la DT (RN-51). La carga inicial de producto
+terminado se hace con «Entró» o «Contar»; la trazabilidad la da el lote.
+**Dónde está.** `20261022150100_comercial_orden_terminada_entra_a_stock.sql`.
+
+### D-stock-pt-orden-2 · Depósito Berna y movimiento libre — adoptada 2026-10-22
+
+**Decisión del codirector técnico.** Tercer depósito de producto terminado,
+Berna (BER), con Fábrica y Calle 5 en una pestaña «Depósitos». Se transfiere
+en cualquier sentido entre los tres; lo que sale de la fábrica toma solo lo
+liberado (RN-51). Los pedidos se siguen despachando desde C5 o PTF.
+**Pendiente.** Si Berna despacha pedidos de clientes.
+**Dónde está.** `20261022150200_comercial_deposito_berna.sql`.
 
 ## Abiertas — 2026-10-21
 

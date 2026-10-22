@@ -23,7 +23,7 @@ export type PendienteDespacho =
 
 export type ReservaPtRow = Database['comercial']['Tables']['reservas_pt']['Row'];
 
-export type DepositoPt = 'C5' | 'PTF';
+export type DepositoPt = 'C5' | 'PTF' | 'BER';
 
 /** Pedidos abiertos agrupados: cabecera + renglones con lo pendiente. */
 export interface PedidoADespachar {
