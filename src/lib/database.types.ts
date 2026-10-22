@@ -1130,6 +1130,82 @@ export type Database = {
           },
         ]
       }
+      costos_estimados: {
+        Row: {
+          cantidad: number
+          cargado_en: string
+          cargado_por: string
+          id: string
+          importe: number
+          insumo_id: string
+          orden: number
+          unidad: string
+        }
+        Insert: {
+          cantidad?: number
+          cargado_en?: string
+          cargado_por?: string
+          id?: string
+          importe: number
+          insumo_id: string
+          orden?: never
+          unidad: string
+        }
+        Update: {
+          cantidad?: number
+          cargado_en?: string
+          cargado_por?: string
+          id?: string
+          importe?: number
+          insumo_id?: string
+          orden?: never
+          unidad?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "costos_estimados_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_costo_referencia"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "costos_estimados_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_costos_pendientes"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "costos_estimados_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_disponible_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "costos_estimados_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_existencias"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "costos_estimados_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_proveedores_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "costos_estimados_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_stock_por_articulo"
+            referencedColumns: ["insumo_id"]
+          },
+        ]
+      }
       costos_lote: {
         Row: {
           alicuota_iva: number | null
@@ -7009,10 +7085,12 @@ export type Database = {
           envase_id: string | null
           etiqueta_id: string | null
           extras: number | null
+          formula_consultada: boolean | null
           nombre: string | null
           pendientes: number | null
           producto_id: string | null
           sin_formula: boolean | null
+          solo_reventa: boolean | null
           tiene_formula: boolean | null
         }
         Relationships: []
@@ -7865,6 +7943,10 @@ export type Database = {
       siguiente_numero: {
         Args: { p_ambito: string; p_anio: number }
         Returns: number
+      }
+      terminar_orden: {
+        Args: { p_cantidad: number; p_id: string; p_unidades: number }
+        Returns: undefined
       }
       terminar_pedido: {
         Args: { p_consumos?: Json; p_pedido_id: string; p_produccion?: Json }
@@ -9070,6 +9152,13 @@ export type Database = {
             referencedRelation: "productos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "especificaciones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_formulas_consultadas"
+            referencedColumns: ["producto_id"]
+          },
         ]
       }
       etanol_agua_crc: {
@@ -9296,6 +9385,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "productos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formulas_fabricacion_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_formulas_consultadas"
+            referencedColumns: ["producto_id"]
           },
         ]
       }
@@ -9533,6 +9629,7 @@ export type Database = {
         Row: {
           activo: boolean
           cantidad_por_unidad: number
+          categoria: string | null
           creado_en: string
           id: string
           insumo_id: string
@@ -9544,6 +9641,7 @@ export type Database = {
         Insert: {
           activo?: boolean
           cantidad_por_unidad: number
+          categoria?: string | null
           creado_en?: string
           id?: string
           insumo_id: string
@@ -9555,6 +9653,7 @@ export type Database = {
         Update: {
           activo?: boolean
           cantidad_por_unidad?: number
+          categoria?: string | null
           creado_en?: string
           id?: string
           insumo_id?: string
@@ -9591,6 +9690,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "productos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "materiales_acondicionamiento_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_formulas_consultadas"
+            referencedColumns: ["producto_id"]
           },
         ]
       }
@@ -9850,6 +9956,13 @@ export type Database = {
             referencedRelation: "productos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ordenes_produccion_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_formulas_consultadas"
+            referencedColumns: ["producto_id"]
+          },
         ]
       }
       pares_volumen_exceso: {
@@ -9916,11 +10029,14 @@ export type Database = {
           contenido_neto: number | null
           creado_en: string
           forma_cosmetica: string | null
+          formula_consultada_en: string | null
+          formula_consultada_por: string | null
           id: string
           nombre: string
           origen: Database["gmp"]["Enums"]["origen_producto_enum"] | null
           producto_base_id: string | null
           sin_formula: boolean
+          solo_reventa: boolean
           tercero_id: string | null
           tipo: string | null
           unidad_contenido: string | null
@@ -9933,11 +10049,14 @@ export type Database = {
           contenido_neto?: number | null
           creado_en?: string
           forma_cosmetica?: string | null
+          formula_consultada_en?: string | null
+          formula_consultada_por?: string | null
           id?: string
           nombre: string
           origen?: Database["gmp"]["Enums"]["origen_producto_enum"] | null
           producto_base_id?: string | null
           sin_formula?: boolean
+          solo_reventa?: boolean
           tercero_id?: string | null
           tipo?: string | null
           unidad_contenido?: string | null
@@ -9950,11 +10069,14 @@ export type Database = {
           contenido_neto?: number | null
           creado_en?: string
           forma_cosmetica?: string | null
+          formula_consultada_en?: string | null
+          formula_consultada_por?: string | null
           id?: string
           nombre?: string
           origen?: Database["gmp"]["Enums"]["origen_producto_enum"] | null
           producto_base_id?: string | null
           sin_formula?: boolean
+          solo_reventa?: boolean
           tercero_id?: string | null
           tipo?: string | null
           unidad_contenido?: string | null
@@ -9968,6 +10090,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "productos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productos_producto_base_id_fkey"
+            columns: ["producto_base_id"]
+            isOneToOne: false
+            referencedRelation: "v_formulas_consultadas"
+            referencedColumns: ["producto_id"]
           },
           {
             foreignKeyName: "productos_tercero_id_fkey"
@@ -10437,6 +10566,16 @@ export type Database = {
         }
         Relationships: []
       }
+      v_formulas_consultadas: {
+        Row: {
+          codigo_interno: string | null
+          consultada_por: string | null
+          formula_consultada_en: string | null
+          nombre: string | null
+          producto_id: string | null
+        }
+        Relationships: []
+      }
       v_lotes_insumo: {
         Row: {
           cantidad_bultos: number | null
@@ -10665,11 +10804,14 @@ export type Database = {
           contenido_neto: number | null
           creado_en: string
           forma_cosmetica: string | null
+          formula_consultada_en: string | null
+          formula_consultada_por: string | null
           id: string
           nombre: string
           origen: Database["gmp"]["Enums"]["origen_producto_enum"] | null
           producto_base_id: string | null
           sin_formula: boolean
+          solo_reventa: boolean
           tercero_id: string | null
           tipo: string | null
           unidad_contenido: string | null
@@ -10730,6 +10872,7 @@ export type Database = {
         Args: { p_estado: Database["gmp"]["Enums"]["estado_calidad_enum"] }
         Returns: string
       }
+      consultar_formula: { Args: { p_producto_id: string }; Returns: undefined }
       control_rapido_materia_prima: {
         Args: {
           p_aprobado: boolean

@@ -115,9 +115,9 @@ export const AYUDA_COMERCIAL: MapaAyuda = {
     ],
   },
 
-  '/stock?vista=calle5': {
+  '/stock?vista=depositos': {
     queEs:
-      'Es el stock de producto terminado de Calle 5, el local. Entra lo que manda la planta y sale lo que se vende o se descarta. Arriba hay dos contadores: «Unidades en el local» y «Productos con stock». Después viene la tabla con cada producto, sus unidades (con las que están retenidas por lote sin liberar) y la fecha del último movimiento. Más abajo hay tres pestañas («Pedidos a despachar», «Por producto» y «Reservas») y la lista de últimos movimientos. Todo movimiento queda en un libro del que no se borra nada.',
+      'Arriba hay un cuadradito por depósito de producto terminado: Fábrica, Calle 5 y Berna. Tocá uno para ver su stock; «Enviar a otro depósito» mueve mercadería entre los tres. Lo que sigue describe Calle 5, el local; Fábrica y Berna funcionan igual, sin la parte de pedidos. Es el stock de producto terminado de Calle 5, el local. Entra lo que manda la planta y sale lo que se vende o se descarta. Arriba hay dos contadores: «Unidades en el local» y «Productos con stock». Después viene la tabla con cada producto, sus unidades (con las que están retenidas por lote sin liberar) y la fecha del último movimiento. Más abajo hay tres pestañas («Pedidos a despachar», «Por producto» y «Reservas») y la lista de últimos movimientos. Todo movimiento queda en un libro del que no se borra nada.',
     porRol: {
       VENTAS: [
         'Arriba ves cuántas unidades hay en el local y cuántos productos tienen stock. Si un producto tiene unidades «retenidas: lote sin liberar», esas no se pueden vender todavía.',

@@ -1048,7 +1048,7 @@ export function CoberturaCalle5({ pedido }: { pedido: PedidoADespachar }) {
             Lo libre lo pueden estar esperando otros pedidos: quién lo recibe se decide al
             reservar o despachar. Para producir lo que falta, sumado con los demás
             pedidos,{' '}
-            <Anchor component={Link} to="/stock?vista=calle5" size="xs">
+            <Anchor component={Link} to="/stock?vista=depositos&dep=C5" size="xs">
               Calle 5 → Por producto
             </Anchor>
             .

@@ -1,7 +1,6 @@
 import { Tabs } from '@mantine/core';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import {
-  IconBox,
   IconBuildingStore,
   IconClipboardCheck,
   IconScale,
@@ -10,10 +9,7 @@ import {
 } from '@tabler/icons-react';
 import { usePuedeVerPestania } from '@/app/navegacion';
 import { PaginaRecepciones } from '@/features/recepcion/PaginaRecepciones';
-import {
-  PaginaPuntoVenta,
-  PaginaStockFabrica,
-} from '@/features/comercial/PaginaPuntoVenta';
+import { PaginaDepositos } from '@/features/comercial/PaginaPuntoVenta';
 import { PaginaStock } from './PaginaStock';
 import { PaginaStockSeguridad } from './PaginaStockSeguridad';
 import { PaginaConteo } from './PaginaConteo';
@@ -22,15 +18,22 @@ const VISTAS = [
   'insumos',
   'recepciones',
   'seguridad',
-  'fabrica',
-  'calle5',
+  'depositos',
   'conteo',
 ] as const;
 type VistaStock = (typeof VISTAS)[number];
 
+/** Fábrica y Calle 5 eran pestañas; desde el 2026-10-22 son cuadraditos de «Depósitos». */
+const LEGADO = { fabrica: 'PTF', calle5: 'C5' } as const;
+type VistaLegada = keyof typeof LEGADO;
+
 /** Las rutas viejas siguen andando: llevan a su pestaña (`/stock?vista=…`). */
-export function RedirigirAStock({ vista }: { vista: VistaStock }) {
-  return <Navigate to={`/stock?vista=${vista}`} replace />;
+export function RedirigirAStock({ vista }: { vista: VistaStock | VistaLegada }) {
+  const destino =
+    vista in LEGADO
+      ? `/stock?vista=depositos&dep=${LEGADO[vista as VistaLegada]}`
+      : `/stock?vista=${vista}`;
+  return <Navigate to={destino} replace />;
 }
 
 /**
@@ -46,12 +49,12 @@ export function PaginaStockUnificada() {
     insumos: usePuedeVerPestania('/stock?vista=insumos'),
     recepciones: usePuedeVerPestania('/stock?vista=recepciones'),
     seguridad: usePuedeVerPestania('/stock?vista=seguridad'),
-    fabrica: usePuedeVerPestania('/stock?vista=fabrica'),
-    calle5: usePuedeVerPestania('/stock?vista=calle5'),
+    depositos: usePuedeVerPestania('/stock?vista=depositos'),
     conteo: usePuedeVerPestania('/stock?vista=conteo'),
   };
   const visibles = VISTAS.filter((v) => puede[v]);
   const pedida = params.get('vista') as VistaStock | null;
+  if (pedida && pedida in LEGADO) return <RedirigirAStock vista={pedida} />;
   const vista: VistaStock | undefined =
     pedida && visibles.includes(pedida) ? pedida : visibles[0];
 
@@ -82,14 +85,9 @@ export function PaginaStockUnificada() {
             Stock de seguridad
           </Tabs.Tab>
         ) : null}
-        {puede.fabrica ? (
-          <Tabs.Tab value="fabrica" leftSection={<IconBox size={18} />}>
-            En fábrica
-          </Tabs.Tab>
-        ) : null}
-        {puede.calle5 ? (
-          <Tabs.Tab value="calle5" leftSection={<IconBuildingStore size={18} />}>
-            Calle 5
+        {puede.depositos ? (
+          <Tabs.Tab value="depositos" leftSection={<IconBuildingStore size={18} />}>
+            Depósitos
           </Tabs.Tab>
         ) : null}
         {puede.conteo ? (
@@ -106,10 +104,9 @@ export function PaginaStockUnificada() {
       <Tabs.Panel value="seguridad">
         {puede.seguridad ? <PaginaStockSeguridad /> : null}
       </Tabs.Panel>
-      <Tabs.Panel value="fabrica">
-        {puede.fabrica ? <PaginaStockFabrica /> : null}
+      <Tabs.Panel value="depositos">
+        {puede.depositos ? <PaginaDepositos /> : null}
       </Tabs.Panel>
-      <Tabs.Panel value="calle5">{puede.calle5 ? <PaginaPuntoVenta /> : null}</Tabs.Panel>
       <Tabs.Panel value="conteo">{puede.conteo ? <PaginaConteo /> : null}</Tabs.Panel>
     </Tabs>
   );
