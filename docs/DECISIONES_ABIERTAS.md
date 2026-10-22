@@ -807,6 +807,17 @@ cuarentena. Lo eliminado no vuelve.
 de stock; eliminarla en ese caso no está implementado.
 **Dónde está.** `20261022160200_gmp_eliminar_recepcion.sql`.
 
+### D-recepcion-4 · Completar una casilla de la recepción — adoptada 2026-10-22
+
+**Decisión del codirector técnico.** «Contenedores limpiados» (I.20.1) y
+«protocolo recibido» (RN-01) se pueden completar después de la recepción,
+solo de no a sí y con el lote todavía RECIBIDO. Lo demás de lo constatado
+sigue sin editarse. Queda en `core.auditoria` con valor anterior, quién y
+cuándo. Caso: un envase de la recepción 00002 sin la casilla, que no podía
+pasar a cuarentena.
+**Dónde está.** `20261022180000_gmp_completar_recepcion_lote.sql`; en la
+pantalla, el botón «Dar envases por controlados» pide tildarla antes.
+
 ### D-recepcion-2 bis · Envases aprobados con una sola confirmación — adoptada 2026-10-22
 
 **Decisión del codirector técnico.** Al cargar a stock ya no se repite el
