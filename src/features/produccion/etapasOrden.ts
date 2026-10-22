@@ -163,8 +163,15 @@ export const CONFIG_ETAPAS: Record<EtapaOrden, ConfigEtapa> = {
       'Balanza portátil en perfecto estado de funcionamiento',
     ],
     campos: [
-      { clave: 'canastas', titulo: 'N° de canastas', tipo: 'numero' },
-      { clave: 'por_canasta', titulo: 'N° de unidades por canasta', tipo: 'numero' },
+      // Las claves siguen siendo «canastas» para no romper lo ya registrado.
+      { clave: 'canastas', titulo: 'N° de cajas completas', tipo: 'numero' },
+      { clave: 'por_canasta', titulo: 'Unidades por caja completa', tipo: 'numero' },
+      // Casi siempre la última caja queda con menos: va aparte, sin contarla arriba.
+      {
+        clave: 'ultima_caja',
+        titulo: 'Unidades en la última caja, si quedó incompleta (0 si no)',
+        tipo: 'numero',
+      },
     ],
   },
   MUESTREO_PT: {
@@ -203,7 +210,8 @@ export const CONFIG_ETAPAS: Record<EtapaOrden, ConfigEtapa> = {
 
 /** Unidades totales del recuento de fraccionamiento. */
 export const unidadesRecuento = (datos: Record<string, unknown>) =>
-  Number(datos.canastas ?? 0) * Number(datos.por_canasta ?? 0);
+  Number(datos.canastas ?? 0) * Number(datos.por_canasta ?? 0) +
+  Number(datos.ultima_caja ?? 0);
 
 type Fila = Record<string, unknown>;
 const vacio = (v: unknown) => v === undefined || v === null || v === '';

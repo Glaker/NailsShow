@@ -64,7 +64,7 @@ const QUE_SE_CARGA: Partial<Record<EtapaOrden, string>> = {
   PESADA:
     'Verificaciones de área, balanza y vestimenta, y lo que pesaste de cada materia prima.',
   ELABORACION: 'Verificaciones de área y vestimenta, y cada paso con su equipo.',
-  FRACCIONAMIENTO: 'Verificaciones, envases usados y el recuento de canastas.',
+  FRACCIONAMIENTO: 'Verificaciones, envases usados y el recuento de cajas.',
 };
 
 const hora = (t: string | null) =>

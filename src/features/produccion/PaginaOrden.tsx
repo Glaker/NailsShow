@@ -396,6 +396,7 @@ export function EditorEtapa({
   const pesada = usePesadaTeorica(
     etapa === 'PESADA' && !registrada ? orden.formula_id : undefined,
     Number(orden.cantidad_teorica),
+    orden.unidad,
   );
   const espec = useEspecificacionCompleta(
     config.contraEspecificacion ? orden.especificacion_id : null,
