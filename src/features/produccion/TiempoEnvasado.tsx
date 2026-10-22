@@ -36,14 +36,13 @@ export function TiempoEnvasado({
     Number(p?.margen_envasado_pct ?? 10),
   );
   const [personas, setPersonas] = useState<number | string>(p?.personas_envasado ?? 1);
-  const [cantidad, setCantidad] = useState<number | string>(cantidadSugerida || 1000);
 
   const t = {
     minutosUnidad: aNumero(minutos),
     margenPct: aNumero(margen),
     personas: Math.max(1, aNumero(personas)),
   };
-  const cant = aNumero(cantidad);
+  const cant = cantidadSugerida;
   const reloj = minutosReloj(cant, t);
   const cambio =
     t.minutosUnidad !== Number(p?.minutos_envasado_unidad ?? 0) ||
@@ -76,7 +75,7 @@ export function TiempoEnvasado({
             onChange={setPersonas}
           />
           <NumberInput
-            label="Margen"
+            label="Margen de seguridad"
             suffix=" %"
             min={0}
             max={100}
@@ -84,20 +83,10 @@ export function TiempoEnvasado({
             onChange={setMargen}
           />
         </Group>
-        <NumberInput
-          label="Calcular para"
-          suffix=" unidades"
-          min={1}
-          allowDecimal={false}
-          thousandSeparator="."
-          decimalSeparator=","
-          value={cantidad}
-          onChange={setCantidad}
-        />
         {t.minutosUnidad > 0 && cant > 0 ? (
           <Text size="sm">
-            {numero(cant)} unidades: <b>{horasMinutos(minutosTrabajo(cant, t))}</b> de
-            trabajo
+            En pedidos: {numero(cant)} unidades:{' '}
+            <b>{horasMinutos(minutosTrabajo(cant, t))}</b> de trabajo
             {t.personas > 1 ? (
               <>
                 {' '}
@@ -112,6 +101,11 @@ export function TiempoEnvasado({
             <Text span size="xs" c="dimmed">
               (jornada de 8 a 15 con 30 min de descanso)
             </Text>
+          </Text>
+        ) : t.minutosUnidad > 0 ? (
+          <Text size="sm">
+            Por unidad: <b>{horasMinutos(minutosTrabajo(1, t))}</b> de trabajo, margen de
+            seguridad incluido.
           </Text>
         ) : (
           <Text size="sm" c="dimmed">

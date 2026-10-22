@@ -20,12 +20,12 @@ export const SUBRUTAS: SubrutaCatalogo[] = [
   {
     patron: '/ordenes/:id',
     etiqueta: 'Detalle de una orden de producción',
-    de: '/ordenes',
+    de: '/planificacion',
   },
   {
     patron: '/ordenes/:id/batch-record',
     etiqueta: 'Batch record de una orden',
-    de: '/ordenes',
+    de: '/planificacion',
   },
   { patron: '/formulas/:id', etiqueta: 'Detalle de una fórmula', de: '/formulas' },
   { patron: '/pedidos/:id', etiqueta: 'Detalle de un pedido', de: '/pedidos' },

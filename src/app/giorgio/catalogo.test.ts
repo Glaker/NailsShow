@@ -63,7 +63,7 @@ describe('catálogo de Giorgio', () => {
     const fila = { motivo: null, cambiado_en: '' };
     const excepciones: VisibilidadRow[] = [
       { pantalla: '/costos', rol: 'GERENCIA_PRODUCCION', visible: false, ...fila },
-      { pantalla: '/ordenes', rol: 'OPERARIO', visible: true, ...fila },
+      { pantalla: '/planificacion', rol: 'OPERARIO', visible: true, ...fila },
     ];
     const roles: Rol[][] = [
       ...ROLES_CONFIGURABLES.map((r) => [r]),

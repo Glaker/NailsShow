@@ -23,7 +23,6 @@ import {
   IconCalendarTime,
   IconEye,
   IconFileCertificate,
-  IconClipboardText,
   IconRosetteDiscountCheck,
   IconCoin,
   IconChartLine,
@@ -110,17 +109,12 @@ export const NAVEGACION: ItemNavegacion[] = [
     principal: true,
   },
   {
+    // Planificación y órdenes en una sección (pedido del 2026-10-22);
+    // `/ordenes` lleva a su pestaña.
     ruta: '/planificacion',
-    etiqueta: 'Planificación',
-    etiquetaCorta: 'Plan',
+    etiqueta: 'Planificación y producción',
+    etiquetaCorta: 'Producción',
     icono: IconCalendarTime,
-    roles: ['GERENCIA_PRODUCCION', 'GERENCIA'],
-  },
-  {
-    ruta: '/ordenes',
-    etiqueta: 'Órdenes de producción',
-    etiquetaCorta: 'Órdenes',
-    icono: IconClipboardText,
     roles: [...PRODUCCION, 'CONTROL_CALIDAD'],
   },
   {

@@ -29,6 +29,7 @@ import {
   IconTrash,
 } from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
+import { BotonLotear } from './Loteo';
 import { Vacio } from '@/components/Vacio';
 import { useSesion, useTieneRol } from '@/features/auth/sesion';
 import { useProductos } from '@/lib/consultas';
@@ -130,6 +131,15 @@ export function PaginaOrden() {
             >
               Batch record
             </Button>
+            <BotonLotear
+              orden={{
+                id: o.id,
+                jornada: o.jornada,
+                vencimiento: o.vencimiento,
+                numero_lote: o.numero_lote,
+                producto: producto?.nombre ?? '',
+              }}
+            />
             {esProduccion && abierta ? (
               <Button color="estadoAprobado" onClick={() => setCierre('terminar')}>
                 Terminar
