@@ -753,6 +753,27 @@ liberado (RN-51). Los pedidos se siguen despachando desde C5 o PTF.
 **Pendiente.** Si Berna despacha pedidos de clientes.
 **Dónde está.** `20261022150200_comercial_deposito_berna.sql`.
 
+### D-recepcion-3 · Eliminar una recepción sin motivo — adoptada 2026-10-22
+
+**Decisión del codirector técnico.** Quien registra recepciones (RECEPCION,
+GP, DT) elimina con un botón una recepción mal cargada, sin dar razones.
+No se borra ni se modifica nada: queda una fila en
+`gmp.recepciones_eliminadas` con quién y cuándo, y RLS oculta la recepción y
+sus lotes en toda consulta. El administrador del sistema los sigue viendo.
+Solo se puede antes de cargarla a stock y con todos los lotes en recepción o
+cuarentena. Lo eliminado no vuelve.
+**Pendiente.** Una recepción ya cargada se corrige anulando sus movimientos
+de stock; eliminarla en ese caso no está implementado.
+**Dónde está.** `20261022160200_gmp_eliminar_recepcion.sql`.
+
+### D-recepcion-2 bis · Envases aprobados con una sola confirmación — adoptada 2026-10-22
+
+**Decisión del codirector técnico.** Al cargar a stock ya no se repite el
+control de cada envase. Lo que se constató en la recepción (bultos, unidades
+contadas, si coincide con lo pedido) alcanza, y un único interruptor,
+encendido por defecto, los aprueba a nombre de quien carga. Apagado, entran a
+cuarentena. Cada lote conserva su muestreo y su R.50.5.1.
+
 ### D-tiempo-envasado-1 · Tiempo de envasado y días recomendados — adoptada 2026-10-22
 
 **Decisión del codirector técnico (pedido del 2026-10-21).** Cada producto

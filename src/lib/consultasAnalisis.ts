@@ -195,6 +195,42 @@ export function useControlEnvase() {
   });
 }
 
+/**
+ * Envases que quien recibe da por bien al cargar a stock: una sola
+ * confirmación para todos, sin repetir lo que ya se anotó en la recepción
+ * (pedido del 2026-10-22). Cada uno queda con su muestreo y su R.50.5.1.
+ */
+export function useAprobarEnvases() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (loteIds: string[]) => {
+      // ponytail: uno por uno, sin transacción común; si uno falla, los
+      // anteriores quedan aprobados y el resto sigue en cuarentena.
+      for (const id of loteIds) {
+        const { error } = await (gmp() as unknown as SupabaseClient).rpc(
+          'control_recepcion_envase',
+          {
+            p_lote_id: id,
+            p_contenedor_ok: true,
+            p_rotulo_ok: true,
+            p_cantidad_ok: true,
+            p_aspecto_ok: true,
+            p_aprobado: true,
+            p_observacion:
+              'Revisado por quien recibió, al cargar a stock (D-recepcion-2).',
+          },
+        );
+        if (error) throw error;
+      }
+    },
+    onSettled: () => {
+      invalidar(qc);
+      void qc.invalidateQueries({ queryKey: ['recepciones'] });
+    },
+    onError: avisarError,
+  });
+}
+
 /** Granel: R.50.10.1 y etapa CC_GRANEL con ese dictamen. */
 export function useDictaminarGranel() {
   const qc = useQueryClient();

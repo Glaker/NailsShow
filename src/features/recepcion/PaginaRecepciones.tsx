@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Alert,
+  ActionIcon,
   Badge,
   Button,
   Group,
@@ -9,27 +9,32 @@ import {
   Select,
   Skeleton,
   Stack,
+  Switch,
   Table,
   Text,
   Tooltip,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
+import { modals } from '@mantine/modals';
 import {
   IconAlertTriangle,
   IconFlask,
   IconPackageImport,
   IconPlus,
+  IconTrash,
   IconTruckDelivery,
 } from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { Vacio } from '@/components/Vacio';
 import { FormularioRecepcion } from './FormularioRecepcion';
 import { ControlRapidoMP } from '@/features/calidad/ControlRapidoMP';
+import { useAprobarEnvases } from '@/lib/consultasAnalisis';
 import { ControlEnvase } from '@/features/calidad/ControlEnvase';
 import {
   useCargarRecepcionAStock,
   useDepositoPorDefecto,
   useDepositos,
+  useEliminarRecepcion,
   useRecepciones,
 } from '@/lib/consultas';
 import { fechaHora, numero } from '@/lib/formato';
@@ -50,6 +55,27 @@ import {
 export function PaginaRecepciones() {
   const recepciones = useRecepciones();
   const cargar = useCargarRecepcionAStock();
+  const eliminar = useEliminarRecepcion();
+  // gmp.eliminar_recepcion (D-recepcion-3).
+  const puedeEliminar = useTieneRol(
+    'RECEPCION',
+    'GERENCIA_PRODUCCION',
+    'DIRECCION_TECNICA',
+  );
+  /* Sin motivo, pero con una confirmación: lo eliminado no vuelve. */
+  const confirmarEliminar = (r: Recepcion) =>
+    modals.openConfirmModal({
+      title: <Text fw={700}>¿Eliminar la recepción {r.numero}?</Text>,
+      children: (
+        <Text size="sm">
+          Se va con sus {r.lotes.length} {r.lotes.length === 1 ? 'lote' : 'lotes'}. No se
+          puede deshacer.
+        </Text>
+      ),
+      labels: { confirm: 'Eliminar', cancel: 'Volver' },
+      confirmProps: { color: 'estadoRechazado' },
+      onConfirm: () => eliminar.mutate(r.id),
+    });
   const comprobantes = useComprobantesProveedor();
   /* Comprobantes vigentes por recepción (RN-65: registro aparte, vinculado). */
   const comprobantesDe = new Map<string, NonNullable<typeof comprobantes.data>>();
@@ -85,6 +111,7 @@ export function PaginaRecepciones() {
   );
   /* gmp.control_recepcion_envase (D-recepcion-2): quien recibe controla
      los envases antes de cargarlos, y entran a aprobados. */
+  const aprobarEnvases = useAprobarEnvases();
   const controlaEnvases = useTieneRol(
     'RECEPCION',
     'GERENCIA_PRODUCCION',
@@ -154,7 +181,9 @@ export function PaginaRecepciones() {
                   <Table.Th>Comprobante</Table.Th>
                   <Table.Th>Lotes</Table.Th>
                   <Table.Th>Estado administrativo</Table.Th>
-                  {puedeCargarStock || haceControlRapido ? <Table.Th /> : null}
+                  {puedeCargarStock || haceControlRapido || puedeEliminar ? (
+                    <Table.Th />
+                  ) : null}
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
@@ -237,8 +266,25 @@ export function PaginaRecepciones() {
                           </Text>
                         ) : null}
                       </Table.Td>
-                      {puedeCargarStock || haceControlRapido ? (
+                      {puedeCargarStock || haceControlRapido || puedeEliminar ? (
                         <Table.Td>
+                          {puedeEliminar && eliminable(r) ? (
+                            <Tooltip label="Eliminar recepción">
+                              <ActionIcon
+                                size="lg"
+                                variant="subtle"
+                                color="estadoRechazado"
+                                aria-label={`Eliminar la recepción ${r.numero}`}
+                                loading={
+                                  eliminar.isPending && eliminar.variables === r.id
+                                }
+                                onClick={() => confirmarEliminar(r)}
+                                style={{ float: 'right' }}
+                              >
+                                <IconTrash size={18} />
+                              </ActionIcon>
+                            </Tooltip>
+                          ) : null}
                           {puedeCargarStock && !r.cargado_a_stock ? (
                             <Button
                               size="compact-sm"
@@ -295,20 +341,27 @@ export function PaginaRecepciones() {
           <CargarAStock
             recepcion={aCargar}
             controlaEnvases={controlaEnvases}
-            enCurso={cargar.isPending}
+            enCurso={cargar.isPending || aprobarEnvases.isPending}
             onCancelar={() => setACargar(null)}
-            onConfirmar={(depositos) => {
+            onConfirmar={(depositos, envasesOk) => {
               const recepcion = aCargar;
-              cargar.mutate(
-                { recepcionId: recepcion.id, depositos },
-                // Lo pidió la planta: al cargar a stock salta el control de
-                // la materia prima, de a un lote (D-recepcion-1).
-                {
-                  onSuccess: () => {
-                    if (haceControlRapido) setAControlar(pendientesMP(recepcion));
-                  },
-                },
-              );
+              void aprobarEnvases
+                .mutateAsync(envasesOk)
+                .then(() =>
+                  cargar.mutate(
+                    { recepcionId: recepcion.id, depositos },
+                    // Lo pidió la planta: al cargar a stock salta el control de
+                    // la materia prima, de a un lote (D-recepcion-1).
+                    {
+                      onSuccess: () => {
+                        if (haceControlRapido) setAControlar(pendientesMP(recepcion));
+                      },
+                    },
+                  ),
+                )
+                .catch(() => {
+                  /* El error ya lo muestra el onError de la mutación. */
+                });
               setACargar(null);
             }}
           />
@@ -367,6 +420,11 @@ const envasesPendientes = (r: Recepcion): LoteDeRecepcion[] =>
       (l.estado === 'RECIBIDO' || l.estado === 'CUARENTENA'),
   );
 
+/** Lo que admite gmp.eliminar_recepcion: sin cargar a stock y todo en cuarentena. */
+const eliminable = (r: Recepcion) =>
+  !r.cargado_a_stock &&
+  r.lotes.every((l) => l.estado === 'RECIBIDO' || l.estado === 'CUARENTENA');
+
 /** Materia prima de la recepción que todavía no tiene veredicto. */
 const pendientesMP = (r: Recepcion): LoteDeRecepcion[] =>
   r.lotes.filter(
@@ -396,11 +454,17 @@ function CargarAStock({
   controlaEnvases: boolean;
   enCurso: boolean;
   onCancelar: () => void;
-  onConfirmar: (depositos: Record<string, string>) => void;
+  /** Depósitos elegidos y los envases que entran aprobados. */
+  onConfirmar: (depositos: Record<string, string>, envasesOk: string[]) => void;
 }) {
   const lotes = recepcion.lotes;
   const envases = controlaEnvases ? envasesPendientes(recepcion) : [];
-  const sinDeposito = lotes.filter((l) => !l.deposito_actual_id);
+  /* Lo revisó quien recibió (bultos, unidades contadas, si coincide con lo
+     pedido): no se vuelve a preguntar. Se puede apagar y entran a cuarentena. */
+  const [envasesBien, setEnvasesBien] = useState(true);
+  const aprobados = new Set(envasesBien ? envases.map((l) => l.id) : []);
+  // Los que se aprueban toman el depósito de aprobados: no se les elige uno.
+  const sinDeposito = lotes.filter((l) => !l.deposito_actual_id && !aprobados.has(l.id));
   const depositos = useDepositos();
   const sugeridos = useDepositoPorDefecto([
     ...new Set(sinDeposito.map((l) => l.insumo_id)),
@@ -428,29 +492,30 @@ function CargarAStock({
         anula con su inverso.
       </Text>
       {envases.length > 0 ? (
-        <Stack gap="md">
-          <Alert color="azul" variant="light" icon={<IconFlask size={18} />}>
-            Antes de cargar, controlá {envases.length === 1 ? 'el envase' : 'los envases'}: lo que
-            apruebes entra directo a «Envases aprobados». Lo que no controles entra a cuarentena.
-          </Alert>
-          {envases.map((l) => (
-            <Paper
-              key={l.id}
-              withBorder
-              p="md"
-              radius="md"
-              style={{ borderColor: 'var(--superficie-borde)' }}
-            >
-              <ControlEnvase
-                lote={{
-                  id: l.id,
-                  numero: l.numero_registro_interno,
-                  nombre: l.insumo?.nombre ?? '',
-                }}
-              />
-            </Paper>
-          ))}
-        </Stack>
+        <Paper
+          withBorder
+          p="md"
+          radius="md"
+          style={{ borderColor: 'var(--superficie-borde)' }}
+        >
+          <Switch
+            size="lg"
+            checked={envasesBien}
+            onChange={(e) => setEnvasesBien(e.currentTarget.checked)}
+            label={
+              envases.length === 1
+                ? 'El envase llegó bien: entra aprobado'
+                : `Los ${envases.length} envases llegaron bien: entran aprobados`
+            }
+            description={
+              envasesBien
+                ? `Van a «Envases aprobados» a tu nombre: ${envases
+                    .map((l) => l.insumo?.nombre ?? l.numero_registro_interno)
+                    .join(', ')}.`
+                : 'Entran a cuarentena y se controlan después con «Control de calidad».'
+            }
+          />
+        </Paper>
       ) : null}
       {sinDeposito.length > 0 ? (
         <Stack gap="sm">
@@ -482,7 +547,9 @@ function CargarAStock({
           loading={enCurso || sugeridos.isLoading}
           disabled={faltan}
           onClick={() =>
-            onConfirmar(Object.fromEntries(sinDeposito.map((l) => [l.id, elegido(l)!])))
+            onConfirmar(Object.fromEntries(sinDeposito.map((l) => [l.id, elegido(l)!])), [
+              ...aprobados,
+            ])
           }
         >
           Cargar a stock
