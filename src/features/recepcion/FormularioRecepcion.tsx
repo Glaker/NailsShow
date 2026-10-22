@@ -47,6 +47,7 @@ import {
 } from '@/lib/consultasComercial';
 import { discriminaIva, useRegistrarComprobanteProveedor } from '@/lib/consultasCompras';
 import { useTieneRol } from '@/features/auth/sesion';
+import { useAprobarEnvases } from '@/lib/consultasAnalisis';
 import {
   ROLES_CARGAN_COSTO_LOTE,
   UNIDADES_COSTO,
@@ -182,6 +183,15 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
   const proveedores = useProveedores();
   const insumos = useInsumos();
   const crear = useCrearRecepcion();
+  /* Los envases se dan por controlados al recibirlos: lo que se constata en
+     la recepción es el control (pedido del 2026-10-22, D-recepcion-2 bis). */
+  const aprobarEnvases = useAprobarEnvases();
+  const controlaEnvases = useTieneRol(
+    'RECEPCION',
+    'GERENCIA_PRODUCCION',
+    'CONTROL_CALIDAD',
+    'DIRECCION_TECNICA',
+  );
   const avisos = useAvisosCompra();
   const vincular = useVincularCompras();
   const registrarComprobante = useRegistrarComprobanteProveedor();
@@ -353,6 +363,17 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
         contenedores_limpiados: l.contenedores_limpiados,
       })),
     });
+
+    if (controlaEnvases) {
+      const envases = lotes
+        .filter((l) =>
+          ['MATERIAL_ENVASE', 'MATERIAL_EMPAQUE', 'ETIQUETA'].includes(
+            porId.get(l.insumo_id)?.tipo ?? '',
+          ),
+        )
+        .map((l) => l.id);
+      if (envases.length > 0) await aprobarEnvases.mutateAsync(envases).catch(() => {});
+    }
 
     // La recepción física ya quedó; el comprobante es un registro aparte
     // (RN-65). Si no se carga o falla, le queda a Administración en

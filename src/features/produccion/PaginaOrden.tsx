@@ -112,6 +112,9 @@ export function PaginaOrden() {
   const producto = (productos.data ?? []).find((p) => p.id === o.producto_id);
   const quien = (uid: string | null) => (uid ? (nomina.data?.get(uid) ?? '—') : '—');
   const abierta = o.estado === 'ABIERTA';
+  /* Terminada, la DT todavía revisa: controla y completa lo que falte antes de
+     liberar (D-liberacion-1). */
+  const enRevision = abierta || o.estado === 'TERMINADA';
 
   return (
     <>
@@ -193,8 +196,7 @@ export function PaginaOrden() {
           const r = porEtapa.get(etapa);
           const controlada = Boolean(r?.controlo_por);
           const mismaPersona = r?.controlo_por && r.controlo_por === r.realizo_por;
-          const habilitada =
-            etapa === 'REVISION' ? abierta || o.estado === 'TERMINADA' : abierta;
+          const habilitada = enRevision;
           const puedeEsta = calidad ? esCalidad : puedeRegistrar;
           /* El granel se controla con su R.50.10.1 (I.50.10): un botón que
              registra el análisis y el dictamen. Producción no espera para
@@ -289,7 +291,7 @@ export function PaginaOrden() {
                 <Stack mt="sm">
                   <FichaAnalisis r={granelVigente} />
                 </Stack>
-              ) : esGranel && !r && abierta ? (
+              ) : esGranel && !r && enRevision ? (
                 <Text size="sm" c="estadoCuarentena.8" mt="xs">
                   Pendiente de análisis por Calidad o Dirección Técnica. Se puede envasar
                   igual; el lote no se libera sin este registro aprobado.
