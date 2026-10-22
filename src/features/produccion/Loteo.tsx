@@ -156,12 +156,12 @@ const hoyISO = () => fechaISO(new Date())!;
 /**
  * «Lotear» en el tablero (pedido del 2026-10-22): una tarjeta chica que abre la
  * hoja directamente, sin orden de producción. Por defecto, el lote es hoy y el
- * vencimiento a dos años; los dos renglones se editan antes de imprimir.
+ * vencimiento a tres años; los dos renglones se editan antes de imprimir.
  */
 export function TarjetaLotear() {
   const [abierto, setAbierto] = useState(false);
   const [hoy, setHoy] = useState(hoyISO);
-  const vence = `${Number(hoy.slice(0, 4)) + 2}${hoy.slice(4)}`;
+  const vence = `${Number(hoy.slice(0, 4)) + 3}${hoy.slice(4)}`;
   return (
     <>
       <UnstyledButton
