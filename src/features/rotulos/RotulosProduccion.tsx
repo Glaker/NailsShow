@@ -58,7 +58,7 @@ interface Renglon {
   estado: EstadoPT;
   color: string;
   copias: number;
-  /** De la orden, para el QR: no se edita. */
+  /** De la orden (o por la vida útil, sin orden); va en el QR. */
   vence: string;
 }
 
@@ -251,8 +251,47 @@ export function PlanillaRotulosProduccion({
 
   const cambiar = (clave: number, cambio: Partial<Renglon>) =>
     setRenglones((rs) => rs.map((r) => (r.clave === clave ? { ...r, ...cambio } : r)));
-  const agregarOrden = (id: string | null) => {
-    const o = (ordenes.data ?? []).find((x) => x.id === id);
+  /* Fuera de las órdenes (pedido del 2026-10-23): un producto del catálogo
+     o lo que se escriba. Lote hoy y vencimiento por la vida útil, editables. */
+  const suelto = (
+    clave: number,
+    producto: string,
+    p?: (typeof productos.data & {})[number],
+  ) => {
+    const i = listaTerceros.findIndex((t) => t.id === p?.tercero_id);
+    const hoy = fechaISO(new Date())!;
+    const vence = p?.vida_util_meses
+      ? fechaISO(
+          new Date(
+            new Date().getFullYear(),
+            new Date().getMonth() + p.vida_util_meses,
+            1,
+          ),
+        )!
+      : null;
+    return {
+      clave,
+      ordenId: '',
+      codigo: p?.codigo_interno ?? '',
+      producto,
+      lote: textoLote(hoy),
+      cantidad: '',
+      cliente: i >= 0 ? listaTerceros[i]!.nombre : 'Nail Show',
+      estado: 'FINALIZADO' as EstadoPT,
+      color: i >= 0 ? COLORES_TERCEROS[i % COLORES_TERCEROS.length]! : MAGENTA,
+      copias: 1,
+      vence: vence ? `${vence.slice(5, 7)}/${vence.slice(2, 4)}` : '',
+    };
+  };
+  const [buscado, setBuscado] = useState('');
+  const agregarOtro = (v: string | null) => {
+    if (!v) return;
+    if (v.startsWith('prod:')) {
+      const p = (productos.data ?? []).find((x) => x.id === v.slice(5));
+      if (p) setRenglones((rs) => [...rs, suelto(siguiente(rs), p.nombre, p)]);
+      return;
+    }
+    const o = (ordenes.data ?? []).find((x) => x.id === v);
     if (o) setRenglones((rs) => [...rs, desdeOrden(o, siguiente(rs))]);
   };
   const agregarDia = () =>
@@ -317,24 +356,59 @@ export function PlanillaRotulosProduccion({
               Agregar las {delDia(dia).length} del día
             </Button>
             <Select
-              label="O una orden en particular"
-              placeholder="Buscá por lote o producto"
+              label="Agregar otro"
+              placeholder="Una orden, un producto o escribí lo que quieras"
               searchable
               value={null}
-              onChange={agregarOrden}
-              data={(ordenes.data ?? [])
-                .filter((o) => o.estado !== 'ANULADA')
-                .map((o) => ({
-                  value: o.id,
-                  label: `${textoLote(o.jornada)} · ${nombreProducto(o.producto_id)}`,
-                }))}
-              style={{ flex: 1, minWidth: 220 }}
+              onChange={agregarOtro}
+              onSearchChange={setBuscado}
+              data={[
+                {
+                  group: 'Órdenes de producción',
+                  items: (ordenes.data ?? [])
+                    .filter((o) => o.estado !== 'ANULADA')
+                    .map((o) => ({
+                      value: o.id,
+                      label: `${textoLote(o.jornada)} · ${nombreProducto(o.producto_id)}`,
+                    })),
+                },
+                {
+                  group: 'Sin orden: productos del catálogo',
+                  items: (productos.data ?? [])
+                    .filter((p) => p.activo)
+                    .map((p) => ({
+                      value: `prod:${p.id}`,
+                      label: `${p.codigo_interno} · ${p.nombre}`,
+                    })),
+                },
+              ]}
+              nothingFoundMessage={
+                buscado.trim() ? (
+                  <Button
+                    fullWidth
+                    variant="light"
+                    leftSection={<IconPlus size={16} />}
+                    onClick={() => {
+                      setRenglones((rs) => [
+                        ...rs,
+                        suelto(siguiente(rs), buscado.trim()),
+                      ]);
+                      setBuscado('');
+                    }}
+                  >
+                    Agregar «{buscado.trim()}» sin orden
+                  </Button>
+                ) : (
+                  'Sin coincidencias'
+                )
+              }
+              style={{ flex: 1, minWidth: 260 }}
             />
           </Group>
 
           {renglones.length === 0 ? (
             <Text size="sm" c="dimmed">
-              No hay órdenes ese día. Elegí otro día o agregá una orden.
+              No hay órdenes ese día. Elegí otro día o agregá uno con «Agregar otro».
             </Text>
           ) : null}
 
@@ -367,6 +441,13 @@ export function PlanillaRotulosProduccion({
                     value={r.lote}
                     onChange={(e) => cambiar(r.clave, { lote: e.currentTarget.value })}
                     w={150}
+                  />
+                  <TextInput
+                    label="Vence"
+                    placeholder="MM/AA"
+                    value={r.vence}
+                    onChange={(e) => cambiar(r.clave, { vence: e.currentTarget.value })}
+                    w={110}
                   />
                 </Group>
                 <Group align="flex-end" gap="sm" wrap="wrap">
