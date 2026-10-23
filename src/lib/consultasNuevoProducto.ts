@@ -203,3 +203,24 @@ export function useCopiarComponentes() {
   });
 }
 
+/**
+ * Editar una fórmula vigente: crea la versión siguiente en borrador con lo
+ * mismo (o devuelve el borrador que ya hay) (D-nuevo-producto-3).
+ */
+export function useNuevaVersionFormula() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (formulaId: string) => {
+      const r = await gmpST().rpc('nueva_version_formula', { p_formula_id: formulaId });
+      if (r.error) throw r.error;
+      return String(r.data);
+    },
+    onSuccess: () => {
+      invalidar(qc);
+      avisarExito(
+        'Versión nueva en borrador: corregila y la deja vigente Dirección Técnica.',
+      );
+    },
+    onError: avisarError,
+  });
+}
