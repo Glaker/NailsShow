@@ -105,7 +105,7 @@
         "FINANZAS",
         "RECEPCION"
       ],
-      "queEs": "Los listados maestros del sistema en cuatro pestañas: «Productos», «Insumos», «Proveedores» y «Depósitos» (se abre en «Productos»). Todo lo demás (recepciones, órdenes, fórmulas) se arma sobre ellos. Cada pestaña es una tabla con buscador; los datos los carga el equipo desde acá."
+      "queEs": "Los listados maestros del sistema en pestañas: «Productos», «Nuevo producto» (Gerencia de Producción y Dirección Técnica), «Insumos», «Proveedores» y «Depósitos» (se abre en «Productos»). Todo lo demás (recepciones, órdenes, fórmulas) se arma sobre ellos. Cada pestaña es una tabla con buscador; los datos los carga el equipo desde acá."
     },
     {
       "ruta": "/liberacion",
@@ -116,14 +116,6 @@
         "GERENCIA"
       ],
       "queEs": "Los lotes de producto terminado que esperan la firma de Dirección Técnica, y los últimos 30 ya resueltos. La tabla muestra lote, producto, cantidad y estado («espera liberación», «liberada» o «rechazada»). Cada lote sale de una orden de producción terminada. La firma se hace en la orden; desde acá la abrís o bajás el batch record."
-    },
-    {
-      "ruta": "/nuevo-producto",
-      "etiqueta": "Nuevo producto",
-      "roles": [
-        "DIRECCION_TECNICA"
-      ],
-      "queEs": "Todo lo que hace falta para fabricar un producto nuevo, en secciones: producto, fórmula, insumos (envases, etiquetas y lo demás), procedimiento, especificación y, si ya los sabés, costos y tiempos. Cada sección se guarda sola y muestra si está completa."
     },
     {
       "ruta": "/especificaciones",

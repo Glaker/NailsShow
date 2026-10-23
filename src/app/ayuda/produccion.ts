@@ -353,23 +353,6 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
     ],
   },
 
-  '/nuevo-producto': {
-    queEs:
-      'Todo lo que hace falta para fabricar un producto nuevo, en secciones: producto, fórmula, insumos (envases, etiquetas y lo demás), procedimiento, especificación y, si ya los sabés, costos y tiempos. Cada sección se guarda sola y muestra si está completa.',
-    porRol: {
-      DIRECCION_TECNICA: [
-        'Dá de alta el producto en «1. Producto», o elegí uno ya dado de alta para seguir completándolo.',
-        'En «2. Fórmula» creala en borrador y cargá sus componentes; la dejás vigente desde la misma sección.',
-        'En «3. Insumos» elegí el envase (si son dos insumos, «Agregar otro envase»), las etiquetas y lo demás que lleva.',
-        'Después cargá el procedimiento y la especificación. Costos y tiempos (MM:SS) son opcionales.',
-        'El producto queda en la dirección de la página: podés dejarlo a medias y volver más tarde.',
-      ],
-    },
-    aTener: [
-      'Son las mismas pantallas de siempre, juntas: lo que cargues acá se ve en Fórmulas, Especificaciones y Catálogos.',
-    ],
-  },
-
   '/especificaciones': {
     queEs:
       'Los requisitos de cada producto (documentos I-E.50.xx): composición, almacenamiento, vida útil y los límites que tiene que cumplir. La lista muestra código, denominación, estado y desde cuándo está vigente; al tocar una fila se abre su ficha. Las órdenes controlan el producto terminado contra estas especificaciones.',
@@ -623,18 +606,24 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
 
   '/catalogos': {
     queEs:
-      'Los listados maestros del sistema en cuatro pestañas: «Productos», «Insumos», «Proveedores» y «Depósitos» (se abre en «Productos»). Todo lo demás (recepciones, órdenes, fórmulas) se arma sobre ellos. Cada pestaña es una tabla con buscador; los datos los carga el equipo desde acá.',
+      'Los listados maestros del sistema en pestañas: «Productos», «Nuevo producto» (Gerencia de Producción y Dirección Técnica), «Insumos», «Proveedores» y «Depósitos» (se abre en «Productos»). Todo lo demás (recepciones, órdenes, fórmulas) se arma sobre ellos. Cada pestaña es una tabla con buscador; los datos los carga el equipo desde acá.',
     porRol: {
       GERENCIA_PRODUCCION: [
         'En «Productos» tocá «Nuevo producto»: código interno, nombre, variedad, origen, tipo, forma cosmética y vida útil en meses. Sin origen no se puede abrir una orden de producción. Para modificar uno existente, tocá su fila.',
         'En «Insumos» tocá «Nuevo insumo»: código interno, nombre, tipo, unidad de medida (sin unidad no se puede recepcionar), depósito de cuarentena y depósito de aprobados. La ficha define qué se exige al recibirlo: «Exige protocolo de análisis del fabricante», «Se pesa durante la recepción» e «Inflamable».',
         'En «Proveedores» podés dar de alta uno nuevo con «Nuevo proveedor» (razón social, CUIT, contacto, teléfono, correo y domicilio). Aprobarlo es solo de Dirección Técnica.',
         'En «Depósitos» solo mirás.',
+        'En «Nuevo producto» cargás todo lo de un producto nuevo, sección por sección: el producto, la fórmula, los insumos (envases, etiquetas y lo demás), el procedimiento, la especificación y, si los sabés, costos y tiempos.',
+        'En la fórmula, el procedimiento y la especificación podés empezar de cero, tocar «Usar … de otro producto» para copiar uno existente y ajustarlo, o «No la sé»: se lo pasa a Dirección Técnica, que lo carga.',
+        'Lo que cargás queda en borrador o «Espera aprobación de DT»: rige cuando Dirección Técnica lo aprueba.',
       ],
       DIRECCION_TECNICA: [
         'Cargás y editás insumos y productos con «Nuevo insumo» y «Nuevo producto»; para editar uno existente tocá su fila.',
         'En «Proveedores» das de alta con «Nuevo proveedor» y, en los que figuran pendientes, tocás «Aprobar» o «Rechazar» para dictaminar. Podés escribir el fundamento en «Observaciones» y se firma con tu nombre y la fecha. El dictamen es solo tuyo.',
         'En «Depósitos» ves los diez depósitos con su contenido, el estado admitido y la ubicación.',
+        'En «Nuevo producto», arriba, «Para Dirección Técnica» lista lo que te pidieron («No la sabe») y lo que espera tu aprobación. Tocá «Abrir» para ir al producto.',
+        'Ahí aprobás: la fórmula con «Marcar como vigente», el procedimiento con «Aprobar» y la especificación con «Aprobar (DT)». Si querés cambiar algo, editalo antes; lo que edita DT rige sin otra aprobación.',
+        'También podés cargar un producto entero vos, o copiar fórmula, procedimiento o especificación de otro producto.',
       ],
       CONTROL_CALIDAD: [
         'Consultás insumos, productos, proveedores y depósitos (en insumos y productos hay buscador).',

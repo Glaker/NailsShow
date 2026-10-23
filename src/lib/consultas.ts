@@ -1651,16 +1651,26 @@ export function useEliminarComponenteFormula() {
  * ------------------------------------------------------------------------- */
 
 export type ProcedimientoVersion =
-  Database['gmp']['Tables']['formula_procedimientos']['Row'];
+  Database['gmp']['Tables']['formula_procedimientos']['Row'] & {
+    /** La redactó GP: rige recién aprobada por DT (20261023120000). */
+    requiere_aprobacion: boolean;
+    aprobacion: { aprobado_por: string; aprobado_en: string } | null;
+  };
+
+/** Si la versión rige: la redactó DT, o DT la aprobó (D-nuevo-producto-1). */
+export const rige = (v: ProcedimientoVersion) =>
+  !v.requiere_aprobacion || v.aprobacion !== null;
 
 export function useProcedimientos(formulaId: string | undefined) {
   return useQuery({
     queryKey: ['procedimientos', formulaId],
     enabled: Boolean(formulaId),
     queryFn: async () => {
-      const { data, error } = await gmp()
-        .from('formula_procedimientos')
-        .select('*')
+      /* Sin tipar hasta regenerar database.types.ts con 20261023120000. */
+      const { data, error } = await tablaSinTipar<ProcedimientoVersion[]>(
+        'formula_procedimientos',
+      )
+        .select('*, aprobacion:procedimiento_aprobaciones(aprobado_por, aprobado_en)')
         .eq('formula_id', formulaId!)
         .order('version', { ascending: false });
       if (error) throw error;
