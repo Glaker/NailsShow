@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Anchor,
   Button,
+  Checkbox,
   Group,
   Modal,
   Paper,
@@ -24,6 +25,7 @@ import { Vacio } from '@/components/Vacio';
 import { useCrearFormula, useFormulasFabricacion, useProductos } from '@/lib/consultas';
 import { useTieneRol } from '@/features/auth/sesion';
 import { BadgeEstadoFormula } from './estadoFormula';
+import { useCopiarComponentes } from '@/lib/consultasNuevoProducto';
 
 const esquema = z.object({
   producto_id: z.string().min(1, 'Elegí un producto'),
@@ -45,6 +47,19 @@ export function FormularioNuevaFormula({
 }) {
   const productos = useProductos();
   const crear = useCrearFormula();
+  /* Copiar de otra vigente (pedido del 2026-10-23): suele haber productos con
+     la misma fórmula. Opcional; se pega en el borrador recién creado. */
+  const formulas = useFormulasFabricacion();
+  const copiar = useCopiarComponentes();
+  const [origen, setOrigen] = useState<string | null>(null);
+  const [conProcedimiento, setConProcedimiento] = useState(true);
+  const nombreProducto = new Map((productos.data ?? []).map((p) => [p.id, p.nombre]));
+  const vigentes = (formulas.data ?? [])
+    .filter((x) => x.estado === 'VIGENTE')
+    .map((x) => ({
+      value: x.id,
+      label: `${x.producto?.nombre ?? nombreProducto.get(x.producto_id) ?? '¿?'}${x.variedad ? ` — ${x.variedad}` : ''} · v${x.version}`,
+    }));
   const form = useForm<Valores>({
     initialValues: {
       producto_id: productoInicial,
@@ -64,6 +79,12 @@ export function FormularioNuevaFormula({
           codigoMe: v.codigo_me || null,
           version: v.version,
         });
+        if (origen)
+          await copiar.mutateAsync({
+            origen,
+            destino: f.id,
+            procedimiento: conProcedimiento,
+          });
         onListo(f.id);
       })}
     >
@@ -98,11 +119,38 @@ export function FormularioNuevaFormula({
           {...form.getInputProps('version')}
         />
 
+        <Paper
+          withBorder
+          p="sm"
+          radius="md"
+          style={{ borderColor: 'var(--superficie-borde)' }}
+        >
+          <Stack gap="xs">
+            <Select
+              label="Copiar de una fórmula vigente"
+              description="Opcional: si es igual a la de otro producto, nace con sus componentes y la ajustás."
+              placeholder="Desde cero"
+              searchable
+              clearable
+              data={vigentes}
+              value={origen}
+              onChange={setOrigen}
+            />
+            {origen ? (
+              <Checkbox
+                label="Traer también su procedimiento"
+                checked={conProcedimiento}
+                onChange={(e) => setConProcedimiento(e.currentTarget.checked)}
+              />
+            ) : null}
+          </Stack>
+        </Paper>
+
         <Group justify="flex-end">
           <Button variant="subtle" color="gray" onClick={() => form.reset()}>
             Limpiar
           </Button>
-          <Button type="submit" loading={crear.isPending}>
+          <Button type="submit" loading={crear.isPending || copiar.isPending}>
             Crear en borrador
           </Button>
         </Group>

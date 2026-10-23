@@ -170,3 +170,36 @@ export function useCopiarEspecificacion() {
     onError: avisarError,
   });
 }
+
+/** Pega en un borrador los componentes de otra fórmula (D-nuevo-producto-2). */
+export function useCopiarComponentes() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (c: {
+      origen: string;
+      destino: string;
+      procedimiento: boolean;
+    }) => {
+      const r = await gmpST().rpc('copiar_componentes', {
+        p_origen: c.origen,
+        p_destino: c.destino,
+      });
+      if (r.error) throw r.error;
+      if (c.procedimiento) {
+        const p = await gmpST().rpc('copiar_procedimiento', {
+          p_origen: c.origen,
+          p_destino: c.destino,
+        });
+        if (p.error) throw p.error;
+      }
+      return Number(r.data);
+    },
+    onSuccess: (n) => {
+      invalidar(qc);
+      void qc.invalidateQueries({ queryKey: ['formula-completa'] });
+      avisarExito(`Se pegaron ${n} componentes. Revisalos y ajustá lo que haga falta.`);
+    },
+    onError: avisarError,
+  });
+}
+

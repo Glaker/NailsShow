@@ -36,6 +36,7 @@ import {
   useDensidadesReferencia,
   useEliminarComponenteFormula,
   useFormulaCompleta,
+  useFormulasFabricacion,
   useInsumos,
   type FormulaComponenteRow,
   type FormulaFabricacionRow,
@@ -45,6 +46,7 @@ import { FINANZAS, useTieneRol } from '@/features/auth/sesion';
 import { CostoAprox } from './TareasCarga';
 import { BadgeEstadoFormula } from './estadoFormula';
 import { PanelProcedimiento } from './PanelProcedimiento';
+import { useCopiarComponentes } from '@/lib/consultasNuevoProducto';
 
 const esquemaComponente = z
   .object({
@@ -494,6 +496,84 @@ function PanelDensidadProducto({
  * datos son los mismos, lo que cambia es si hay botón.
  */
 /**
+ * «Pegar de otra fórmula vigente» (pedido del 2026-10-23, D-nuevo-producto-2):
+ * cuando un producto lleva la misma fórmula que otro, se pegan sus componentes
+ * (al final) y, si se quiere, su procedimiento, y se ajusta.
+ */
+function PegarDeOtra({
+  formulaId,
+  productoId,
+}: {
+  formulaId: string;
+  productoId: string;
+}) {
+  const formulas = useFormulasFabricacion();
+  const copiar = useCopiarComponentes();
+  const [abierto, setAbierto] = useState(false);
+  const [origen, setOrigen] = useState<string | null>(null);
+  const [conProcedimiento, setConProcedimiento] = useState(true);
+  const vigentes = (formulas.data ?? [])
+    .filter((x) => x.estado === 'VIGENTE' && x.id !== formulaId)
+    .map((x) => ({
+      value: x.id,
+      label: `${x.producto?.nombre ?? '¿?'}${x.variedad ? ` — ${x.variedad}` : ''} · v${x.version}${x.producto_id === productoId ? ' (este producto)' : ''}`,
+    }));
+  return (
+    <>
+      <Button variant="default" size="sm" onClick={() => setAbierto(true)}>
+        Pegar de otra fórmula vigente
+      </Button>
+      <Modal
+        opened={abierto}
+        onClose={() => setAbierto(false)}
+        title={<Text fw={700}>Pegar de otra fórmula vigente</Text>}
+        centered
+      >
+        <Stack gap="sm">
+          <Select
+            label="Fórmula"
+            placeholder="Buscá el producto"
+            searchable
+            data={vigentes}
+            value={origen}
+            onChange={setOrigen}
+          />
+          <Checkbox
+            label="Traer también su procedimiento"
+            checked={conProcedimiento}
+            onChange={(e) => setConProcedimiento(e.currentTarget.checked)}
+          />
+          <Text size="xs" c="dimmed">
+            Los componentes se agregan al final de los que ya tiene. Queda en borrador: la
+            revisás y la deja vigente Dirección Técnica.
+          </Text>
+          <Group justify="flex-end">
+            <Button
+              disabled={!origen}
+              loading={copiar.isPending}
+              onClick={() =>
+                origen &&
+                copiar.mutate(
+                  { origen, destino: formulaId, procedimiento: conProcedimiento },
+                  {
+                    onSuccess: () => {
+                      setAbierto(false);
+                      setOrigen(null);
+                    },
+                  },
+                )
+              }
+            >
+              Pegar
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+    </>
+  );
+}
+
+/**
  * `formulaId` = embebida en «Nuevo producto»: sin el volver ni el
  * procedimiento, que ahí tiene su propia sección.
  */
@@ -720,9 +800,10 @@ export function PaginaFormula({ formulaId: embebida }: { formulaId?: string } = 
           mt="md"
           style={{ borderColor: 'var(--superficie-borde)' }}
         >
-          <Title order={3} mb="sm">
-            Agregar componente
-          </Title>
+          <Group justify="space-between" mb="sm">
+            <Title order={3}>Agregar componente</Title>
+            <PegarDeOtra formulaId={formulaId} productoId={f.producto_id} />
+          </Group>
           <Divider mb="sm" />
           <FormularioComponente
             formulaId={formulaId}
