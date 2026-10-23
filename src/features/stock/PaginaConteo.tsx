@@ -337,16 +337,22 @@ function FilaConteo({
               value={cantidad}
               onChange={setCantidad}
             />
+            {/* Con diferencia, el ajuste lleva su porqué (pedido del 2026-10-22). */}
             <TextInput
-              aria-label="Observación"
-              placeholder="Observación (opcional)"
+              aria-label="Motivo"
+              placeholder={
+                valido && n !== saldo
+                  ? 'Motivo de la diferencia'
+                  : 'Observación (opcional)'
+              }
               value={observacion}
               onChange={(e) => setObservacion(e.currentTarget.value)}
+              error={valido && n !== saldo && observacion.trim().length < 3}
               w={200}
             />
             <Button
               size="sm"
-              disabled={!valido}
+              disabled={!valido || (n !== saldo && observacion.trim().length < 3)}
               loading={registrar.isPending}
               onClick={() =>
                 registrar.mutate(

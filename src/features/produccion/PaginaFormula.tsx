@@ -334,16 +334,19 @@ function PanelDensidadProducto({
     formula.id,
     Number(formula.densidad_temp_c ?? 20),
   );
-  const [densidadProducto, setDensidadProducto] = useState<number | ''>(
+  /* Lo que devuelve el NumberInput tal cual: a mitad de escribir «0,» llega
+     como texto («0.») y descartarlo borraba el campo. Se convierte al guardar. */
+  const [densidadProducto, setDensidadProducto] = useState<number | string>(
     formula.densidad_producto ?? '',
   );
-  const [densidadTempC, setDensidadTempC] = useState<number | ''>(
+  const [densidadTempC, setDensidadTempC] = useState<number | string>(
     formula.densidad_temp_c ?? 20,
   );
+  const aNumero = (v: number | string) => (v === '' ? null : Number(v));
 
   const cambio =
-    densidadProducto !== (formula.densidad_producto ?? '') ||
-    densidadTempC !== (formula.densidad_temp_c ?? 20);
+    aNumero(densidadProducto) !== formula.densidad_producto ||
+    aNumero(densidadTempC) !== (formula.densidad_temp_c ?? 20);
 
   return (
     <Paper withBorder p="md" mb="md" style={{ borderColor: 'var(--superficie-borde)' }}>
@@ -383,7 +386,7 @@ function PanelDensidadProducto({
               decimalScale={5}
               hideControls
               value={densidadProducto}
-              onChange={(v) => setDensidadProducto(typeof v === 'number' ? v : '')}
+              onChange={setDensidadProducto}
             />
           ) : (
             <Stack gap={0}>
@@ -405,7 +408,7 @@ function PanelDensidadProducto({
               decimalScale={1}
               hideControls
               value={densidadTempC}
-              onChange={(v) => setDensidadTempC(typeof v === 'number' ? v : '')}
+              onChange={setDensidadTempC}
             />
           ) : (
             <Stack gap={0}>
@@ -428,8 +431,8 @@ function PanelDensidadProducto({
                 actualizar.mutate({
                   id: formula.id,
                   cambios: {
-                    densidad_producto: densidadProducto === '' ? null : densidadProducto,
-                    densidad_temp_c: densidadTempC === '' ? null : densidadTempC,
+                    densidad_producto: aNumero(densidadProducto),
+                    densidad_temp_c: aNumero(densidadTempC),
                   },
                 })
               }
@@ -452,8 +455,13 @@ function PanelDensidadProducto({
  * pantalla sin ningún control de escritura, no una versión reducida: los
  * datos son los mismos, lo que cambia es si hay botón.
  */
-export function PaginaFormula() {
-  const { id } = useParams();
+/**
+ * `formulaId` = embebida en «Nuevo producto»: sin el volver ni el
+ * procedimiento, que ahí tiene su propia sección.
+ */
+export function PaginaFormula({ formulaId: embebida }: { formulaId?: string } = {}) {
+  const params = useParams();
+  const id = embebida ?? params.id;
   const datos = useFormulaCompleta(id);
   const actualizar = useActualizarFormula();
   const eliminarComponente = useEliminarComponenteFormula();
@@ -513,12 +521,14 @@ export function PaginaFormula() {
 
   return (
     <>
-      <Anchor component={Link} to="/formulas" size="sm" mb="sm">
-        <Group gap={4}>
-          <IconArrowLeft size={15} />
-          Volver a fórmulas
-        </Group>
-      </Anchor>
+      {embebida ? null : (
+        <Anchor component={Link} to="/formulas" size="sm" mb="sm">
+          <Group gap={4}>
+            <IconArrowLeft size={15} />
+            Volver a fórmulas
+          </Group>
+        </Anchor>
+      )}
 
       <Group justify="space-between" align="flex-start" wrap="wrap" gap="md" mb="lg">
         <Stack gap={4}>
@@ -687,9 +697,11 @@ export function PaginaFormula() {
 
       {/* Versionado aparte: se edita aunque la fórmula esté vigente, y cada
           edición queda como versión nueva. */}
-      <Box mt="md">
-        <PanelProcedimiento formulaId={formulaId} />
-      </Box>
+      {embebida ? null : (
+        <Box mt="md">
+          <PanelProcedimiento formulaId={formulaId} />
+        </Box>
+      )}
     </>
   );
 }

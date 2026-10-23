@@ -47,6 +47,7 @@ import { PaginaOrden } from '@/features/produccion/PaginaOrden';
 import { BatchRecord } from '@/features/produccion/BatchRecord';
 import { BatchRecordEjemplo } from '@/features/produccion/BatchRecordEjemplo';
 import { PaginaEspecificaciones } from '@/features/produccion/PaginaEspecificaciones';
+import { PaginaNuevoProducto } from '@/features/produccion/PaginaNuevoProducto';
 
 /**
  * Rutas de la aplicación.
@@ -75,6 +76,7 @@ export function AppRoutes() {
       <Route path="/ordenes/:id" element={<PaginaOrden />} />
       <Route path="/ordenes/:id/batch-record" element={<BatchRecord />} />
       <Route path="/especificaciones" element={<PaginaEspecificaciones />} />
+      <Route path="/nuevo-producto" element={<PaginaNuevoProducto />} />
       <Route path="/formulas" element={<PaginaFormulasUnificada />} />
       <Route path="/formulas/:id" element={<PaginaFormula />} />
       <Route path="/pedidos" element={<PaginaPedidos />} />

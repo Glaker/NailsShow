@@ -840,6 +840,51 @@ Si cambia o hay turnos, pasa a configuración. Los productos que ya salieron
 de las tareas de carga no tienen dónde cargar el tiempo todavía.
 **Dónde está.** `20261022160000_gmp_tiempo_envasado.sql`.
 
+### D-ajustes-1 · Corregir la cantidad de un lote mal cargado — adoptada 2026-10-22
+
+**Decisión del codirector técnico** («a veces lo cargamos mal»). DT y GP
+corrigen bultos y cantidad de un lote de insumo con «Corregir cantidad» en su
+ficha, con motivo obligatorio, también si ya entró a stock. La corrección es
+una fila nueva (`comercial.correcciones_lote`, append-only) con el valor
+anterior, que pone la base. El lote toma el valor corregido, y el cambio queda
+en la auditoría. Si ya había entrado a stock, la diferencia entra o sale como
+ajuste ERROR_DE_REGISTRO con documento CORRECCION_LOTE. La entrada original no
+se toca (RN-54).
+**Límite.** Lo ya consumido no se descuenta. Si la corrección baja más de lo
+que queda, se rechaza y corresponde un ajuste de inventario. El material de
+tercerizados ya ingresado no se corrige por acá.
+**Dónde está.** `20261022200000_comercial_corregir_cantidad_lote.sql`.
+
+### D-ajustes-2 · Tiempo de envasado y de etiquetado, en MM:SS — adoptada 2026-10-22
+
+**Decisión del codirector técnico.** Amplía D-tiempo-envasado-1. Son dos
+tiempos por unidad, envasado y etiquetado, y el que se usa es la suma. Se
+cargan en MM:SS (0:45, 1:30), así que el mínimo es un segundo. La columna sigue
+en minutos, con 5 decimales para no redondear los segundos.
+**Dónde está.** `20261022200100_gmp_tiempo_etiquetado.sql`.
+El campo de la ficha de Catálogos pasó a ser el mismo bloque que el de las tareas de carga.
+
+### D-ajustes-3 · Un envase puede ser más de un insumo — adoptada 2026-10-22
+
+**Decisión del codirector técnico.** Amplía D-etiquetado-1. Un producto lleva
+uno o más envases (por ejemplo frasco y tapa pincel), además de los extras. Se
+levanta el índice «un envase vigente por producto». El etiquetado pide al menos
+uno y descuenta todos.
+**Dónde está.** `20261022200200_gmp_varios_envases.sql`.
+
+### D-ajustes-4 · Todo cambio manual de stock lleva motivo — adoptada 2026-10-22
+
+**Decisión del codirector técnico** («al editar stock se pida un motivo y
+quede asentado»). Los ajustes, descartes, muestras y transferencias de insumos
+exigen motivo escrito en la base, no solo en la pantalla. La restricción es
+NOT VALID: rige desde ahora. Los conteos de insumos y de producto terminado
+piden el motivo cuando lo contado no coincide con lo registrado, y queda en el
+movimiento.
+**Pendiente.** En el conteo, el motivo de la diferencia lo exige la pantalla y
+no la base: `registrar_conteo` y `registrar_conteo_pt` aceptan la observación
+vacía. Cerrarlo exige reescribir las dos funciones.
+**Dónde está.** `20261022200300_comercial_motivo_en_movimientos_manuales.sql`.
+
 ### D-catalogo-1 · Catálogo de insumos y proveedores editable por todos — adoptada 2026-10-22
 
 **Decisión del codirector técnico.** Todos los roles menos operario dan de

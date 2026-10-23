@@ -9,10 +9,12 @@ import {
   Paper,
   Skeleton,
   Modal,
+  NumberInput,
   Stack,
   Table,
   Text,
   Timeline,
+  Textarea,
   Title,
 } from '@mantine/core';
 import { modals } from '@mantine/modals';
@@ -23,6 +25,7 @@ import {
   IconCircleCheck,
   IconCircleX,
   IconFlask,
+  IconPencil,
   IconPrinter,
   IconTag,
   IconTestPipe,
@@ -35,6 +38,7 @@ import { PanelBloqueos } from '@/features/stock/PanelBloqueos';
 import { PanelStockLote } from '@/features/stock/PanelStockLote';
 import {
   useBloqueosDeLote,
+  useCorregirLote,
   useEmitirRotulo,
   useLote,
   useMuestreosDeLote,
@@ -105,6 +109,85 @@ const TRANSICIONES: Record<
   SALDO_APERTURA: [],
 };
 
+/**
+ * Corregir la cantidad cargada mal en la recepción (D-ajustes-1). Pide
+ * motivo; si el lote ya está en stock, la base asienta la diferencia como
+ * ajuste. Lo que ya se consumió no se descuenta.
+ */
+function CorregirCantidad({
+  lote,
+  onCerrar,
+}: {
+  lote: {
+    id: string;
+    cantidad_bultos: number | null;
+    cantidad_unidades: number | null;
+    unidad: string | null;
+  };
+  onCerrar: () => void;
+}) {
+  const corregir = useCorregirLote();
+  const [bultos, setBultos] = useState<number | string>(lote.cantidad_bultos ?? 1);
+  const [unidades, setUnidades] = useState<number | string>(lote.cantidad_unidades ?? '');
+  const [motivo, setMotivo] = useState('');
+  const b = Number(bultos);
+  const u = unidades === '' ? NaN : Number(unidades);
+  const cambia = b !== lote.cantidad_bultos || u !== Number(lote.cantidad_unidades);
+  const valido =
+    Number.isInteger(b) && b > 0 && u >= 0 && motivo.trim().length >= 3 && cambia;
+  return (
+    <Stack gap="sm">
+      <Text size="sm">
+        Se guarda como corrección, con el valor anterior, tu nombre y el motivo. Si el
+        lote ya entró a stock, la diferencia entra o sale como ajuste por error de
+        registro.
+      </Text>
+      <Group grow>
+        <NumberInput
+          label="Bultos"
+          min={1}
+          allowDecimal={false}
+          value={bultos}
+          onChange={setBultos}
+        />
+        <NumberInput
+          label={`Cantidad (${lote.unidad ?? ''})`}
+          min={0}
+          decimalScale={3}
+          value={unidades}
+          onChange={setUnidades}
+        />
+      </Group>
+      <Textarea
+        label="Motivo"
+        withAsterisk
+        placeholder="Se contó mal en la recepción, el remito decía otra cosa…"
+        autosize
+        minRows={2}
+        value={motivo}
+        onChange={(e) => setMotivo(e.currentTarget.value)}
+      />
+      <Group justify="flex-end">
+        <Button variant="subtle" color="gray" onClick={onCerrar}>
+          Cancelar
+        </Button>
+        <Button
+          disabled={!valido}
+          loading={corregir.isPending}
+          onClick={() =>
+            corregir.mutate(
+              { loteId: lote.id, bultos: b, unidades: u, motivo: motivo.trim() },
+              { onSuccess: onCerrar },
+            )
+          }
+        >
+          Corregir
+        </Button>
+      </Group>
+    </Stack>
+  );
+}
+
 function Dato({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {
   return (
     <Box>
@@ -132,6 +215,7 @@ export function PaginaLote() {
   const dictaminar = useDictaminarLote();
   /* Aprobar o rechazar abre el registro de análisis (I.50.5, I.50.6). */
   const [dictamen, setDictamen] = useState<boolean | null>(null);
+  const [corrigiendo, setCorrigiendo] = useState(false);
 
   if (lote.isLoading) {
     return <Skeleton h={420} radius="lg" />;
@@ -273,9 +357,30 @@ export function PaginaLote() {
               style={{ borderColor: 'var(--superficie-borde)' }}
               className="no-imprimir"
             >
-              <Title order={3} mb="md">
-                Datos del lote
-              </Title>
+              <Group justify="space-between" mb="md">
+                <Title order={3}>Datos del lote</Title>
+                {roles.includes('DIRECCION_TECNICA') ||
+                roles.includes('GERENCIA_PRODUCCION') ? (
+                  <Button
+                    variant="light"
+                    leftSection={<IconPencil size={18} />}
+                    onClick={() => setCorrigiendo(true)}
+                  >
+                    Corregir cantidad
+                  </Button>
+                ) : null}
+              </Group>
+              <Modal
+                opened={corrigiendo}
+                onClose={() => setCorrigiendo(false)}
+                title={<Text fw={700}>Corregir cantidad del lote</Text>}
+                centered
+              >
+                <CorregirCantidad
+                  lote={{ ...l, id: loteId }}
+                  onCerrar={() => setCorrigiendo(false)}
+                />
+              </Modal>
               <Grid gutter="lg">
                 <Grid.Col span={{ base: 6, sm: 4 }}>
                   <Dato etiqueta="Código de insumo">{l.codigo_interno}</Dato>

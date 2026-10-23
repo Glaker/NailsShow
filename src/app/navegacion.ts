@@ -23,6 +23,7 @@ import {
   IconCalendarTime,
   IconEye,
   IconFileCertificate,
+  IconSquarePlus,
   IconRosetteDiscountCheck,
   IconCoin,
   IconChartLine,
@@ -175,6 +176,14 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiquetaCorta: 'Liberación',
     icono: IconRosetteDiscountCheck,
     roles: ['DIRECCION_TECNICA', 'CONTROL_CALIDAD', 'GERENCIA'],
+  },
+  {
+    // Todo lo de un producto nuevo en secciones (pedido del 2026-10-22).
+    ruta: '/nuevo-producto',
+    etiqueta: 'Nuevo producto',
+    etiquetaCorta: 'Nuevo',
+    icono: IconSquarePlus,
+    roles: ['DIRECCION_TECNICA'],
   },
   {
     ruta: '/especificaciones',

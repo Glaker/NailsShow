@@ -118,6 +118,14 @@
       "queEs": "Los lotes de producto terminado que esperan la firma de Dirección Técnica, y los últimos 30 ya resueltos. La tabla muestra lote, producto, cantidad y estado («espera liberación», «liberada» o «rechazada»). Cada lote sale de una orden de producción terminada. La firma se hace en la orden; desde acá la abrís o bajás el batch record."
     },
     {
+      "ruta": "/nuevo-producto",
+      "etiqueta": "Nuevo producto",
+      "roles": [
+        "DIRECCION_TECNICA"
+      ],
+      "queEs": "Todo lo que hace falta para fabricar un producto nuevo, en secciones: producto, fórmula, insumos (envases, etiquetas y lo demás), procedimiento, especificación y, si ya los sabés, costos y tiempos. Cada sección se guarda sola y muestra si está completa."
+    },
+    {
       "ruta": "/especificaciones",
       "etiqueta": "Especificaciones",
       "roles": [

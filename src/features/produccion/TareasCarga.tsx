@@ -163,7 +163,7 @@ export function CostoAprox({
 }
 
 /** Materias primas de la fórmula, cada una con su costo aproximado a granel. */
-function CostosFormula({ productoId }: { productoId: string }) {
+export function CostosFormula({ productoId }: { productoId: string }) {
   const [ver, setVer] = useState(false);
   const insumos = useInsumosDeFormula(productoId, ver);
   if (!ver)
@@ -451,6 +451,109 @@ function Seccion({ titulo, children }: { titulo: string; children: React.ReactNo
 }
 
 /**
+ * Lo que lleva un producto: envases (uno o más, D-ajustes-3), etiquetas y lo
+ * demás, con alta de insumo nuevo. Lo usan la tarjeta de tareas y «Nuevo
+ * producto».
+ */
+export function MaterialesProducto({
+  productoId,
+  onAgregado,
+}: {
+  productoId: string;
+  /** La tarjeta de tareas lo usa para marcar al toque lo que ya tiene. */
+  onAgregado?: (cambio: Partial<TareaCarga>) => void;
+}) {
+  const materiales = useMaterialesProducto(productoId);
+  const asignar = useAsignarMaterial();
+  const [alta, setAlta] = useState<Alta | null>(null);
+
+  if (materiales.isLoading) return <Skeleton h={160} />;
+  const filas = materiales.data ?? [];
+  const envases = filas.filter((m) => m.rol === 'ENVASE');
+  const etiquetas = filas.filter((m) => m.rol === 'ETIQUETA');
+  const otros = filas.filter((m) => m.rol === 'EXTRA');
+  const sinClasificar = filas.filter((m) => !m.rol);
+
+  const agregar = (insumoId: string, rol: RolMaterial, categoria: string | null) => {
+    onAgregado?.(
+      rol === 'ENVASE'
+        ? { envase_id: insumoId }
+        : rol === 'ETIQUETA'
+          ? { etiqueta_id: insumoId }
+          : {},
+    );
+    asignar.mutate({ productoId, insumoId, rol, categoria });
+  };
+  const fila = (m: MaterialProducto) => (
+    <FilaMaterial
+      key={m.insumo_id}
+      m={m}
+      productoId={productoId}
+      onClasificar={(rol) => agregar(m.insumo_id, rol, null)}
+    />
+  );
+
+  return (
+    <Stack gap="lg">
+      {sinClasificar.length > 0 ? (
+        <Seccion titulo="Cargado antes">{sinClasificar.map(fila)}</Seccion>
+      ) : null}
+
+      <Seccion titulo="Envase">
+        {envases.map(fila)}
+        <Agregar
+          texto={envases.length === 0 ? 'Elegir el envase' : 'Agregar otro envase'}
+          fijo={{
+            rol: 'ENVASE',
+            categoria: envases.length === 0 ? null : 'Otro envase',
+            tipos: ['MATERIAL_ENVASE'],
+          }}
+          onElegir={agregar}
+          onNuevo={setAlta}
+        />
+      </Seccion>
+
+      <Seccion titulo="Etiquetas">
+        {etiquetas.map(fila)}
+        <Agregar
+          texto={etiquetas.length === 0 ? 'Elegir la etiqueta' : 'Agregar otra etiqueta'}
+          fijo={{
+            rol: 'ETIQUETA',
+            categoria: etiquetas.length === 0 ? null : 'Otra etiqueta',
+            tipos: ['ETIQUETA'],
+          }}
+          onElegir={agregar}
+          onNuevo={setAlta}
+        />
+      </Seccion>
+
+      <Seccion titulo="Además lleva">
+        {otros.map(fila)}
+        <Agregar texto="Agregar" onElegir={agregar} onNuevo={setAlta} />
+      </Seccion>
+
+      <Modal
+        opened={alta !== null}
+        onClose={() => setAlta(null)}
+        title={<Text fw={700}>Nuevo insumo</Text>}
+        size="lg"
+      >
+        {alta ? (
+          <FormularioInsumo
+            nombreInicial={alta.nombre}
+            tipoInicial={alta.tipo}
+            onListo={(creado) => {
+              if (creado) agregar(creado.id, alta.rol, alta.categoria);
+              setAlta(null);
+            }}
+          />
+        ) : null}
+      </Modal>
+    </Stack>
+  );
+}
+
+/**
  * Tarjeta abierta: a la izquierda el producto; a la derecha, uno debajo del
  * otro, lo que lleva (envase, etiquetas, fórmula y lo demás).
  */
@@ -465,39 +568,11 @@ function DetalleProducto({
   onTocar: (cambio: Partial<TareaCarga>) => void;
   onListo: () => void;
 }) {
-  const materiales = useMaterialesProducto(t.producto_id);
-  const asignar = useAsignarMaterial();
   const sinFormula = useMarcarSinFormula();
   const consultar = useConsultarFormula();
   const reventa = useMarcarReventa();
   const navegar = useNavigate();
-  const [alta, setAlta] = useState<Alta | null>(null);
   const [formula, setFormula] = useState(false);
-
-  const filas = materiales.data ?? [];
-  const envase = filas.filter((m) => m.rol === 'ENVASE');
-  const etiquetas = filas.filter((m) => m.rol === 'ETIQUETA');
-  const otros = filas.filter((m) => m.rol === 'EXTRA');
-  const sinClasificar = filas.filter((m) => !m.rol);
-
-  const agregar = (insumoId: string, rol: RolMaterial, categoria: string | null) => {
-    onTocar(
-      rol === 'ENVASE'
-        ? { envase_id: insumoId }
-        : rol === 'ETIQUETA'
-          ? { etiqueta_id: insumoId }
-          : {},
-    );
-    asignar.mutate({ productoId: t.producto_id, insumoId, rol, categoria });
-  };
-  const fila = (m: MaterialProducto) => (
-    <FilaMaterial
-      key={m.insumo_id}
-      m={m}
-      productoId={t.producto_id}
-      onClasificar={(rol) => agregar(m.insumo_id, rol, null)}
-    />
-  );
 
   return (
     <Grid gutter="xl">
@@ -547,141 +622,80 @@ function DetalleProducto({
       </Grid.Col>
 
       <Grid.Col span={{ base: 12, md: 8 }}>
-        {materiales.isLoading ? (
-          <Skeleton h={160} />
-        ) : (
-          <Stack gap="lg">
-            {sinClasificar.length > 0 ? (
-              <Seccion titulo="Cargado antes">{sinClasificar.map(fila)}</Seccion>
-            ) : null}
+        <Stack gap="lg">
+          <MaterialesProducto productoId={t.producto_id} onAgregado={onTocar} />
 
-            <Seccion titulo="Envase">
-              {envase.map(fila)}
-              {envase.length === 0 ? (
-                <Agregar
-                  texto="Elegir el envase"
-                  fijo={{ rol: 'ENVASE', categoria: null, tipos: ['MATERIAL_ENVASE'] }}
-                  onElegir={agregar}
-                  onNuevo={setAlta}
-                />
-              ) : null}
-            </Seccion>
+          <Seccion titulo="Fórmula">
+            <Paper
+              withBorder
+              p="sm"
+              radius="md"
+              style={{ borderColor: 'var(--superficie-borde)' }}
+            >
+              {t.tiene_formula ? (
+                <Stack gap="xs">
+                  <Text size="sm">Cargada.</Text>
+                  <CostosFormula productoId={t.producto_id} />
+                </Stack>
+              ) : t.sin_formula ? (
+                <Group gap="xs">
+                  <Text size="sm">No lleva fórmula.</Text>
+                  <Button
+                    size="compact-sm"
+                    variant="subtle"
+                    onClick={() =>
+                      sinFormula.mutate({
+                        productoId: t.producto_id,
+                        sinFormula: false,
+                      })
+                    }
+                  >
+                    Deshacer
+                  </Button>
+                </Group>
+              ) : t.formula_consultada ? (
+                <Text size="sm">La carga Dirección Técnica (Fórmulas › Pendientes).</Text>
+              ) : (
+                <Group gap="xs">
+                  <Button size="md" variant="light" onClick={() => setFormula(true)}>
+                    Cargar fórmula
+                  </Button>
+                  <Button
+                    size="md"
+                    variant="default"
+                    loading={consultar.isPending}
+                    onClick={() => {
+                      onTocar({ formula_consultada: true });
+                      consultar.mutate(t.producto_id);
+                    }}
+                  >
+                    No la sé
+                  </Button>
+                  <Button
+                    size="md"
+                    variant="default"
+                    loading={sinFormula.isPending}
+                    onClick={() => {
+                      onTocar({ sin_formula: true });
+                      sinFormula.mutate({
+                        productoId: t.producto_id,
+                        sinFormula: true,
+                      });
+                    }}
+                  >
+                    No lleva
+                  </Button>
+                </Group>
+              )}
+            </Paper>
+          </Seccion>
 
-            <Seccion titulo="Etiquetas">
-              {etiquetas.map(fila)}
-              <Agregar
-                texto={
-                  etiquetas.length === 0 ? 'Elegir la etiqueta' : 'Agregar otra etiqueta'
-                }
-                fijo={{
-                  rol: 'ETIQUETA',
-                  categoria: etiquetas.length === 0 ? null : 'Otra etiqueta',
-                  tipos: ['ETIQUETA'],
-                }}
-                onElegir={agregar}
-                onNuevo={setAlta}
-              />
-            </Seccion>
-
-            <Seccion titulo="Fórmula">
-              <Paper
-                withBorder
-                p="sm"
-                radius="md"
-                style={{ borderColor: 'var(--superficie-borde)' }}
-              >
-                {t.tiene_formula ? (
-                  <Stack gap="xs">
-                    <Text size="sm">Cargada.</Text>
-                    <CostosFormula productoId={t.producto_id} />
-                  </Stack>
-                ) : t.sin_formula ? (
-                  <Group gap="xs">
-                    <Text size="sm">No lleva fórmula.</Text>
-                    <Button
-                      size="compact-sm"
-                      variant="subtle"
-                      onClick={() =>
-                        sinFormula.mutate({
-                          productoId: t.producto_id,
-                          sinFormula: false,
-                        })
-                      }
-                    >
-                      Deshacer
-                    </Button>
-                  </Group>
-                ) : t.formula_consultada ? (
-                  <Text size="sm">
-                    La carga Dirección Técnica (Fórmulas › Pendientes).
-                  </Text>
-                ) : (
-                  <Group gap="xs">
-                    <Button size="md" variant="light" onClick={() => setFormula(true)}>
-                      Cargar fórmula
-                    </Button>
-                    <Button
-                      size="md"
-                      variant="default"
-                      loading={consultar.isPending}
-                      onClick={() => {
-                        onTocar({ formula_consultada: true });
-                        consultar.mutate(t.producto_id);
-                      }}
-                    >
-                      No la sé
-                    </Button>
-                    <Button
-                      size="md"
-                      variant="default"
-                      loading={sinFormula.isPending}
-                      onClick={() => {
-                        onTocar({ sin_formula: true });
-                        sinFormula.mutate({
-                          productoId: t.producto_id,
-                          sinFormula: true,
-                        });
-                      }}
-                    >
-                      No lleva
-                    </Button>
-                  </Group>
-                )}
-              </Paper>
-            </Seccion>
-
-            <Seccion titulo="Además lleva">
-              {otros.map(fila)}
-              <Agregar texto="Agregar" onElegir={agregar} onNuevo={setAlta} />
-            </Seccion>
-
-            <Seccion titulo="Tiempo de envasado (opcional)">
-              <TiempoEnvasado
-                productoId={t.producto_id}
-                cantidadSugerida={t.pendientes}
-              />
-            </Seccion>
-          </Stack>
-        )}
+          <Seccion titulo="Tiempo de envasado y etiquetado (opcional)">
+            <TiempoEnvasado productoId={t.producto_id} cantidadSugerida={t.pendientes} />
+          </Seccion>
+        </Stack>
       </Grid.Col>
 
-      <Modal
-        opened={alta !== null}
-        onClose={() => setAlta(null)}
-        title={<Text fw={700}>Nuevo insumo</Text>}
-        size="lg"
-      >
-        {alta ? (
-          <FormularioInsumo
-            nombreInicial={alta.nombre}
-            tipoInicial={alta.tipo}
-            onListo={(creado) => {
-              if (creado) agregar(creado.id, alta.rol, alta.categoria);
-              setAlta(null);
-            }}
-          />
-        ) : null}
-      </Modal>
       <Modal
         opened={formula}
         onClose={() => setFormula(false)}

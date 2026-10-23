@@ -147,7 +147,11 @@ export function PaginaDepositos() {
                   <SimpleGrid cols={3} spacing="xs">
                     <Cifra valor={unidades} etiqueta="unidades" color={d.color} />
                     <Cifra valor={productos} etiqueta="productos" color={d.color} />
-                    <Cifra valor={retenidas} etiqueta="retenidas" color="estadoEnAnalisis" />
+                    <Cifra
+                      valor={retenidas}
+                      etiqueta="retenidas"
+                      color="estadoEnAnalisis"
+                    />
                   </SimpleGrid>
                 </Stack>
               </Paper>
@@ -160,7 +164,15 @@ export function PaginaDepositos() {
   );
 }
 
-function Cifra({ valor, etiqueta, color }: { valor: number; etiqueta: string; color: string }) {
+function Cifra({
+  valor,
+  etiqueta,
+  color,
+}: {
+  valor: number;
+  etiqueta: string;
+  color: string;
+}) {
   return (
     <Stack gap={0} align="flex-start">
       <Text fz={28} lh={1} c={valor > 0 ? color : 'dimmed'} className="cifra">
@@ -225,6 +237,10 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
   const conStock = stock.data.filter((f) => Number(f.saldo) > 0);
   const saldoDe = (id: string | null) =>
     Number(stock.data.find((f) => f.producto_id === id)?.saldo ?? 0);
+  const conteoDifiere =
+    Boolean(conteoProducto) &&
+    conteoCantidad !== '' &&
+    conteoCantidad !== saldoDe(conteoProducto);
   const retenidoDe = (id: string | null) =>
     Number(stock.data.find((f) => f.producto_id === id)?.retenido ?? 0);
 
@@ -463,9 +479,13 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
             value={conteoCantidad}
             onChange={(v) => setConteoCantidad(typeof v === 'number' ? v : '')}
           />
+          {/* Con diferencia, el ajuste lleva su porqué (pedido del 2026-10-22). */}
           <TextInput
-            label="Observación"
-            placeholder="Por ejemplo: conteo inicial"
+            label="Motivo"
+            withAsterisk={conteoDifiere}
+            placeholder={
+              conteoDifiere ? 'Por qué no coincide' : 'Por ejemplo: conteo inicial'
+            }
             value={conteoObs}
             onChange={(e) => setConteoObs(e.currentTarget.value)}
           />
@@ -475,7 +495,11 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
             </Button>
             <Button
               loading={contar.isPending}
-              disabled={!conteoProducto || conteoCantidad === ''}
+              disabled={
+                !conteoProducto ||
+                conteoCantidad === '' ||
+                (conteoDifiere && conteoObs.trim().length < 3)
+              }
               onClick={() =>
                 contar.mutate(
                   {
@@ -635,7 +659,7 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
           />
 
           <Textarea
-            label="Observaciones"
+            label={exigeMotivo ? 'Motivo' : 'Observaciones'}
             withAsterisk={exigeMotivo}
             description={
               exigeMotivo

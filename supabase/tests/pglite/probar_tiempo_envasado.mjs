@@ -26,6 +26,19 @@ await prueba('Naza carga 1 minuto por unidad, 3 personas y 15 %', async () => {
   );
   if (r.length !== 1) throw new Error('no actualizó');
 });
+await prueba('y 45 segundos de etiquetado, sin redondear (D-ajustes-2)', async () => {
+  const r = await uno(
+    `update gmp.productos set minutos_etiquetado_unidad = 45 / 60.0, minutos_envasado_unidad = 1 / 60.0
+      where id = $1 returning round(minutos_etiquetado_unidad * 60, 3) e, round(minutos_envasado_unidad * 60, 3) v`,
+    [p],
+  );
+  if (Number(r.e) !== 45 || Number(r.v) !== 1) throw new Error(JSON.stringify(r));
+});
+await rechaza(
+  'un etiquetado de cero no entra',
+  `update gmp.productos set minutos_etiquetado_unidad = 0 where id = '${p}'`,
+  /check/i,
+);
 await rechaza(
   'un tiempo de cero no entra',
   `update gmp.productos set minutos_envasado_unidad = 0 where id = '${p}'`,

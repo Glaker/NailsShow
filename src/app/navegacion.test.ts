@@ -78,6 +78,10 @@ describe('reparto por rol del 2026-10-01', () => {
     expect(r).toContain('/ventas');
     expect(r).not.toContain('/pedidos');
   });
+  it('Nuevo producto es solo de Dirección Técnica', () => {
+    expect(rutas('DIRECCION_TECNICA')).toContain('/nuevo-producto');
+    expect(rutas('GERENCIA_PRODUCCION')).not.toContain('/nuevo-producto');
+  });
   it('Gerencia de Producción no ve Especificaciones (D-ventas-pedidos-2)', () => {
     const r = rutas('GERENCIA_PRODUCCION');
     expect(r).not.toContain('/especificaciones');

@@ -36,11 +36,10 @@ await prueba('un envase y dos etiquetas, con su categoría', async () => {
   await material(frente, 'ETIQUETA', 'Etiqueta frente');
   await material(trasera, 'ETIQUETA', 'Etiqueta trasera');
 });
-await rechaza(
-  'pero un solo envase',
-  `insert into gmp.materiales_acondicionamiento (producto_id, insumo_id, cantidad_por_unidad, rol) values ('${prod}', '${otroEnvase}', 1, 'ENVASE')`,
-  /duplicate|unique|materiales_un_envase/,
-);
+// 20261022200200 (D-ajustes-3): un envase puede ser dos insumos.
+await prueba('y un segundo envase', async () => {
+  await material(otroEnvase, 'ENVASE', 'Tapa pincel');
+});
 
 // Stock aprobado de los tres.
 await db.exec('reset role');
@@ -55,7 +54,7 @@ const rec = (
   )
 ).id;
 const lotes = [];
-for (const ins of [envase, frente, trasera])
+for (const ins of [envase, frente, trasera, otroEnvase])
   lotes.push(
     (
       await uno(
@@ -82,10 +81,16 @@ const saldo = async (ins) =>
   );
 
 await como('naza@x');
-await prueba('etiquetar 10 baja 10 envases y 10 de cada etiqueta', async () => {
+await prueba('etiquetar 10 baja 10 de cada envase y de cada etiqueta', async () => {
   await q(`select comercial.registrar_etiquetado($1, 10)`, [prod]);
-  const [e, f, t] = [await saldo(envase), await saldo(frente), await saldo(trasera)];
-  if (e !== 40 || f !== 40 || t !== 40) throw new Error(`${e} ${f} ${t}`);
+  const [e, o, f, t] = [
+    await saldo(envase),
+    await saldo(otroEnvase),
+    await saldo(frente),
+    await saldo(trasera),
+  ];
+  if (e !== 40 || o !== 40 || f !== 40 || t !== 40)
+    throw new Error(`${e} ${o} ${f} ${t}`);
 });
 
 const sinFormula = await producto('PR-SF');
