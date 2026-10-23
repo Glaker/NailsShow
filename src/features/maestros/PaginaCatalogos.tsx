@@ -5,14 +5,16 @@ import {
   IconBuildingWarehouse,
   IconFlask,
   IconPackage,
+  IconSquarePlus,
 } from '@tabler/icons-react';
 import { PaginaProductos } from './PaginaProductos';
 import { PaginaInsumos } from './PaginaInsumos';
 import { PaginaProveedores } from './PaginaProveedores';
 import { PaginaDepositos } from './PaginaDepositos';
-import { useSesion } from '@/features/auth/sesion';
+import { useSesion, useTieneRol } from '@/features/auth/sesion';
+import { PaginaNuevoProducto } from '@/features/produccion/PaginaNuevoProducto';
 
-const VISTAS = ['productos', 'insumos', 'proveedores', 'depositos'] as const;
+const VISTAS = ['productos', 'nuevo', 'insumos', 'proveedores', 'depositos'] as const;
 type VistaCatalogo = (typeof VISTAS)[number];
 
 /** Las rutas viejas (`/insumos`, `/productos`…) llevan a su pestaña. */
@@ -28,8 +30,13 @@ export function RedirigirACatalogo({ vista }: { vista: VistaCatalogo }) {
 export function PaginaCatalogos() {
   const [params, setParams] = useSearchParams();
   const { claims } = useSesion();
+  /* Nuevo producto: lo carga GP y lo aprueba DT (D-nuevo-producto-1). */
+  const veNuevo = useTieneRol('DIRECCION_TECNICA', 'GERENCIA_PRODUCCION');
   const pedida = params.get('vista') as VistaCatalogo | null;
-  const vista = pedida && VISTAS.includes(pedida) ? pedida : 'productos';
+  const vista =
+    pedida && VISTAS.includes(pedida) && (pedida !== 'nuevo' || veNuevo)
+      ? pedida
+      : 'productos';
 
   /* Recepción ve solo el catálogo de insumos (pedido del 2026-10-20). */
   if (claims?.roles.every((r) => r === 'RECEPCION')) return <PaginaInsumos />;
@@ -45,6 +52,11 @@ export function PaginaCatalogos() {
         <Tabs.Tab value="productos" leftSection={<IconPackage size={18} />}>
           Productos
         </Tabs.Tab>
+        {veNuevo ? (
+          <Tabs.Tab value="nuevo" leftSection={<IconSquarePlus size={18} />}>
+            Nuevo producto
+          </Tabs.Tab>
+        ) : null}
         <Tabs.Tab value="insumos" leftSection={<IconFlask size={18} />}>
           Insumos
         </Tabs.Tab>
@@ -58,6 +70,11 @@ export function PaginaCatalogos() {
       <Tabs.Panel value="productos">
         <PaginaProductos />
       </Tabs.Panel>
+      {veNuevo ? (
+        <Tabs.Panel value="nuevo">
+          <PaginaNuevoProducto />
+        </Tabs.Panel>
+      ) : null}
       <Tabs.Panel value="insumos">
         <PaginaInsumos />
       </Tabs.Panel>

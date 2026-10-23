@@ -18,7 +18,6 @@ import {
   minutosReloj,
   minutosTrabajo,
   tiempoDe,
-  type ProductoConTiempo,
 } from '@/lib/envasado';
 import { etiquetaUnidad, numero } from '@/lib/formato';
 
@@ -43,7 +42,7 @@ export function CalcularProduccion({
   const desglose = useDesgloseProducto(productoId);
   const n = Number(cantidad) || 0;
   const producto = (productos.data ?? []).find((p) => p.id === productoId);
-  const tiempo = tiempoDe(producto as ProductoConTiempo | undefined);
+  const tiempo = tiempoDe(producto);
   const filas = desglose.data ?? [];
   const insumos = filas.filter((f) => f.tipo !== 'MANO_DE_OBRA');
   const total = filas.reduce((s, f) => s + (f.subtotal ?? 0), 0) * n;

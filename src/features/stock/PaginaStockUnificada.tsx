@@ -1,26 +1,24 @@
-import { Tabs } from '@mantine/core';
+import { useState } from 'react';
+import { Button, Group, Tabs } from '@mantine/core';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import {
   IconBuildingStore,
   IconClipboardCheck,
   IconScale,
   IconShieldCheck,
+  IconTag,
   IconTruckDelivery,
 } from '@tabler/icons-react';
 import { usePuedeVerPestania } from '@/app/navegacion';
+import { useTieneRol } from '@/features/auth/sesion';
+import { PlanillaRotulosProduccion } from '@/features/rotulos/RotulosProduccion';
 import { PaginaRecepciones } from '@/features/recepcion/PaginaRecepciones';
 import { PaginaDepositos } from '@/features/comercial/PaginaPuntoVenta';
 import { PaginaStock } from './PaginaStock';
 import { PaginaStockSeguridad } from './PaginaStockSeguridad';
 import { PaginaConteo } from './PaginaConteo';
 
-const VISTAS = [
-  'insumos',
-  'recepciones',
-  'seguridad',
-  'depositos',
-  'conteo',
-] as const;
+const VISTAS = ['insumos', 'recepciones', 'seguridad', 'depositos', 'conteo'] as const;
 type VistaStock = (typeof VISTAS)[number];
 
 /** Fábrica y Calle 5 eran pestañas; desde el 2026-10-22 son cuadraditos de «Depósitos». */
@@ -52,6 +50,14 @@ export function PaginaStockUnificada() {
     depositos: usePuedeVerPestania('/stock?vista=depositos'),
     conteo: usePuedeVerPestania('/stock?vista=conteo'),
   };
+  /* Rótulos de producto terminado (D-rotulos-3): también los imprime stock. */
+  const imprimeRotulos = useTieneRol(
+    'ENCARGADA_STOCK',
+    'RECEPCION',
+    'GERENCIA_PRODUCCION',
+    'DIRECCION_TECNICA',
+  );
+  const [rotulos, setRotulos] = useState(false);
   const visibles = VISTAS.filter((v) => puede[v]);
   const pedida = params.get('vista') as VistaStock | null;
   if (pedida && pedida in LEGADO) return <RedirigirAStock vista={pedida} />;
@@ -63,51 +69,68 @@ export function PaginaStockUnificada() {
   if (pedida !== vista) return <RedirigirAStock vista={vista} />;
 
   return (
-    <Tabs
-      value={vista}
-      onChange={(v) => v && setParams({ vista: v }, { replace: true })}
-      keepMounted={false}
-      color="azul"
-    >
-      <Tabs.List mb="lg">
-        {puede.insumos ? (
-          <Tabs.Tab value="insumos" leftSection={<IconScale size={18} />}>
-            Insumos
-          </Tabs.Tab>
-        ) : null}
-        {puede.recepciones ? (
-          <Tabs.Tab value="recepciones" leftSection={<IconTruckDelivery size={18} />}>
-            Recepciones
-          </Tabs.Tab>
-        ) : null}
-        {puede.seguridad ? (
-          <Tabs.Tab value="seguridad" leftSection={<IconShieldCheck size={18} />}>
-            Stock de seguridad
-          </Tabs.Tab>
-        ) : null}
-        {puede.depositos ? (
-          <Tabs.Tab value="depositos" leftSection={<IconBuildingStore size={18} />}>
-            Depósitos
-          </Tabs.Tab>
-        ) : null}
-        {puede.conteo ? (
-          <Tabs.Tab value="conteo" leftSection={<IconClipboardCheck size={18} />}>
-            Conteo
-          </Tabs.Tab>
-        ) : null}
-      </Tabs.List>
+    <>
+      {imprimeRotulos ? (
+        <Group justify="flex-end" mb="xs">
+          <Button
+            variant="light"
+            leftSection={<IconTag size={16} />}
+            onClick={() => setRotulos(true)}
+          >
+            Rótulos de producto terminado
+          </Button>
+        </Group>
+      ) : null}
+      {/* Se monta al abrir: cada vez arranca con las órdenes del día. */}
+      {rotulos ? (
+        <PlanillaRotulosProduccion abierto onCerrar={() => setRotulos(false)} />
+      ) : null}
+      <Tabs
+        value={vista}
+        onChange={(v) => v && setParams({ vista: v }, { replace: true })}
+        keepMounted={false}
+        color="azul"
+      >
+        <Tabs.List mb="lg">
+          {puede.insumos ? (
+            <Tabs.Tab value="insumos" leftSection={<IconScale size={18} />}>
+              Insumos
+            </Tabs.Tab>
+          ) : null}
+          {puede.recepciones ? (
+            <Tabs.Tab value="recepciones" leftSection={<IconTruckDelivery size={18} />}>
+              Recepciones
+            </Tabs.Tab>
+          ) : null}
+          {puede.seguridad ? (
+            <Tabs.Tab value="seguridad" leftSection={<IconShieldCheck size={18} />}>
+              Stock de seguridad
+            </Tabs.Tab>
+          ) : null}
+          {puede.depositos ? (
+            <Tabs.Tab value="depositos" leftSection={<IconBuildingStore size={18} />}>
+              Depósitos
+            </Tabs.Tab>
+          ) : null}
+          {puede.conteo ? (
+            <Tabs.Tab value="conteo" leftSection={<IconClipboardCheck size={18} />}>
+              Conteo
+            </Tabs.Tab>
+          ) : null}
+        </Tabs.List>
 
-      <Tabs.Panel value="insumos">{puede.insumos ? <PaginaStock /> : null}</Tabs.Panel>
-      <Tabs.Panel value="recepciones">
-        {puede.recepciones ? <PaginaRecepciones /> : null}
-      </Tabs.Panel>
-      <Tabs.Panel value="seguridad">
-        {puede.seguridad ? <PaginaStockSeguridad /> : null}
-      </Tabs.Panel>
-      <Tabs.Panel value="depositos">
-        {puede.depositos ? <PaginaDepositos /> : null}
-      </Tabs.Panel>
-      <Tabs.Panel value="conteo">{puede.conteo ? <PaginaConteo /> : null}</Tabs.Panel>
-    </Tabs>
+        <Tabs.Panel value="insumos">{puede.insumos ? <PaginaStock /> : null}</Tabs.Panel>
+        <Tabs.Panel value="recepciones">
+          {puede.recepciones ? <PaginaRecepciones /> : null}
+        </Tabs.Panel>
+        <Tabs.Panel value="seguridad">
+          {puede.seguridad ? <PaginaStockSeguridad /> : null}
+        </Tabs.Panel>
+        <Tabs.Panel value="depositos">
+          {puede.depositos ? <PaginaDepositos /> : null}
+        </Tabs.Panel>
+        <Tabs.Panel value="conteo">{puede.conteo ? <PaginaConteo /> : null}</Tabs.Panel>
+      </Tabs>
+    </>
   );
 }

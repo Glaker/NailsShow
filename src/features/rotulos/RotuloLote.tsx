@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Box, Group, Paper, Stack, Text } from '@mantine/core';
 import QRCode from 'qrcode';
 import type { LoteVista, Rotulo } from '@/lib/consultas';
-import { fecha, fechaHora } from '@/lib/formato';
+import { fecha, fechaHora, numero } from '@/lib/formato';
 import { TEXTO_ESTADO } from '@/components/InsigniaEstado';
 import type { Database } from '@/lib/database.types';
 import { MarcaEjemplo } from '@/components/MarcaEjemplo';
@@ -52,6 +52,11 @@ interface Props {
    */
   reservado?: string;
   /**
+   * Cantidad que dice el rótulo (pedido del 2026-10-23). Ausente, la del lote;
+   * desde la planilla se escribe libre (por ejemplo, la de un bulto).
+   */
+  cantidad?: string;
+  /**
    * Impreso desde la planilla (D-rotulos-1): el pie dice cuándo se imprimió,
    * no cuándo se emitió, porque puede ser un estado que el lote todavía no
    * tiene.
@@ -68,7 +73,24 @@ interface Props {
  * cartel pegado en un tambor en una entrada de trazabilidad consultable desde
  * el teléfono, sin tipear un número de veinte caracteres con guantes puestos.
  */
-export function RotuloLote({ lote, rotulo, ejemplo = false, reservado, impreso }: Props) {
+/** La cantidad del lote como la lee planta: «25 kg». */
+export function cantidadDelLote(
+  lote: Pick<LoteVista, 'cantidad_unidades' | 'unidad'>,
+): string {
+  return lote.cantidad_unidades === null || lote.cantidad_unidades === undefined
+    ? ''
+    : `${numero(lote.cantidad_unidades, 3)} ${lote.unidad ?? ''}`.trim();
+}
+
+export function RotuloLote({
+  lote,
+  rotulo,
+  ejemplo = false,
+  reservado,
+  impreso,
+  cantidad,
+}: Props) {
+  const textoCantidad = cantidad ?? cantidadDelLote(lote);
   const [qr, setQr] = useState<string | null>(null);
   const estado = rotulo.estado;
   const tinta = TINTA[estado];
@@ -142,6 +164,7 @@ export function RotuloLote({ lote, rotulo, ejemplo = false, reservado, impreso }
               etiqueta="Plazo de validez"
               valor={lote.plazo_validez ? fecha(lote.plazo_validez) : 'No indicado'}
             />
+            {textoCantidad ? <Campo etiqueta="Cantidad" valor={textoCantidad} /> : null}
           </Group>
         </Stack>
 

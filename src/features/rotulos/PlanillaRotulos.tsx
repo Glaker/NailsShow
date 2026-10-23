@@ -12,13 +12,14 @@ import {
   Select,
   Stack,
   Text,
+  TextInput,
 } from '@mantine/core';
 import { IconPlus, IconPrinter, IconTrash } from '@tabler/icons-react';
 import { useLotes, type LoteVista, type Rotulo } from '@/lib/consultas';
 import { useTerceros } from '@/lib/consultasTercerizados';
 import { TEXTO_ESTADO } from '@/components/InsigniaEstado';
 import { fecha } from '@/lib/formato';
-import { RotuloLote } from './RotuloLote';
+import { RotuloLote, cantidadDelLote } from './RotuloLote';
 import { imprimirRotulo } from './imprimir';
 
 type Estado = Rotulo['estado'];
@@ -35,6 +36,8 @@ interface Renglon {
   estado: Estado;
   copias: number;
   reservado: string;
+  /** Libre; arranca con la del lote. */
+  cantidad: string;
 }
 
 /**
@@ -63,9 +66,10 @@ export function PlanillaRotulos({
     {
       clave: 0,
       loteId: lote.id!,
-      estado: (rotuloVigente?.estado ?? lote.estado ?? 'CUARENTENA'),
+      estado: rotuloVigente?.estado ?? lote.estado ?? 'CUARENTENA',
       copias: 1,
       reservado: '',
+      cantidad: cantidadDelLote(lote),
     },
   ]);
   const [hoy] = useState(() => fecha(new Date().toISOString()));
@@ -128,7 +132,14 @@ export function PlanillaRotulos({
                 label="Lote"
                 data={opcionesLote}
                 value={r.loteId}
-                onChange={(v) => v && cambiar(r.clave, { loteId: v })}
+                onChange={(v) => {
+                  const otro = v ? porId.get(v) : undefined;
+                  if (v)
+                    cambiar(r.clave, {
+                      loteId: v,
+                      cantidad: otro ? cantidadDelLote(otro) : '',
+                    });
+                }}
                 searchable
                 allowDeselect={false}
                 style={{ flex: 2, minWidth: 220 }}
@@ -149,6 +160,13 @@ export function PlanillaRotulos({
                 value={r.copias}
                 onChange={(v) => cambiar(r.clave, { copias: Number(v) || 0 })}
                 w={100}
+              />
+              <TextInput
+                label="Cantidad"
+                placeholder="Vacío: no la muestra"
+                value={r.cantidad}
+                onChange={(e) => cambiar(r.clave, { cantidad: e.currentTarget.value })}
+                w={130}
               />
               <Autocomplete
                 label="Reservado"
@@ -215,6 +233,7 @@ export function PlanillaRotulos({
                     }}
                     ejemplo={ejemplo && r.loteId === lote.id}
                     reservado={r.reservado.trim()}
+                    cantidad={r.cantidad.trim()}
                     impreso={hoy}
                   />
                 </div>

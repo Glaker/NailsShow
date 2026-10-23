@@ -885,6 +885,50 @@ no la base: `registrar_conteo` y `registrar_conteo_pt` aceptan la observación
 vacía. Cerrarlo exige reescribir las dos funciones.
 **Dónde está.** `20261022200300_comercial_motivo_en_movimientos_manuales.sql`.
 
+### D-nuevo-producto-1 · Nuevo producto: carga GP, aprueba DT — adoptada 2026-10-23
+
+**Decisión del codirector técnico.** «Nuevo producto» pasa a ser una pestaña de
+Catálogos, para Gerencia de Producción (Naza) y Dirección Técnica. Ahí se carga
+todo: producto, fórmula, insumos, procedimiento, especificación, costos y
+tiempos. En la fórmula, el procedimiento y la especificación se puede empezar
+de cero, copiar lo de otro producto como borrador editable, o decir «No la sé»
+para que lo cargue DT.
+
+**Aprobación.** Lo que carga GP rige cuando DT (el codirector o Anabella) lo
+aprueba. La fórmula y la especificación ya nacían en borrador. El
+procedimiento no tenía aprobación: ahora la versión que redacta alguien que
+no es DT queda marcada (`requiere_aprobacion`) y rige recién con una fila en
+`gmp.procedimiento_aprobaciones`. Lo que escribe DT rige directo. Las
+versiones cargadas antes quedan vigentes como estaban. La orden de producción
+toma la versión que rige, no la última. DT ve lo pendiente en
+`gmp.v_pendientes_dt`, arriba de la pestaña.
+**Pendiente.** Los pendientes no avisan por correo: DT los ve al entrar.
+**Dónde está.** `20261023120000_gmp_nuevo_producto_gp.sql`.
+
+### D-rotulos-2 · Cantidad en el rótulo — adoptada 2026-10-23
+
+**Decisión del codirector técnico.** El rótulo muestra la cantidad. En la
+planilla de impresión es texto libre, precargado con la del lote (sirve, por
+ejemplo, para la de un bulto). Vacío, el rótulo no la muestra. El rótulo de la
+ficha muestra la del lote.
+**Dónde está.** `src/features/rotulos/RotuloLote.tsx`, `PlanillaRotulos.tsx`.
+
+### D-rotulos-3 · Rótulo de producto terminado del día — adoptada 2026-10-23
+
+**Decisión del codirector técnico.** En Planificación › Órdenes, «Rótulos del
+día» arma una planilla A4 de 8 rótulos (mismo tamaño que los de insumos) con
+las órdenes del día elegido, y se suman otras. Cada rótulo lleva código,
+producto, lote, cantidad y cliente, tomados de la orden y editables. El estado
+es uno de tres fijos (Etiquetado, Finalizado, Por reprocesar) y hay casillas
+«Contado: Sí / No» para marcar a mano. Color por defecto: magenta para Nail
+Show, uno por tercero; se puede cambiar. El QR es texto plano («Producido en
+Nail Show», lote, vencimiento y código): se lee con cualquier celular, sin
+cuenta ni enlace. No hizo falta ninguna API.
+También lo imprimen Agustina y Silveira (Encargada de stock y Recepción) desde Stock, con el botón «Rótulos de producto terminado».
+**Límite.** Es solo papel: no queda registro en el sistema de qué se imprimió
+ni de lo que se marque a mano.
+**Dónde está.** `src/features/rotulos/RotulosProduccion.tsx`.
+
 ### D-catalogo-1 · Catálogo de insumos y proveedores editable por todos — adoptada 2026-10-22
 
 **Decisión del codirector técnico.** Todos los roles menos operario dan de

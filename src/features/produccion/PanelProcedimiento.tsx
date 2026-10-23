@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Alert,
   Badge,
   Button,
   Collapse,
@@ -13,6 +14,7 @@ import {
   Timeline,
 } from '@mantine/core';
 import {
+  IconCheck,
   IconChevronDown,
   IconHistory,
   IconInfoCircle,
@@ -20,7 +22,8 @@ import {
   IconPencil,
 } from '@tabler/icons-react';
 import { useTieneRol } from '@/features/auth/sesion';
-import { useGuardarProcedimiento, useProcedimientos } from '@/lib/consultas';
+import { rige, useGuardarProcedimiento, useProcedimientos } from '@/lib/consultas';
+import { useAprobarProcedimiento } from '@/lib/consultasNuevoProducto';
 import { useNomina } from '@/lib/consultasComercial';
 import { fechaHora } from '@/lib/formato';
 
@@ -33,7 +36,8 @@ import { fechaHora } from '@/lib/formato';
  * lote se fabricó con el procedimiento que regía ese día.
  *
  * Editan Dirección Técnica y Gerencia de Producción; lo mismo verifica la
- * política de la base.
+ * política de la base. Lo que escribe GP queda esperando que DT lo apruebe
+ * (D-nuevo-producto-1); mientras, rige la última aprobada.
  */
 export function PanelProcedimiento({
   formulaId,
@@ -46,12 +50,16 @@ export function PanelProcedimiento({
   const nomina = useNomina();
   const puedeEditar =
     useTieneRol('DIRECCION_TECNICA', 'GERENCIA_PRODUCCION') && !soloLectura;
+  const esDT = useTieneRol('DIRECCION_TECNICA');
+  const aprobar = useAprobarProcedimiento();
   const [editando, setEditando] = useState(false);
   const [historial, setHistorial] = useState(false);
 
   if (versiones.isLoading) return <Skeleton h={120} />;
   const lista = versiones.data ?? [];
-  const vigente = lista[0];
+  const vigente = lista.find(rige);
+  // La más nueva, si todavía no rige: espera a DT.
+  const pendiente = lista[0] && !rige(lista[0]) ? lista[0] : undefined;
   const autor = (id: string) => nomina.data?.get(id) ?? '';
 
   return (
@@ -85,11 +93,44 @@ export function PanelProcedimiento({
                 leftSection={<IconPencil size={16} />}
                 onClick={() => setEditando(true)}
               >
-                {vigente ? 'Editar' : 'Cargar procedimiento'}
+                {lista.length > 0 ? 'Editar' : 'Cargar procedimiento'}
               </Button>
             ) : null}
           </Group>
         </Group>
+
+        {pendiente ? (
+          <Alert color="estadoEnAnalisis" variant="light" radius="md">
+            <Stack gap="xs">
+              <Text size="sm" fw={600}>
+                La versión {pendiente.version} espera la aprobación de Dirección Técnica
+                {autor(pendiente.redactado_por)
+                  ? ` (la cargó ${autor(pendiente.redactado_por)})`
+                  : ''}
+                .{vigente ? ` Mientras, rige la versión ${vigente.version}.` : ''}
+              </Text>
+              <Text size="sm" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                {pendiente.texto}
+              </Text>
+              {esDT && !soloLectura ? (
+                <Group gap="xs">
+                  <Button
+                    size="sm"
+                    color="estadoAprobado"
+                    leftSection={<IconCheck size={16} />}
+                    loading={aprobar.isPending}
+                    onClick={() => aprobar.mutate(pendiente.id)}
+                  >
+                    Aprobar
+                  </Button>
+                  <Text size="xs" c="dimmed">
+                    Para cambiarla, tocá «Editar»: tu versión rige directamente.
+                  </Text>
+                </Group>
+              ) : null}
+            </Stack>
+          </Alert>
+        ) : null}
 
         {vigente ? (
           <>
@@ -103,7 +144,7 @@ export function PanelProcedimiento({
               {vigente.motivo_cambio ? ` · ${vigente.motivo_cambio}` : ''}
             </Text>
           </>
-        ) : (
+        ) : pendiente ? null : (
           <Text size="sm" c="dimmed">
             Esta fórmula todavía no tiene procedimiento cargado.
             {puedeEditar ? ' Copialo del POE del producto.' : ''}
@@ -115,8 +156,8 @@ export function PanelProcedimiento({
         opened={editando}
         onClose={() => setEditando(false)}
         title={
-          vigente
-            ? `Editar procedimiento (será la versión ${vigente.version + 1})`
+          lista[0]
+            ? `Editar procedimiento (será la versión ${lista[0].version + 1})`
             : 'Cargar procedimiento'
         }
         size="xl"
@@ -126,8 +167,8 @@ export function PanelProcedimiento({
         {editando ? (
           <EditorProcedimiento
             formulaId={formulaId}
-            textoActual={vigente?.texto ?? ''}
-            esPrimera={!vigente}
+            textoActual={(pendiente ?? vigente)?.texto ?? ''}
+            esPrimera={lista.length === 0}
             onListo={() => setEditando(false)}
           />
         ) : null}
@@ -145,7 +186,7 @@ export function PanelProcedimiento({
           {lista.map((v) => (
             <Timeline.Item
               key={v.id}
-              title={`Versión ${v.version}${v.version === vigente?.version ? ' · vigente' : ''}`}
+              title={`Versión ${v.version}${v.version === vigente?.version ? ' · vigente' : !rige(v) ? ' · sin aprobar' : ''}`}
             >
               <Text size="xs" c="dimmed" mb={4}>
                 {fechaHora(v.creado_en)}

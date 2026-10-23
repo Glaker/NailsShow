@@ -138,7 +138,7 @@ export function useTareasCarga() {
 }
 
 function invalidarCarga(qc: ReturnType<typeof useQueryClient>) {
-  for (const k of ['etiquetado', 'materiales', 'productos', 'formulas'])
+  for (const k of ['etiquetado', 'materiales', 'productos', 'formulas', 'pendientes-dt'])
     void qc.invalidateQueries({ queryKey: [k] });
 }
 
