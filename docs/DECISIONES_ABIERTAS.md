@@ -915,6 +915,16 @@ sus componentes al final. Lo copiado sigue en borrador y se ajusta: la deja
 vigente DT, y el procedimiento que trae GP espera su aprobación.
 **Dónde está.** `20261023160000_gmp_copiar_componentes_y_procedimiento.sql`.
 
+### D-nuevo-producto-3 · Editar una fórmula vigente es emitir la versión siguiente — adoptada 2026-10-23
+
+**Decisión del codirector técnico.** En una fórmula vigente, «Editar (versión
+nueva)» crea la versión siguiente en borrador con lo mismo (componentes,
+densidad, procedimiento) y lleva a ella para corregirla. Si ya hay un borrador
+de ese producto y variedad, lleva a ese. Cuando DT la deja vigente, la que
+regía pasa sola a DADO_DE_BAJA con su fecha de fin. No se borra ni se pisa: las
+órdenes hechas con la versión anterior siguen apuntando a ella.
+**Dónde está.** `20261023170000_gmp_nueva_version_formula.sql`.
+
 ### D-rotulos-2 · Cantidad en el rótulo — adoptada 2026-10-23
 
 **Decisión del codirector técnico.** El rótulo muestra la cantidad. En la

@@ -262,9 +262,11 @@ export function PaginaNuevoProducto() {
   const nombreDe = new Map((productos.data ?? []).map((p) => [p.id, p.nombre]));
   const producto = (productos.data ?? []).find((p) => p.id === productoId);
   // La más nueva que no esté dada de baja (las vigentes vienen primero).
-  const formula = (formulas.data ?? []).find(
+  // El borrador primero (una versión nueva en curso), si no la vigente.
+  const delProducto = (formulas.data ?? []).filter(
     (f) => f.producto_id === productoId && f.estado !== 'DADO_DE_BAJA',
   );
+  const formula = delProducto.find((f) => f.estado === 'BORRADOR') ?? delProducto[0];
   const procedimientos = useProcedimientos(formula?.id);
   const versiones = procedimientos.data ?? [];
   const espec = (especificaciones.data ?? []).find(
@@ -545,11 +547,7 @@ export function PaginaNuevoProducto() {
                 <Titulo
                   n={7}
                   texto="Tiempos de envasado y etiquetado"
-                  estado={
-                    tiempoDe(producto)
-                      ? 'listo'
-                      : 'opcional'
-                  }
+                  estado={tiempoDe(producto) ? 'listo' : 'opcional'}
                 />
               </Accordion.Control>
               <Accordion.Panel>

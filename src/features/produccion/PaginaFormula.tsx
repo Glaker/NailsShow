@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { MATERIAS_PRIMAS_COMUNES, normalizar } from './materiasPrimas';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ActionIcon,
   Alert,
@@ -27,7 +27,7 @@ import { modals } from '@mantine/modals';
 import { useForm } from '@mantine/form';
 import { zod4Resolver } from 'mantine-form-zod-resolver';
 import { z } from 'zod';
-import { IconArrowLeft, IconPlus, IconTrash } from '@tabler/icons-react';
+import { IconArrowLeft, IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
 import { FormularioInsumo } from '@/features/maestros/PaginaInsumos';
 import {
   useActualizarFormula,
@@ -46,7 +46,10 @@ import { FINANZAS, useTieneRol } from '@/features/auth/sesion';
 import { CostoAprox } from './TareasCarga';
 import { BadgeEstadoFormula } from './estadoFormula';
 import { PanelProcedimiento } from './PanelProcedimiento';
-import { useCopiarComponentes } from '@/lib/consultasNuevoProducto';
+import {
+  useCopiarComponentes,
+  useNuevaVersionFormula,
+} from '@/lib/consultasNuevoProducto';
 
 const esquemaComponente = z
   .object({
@@ -579,6 +582,8 @@ function PegarDeOtra({
  */
 export function PaginaFormula({ formulaId: embebida }: { formulaId?: string } = {}) {
   const params = useParams();
+  const navegar = useNavigate();
+  const nuevaVersion = useNuevaVersionFormula();
   const id = embebida ?? params.id;
   const datos = useFormulaCompleta(id);
   const actualizar = useActualizarFormula();
@@ -679,15 +684,35 @@ export function PaginaFormula({ formulaId: embebida }: { formulaId?: string } = 
         ) : null}
       </Group>
 
-      {!puedeEditar ? (
+      {f.estado !== 'BORRADOR' && (esDT || esGP) ? (
+        /* Editar una vigente = versión nueva (D-nuevo-producto-3). */
+        <Alert color="estadoEnAnalisis" variant="light" radius="md" mb="md">
+          <Group justify="space-between" gap="sm" wrap="wrap">
+            <Text size="sm">
+              Esta fórmula está {f.estado === 'VIGENTE' ? 'vigente' : 'dada de baja'} y no
+              se edita: al editarla se crea la versión siguiente con lo mismo, para
+              corregirla. Cuando Dirección Técnica la deje vigente, esta queda dada de
+              baja.
+            </Text>
+            <Button
+              leftSection={<IconPencil size={16} />}
+              loading={nuevaVersion.isPending}
+              onClick={() =>
+                nuevaVersion.mutate(formulaId, {
+                  onSuccess: (id) => {
+                    if (!embebida) void navegar(`/formulas/${id}`);
+                  },
+                })
+              }
+            >
+              Editar (versión nueva)
+            </Button>
+          </Group>
+        </Alert>
+      ) : !puedeEditar ? (
         <Alert color="azul" variant="light" radius="md" mb="md">
           Estás viendo esta fórmula en modo lectura: la edita Dirección Técnica, y
           Gerencia de Producción mientras está en borrador (§3.3).
-        </Alert>
-      ) : f.estado !== 'BORRADOR' ? (
-        <Alert color="estadoEnAnalisis" variant="light" radius="md" mb="md">
-          Esta fórmula está {f.estado === 'VIGENTE' ? 'vigente' : 'dada de baja'} y no se
-          edita. Para corregirla, emitir una versión nueva desde «Nueva fórmula».
         </Alert>
       ) : null}
 
