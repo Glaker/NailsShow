@@ -4,7 +4,7 @@
       "ruta": "/",
       "etiqueta": "Tablero",
       "roles": [
-        "OPERARIO",
+        "PRODUCCION",
         "CONTROL_CALIDAD",
         "DIRECCION_TECNICA",
         "ADMINISTRACION",
@@ -282,6 +282,26 @@
       "queEs": "Son los reportes de IVA, ventas, resultado, flujo de fondos y compras, armados con lo que se carga día a día. Tiene seis pestañas, cada una con una nota arriba que explica cómo se calcula y una tabla con los números por mes. No se carga nada acá: son solo para mirar."
     },
     {
+      "ruta": "/informes",
+      "etiqueta": "Informes y estadísticas",
+      "roles": [
+        "GERENCIA_PRODUCCION",
+        "DIRECCION_TECNICA",
+        "GERENCIA",
+        "FINANZAS"
+      ],
+      "queEs": "Productividad de planta y los informes de producción, en tres pestañas. «Productividad»: barras con las unidades por hora de cada operaria en el mes; si trabajaron de a varias, a cada una le toca su parte según el tiempo que estuvo. «Informe mensual»: quién hizo qué tarea, de qué producto y lote, cuánto, de qué hora a qué hora y con quién, con el horario de entrada y salida; se baja a Excel, hasta dos años atrás. «Informe anual»: cada SKU del catálogo por semana (cierra el viernes), de las órdenes terminadas, con el total al final; se baja a Excel, hasta cuatro años atrás."
+    },
+    {
+      "ruta": "/mis-tareas",
+      "etiqueta": "Mis tareas",
+      "roles": [
+        "ENCARGADA_STOCK",
+        "RECEPCION"
+      ],
+      "queEs": "Las tareas que te mandó Gerencia de Producción y las que están en curso para sumarte. «Iniciar» con quién trabajás, «Parar», «Cancelar» y «Listo» (cuántas hicieron, y si quedan pendientes o se completó)."
+    },
+    {
       "ruta": "/usuarios",
       "etiqueta": "Usuarios",
       "roles": [
@@ -333,6 +353,15 @@
     {
       "ruta": "/stock?vista=seguridad",
       "etiqueta": "Stock › Stock de seguridad",
+      "roles": [
+        "GERENCIA_PRODUCCION",
+        "GERENCIA"
+      ],
+      "queEs": null
+    },
+    {
+      "ruta": "/stock?vista=pedido",
+      "etiqueta": "Stock › Punto de pedido",
       "roles": [
         "GERENCIA_PRODUCCION",
         "GERENCIA"

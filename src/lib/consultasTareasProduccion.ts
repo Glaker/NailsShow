@@ -81,7 +81,8 @@ export function usePersonal() {
         .eq('activo', true)
         .order('nombre_completo');
       if (error) throw error;
-      return (data ?? []) as Persona[];
+      const filas: Persona[] = data ?? [];
+      return filas;
     },
   });
 }
@@ -134,7 +135,8 @@ export function useTramosAbiertos() {
         )
         .is('terminado_en', null);
       if (error) throw error;
-      return (data ?? []) as (Tramo & { tramo_participantes: Participante[] })[];
+      const filas: (Tramo & { tramo_participantes: Participante[] })[] = data ?? [];
+      return filas;
     },
   });
 }

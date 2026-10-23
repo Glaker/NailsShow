@@ -22,7 +22,8 @@ import { etiquetaEnum, fecha, fechaISO } from '@/lib/formato';
 import { useSesion, type Rol, type Sector } from '@/features/auth/sesion';
 
 const ROLES: Rol[] = [
-  'OPERARIO',
+  // Reemplaza a OPERARIO (D-tareas-1).
+  'PRODUCCION',
   'CONTROL_CALIDAD',
   'DIRECCION_TECNICA',
   'ADMINISTRACION',
@@ -55,7 +56,7 @@ function ModalUsuario({
 }) {
   const actualizar = useActualizarUsuario();
   const { claims } = useSesion();
-  const [rol, setRol] = useState<Rol>(usuario?.rol ?? 'OPERARIO');
+  const [rol, setRol] = useState<Rol>(usuario?.rol ?? 'PRODUCCION');
   const [adicionales, setAdicionales] = useState<string[]>(
     usuario?.roles_adicionales ?? [],
   );
@@ -98,7 +99,7 @@ function ModalUsuario({
           label="Rol principal"
           data={ROLES.map((r) => ({ value: r, label: etiquetaEnum(r) }))}
           value={rol}
-          onChange={(v) => setRol((v as Rol) ?? 'OPERARIO')}
+          onChange={(v) => setRol((v as Rol) ?? 'PRODUCCION')}
           allowDeselect={false}
         />
 

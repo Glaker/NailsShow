@@ -29,6 +29,8 @@ import {
   IconChartHistogram,
   IconCalculator,
   IconPresentation,
+  IconChartBar,
+  IconChecklist,
   type Icon,
 } from '@tabler/icons-react';
 import { FINANZAS, useSesion, type Rol } from '@/features/auth/sesion';
@@ -72,7 +74,8 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiquetaCorta: 'Tablero',
     icono: IconLayoutDashboard,
     roles: [
-      'OPERARIO',
+      // Producción (las operarias) ve ahí sus tareas (D-tareas-1).
+      'PRODUCCION',
       'CONTROL_CALIDAD',
       'DIRECCION_TECNICA',
       'ADMINISTRACION',
@@ -306,6 +309,23 @@ export const NAVEGACION: ItemNavegacion[] = [
     roles: ['ADMINISTRACION', 'GERENCIA'],
   },
   {
+    // Productividad e informes de producción (D-tareas-1).
+    ruta: '/informes',
+    etiqueta: 'Informes y estadísticas',
+    etiquetaCorta: 'Informes',
+    icono: IconChartBar,
+    roles: ['GERENCIA_PRODUCCION', 'DIRECCION_TECNICA', 'GERENCIA', FINANZAS],
+  },
+  {
+    // Las tareas que manda Naza, para quien no las tiene en el tablero
+    // (Producción las ve al entrar) (D-tareas-1).
+    ruta: '/mis-tareas',
+    etiqueta: 'Mis tareas',
+    etiquetaCorta: 'Tareas',
+    icono: IconChecklist,
+    roles: ['ENCARGADA_STOCK', 'RECEPCION'],
+  },
+  {
     ruta: '/usuarios',
     etiqueta: 'Usuarios',
     etiquetaCorta: 'Usuarios',
@@ -374,7 +394,7 @@ export const PESTANIAS: { ruta: string; etiqueta: string; de: string; roles?: Ro
 
 /** Roles que se configuran (el Administrador del sistema ve todo). */
 export const ROLES_CONFIGURABLES: Rol[] = [
-  'OPERARIO',
+  'PRODUCCION',
   'CONTROL_CALIDAD',
   'DIRECCION_TECNICA',
   'ADMINISTRACION',

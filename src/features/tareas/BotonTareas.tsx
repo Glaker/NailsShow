@@ -12,7 +12,8 @@ import { MatrizTareas } from './MatrizTareas';
 export function BotonTareas({ compacto = false }: { compacto?: boolean }) {
   const { claims } = useSesion();
   const [abierta, setAbierta] = useState(false);
-  if (!claims?.rol || claims.rol === 'OPERARIO') return null;
+  if (!claims?.rol || claims.rol === 'OPERARIO' || claims.rol === 'PRODUCCION')
+    return null;
 
   return (
     <>

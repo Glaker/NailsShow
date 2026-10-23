@@ -7,6 +7,13 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
     queEs:
       'Tu pantalla de inicio. Cada rol ve lo que le toca hacer hoy, y nada más: los números y las filas son atajos que llevan directo a la pantalla donde se resuelve. Los datos salen de lo que se registra en el resto del sistema (lotes, órdenes, pedidos), así que cambian solos a medida que el equipo trabaja.',
     porRol: {
+      PRODUCCION: [
+        'Acá están las tareas que te mandó Naza, la más importante arriba.',
+        'Tocá «Iniciar», elegí con quién trabajás (o sola) y empezá. Una sola de ustedes carga por todas.',
+        'Si alguien se suma o se va, tocá «Sumar a alguien» o la × al lado de su nombre. Si la tarea la empezó otra y te sumás, tocá «Sumarme».',
+        '«Parar» es para cortar un rato. «Cancelar», si la empezaron por error: eso no se cuenta.',
+        'Al terminar tocá «Listo»: poné cuántas hicieron entre todas y elegí «Listo por hoy» (queda pendiente para mañana) o «Completamos la tarea».',
+      ],
       DIRECCION_TECNICA: [
         'Arriba ves dos contadores grandes: «Insumos sin aprobar» (lotes de insumo en cuarentena o en análisis) y «Lotes de producto por liberar» (órdenes terminadas que esperan tu firma).',
         'Tocá «Insumos sin aprobar» para ir a la lista de lotes en cuarentena. Ahí registrás el muestreo, mandás a análisis y aprobás o rechazás.',
@@ -535,12 +542,42 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
     ],
   },
 
+  '/informes': {
+    queEs:
+      'Productividad de planta y los informes de producción, en tres pestañas. «Productividad»: barras con las unidades por hora de cada operaria en el mes; si trabajaron de a varias, a cada una le toca su parte según el tiempo que estuvo. «Informe mensual»: quién hizo qué tarea, de qué producto y lote, cuánto, de qué hora a qué hora y con quién, con el horario de entrada y salida; se baja a Excel, hasta dos años atrás. «Informe anual»: cada SKU del catálogo por semana (cierra el viernes), de las órdenes terminadas, con el total al final; se baja a Excel, hasta cuatro años atrás.',
+    porRol: {
+      GERENCIA_PRODUCCION: [
+        'Elegí el mes o el año y tocá «Descargar Excel». El mes y el año en curso se van actualizando solos; los anteriores quedan cerrados.',
+      ],
+      FINANZAS: ['Mirá la productividad del mes y bajá los informes que necesites.'],
+    },
+    aTener: [
+      'Los tiempos los toma el sistema cuando las operarias inician y terminan: ellas no los ven ni los escriben.',
+    ],
+  },
+
+  '/mis-tareas': {
+    queEs:
+      'Las tareas que te mandó Gerencia de Producción y las que están en curso para sumarte. «Iniciar» con quién trabajás, «Parar», «Cancelar» y «Listo» (cuántas hicieron, y si quedan pendientes o se completó).',
+    porRol: {
+      ENCARGADA_STOCK: [
+        'Cuando Naza te sume a una tarea, la ves acá. Funciona igual que para las chicas de producción.',
+      ],
+      RECEPCION: [
+        'Cuando Naza te sume a una tarea, la ves acá. Funciona igual que para las chicas de producción.',
+      ],
+    },
+    aTener: ['Una sola carga la cantidad por todo el grupo.'],
+  },
+
   '/planificacion': {
     queEs:
       'Qué se produce cada día y cuánto dura cada pedido. Hay dos vistas, que se cambian arriba: «Gantt» (una fila por pedido, con barras sobre tres semanas) y «Calendario» (el mes). La línea roja del Gantt es la entrega comprometida; si un pedido termina después de esa fecha, la fila lo avisa. Debajo, «Sin planificar» lista los pedidos abiertos que todavía no tienen fecha de producción.',
     porRol: {
       GERENCIA_PRODUCCION: [
         'Cada fila es una producción: «Producto × cantidad», con su número y para quién es debajo («Para V-0012 — Cliente» o «Para stock»). Al aprobar una venta, lo que falta llega acá como una producción por producto.',
+        'En la pestaña «Tareas» armás el día de las chicas: arriba sumás a quién trabaja hoy (con su hora de entrada y de salida, 8 a 15 por defecto) y tocás «Tarea» para mandar una: etiquetar, envasar, lotear u otra, el producto, la orden (de ahí sale el lote), la cantidad y quiénes la hacen.',
+        'Las tareas van de arriba abajo por prioridad. Mantené apretada una y arrastrala, o tocá «Ordenar»: tiemblan y se acomodan. Una tarea de varias ocupa sus columnas y las del mismo grupo tienen el mismo color.',
         'Tocá el nombre de una producción para abrirla. En «Para» elegís a qué pedido de venta aprobado va (la lista muestra cuánto pide cada uno y cuánto le falta producir) o la dejás «Para stock». Al tocar «Terminado» en Calle 5, lo producido queda reservado para el pedido elegido en ese momento.',
         '«Nueva producción», arriba, carga producir N de un producto: elegí el «Producto», la «Cantidad a producir», «Para» qué pedido o stock, y si querés ya la fecha de inicio y los días. Si sacás una producción de un pedido para dársela a otro, el primero queda sin esa producción: fijate en la lista cuánto le falta.',
         'Abajo, en «Sin planificar», tocá «Planificar» en un pedido. Elegí cuándo «Empieza a producirse» y los «Días de producción» (entre 1 y 60). Guardá.',

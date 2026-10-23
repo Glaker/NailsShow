@@ -49,6 +49,8 @@ import { TareasProduccion } from '@/features/produccion/TareasProduccion';
 import { PanelEtiquetado } from '@/features/produccion/PanelEtiquetado';
 import { TareasCarga } from '@/features/produccion/TareasCarga';
 import { TarjetaLotear } from '@/features/produccion/Loteo';
+import { MisTareas } from '@/features/tareas/MisTareas';
+import { GraficoProductividad } from '@/features/informes/GraficoProductividad';
 
 function TarjetaPanel({
   titulo,
@@ -78,7 +80,13 @@ function TarjetaPanel({
 export function PaginaTablero() {
   const { claims } = useSesion();
   // Finanzas entra al resultado de gestión (gráfico principal de la Fase 3).
-  if (claims?.rol === FINANZAS) return <PaginaResultado />;
+  if (claims?.rol === FINANZAS)
+    return (
+      <Stack gap="xl">
+        <PaginaResultado />
+        <GraficoProductividad />
+      </Stack>
+    );
   switch (claims?.rol) {
     case 'ADMINISTRACION':
       return <PaginaAdministracion />;
@@ -92,6 +100,8 @@ export function PaginaTablero() {
               2026-10-22). Lo que falta etiquetar baja, antes de las tareas de
               carga. */}
           <InicioPedidos debajoDelSaludo={<TarjetaLotear />} />
+          {/* Productividad de las operarias, en barras (D-tareas-1). */}
+          <GraficoProductividad />
           <Stack gap="sm">
             <Title order={2}>Tareas de planta</Title>
             <Text c="dimmed">
@@ -103,6 +113,9 @@ export function PaginaTablero() {
           <TareasCarga />
         </Stack>
       );
+    case 'PRODUCCION':
+      // Las operarias ven solo lo que les manda Naza (D-tareas-1).
+      return <MisTareas />;
     case 'OPERARIO':
       return <TareasProduccion />;
     case 'VENTAS':

@@ -78,7 +78,7 @@ export function colorGrupo(ids: string[]): string {
 }
 
 /** Tramos contiguos de columnas: dos vecinas se funden en un rectángulo. */
-function tramosContiguos(columnas: number[]): [number, number][] {
+export function tramosContiguos(columnas: number[]): [number, number][] {
   const orden = [...columnas].sort((a, b) => a - b);
   const r: [number, number][] = [];
   for (const c of orden) {
