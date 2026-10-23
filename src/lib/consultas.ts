@@ -153,6 +153,49 @@ export function useLote(id: string | undefined) {
   });
 }
 
+/**
+ * Corrige la cantidad de un lote mal cargado (D-ajustes-1). Es un registro
+ * nuevo con motivo: la base completa el valor anterior, corrige el lote y, si
+ * ya estaba en stock, asienta la diferencia como ajuste.
+ */
+export function useCorregirLote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (c: {
+      loteId: string;
+      bultos: number;
+      unidades: number;
+      motivo: string;
+    }) => {
+      /* Tabla de 20261022200000, todavía no en database.types.ts. */
+      const { error } = await (comercial() as unknown as SupabaseClient)
+        .from('correcciones_lote')
+        .insert({
+          lote_insumo_id: c.loteId,
+          bultos_despues: c.bultos,
+          unidades_despues: c.unidades,
+          motivo: c.motivo,
+        });
+      if (error) throw error;
+    },
+    onSuccess: (_d, c) => {
+      for (const k of [
+        ['lote', c.loteId],
+        ['lotes'],
+        ['kardex'],
+        ['stock-lote'],
+        ['stock-existencias'],
+        ['stock-articulos'],
+      ])
+        void qc.invalidateQueries({ queryKey: k });
+      avisarExito(
+        'Cantidad corregida. Quedó registrado con el valor anterior y el motivo.',
+      );
+    },
+    onError: avisarError,
+  });
+}
+
 export function useRotulosDeLote(loteId: string | undefined) {
   return useQuery({
     queryKey: ['rotulos', loteId],

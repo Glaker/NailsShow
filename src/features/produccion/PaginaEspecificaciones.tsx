@@ -155,9 +155,12 @@ export function PaginaEspecificaciones() {
 export function CabeceraEspecificacion({
   actual,
   onListo,
+  productoId,
 }: {
   actual?: Especificacion;
   onListo: (id: string) => void;
+  /** Desde «Nuevo producto»: la especificación nace atada al producto. */
+  productoId?: string;
 }) {
   const guardar = useGuardarEspecificacion();
   const [v, setV] = useState({
@@ -246,6 +249,7 @@ export function CabeceraEspecificacion({
                       codigo_poe: v.codigo_poe.trim(),
                       version: '00',
                       variedad: v.variedad.trim() || null,
+                      ...(productoId ? { producto_id: productoId } : {}),
                     }),
                 denominacion: v.denominacion.trim(),
                 composicion_inci: v.composicion_inci.trim() || null,
@@ -268,7 +272,7 @@ export function CabeceraEspecificacion({
   );
 }
 
-function FichaEspecificacion({
+export function FichaEspecificacion({
   id,
   onCambiarId,
 }: {

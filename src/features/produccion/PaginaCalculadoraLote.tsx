@@ -161,7 +161,7 @@ export function PaginaCalculadoraLote() {
   const [masaKg, setMasaKg] = useState<number | ''>('');
   const [tempC, setTempC] = useState<number | ''>(20);
   /** Densidad del granel escrita a mano. Null = la de por defecto. */
-  const [densidadEditada, setDensidadEditada] = useState<number | '' | null>(null);
+  const [densidadEditada, setDensidadEditada] = useState<number | string | null>(null);
 
   /**
    * La sugerencia meteorológica se aplica una sola vez, al llegar. Después el
@@ -217,7 +217,7 @@ export function PaginaCalculadoraLote() {
       ? densidadDefecto
       : densidadEditada === ''
         ? null
-        : densidadEditada;
+        : Number(densidadEditada);
 
   const resultado = useMemo(() => {
     if (!formula || !objetivo || typeof tempC !== 'number') return null;
@@ -366,8 +366,8 @@ export function PaginaCalculadoraLote() {
                     'Sin estimar: cargala'
                   )
                 }
-                value={densidadUsada ?? ''}
-                onChange={(v) => setDensidadEditada(typeof v === 'number' ? v : '')}
+                value={densidadEditada ?? densidadDefecto ?? ''}
+                onChange={setDensidadEditada}
               />
             ) : null}
           </Group>

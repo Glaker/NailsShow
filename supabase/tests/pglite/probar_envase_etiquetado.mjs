@@ -52,11 +52,8 @@ for (const [ins, rol] of [
     [prod, ins, rol],
   );
 
-await rechaza(
-  'un solo envase vigente por producto',
-  `insert into gmp.materiales_acondicionamiento (producto_id, insumo_id, cantidad_por_unidad, rol) values ('${prod}', '${tapa}', 1, 'ENVASE')`,
-  /duplicate|unique|materiales_/,
-);
+// Desde 20261022200200 (D-ajustes-3) puede haber más de un envase: lo prueba
+// probar_materiales_reventa.mjs.
 
 // Stock: recepción de 100 de cada uno, cargada y aprobada por atajo.
 const prov = (

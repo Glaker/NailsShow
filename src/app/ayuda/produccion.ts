@@ -353,6 +353,23 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
     ],
   },
 
+  '/nuevo-producto': {
+    queEs:
+      'Todo lo que hace falta para fabricar un producto nuevo, en secciones: producto, fórmula, insumos (envases, etiquetas y lo demás), procedimiento, especificación y, si ya los sabés, costos y tiempos. Cada sección se guarda sola y muestra si está completa.',
+    porRol: {
+      DIRECCION_TECNICA: [
+        'Dá de alta el producto en «1. Producto», o elegí uno ya dado de alta para seguir completándolo.',
+        'En «2. Fórmula» creala en borrador y cargá sus componentes; la dejás vigente desde la misma sección.',
+        'En «3. Insumos» elegí el envase (si son dos insumos, «Agregar otro envase»), las etiquetas y lo demás que lleva.',
+        'Después cargá el procedimiento y la especificación. Costos y tiempos (MM:SS) son opcionales.',
+        'El producto queda en la dirección de la página: podés dejarlo a medias y volver más tarde.',
+      ],
+    },
+    aTener: [
+      'Son las mismas pantallas de siempre, juntas: lo que cargues acá se ve en Fórmulas, Especificaciones y Catálogos.',
+    ],
+  },
+
   '/especificaciones': {
     queEs:
       'Los requisitos de cada producto (documentos I-E.50.xx): composición, almacenamiento, vida útil y los límites que tiene que cumplir. La lista muestra código, denominación, estado y desde cuándo está vigente; al tocar una fila se abre su ficha. Las órdenes controlan el producto terminado contra estas especificaciones.',

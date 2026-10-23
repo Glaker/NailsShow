@@ -144,10 +144,9 @@ function invalidarCarga(qc: ReturnType<typeof useQueryClient>) {
 
 /**
  * Agrega un material a un producto: envase, etiqueta o extra, con su
- * categoría («Etiqueta trasera», «Guarnición»). El envase es uno por
- * producto: el anterior se da de baja (no se borra); etiquetas y extras se
- * suman (20261021150000). La fila (producto, insumo) es única en la base, así
- * que si ya existía se reactiva.
+ * categoría («Etiqueta trasera», «Guarnición»). Todos se suman: un envase
+ * puede ser dos insumos (20261022200200, D-ajustes-3). Si el insumo ya estaba
+ * vigente, se le cambia el rol.
  */
 export function useAsignarMaterial() {
   const qc = useQueryClient();
@@ -160,15 +159,6 @@ export function useAsignarMaterial() {
     }) => {
       const tabla = () => gmpST().from('materiales_acondicionamiento');
       const categoria = m.categoria?.trim() || null;
-      if (m.rol === 'ENVASE') {
-        const { error } = await tabla()
-          .update({ activo: false })
-          .eq('producto_id', m.productoId)
-          .eq('rol', m.rol)
-          .eq('activo', true)
-          .neq('insumo_id', m.insumoId);
-        if (error) throw error;
-      }
       /* Solo la fila vigente: una quitada no se reactiva
          (gmp.fn_material_sin_reactivar), se agrega una nueva. */
       const { data: existe, error: e1 } = await tabla()
@@ -364,6 +354,8 @@ export function useGuardarTiempoEnvasado() {
     mutationFn: async (p: {
       productoId: string;
       minutosUnidad: number | null;
+      /** D-ajustes-2: el etiquetado, aparte del envasado. */
+      minutosEtiquetado: number | null;
       margenPct: number;
       personas: number;
     }) => {
@@ -371,6 +363,7 @@ export function useGuardarTiempoEnvasado() {
         .from('productos')
         .update({
           minutos_envasado_unidad: p.minutosUnidad,
+          minutos_etiquetado_unidad: p.minutosEtiquetado,
           margen_envasado_pct: p.margenPct,
           personas_envasado: p.personas,
         })

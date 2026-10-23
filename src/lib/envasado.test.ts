@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   MINUTOS_JORNADA,
+  aMmss,
+  deMmss,
   diasRecomendados,
   horasMinutos,
   minutosReloj,
@@ -48,5 +50,33 @@ describe('tiempo de envasado', () => {
     expect(horasMinutos(1100)).toBe('18 h 20 min');
     expect(horasMinutos(45)).toBe('45 min');
     expect(horasMinutos(120)).toBe('2 h');
+  });
+});
+
+describe('tiempo en MM:SS (D-ajustes-2)', () => {
+  it('lee minutos y segundos, y segundos solos', () => {
+    expect(deMmss('1:30')).toBeCloseTo(1.5);
+    expect(deMmss('0:45')).toBeCloseTo(0.75);
+    expect(deMmss('45')).toBeCloseTo(0.75);
+    expect(deMmss('')).toBeNull();
+    expect(deMmss('1:75')).toBeNaN();
+    expect(deMmss('1,5')).toBeNaN();
+  });
+
+  it('escribe y vuelve igual', () => {
+    expect(aMmss(1.5)).toBe('1:30');
+    expect(aMmss(0.75)).toBe('0:45');
+    expect(aMmss(null)).toBe('');
+    expect(deMmss(aMmss(2 / 60))).toBeCloseTo(2 / 60);
+  });
+
+  it('el tiempo por unidad es envasado + etiquetado', () => {
+    expect(
+      tiempoDe({ minutos_envasado_unidad: '0.5', minutos_etiquetado_unidad: 0.25 })
+        ?.minutosUnidad,
+    ).toBeCloseTo(0.75);
+    expect(tiempoDe({ minutos_etiquetado_unidad: 0.25 })?.minutosUnidad).toBeCloseTo(
+      0.25,
+    );
   });
 });
