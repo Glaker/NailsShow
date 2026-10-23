@@ -913,6 +913,21 @@ ejemplo, para la de un bulto). Vacío, el rótulo no la muestra. El rótulo de l
 ficha muestra la del lote.
 **Dónde está.** `src/features/rotulos/RotuloLote.tsx`, `PlanillaRotulos.tsx`.
 
+### D-rotulos-3 · Rótulo de producto terminado del día — adoptada 2026-10-23
+
+**Decisión del codirector técnico.** En Planificación › Órdenes, «Rótulos del
+día» arma una planilla A4 de 8 rótulos (mismo tamaño que los de insumos) con
+las órdenes del día elegido, y se suman otras. Cada rótulo lleva código,
+producto, lote, cantidad y cliente, tomados de la orden y editables. El estado
+es uno de tres fijos (Etiquetado, Finalizado, Por reprocesar) y hay casillas
+«Contado: Sí / No» para marcar a mano. Color por defecto: magenta para Nail
+Show, uno por tercero; se puede cambiar. El QR es texto plano («Producido en
+Nail Show», lote, vencimiento y código): se lee con cualquier celular, sin
+cuenta ni enlace. No hizo falta ninguna API.
+**Límite.** Es solo papel: no queda registro en el sistema de qué se imprimió
+ni de lo que se marque a mano.
+**Dónde está.** `src/features/rotulos/RotulosProduccion.tsx`.
+
 ### D-catalogo-1 · Catálogo de insumos y proveedores editable por todos — adoptada 2026-10-22
 
 **Decisión del codirector técnico.** Todos los roles menos operario dan de

@@ -17,7 +17,7 @@ import {
   TextInput,
 } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
-import { IconClipboardList, IconPlus, IconTool } from '@tabler/icons-react';
+import { IconClipboardList, IconPlus, IconTag, IconTool } from '@tabler/icons-react';
 import { Vacio } from '@/components/Vacio';
 import { useTieneRol } from '@/features/auth/sesion';
 import { useFormulasFabricacion, useProductos } from '@/lib/consultas';
@@ -36,6 +36,7 @@ import {
 } from '@/lib/consultasOrdenes';
 import { COLOR_ESTADO_ORDEN } from './etapasOrden';
 import { CabeceraEspecificacion } from './PaginaEspecificaciones';
+import { PlanillaRotulosProduccion } from '@/features/rotulos/RotulosProduccion';
 
 /** `/ordenes` es una pestaña de Planificación (pedido del 2026-10-22). */
 export function PaginaOrdenes() {
@@ -52,6 +53,7 @@ export function ListaOrdenes() {
   const productos = useProductos();
   const puede = useTieneRol('GERENCIA_PRODUCCION', 'DIRECCION_TECNICA');
   const [equipos, setEquipos] = useState(false);
+  const [rotulos, setRotulos] = useState(false);
   const nombre = (id: string) =>
     (productos.data ?? []).find((p) => p.id === id)?.nombre ?? '';
   const filas = ordenes.data ?? [];
@@ -60,6 +62,13 @@ export function ListaOrdenes() {
     <>
       {puede ? (
         <Group justify="flex-end" mb="sm">
+          <Button
+            variant="light"
+            leftSection={<IconTag size={16} />}
+            onClick={() => setRotulos(true)}
+          >
+            Rótulos del día
+          </Button>
           <Button
             variant="default"
             leftSection={<IconTool size={16} />}
@@ -126,6 +135,10 @@ export function ListaOrdenes() {
         </Paper>
       )}
       <ModalEquipos abierto={equipos} onCerrar={() => setEquipos(false)} />
+      {/* Se monta al abrir: cada vez arranca con las órdenes del día. */}
+      {rotulos ? (
+        <PlanillaRotulosProduccion abierto onCerrar={() => setRotulos(false)} />
+      ) : null}
     </>
   );
 }
