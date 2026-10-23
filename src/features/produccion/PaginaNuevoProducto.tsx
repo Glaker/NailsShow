@@ -5,6 +5,7 @@ import {
   Alert,
   Anchor,
   Badge,
+  Box,
   Button,
   Divider,
   Group,
@@ -164,7 +165,13 @@ function NoLaSe({
 }
 
 /** Lo que DT tiene que cargar o aprobar, con acceso al producto. */
-function PendientesDT({ onAbrir }: { onAbrir: (productoId: string) => void }) {
+function PendientesDT({
+  abierto,
+  onAbrir,
+}: {
+  abierto: string | null;
+  onAbrir: (productoId: string, seccion: PendienteDT['seccion']) => void;
+}) {
   const pendientes = usePendientesDT();
   const filas = pendientes.data ?? [];
   if (filas.length === 0) return null;
@@ -179,48 +186,56 @@ function PendientesDT({ onAbrir }: { onAbrir: (productoId: string) => void }) {
       <Text fw={700} mb="xs">
         Para Dirección Técnica ({filas.length})
       </Text>
-      <Table.ScrollContainer minWidth={640}>
-        <Table verticalSpacing="xs">
-          <Table.Tbody>
-            {filas.map((p) => (
-              <Table.Tr key={`${p.producto_id}-${p.seccion}-${p.motivo}-${p.desde}`}>
-                <Table.Td>
-                  <Text size="sm" fw={600}>
-                    {p.nombre}
-                  </Text>
-                  <Text size="xs" c="dimmed" ff="monospace">
-                    {p.codigo_interno}
-                  </Text>
-                </Table.Td>
-                <Table.Td>{SECCION[p.seccion]}</Table.Td>
-                <Table.Td>
-                  <Badge
-                    variant="light"
-                    radius="sm"
-                    color={p.motivo === 'NO_LA_SABE' ? 'grape' : 'estadoEnAnalisis'}
-                  >
-                    {p.motivo === 'NO_LA_SABE' ? 'No la sabe: cargarla' : 'Aprobar'}
-                  </Badge>
-                </Table.Td>
-                <Table.Td>
-                  <Text size="xs" c="dimmed">
-                    {p.pedido_por ?? ''} · {fecha(p.desde)}
-                  </Text>
-                </Table.Td>
-                <Table.Td>
-                  <Button
-                    size="compact-sm"
-                    variant="light"
-                    onClick={() => onAbrir(p.producto_id)}
-                  >
-                    Abrir
-                  </Button>
-                </Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
-      </Table.ScrollContainer>
+      {/* Con altura tope: la lista no tapa el producto que se abre abajo. */}
+      <Box mah={340} style={{ overflowY: 'auto' }}>
+        <Table.ScrollContainer minWidth={640}>
+          <Table verticalSpacing="xs">
+            <Table.Tbody>
+              {filas.map((p) => (
+                <Table.Tr
+                  key={`${p.producto_id}-${p.seccion}-${p.motivo}-${p.desde}`}
+                  {...(p.producto_id === abierto
+                    ? { bg: 'var(--mantine-color-blue-light)' }
+                    : {})}
+                >
+                  <Table.Td>
+                    <Text size="sm" fw={600}>
+                      {p.nombre}
+                    </Text>
+                    <Text size="xs" c="dimmed" ff="monospace">
+                      {p.codigo_interno}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td>{SECCION[p.seccion]}</Table.Td>
+                  <Table.Td>
+                    <Badge
+                      variant="light"
+                      radius="sm"
+                      color={p.motivo === 'NO_LA_SABE' ? 'grape' : 'estadoEnAnalisis'}
+                    >
+                      {p.motivo === 'NO_LA_SABE' ? 'No la sabe: cargarla' : 'Aprobar'}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="xs" c="dimmed">
+                      {p.pedido_por ?? ''} · {fecha(p.desde)}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Button
+                      size="compact-sm"
+                      variant="light"
+                      onClick={() => onAbrir(p.producto_id, p.seccion)}
+                    >
+                      Abrir
+                    </Button>
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
+      </Box>
     </Paper>
   );
 }
@@ -245,6 +260,26 @@ export function PaginaNuevoProducto() {
       return p;
     });
   const esDT = useTieneRol('DIRECCION_TECNICA');
+  // Secciones abiertas: «Abrir» desde los pendientes abre la que corresponde.
+  const [abiertas, setAbiertas] = useState<string[]>(['producto']);
+  const abrir = (id: string, seccion: PendienteDT['seccion']) => {
+    const clave =
+      seccion === 'FORMULA'
+        ? 'formula'
+        : seccion === 'PROCEDIMIENTO'
+          ? 'procedimiento'
+          : 'especificacion';
+    elegir(id);
+    setAbiertas(['producto', clave]);
+    // Después de que se dibuje el producto, bajar hasta la sección.
+    setTimeout(
+      () =>
+        document
+          .getElementById(`np-${clave}`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+      200,
+    );
+  };
 
   const productos = useProductos();
   const formulas = useFormulasFabricacion();
@@ -319,9 +354,15 @@ export function PaginaNuevoProducto() {
 
   return (
     <>
-      {esDT ? <PendientesDT onAbrir={elegir} /> : null}
+      {esDT ? <PendientesDT abierto={productoId} onAbrir={abrir} /> : null}
 
-      <Accordion multiple defaultValue={['producto']} variant="separated" radius="md">
+      <Accordion
+        multiple
+        value={abiertas}
+        onChange={setAbiertas}
+        variant="separated"
+        radius="md"
+      >
         <Accordion.Item value="producto">
           <Accordion.Control>
             <Titulo n={1} texto="Producto" estado={hay ? 'listo' : 'falta'} />
@@ -364,7 +405,11 @@ export function PaginaNuevoProducto() {
 
         {productoId ? (
           <>
-            <Accordion.Item value="formula">
+            <Accordion.Item
+              value="formula"
+              id={`np-formula`}
+              style={{ scrollMarginTop: 16 }}
+            >
               <Accordion.Control>
                 <Titulo
                   n={2}
@@ -417,7 +462,11 @@ export function PaginaNuevoProducto() {
               </Accordion.Panel>
             </Accordion.Item>
 
-            <Accordion.Item value="procedimiento">
+            <Accordion.Item
+              value="procedimiento"
+              id={`np-procedimiento`}
+              style={{ scrollMarginTop: 16 }}
+            >
               <Accordion.Control>
                 <Titulo
                   n={4}
@@ -469,7 +518,11 @@ export function PaginaNuevoProducto() {
               </Accordion.Panel>
             </Accordion.Item>
 
-            <Accordion.Item value="especificacion">
+            <Accordion.Item
+              value="especificacion"
+              id={`np-especificacion`}
+              style={{ scrollMarginTop: 16 }}
+            >
               <Accordion.Control>
                 <Titulo
                   n={5}
