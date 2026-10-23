@@ -942,10 +942,19 @@ que lo forma no se edita: los tramos y las órdenes terminadas son inmutables.
 No se guarda una foto aparte del informe.
 **Pendiente.**
 - Las 11 cuentas de las operarias se crean más adelante.
-- «Parar» no pide cantidad: lo hecho antes de la pausa se carga en el «Listo»
-  siguiente, y cuenta en ese tramo.
 - `@dnd-kit` (arrastre táctil) es dependencia nueva.
 **Dónde está.** `20261023130000_core_rol_produccion.sql`, `20261023130100_gmp_tareas_produccion.sql`.
+
+### D-tareas-2 · La pausa — adoptada 2026-10-23
+
+**Aclaración del codirector técnico.** La pausa es para cortar un rato,
+típicamente para comer. Es un botón estándar: ⏸ para pausar y ▶ para seguir
+con el mismo grupo. No pide cantidad y la tarea queda «En pausa», no
+pendiente. Lo que cargan en el «Listo» cubre también lo hecho antes de la
+pausa, y se reparte por minutos entre todo el bloque. Si una sigue trabajando
+mientras las otras paran, las que paran eligen «Pauso solo yo» (salen del
+grupo) y al volver tocan ▶.
+**Dónde está.** `20261023140000_gmp_pausa_tareas.sql`.
 
 ### D-formula-insumo-1 · Un solo «Insumo» al cargar un componente — adoptada 2026-10-23
 

@@ -5,6 +5,7 @@ import {
   Chip,
   CloseButton,
   Group,
+  Menu,
   Modal,
   NumberInput,
   Paper,
@@ -31,6 +32,7 @@ import {
   useCerrarTramo,
   useHechoPorTarea,
   useIniciarTarea,
+  useReanudarTarea,
   usePersonal,
   useTareasProduccion,
   useTramosAbiertos,
@@ -194,6 +196,14 @@ function TarjetaTarea({
     (p) => p.usuario_id === yo && p.hasta === null,
   );
   const falta = t.cantidad === null ? null : Math.max(t.cantidad - hecho, 0);
+  const reanudar = useReanudarTarea();
+  // En curso sin tramo abierto: está en pausa (D-tareas-2).
+  const enPausa = t.estado === 'EN_CURSO' && !tramo;
+  const enGrupo = (tramo?.tramo_participantes ?? []).filter(
+    (p) => p.hasta === null,
+  ).length;
+  const pausar = () =>
+    tramo && cerrar.mutate({ tramoId: tramo.id, cierre: 'PAUSA', cantidad: null });
 
   return (
     <Paper
@@ -214,6 +224,10 @@ function TarjetaTarea({
             <Badge size="lg" color="green">
               En curso
             </Badge>
+          ) : enPausa ? (
+            <Badge size="lg" color="yellow">
+              En pausa
+            </Badge>
           ) : null}
         </Group>
         {t.cantidad !== null ? (
@@ -227,17 +241,48 @@ function TarjetaTarea({
             <GrupoEnCurso tramo={tramo} personal={personal} />
             {estoy ? (
               <SimpleGrid cols={{ base: 1, sm: 3 }}>
-                <Button
-                  size="xl"
-                  variant="default"
-                  leftSection={<IconPlayerPause size={22} />}
-                  loading={cerrar.isPending}
-                  onClick={() =>
-                    cerrar.mutate({ tramoId: tramo.id, cierre: 'PAUSA', cantidad: 0 })
-                  }
-                >
-                  Parar
-                </Button>
+                {/* Pausa: para todas, o solo yo si las demás siguen trabajando. */}
+                {enGrupo > 1 ? (
+                  <Menu position="bottom" withinPortal>
+                    <Menu.Target>
+                      <Button
+                        size="xl"
+                        variant="default"
+                        aria-label="Pausa"
+                        loading={cerrar.isPending}
+                      >
+                        <IconPlayerPause size={28} />
+                      </Button>
+                    </Menu.Target>
+                    <Menu.Dropdown>
+                      <Menu.Item fz="lg" onClick={pausar}>
+                        Pausa para todas
+                      </Menu.Item>
+                      <Menu.Item
+                        fz="lg"
+                        onClick={() =>
+                          cambiar.mutate({
+                            tramoId: tramo.id,
+                            usuarioId: yo,
+                            entra: false,
+                          })
+                        }
+                      >
+                        Pauso solo yo (las demás siguen)
+                      </Menu.Item>
+                    </Menu.Dropdown>
+                  </Menu>
+                ) : (
+                  <Button
+                    size="xl"
+                    variant="default"
+                    aria-label="Pausa"
+                    loading={cerrar.isPending}
+                    onClick={pausar}
+                  >
+                    <IconPlayerPause size={28} />
+                  </Button>
+                )}
                 <Button
                   size="xl"
                   variant="default"
@@ -266,16 +311,32 @@ function TarjetaTarea({
             ) : (
               <Button
                 size="xl"
-                leftSection={<IconUserPlus size={22} />}
+                leftSection={
+                  t.asignadas.includes(yo) ? (
+                    <IconPlayerPlay size={28} />
+                  ) : (
+                    <IconUserPlus size={22} />
+                  )
+                }
+                aria-label={t.asignadas.includes(yo) ? 'Seguir' : 'Sumarme'}
                 loading={cambiar.isPending}
                 onClick={() =>
                   cambiar.mutate({ tramoId: tramo.id, usuarioId: yo, entra: true })
                 }
               >
-                Sumarme
+                {t.asignadas.includes(yo) ? null : 'Sumarme'}
               </Button>
             )}
           </>
+        ) : enPausa ? (
+          <Button
+            size="xl"
+            aria-label="Seguir"
+            loading={reanudar.isPending}
+            onClick={() => reanudar.mutate(t.id)}
+          >
+            <IconPlayerPlay size={28} />
+          </Button>
         ) : (
           <Button
             size="xl"
@@ -339,7 +400,7 @@ function TarjetaTarea({
 
 /**
  * Mis tareas (rol Producción, D-tareas-1): lo que Naza les mandó, en orden de
- * prioridad, y lo que está en curso para sumarse. Iniciar, parar, cancelar y
+ * prioridad, y lo que está en curso para sumarse. Iniciar, pausa, cancelar y
  * listo. No se muestran tiempos: los toma la base.
  */
 export function MisTareas() {

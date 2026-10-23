@@ -11,7 +11,8 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
         'Acá están las tareas que te mandó Naza, la más importante arriba.',
         'Tocá «Iniciar», elegí con quién trabajás (o sola) y empezá. Una sola de ustedes carga por todas.',
         'Si alguien se suma o se va, tocá «Sumar a alguien» o la × al lado de su nombre. Si la tarea la empezó otra y te sumás, tocá «Sumarme».',
-        '«Parar» es para cortar un rato. «Cancelar», si la empezaron por error: eso no se cuenta.',
+        '⏸ es la pausa (por ejemplo, para comer): no pide cantidad, y con ▶ siguen con el mismo grupo. Si alguna se queda trabajando, la que para elige «Pauso solo yo» y al volver toca ▶.',
+        '«Cancelar», si la empezaron por error: eso no se cuenta.',
         'Al terminar tocá «Listo»: poné cuántas hicieron entre todas y elegí «Listo por hoy» (queda pendiente para mañana) o «Completamos la tarea».',
       ],
       DIRECCION_TECNICA: [
@@ -558,7 +559,7 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
 
   '/mis-tareas': {
     queEs:
-      'Las tareas que te mandó Gerencia de Producción y las que están en curso para sumarte. «Iniciar» con quién trabajás, «Parar», «Cancelar» y «Listo» (cuántas hicieron, y si quedan pendientes o se completó).',
+      'Las tareas que te mandó Gerencia de Producción y las que están en curso para sumarte. «Iniciar» con quién trabajás, pausa (⏸) y seguir (▶), «Cancelar» y «Listo» (cuántas hicieron, y si quedan pendientes o se completó).',
     porRol: {
       ENCARGADA_STOCK: [
         'Cuando Naza te sume a una tarea, la ves acá. Funciona igual que para las chicas de producción.',

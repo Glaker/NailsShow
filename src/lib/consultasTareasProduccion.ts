@@ -242,6 +242,16 @@ export function useIniciarTarea() {
   });
 }
 
+/** Seguir después de la pausa, con el mismo grupo (D-tareas-2). */
+export function useReanudarTarea() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (tareaId: string) => rpc('reanudar_tarea', { p_tarea_id: tareaId }),
+    onSuccess: () => invalidar(qc),
+    onError: avisarError,
+  });
+}
+
 export function useCambiarGrupo() {
   const qc = useQueryClient();
   return useMutation({
@@ -272,7 +282,9 @@ export function useCerrarTramo() {
           ? '¡Tarea terminada!'
           : p.cierre === 'CANCELADO'
             ? 'Cancelado: no se cuenta.'
-            : 'Guardado. La tarea queda pendiente.',
+            : p.cierre === 'PAUSA'
+              ? 'En pausa.'
+              : 'Guardado. La tarea queda pendiente.',
       );
     },
     onError: avisarError,

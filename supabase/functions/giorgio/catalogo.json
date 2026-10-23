@@ -299,7 +299,7 @@
         "ENCARGADA_STOCK",
         "RECEPCION"
       ],
-      "queEs": "Las tareas que te mandó Gerencia de Producción y las que están en curso para sumarte. «Iniciar» con quién trabajás, «Parar», «Cancelar» y «Listo» (cuántas hicieron, y si quedan pendientes o se completó)."
+      "queEs": "Las tareas que te mandó Gerencia de Producción y las que están en curso para sumarte. «Iniciar» con quién trabajás, pausa (⏸) y seguir (▶), «Cancelar» y «Listo» (cuántas hicieron, y si quedan pendientes o se completó)."
     },
     {
       "ruta": "/usuarios",

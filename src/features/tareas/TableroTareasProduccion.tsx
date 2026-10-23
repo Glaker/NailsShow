@@ -149,8 +149,18 @@ function FilaTarea({
             {t.descripcion}
           </Text>
           <Group gap={4} mt={4}>
-            <Badge size="xs" variant="light" color={enCurso ? 'green' : 'gray'}>
-              {enCurso ? 'En curso' : t.estado === 'LISTA' ? 'Lista' : 'Pendiente'}
+            <Badge
+              size="xs"
+              variant="light"
+              color={enCurso ? 'green' : t.estado === 'EN_CURSO' ? 'yellow' : 'gray'}
+            >
+              {enCurso
+                ? 'En curso'
+                : t.estado === 'EN_CURSO'
+                  ? 'En pausa'
+                  : t.estado === 'LISTA'
+                    ? 'Lista'
+                    : 'Pendiente'}
             </Badge>
             {t.cantidad ? (
               <Text size="xs" c="dimmed">

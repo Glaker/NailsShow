@@ -145,9 +145,50 @@ await rechaza(
   /ya no se modifica/,
 );
 
+// D-tareas-2: Delia y Agustina trabajan 60 min, pausan, siguen 30 min y cargan 90 en el «Listo»: 45 y 45.
+await como('naza@x');
+const t3 = (
+  await uno(
+    `insert into gmp.tareas_produccion (tipo, descripcion, producto_id, cantidad, asignadas) values ('ETIQUETAR', 'Etiquetar 200', $1, 200, $2) returning id`,
+    [prod, [delia, agus]],
+  )
+).id;
+await como('delia@x');
+let antes;
+await prueba('la pausa no pide cantidad y la tarea sigue en curso', async () => {
+  antes = (await uno(`select gmp.iniciar_tarea($1, $2) id`, [t3, [agus]])).id;
+  await atrasar(antes, 60);
+  await como('delia@x');
+  await q(`select gmp.cerrar_tramo($1, 'PAUSA')`, [antes]);
+  const t = await uno(`select estado from gmp.tareas_produccion where id = $1`, [t3]);
+  if (t.estado !== 'EN_CURSO') throw new Error(t.estado);
+});
+let despues;
+await como('agus@x');
+await prueba('siguen con el mismo grupo', async () => {
+  despues = (await uno(`select gmp.reanudar_tarea($1) id`, [t3])).id;
+  const g = await q(`select usuario_id from gmp.tramo_participantes where tramo_id = $1 and hasta is null`, [despues]);
+  if (g.length !== 2) throw new Error(JSON.stringify(g));
+});
+await rechaza('no se reanuda dos veces', `select gmp.reanudar_tarea('${t3}')`, /no está en pausa/);
+await atrasar(despues, 30);
+await como('agus@x');
+await prueba('lo del «Listo» cubre antes y después de la pausa', async () => {
+  await q(`select gmp.cerrar_tramo($1, 'LISTO_HOY', 90)`, [despues]);
+  await como('naza@x');
+  const r = await q(
+    `select operaria, sum(cantidad)::float c from gmp.v_trabajo_operarias where tarea_id = $1 group by operaria order by operaria`,
+    [t3],
+  );
+  if (r.length !== 2 || r.some((x) => Math.abs(x.c - 45) > 0.01)) throw new Error(JSON.stringify(r));
+  const antesDe = await q(`select cantidad::float c from gmp.v_trabajo_operarias where tramo_id = $1`, [antes]);
+  // 60 de los 90 minutos de cada una fueron antes de la pausa.
+  if (antesDe.some((x) => Math.abs(x.c - 30) > 0.01)) throw new Error(JSON.stringify(antesDe));
+});
+
 await como('gabriel@x');
 await prueba('Gabriel (Finanzas) ve la productividad', async () => {
-  if ((await q(`select 1 from gmp.v_trabajo_operarias`)).length !== 4)
+  if ((await q(`select 1 from gmp.v_trabajo_operarias`)).length < 4)
     throw new Error('no ve');
 });
 await como('ventas@x');
