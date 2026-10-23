@@ -87,7 +87,7 @@ export function PaginaStockUnificada() {
             leftSection={<IconTag size={16} />}
             onClick={() => setRotulos(true)}
           >
-            Rótulos de producto terminado
+            Rótulos
           </Button>
         </Group>
       ) : null}

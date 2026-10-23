@@ -21,6 +21,7 @@ import { useOrdenes, type OrdenProduccion } from '@/lib/consultasOrdenes';
 import { useTerceros } from '@/lib/consultasTercerizados';
 import { desdeCalendario, fecha, fechaISO, numero } from '@/lib/formato';
 import { imprimirRotulo } from './imprimir';
+import { textoLote } from '@/features/produccion/posicionesLoteo';
 
 /** Solo estas tres: no se escriben (pedido del 2026-10-23). */
 const ESTADOS = [
@@ -223,7 +224,8 @@ export function PlanillaRotulosProduccion({
       ordenId: o.id,
       codigo: p?.codigo_interno ?? '',
       producto: p?.nombre ?? '',
-      lote: o.numero_lote,
+      // Mismo formato que el loteo: DDMMAAAA (pedido del 2026-10-23).
+      lote: textoLote(o.jornada),
       cantidad: `${numero(Number(cant), 2)} ${o.unidades_obtenidas !== null ? 'unidades' : o.unidad}`,
       cliente: i >= 0 ? listaTerceros[i]!.nombre : 'Nail Show',
       estado: 'FINALIZADO',
@@ -278,7 +280,7 @@ export function PlanillaRotulosProduccion({
     <Modal
       opened={abierto}
       onClose={onCerrar}
-      title={<Text fw={700}>Rótulos de producto terminado</Text>}
+      title={<Text fw={700}>Rótulos</Text>}
       size="xl"
     >
       <Stack gap="md">
@@ -307,7 +309,7 @@ export function PlanillaRotulosProduccion({
               .filter((o) => o.estado !== 'ANULADA')
               .map((o) => ({
                 value: o.id,
-                label: `${o.numero_lote} · ${nombreProducto(o.producto_id)}`,
+                label: `${textoLote(o.jornada)} · ${nombreProducto(o.producto_id)}`,
               }))}
             style={{ flex: 1, minWidth: 220 }}
           />
@@ -449,7 +451,7 @@ export function PlanillaRotulosProduccion({
             disabled={total === 0}
             onClick={imprimir}
           >
-            Imprimir {total}
+            Imprimir {hojas} {hojas === 1 ? 'hoja' : 'hojas'}
           </Button>
         </Group>
       </Stack>

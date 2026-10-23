@@ -251,7 +251,7 @@ export function PlanillaRotulos({
             disabled={total === 0}
             onClick={imprimir}
           >
-            Imprimir {total}
+            Imprimir {hojas} {hojas === 1 ? 'hoja' : 'hojas'}
           </Button>
         </Group>
       </Stack>

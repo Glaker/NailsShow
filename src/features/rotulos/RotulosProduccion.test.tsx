@@ -19,7 +19,7 @@ describe('rótulo de producto terminado', () => {
             ordenId: 'o',
             codigo: '101',
             producto: 'Liquido acrilico',
-            lote: '#2 23/10/26',
+            lote: '23102026',
             cantidad: '120 unidades',
             cliente: 'Nail Show',
             estado: 'POR_REPROCESAR',
@@ -34,7 +34,7 @@ describe('rótulo de producto terminado', () => {
       'POR REPROCESAR',
       'Liquido acrilico',
       '101',
-      '#2 23/10/26',
+      '23102026',
       '120 unidades',
       'Nail Show',
       'Sí',
@@ -42,7 +42,7 @@ describe('rótulo de producto terminado', () => {
     ])
       expect(screen.getByText(t)).toBeTruthy();
     expect(qr.mock.calls[0]?.[0]).toBe(
-      'Producido en Nail Show\nLote: #2 23/10/26\nVence: P1 10/29\nCódigo: 101',
+      'Producido en Nail Show\nLote: 23102026\nVence: P1 10/29\nCódigo: 101',
     );
   });
 });
