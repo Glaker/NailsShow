@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Box, Group, Paper, Text } from '@mantine/core';
+import { useElementSize } from '@mantine/hooks';
 
 export interface SerieLinea {
   nombre: string;
@@ -13,8 +14,50 @@ export interface SerieLinea {
   provisorios?: boolean[];
 }
 
-const ANCHO = 720;
-const M = { arriba: 16, derecha: 96, abajo: 26, izquierda: 8 };
+/** Ancho mientras no se midió el recuadro (y en el servidor). */
+const ANCHO_INICIAL = 720;
+const M = { arriba: 16, derecha: 150, abajo: 26, izquierda: 8 };
+/** Alto de una etiqueta al final de la línea: menos que esto, se encima. */
+const ALTO_ETIQUETA = 14;
+
+export interface EtiquetaFinal {
+  x: number;
+  y: number;
+  texto: string;
+  series: number[];
+}
+
+/**
+ * Etiquetas al final de cada línea sin encimarse: las que terminan en el mismo
+ * punto se juntan en una («Consumidor final · Mayorista»), y las que quedan
+ * cerca se separan hacia abajo (y hacia arriba si se pasan del alto).
+ */
+export function acomodarEtiquetas(
+  puntos: { serie: number; nombre: string; x: number; y: number }[],
+  arriba: number,
+  abajo: number,
+): EtiquetaFinal[] {
+  const juntas: EtiquetaFinal[] = [];
+  for (const p of [...puntos].sort((a, b) => a.y - b.y || a.serie - b.serie)) {
+    const igual = juntas.find((j) => Math.abs(j.x - p.x) < 1 && Math.abs(j.y - p.y) < 1);
+    if (igual) {
+      igual.texto += ` · ${p.nombre}`;
+      igual.series.push(p.serie);
+    } else juntas.push({ x: p.x, y: p.y, texto: p.nombre, series: [p.serie] });
+  }
+  juntas.sort((a, b) => a.y - b.y);
+  for (let i = 1; i < juntas.length; i++)
+    juntas[i]!.y = Math.max(juntas[i]!.y, juntas[i - 1]!.y + ALTO_ETIQUETA);
+  const exceso = (juntas.at(-1)?.y ?? 0) - abajo;
+  if (exceso > 0) for (const j of juntas) j.y -= exceso;
+  for (let i = juntas.length - 2; i >= 0; i--)
+    juntas[i]!.y = Math.min(juntas[i]!.y, juntas[i + 1]!.y - ALTO_ETIQUETA);
+  if (juntas[0] && juntas[0].y < arriba) {
+    const falta = arriba - juntas[0].y;
+    for (const j of juntas) j.y += falta;
+  }
+  return juntas;
+}
 
 /**
  * Líneas de varias series sobre UN solo eje (nunca dos escalas), escrito a
@@ -36,6 +79,10 @@ export function GraficoLineas({
   titulo: string;
 }) {
   const [activo, setActivo] = useState<number | null>(null);
+  // El gráfico usa el ancho real del recuadro: escalado, quedaba angosto y
+  // centrado (pedido del 2026-10-23).
+  const { ref, width } = useElementSize();
+  const ANCHO = Math.max(320, Math.round(width) || ANCHO_INICIAL);
 
   const geo = useMemo(() => {
     const todos = series.flatMap((s) => s.valores.filter((v): v is number => v !== null));
@@ -62,10 +109,30 @@ export function GraficoLineas({
         (u, v, i) => (v === null ? u : i),
         null,
       );
-      return { d, ultimo };
+      // Un mes suelto (sin vecinos) no traza línea: se dibuja como punto.
+      const sueltos = s.valores
+        .map((v, i) => ({ v, i }))
+        .filter(
+          ({ v, i }) =>
+            v !== null &&
+            (s.valores[i - 1] ?? null) === null &&
+            (s.valores[i + 1] ?? null) === null,
+        )
+        .map(({ i }) => i);
+      return { d, ultimo, sueltos };
     });
-    return { maximo, x, y, trazos, base: M.arriba + altoUtil, paso };
-  }, [series, etiquetas, alto]);
+    const etiquetasFinales = acomodarEtiquetas(
+      series.flatMap((s, k) => {
+        const u = trazos[k]!.ultimo;
+        return u === null
+          ? []
+          : [{ serie: k, nombre: s.nombre, x: x(u), y: y(s.valores[u]!) }];
+      }),
+      M.arriba,
+      M.arriba + altoUtil,
+    );
+    return { maximo, x, y, trazos, etiquetasFinales, base: M.arriba + altoUtil, paso };
+  }, [series, etiquetas, alto, ANCHO]);
 
   if (!geo) {
     return (
@@ -75,7 +142,7 @@ export function GraficoLineas({
     );
   }
 
-  const { x, y, trazos, base, maximo, paso } = geo;
+  const { x, y, trazos, etiquetasFinales, base, maximo, paso } = geo;
   const desdeX = (px: number) =>
     Math.max(
       0,
@@ -105,7 +172,7 @@ export function GraficoLineas({
           ))}
         </Group>
       ) : null}
-      <Box style={{ position: 'relative' }}>
+      <Box ref={ref} style={{ position: 'relative' }}>
         <svg
           viewBox={`0 0 ${ANCHO} ${alto}`}
           width="100%"
@@ -179,17 +246,27 @@ export function GraficoLineas({
                   />
                 ) : null,
               )}
-              {trazos[k]!.ultimo !== null ? (
-                <text
-                  x={x(trazos[k]!.ultimo) + 8}
-                  y={y(s.valores[trazos[k]!.ultimo]!) + 4}
-                  fontSize="11"
-                  fill="var(--mantine-color-text)"
-                >
-                  {s.nombre}
-                </text>
-              ) : null}
+              {trazos[k]!.sueltos.map((i) => (
+                <circle
+                  key={`s${i}`}
+                  cx={x(i)}
+                  cy={y(s.valores[i]!)}
+                  r={3.5}
+                  fill={`var(--serie-${s.color})`}
+                />
+              ))}
             </g>
+          ))}
+          {etiquetasFinales.map((e) => (
+            <text
+              key={e.texto}
+              x={e.x + 8}
+              y={e.y + 4}
+              fontSize="11"
+              fill="var(--mantine-color-text)"
+            >
+              {e.texto}
+            </text>
           ))}
           {activo !== null ? (
             <g>
