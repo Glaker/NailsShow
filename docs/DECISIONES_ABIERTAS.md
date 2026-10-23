@@ -981,13 +981,14 @@ La ven Gerencia de Producción y Gerencia.
 **Decisión del codirector técnico.** En Planificación › Órdenes, «Rótulos» arma una planilla A4 de 8 rótulos (mismo tamaño que los de insumos) con
 las órdenes del día elegido, y se suman otras. Cada rótulo lleva código,
 producto, lote (DDMMAAAA, como el loteo), cantidad y cliente, tomados de la orden y editables. El estado
-es uno de tres fijos (Etiquetado, Finalizado, Por reprocesar) y hay casillas
+es uno de tres fijos (Etiquetado, Aprobado, Por reprocesar) y hay casillas
 «Contado: Sí / No» para marcar a mano. Color por defecto: magenta para Nail
 Show, uno por tercero; se puede cambiar. El QR es texto plano («Producido en
 Nail Show», lote, vencimiento y código): se lee con cualquier celular, sin
 cuenta ni enlace. No hizo falta ninguna API.
 También lo imprimen Agustina y Silveira (Encargada de stock y Recepción) desde Stock, con el botón «Rótulos».
 «Agregar otro» suma una orden, un producto del catálogo sin orden o lo que se escriba (lote hoy y vencimiento por la vida útil, editables).
+Producto e insumos se imprimen en la misma hoja (8 por hoja, primero los de producto).
 En el mismo «Rótulos», la pestaña «Insumos» arma los rótulos de lotes de insumo
 (cuarentena, en análisis, aprobado, rechazado) como la ficha del lote: todos los
 rótulos en un lugar (pedido del 2026-10-23).
