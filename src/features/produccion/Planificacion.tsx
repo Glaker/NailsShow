@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { TableroTareasProduccion } from '@/features/tareas/TableroTareasProduccion';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   ActionIcon,
@@ -915,7 +916,10 @@ export function PaginaPlanificacion() {
   const [orden, setOrden] = useState(false);
   const [calcular, setCalcular] = useState(false);
   const [params, setParams] = useSearchParams();
-  const pestania = params.get('vista') === 'ordenes' ? 'ordenes' : 'plan';
+  const pedida = params.get('vista');
+  // «Tareas» (D-tareas-1): el tablero de tareas de las operarias.
+  const pestania =
+    pedida === 'ordenes' || (pedida === 'tareas' && editable) ? pedida : 'plan';
   const lista = abiertos(pedidos.data ?? []);
   const ventas = ventasAprobadas(pedidos.data ?? []);
 
@@ -955,7 +959,9 @@ export function PaginaPlanificacion() {
       <Tabs
         value={pestania}
         onChange={(v) =>
-          setParams(v === 'ordenes' ? { vista: 'ordenes' } : {}, { replace: true })
+          setParams(v === 'ordenes' || v === 'tareas' ? { vista: v } : {}, {
+            replace: true,
+          })
         }
         color="azul"
         keepMounted={false}
@@ -963,7 +969,13 @@ export function PaginaPlanificacion() {
         <Tabs.List mb="lg">
           <Tabs.Tab value="plan">Planificación</Tabs.Tab>
           <Tabs.Tab value="ordenes">Órdenes de producción</Tabs.Tab>
+          {editable ? <Tabs.Tab value="tareas">Tareas</Tabs.Tab> : null}
         </Tabs.List>
+        {editable ? (
+          <Tabs.Panel value="tareas">
+            <TableroTareasProduccion />
+          </Tabs.Panel>
+        ) : null}
         <Tabs.Panel value="ordenes">
           <ListaOrdenes />
         </Tabs.Panel>

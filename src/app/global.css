@@ -1083,3 +1083,22 @@ a.contador:hover {
     animation: none;
   }
 }
+
+/*
+ * Tablero de tareas (D-tareas-1): mantener apretado entra en modo ordenar y
+ * los cuadros tiemblan, como los íconos del iPhone (pedido expreso del
+ * 2026-10-23, excepción a «nada de animaciones decorativas»: avisa que se
+ * pueden mover).
+ */
+@keyframes tiembla {
+  0% { transform: rotate(-1.2deg); }
+  50% { transform: rotate(1.2deg); }
+  100% { transform: rotate(-1.2deg); }
+}
+.tiembla {
+  animation: tiembla 0.28s ease-in-out infinite;
+  transform-origin: 50% 50%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tiembla { animation: none; outline: 2px dashed currentColor; }
+}

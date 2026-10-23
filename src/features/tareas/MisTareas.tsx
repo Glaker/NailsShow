@@ -1,0 +1,412 @@
+import { useState } from 'react';
+import {
+  Badge,
+  Button,
+  Chip,
+  CloseButton,
+  Group,
+  Modal,
+  NumberInput,
+  Paper,
+  Select,
+  SimpleGrid,
+  Skeleton,
+  Stack,
+  Text,
+  Title,
+} from '@mantine/core';
+import {
+  IconCheck,
+  IconPlayerPause,
+  IconPlayerPlay,
+  IconUserPlus,
+  IconX,
+} from '@tabler/icons-react';
+import { useSesion } from '@/features/auth/sesion';
+import { Vacio } from '@/components/Vacio';
+import { useProductos } from '@/lib/consultas';
+import { useOrdenes } from '@/lib/consultasOrdenes';
+import {
+  useCambiarGrupo,
+  useCerrarTramo,
+  useHechoPorTarea,
+  useIniciarTarea,
+  usePersonal,
+  useTareasProduccion,
+  useTramosAbiertos,
+  type Participante,
+  type TareaProduccion,
+  type Tramo,
+} from '@/lib/consultasTareasProduccion';
+import { numero } from '@/lib/formato';
+
+type TramoConGrupo = Tramo & { tramo_participantes: Participante[] };
+
+/** Quiénes están trabajando: sacar a alguien o sumar a otra. */
+export function GrupoEnCurso({
+  tramo,
+  personal,
+}: {
+  tramo: TramoConGrupo;
+  personal: { value: string; label: string }[];
+}) {
+  const cambiar = useCambiarGrupo();
+  const nombre = new Map(personal.map((p) => [p.value, p.label]));
+  const en = tramo.tramo_participantes
+    .filter((p) => p.hasta === null)
+    .map((p) => p.usuario_id);
+  return (
+    <Group gap="xs" wrap="wrap">
+      {en.map((id) => (
+        <Badge
+          key={id}
+          size="xl"
+          variant="light"
+          radius="sm"
+          rightSection={
+            en.length > 1 ? (
+              <CloseButton
+                size="sm"
+                aria-label={`Sacar a ${nombre.get(id) ?? ''}`}
+                onClick={() =>
+                  cambiar.mutate({ tramoId: tramo.id, usuarioId: id, entra: false })
+                }
+              />
+            ) : null
+          }
+        >
+          {nombre.get(id) ?? '—'}
+        </Badge>
+      ))}
+      <Select
+        placeholder="Sumar a alguien"
+        leftSection={<IconUserPlus size={16} />}
+        searchable
+        value={null}
+        data={personal.filter((p) => !en.includes(p.value))}
+        onChange={(v) =>
+          v && cambiar.mutate({ tramoId: tramo.id, usuarioId: v, entra: true })
+        }
+        w={210}
+      />
+    </Group>
+  );
+}
+
+/** «Listo»: cuántas hicieron, y si queda pendiente o se terminó. */
+function ModalListo({
+  tarea,
+  tramoId,
+  falta,
+  onCerrar,
+}: {
+  tarea: TareaProduccion;
+  tramoId: string;
+  falta: number | null;
+  onCerrar: () => void;
+}) {
+  const cerrar = useCerrarTramo();
+  const [cuantas, setCuantas] = useState<number | string>('');
+  const n = cuantas === '' ? null : Number(cuantas);
+  return (
+    <Modal
+      opened
+      onClose={onCerrar}
+      title={<Text fw={700}>{tarea.descripcion}</Text>}
+      centered
+      size="md"
+    >
+      <Stack gap="md">
+        <NumberInput
+          label="¿Cuántas hicieron entre todas?"
+          description={falta !== null ? `Faltaban ${numero(falta)}` : undefined}
+          size="xl"
+          min={0}
+          allowDecimal={false}
+          value={cuantas}
+          onChange={setCuantas}
+          data-autofocus
+        />
+        <Button
+          size="xl"
+          variant="light"
+          disabled={n === null}
+          loading={cerrar.isPending}
+          onClick={() =>
+            cerrar.mutate(
+              { tramoId, cierre: 'LISTO_HOY', cantidad: n },
+              { onSuccess: onCerrar },
+            )
+          }
+        >
+          Listo por hoy: quedan pendientes
+        </Button>
+        <Button
+          size="xl"
+          color="green"
+          leftSection={<IconCheck size={22} />}
+          loading={cerrar.isPending}
+          onClick={() =>
+            cerrar.mutate(
+              { tramoId, cierre: 'COMPLETA', cantidad: n },
+              { onSuccess: onCerrar },
+            )
+          }
+        >
+          Completamos la tarea
+        </Button>
+        {falta !== null ? (
+          <Text size="xs" c="dimmed">
+            Si tocás «Completamos» sin poner cuántas, se cuentan las {numero(falta)} que
+            faltaban.
+          </Text>
+        ) : null}
+      </Stack>
+    </Modal>
+  );
+}
+
+function TarjetaTarea({
+  t,
+  tramo,
+  hecho,
+  personal,
+  producto,
+  lote,
+}: {
+  t: TareaProduccion;
+  tramo: TramoConGrupo | undefined;
+  hecho: number;
+  personal: { value: string; label: string }[];
+  producto: string | null;
+  lote: string | null;
+}) {
+  const { claims } = useSesion();
+  const yo = claims?.usuario_id ?? '';
+  const iniciar = useIniciarTarea();
+  const cerrar = useCerrarTramo();
+  const cambiar = useCambiarGrupo();
+  const [eligiendo, setEligiendo] = useState(false);
+  const [con, setCon] = useState<string[]>(t.asignadas.filter((a) => a !== yo));
+  const [listo, setListo] = useState(false);
+  const nombre = new Map(personal.map((p) => [p.value, p.label]));
+  const estoy = tramo?.tramo_participantes.some(
+    (p) => p.usuario_id === yo && p.hasta === null,
+  );
+  const falta = t.cantidad === null ? null : Math.max(t.cantidad - hecho, 0);
+
+  return (
+    <Paper
+      withBorder
+      p="lg"
+      radius="lg"
+      style={{ borderColor: tramo ? 'var(--mantine-color-green-6)' : undefined }}
+    >
+      <Stack gap="sm">
+        <Group justify="space-between" align="flex-start" wrap="nowrap">
+          <Stack gap={2}>
+            <Title order={3}>{t.descripcion}</Title>
+            <Text c="dimmed">
+              {[producto, lote ? `Lote ${lote}` : null].filter(Boolean).join(' · ')}
+            </Text>
+          </Stack>
+          {tramo ? (
+            <Badge size="lg" color="green">
+              En curso
+            </Badge>
+          ) : null}
+        </Group>
+        {t.cantidad !== null ? (
+          <Text size="lg">
+            Hechas <b>{numero(hecho)}</b> de <b>{numero(t.cantidad)}</b>
+          </Text>
+        ) : null}
+
+        {tramo ? (
+          <>
+            <GrupoEnCurso tramo={tramo} personal={personal} />
+            {estoy ? (
+              <SimpleGrid cols={{ base: 1, sm: 3 }}>
+                <Button
+                  size="xl"
+                  variant="default"
+                  leftSection={<IconPlayerPause size={22} />}
+                  loading={cerrar.isPending}
+                  onClick={() =>
+                    cerrar.mutate({ tramoId: tramo.id, cierre: 'PAUSA', cantidad: 0 })
+                  }
+                >
+                  Parar
+                </Button>
+                <Button
+                  size="xl"
+                  variant="default"
+                  color="red"
+                  leftSection={<IconX size={22} />}
+                  loading={cerrar.isPending}
+                  onClick={() =>
+                    cerrar.mutate({
+                      tramoId: tramo.id,
+                      cierre: 'CANCELADO',
+                      cantidad: null,
+                    })
+                  }
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  size="xl"
+                  color="green"
+                  leftSection={<IconCheck size={22} />}
+                  onClick={() => setListo(true)}
+                >
+                  Listo
+                </Button>
+              </SimpleGrid>
+            ) : (
+              <Button
+                size="xl"
+                leftSection={<IconUserPlus size={22} />}
+                loading={cambiar.isPending}
+                onClick={() =>
+                  cambiar.mutate({ tramoId: tramo.id, usuarioId: yo, entra: true })
+                }
+              >
+                Sumarme
+              </Button>
+            )}
+          </>
+        ) : (
+          <Button
+            size="xl"
+            leftSection={<IconPlayerPlay size={22} />}
+            onClick={() => setEligiendo(true)}
+          >
+            Iniciar
+          </Button>
+        )}
+      </Stack>
+
+      <Modal
+        opened={eligiendo}
+        onClose={() => setEligiendo(false)}
+        title={<Text fw={700}>¿Con quién trabajás?</Text>}
+        centered
+      >
+        <Stack gap="md">
+          <Chip.Group multiple value={con} onChange={setCon}>
+            <Group gap="xs">
+              {personal
+                .filter((p) => p.value !== yo)
+                .map((p) => (
+                  <Chip key={p.value} value={p.value} size="lg">
+                    {p.label}
+                  </Chip>
+                ))}
+            </Group>
+          </Chip.Group>
+          <Text size="sm" c="dimmed">
+            {con.length === 0
+              ? 'Sola.'
+              : `Con ${con.map((c) => nombre.get(c)).join(', ')}. Una sola carga por todas.`}
+          </Text>
+          <Button
+            size="xl"
+            leftSection={<IconPlayerPlay size={22} />}
+            loading={iniciar.isPending}
+            onClick={() =>
+              iniciar.mutate(
+                { tareaId: t.id, con },
+                { onSuccess: () => setEligiendo(false) },
+              )
+            }
+          >
+            Iniciar
+          </Button>
+        </Stack>
+      </Modal>
+      {listo && tramo ? (
+        <ModalListo
+          tarea={t}
+          tramoId={tramo.id}
+          falta={falta}
+          onCerrar={() => setListo(false)}
+        />
+      ) : null}
+    </Paper>
+  );
+}
+
+/**
+ * Mis tareas (rol Producción, D-tareas-1): lo que Naza les mandó, en orden de
+ * prioridad, y lo que está en curso para sumarse. Iniciar, parar, cancelar y
+ * listo. No se muestran tiempos: los toma la base.
+ */
+export function MisTareas() {
+  const { claims } = useSesion();
+  const yo = claims?.usuario_id ?? '';
+  const tareas = useTareasProduccion();
+  const tramos = useTramosAbiertos();
+  const personal = usePersonal();
+  const productos = useProductos();
+  const ordenes = useOrdenes();
+
+  const tramoDe = new Map((tramos.data ?? []).map((x) => [x.tarea_id, x]));
+  const lista = (tareas.data ?? []).filter(
+    (t) =>
+      (t.estado === 'PENDIENTE' || t.estado === 'EN_CURSO') &&
+      (t.asignadas.includes(yo) || tramoDe.has(t.id)),
+  );
+  const hecho = useHechoPorTarea(lista.map((t) => t.id));
+  const opciones = (personal.data ?? []).map((p) => ({
+    value: p.id,
+    label: p.nombre_completo,
+  }));
+  const nombreProducto = new Map((productos.data ?? []).map((p) => [p.id, p.nombre]));
+  const loteDe = new Map((ordenes.data ?? []).map((o) => [o.id, o.numero_lote]));
+
+  if (tareas.isLoading) return <Skeleton h={240} />;
+  const mias = lista.filter(
+    (t) =>
+      t.asignadas.includes(yo) ||
+      tramoDe
+        .get(t.id)
+        ?.tramo_participantes.some((p) => p.usuario_id === yo && p.hasta === null),
+  );
+  const otras = lista.filter((t) => !mias.includes(t));
+  const tarjeta = (t: TareaProduccion) => (
+    <TarjetaTarea
+      key={t.id}
+      t={t}
+      tramo={tramoDe.get(t.id)}
+      hecho={hecho.data?.get(t.id) ?? 0}
+      personal={opciones}
+      producto={t.producto_id ? (nombreProducto.get(t.producto_id) ?? null) : null}
+      lote={t.orden_id ? (loteDe.get(t.orden_id) ?? null) : null}
+    />
+  );
+
+  return (
+    <Stack gap="lg">
+      <Title order={1}>Mis tareas</Title>
+      {mias.length === 0 ? (
+        <Paper withBorder>
+          <Vacio
+            icono={IconCheck}
+            titulo="No tenés tareas"
+            descripcion="Cuando Naza te mande una, aparece acá."
+          />
+        </Paper>
+      ) : (
+        mias.map(tarjeta)
+      )}
+      {otras.length > 0 ? (
+        <>
+          <Title order={2}>En curso del equipo</Title>
+          <Text c="dimmed">Si te sumás a una de estas, tocá «Sumarme».</Text>
+          {otras.map(tarjeta)}
+        </>
+      ) : null}
+    </Stack>
+  );
+}

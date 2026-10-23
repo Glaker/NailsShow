@@ -351,6 +351,13 @@ export const PESTANIAS: { ruta: string; etiqueta: string; de: string; roles?: Ro
       roles: PRODUCCION,
     },
     {
+      // Lo que está por debajo del punto de pedido (pedido del 2026-10-23).
+      ruta: '/stock?vista=pedido',
+      etiqueta: 'Stock › Punto de pedido',
+      de: '/stock',
+      roles: PRODUCCION,
+    },
+    {
       // Fábrica, Calle 5 y Berna (2026-10-22; antes «En fábrica» y «Calle 5»).
       ruta: '/stock?vista=depositos',
       etiqueta: 'Stock › Depósitos',

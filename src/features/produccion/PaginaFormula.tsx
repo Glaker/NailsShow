@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { MATERIAS_PRIMAS_COMUNES, normalizar } from './materiasPrimas';
 import { Link, useParams } from 'react-router-dom';
 import {
   ActionIcon,
@@ -13,7 +14,6 @@ import {
   Modal,
   NumberInput,
   Paper,
-  Radio,
   Select,
   Skeleton,
   Stack,
@@ -60,7 +60,7 @@ const esquemaComponente = z
   .refine(
     (v) => (v.origen === 'CATALOGO' ? Boolean(v.insumo_id) : v.nombre_libre.length > 0),
     {
-      message: 'Elegí un insumo del catálogo o escribí un nombre',
+      message: 'Elegí el insumo',
       path: ['insumo_id'],
     },
   )
@@ -117,6 +117,29 @@ function FormularioComponente({
     validate: zod4Resolver(esquemaComponente),
   });
 
+  const catalogo = (insumos.data ?? []).filter(
+    (i) => i.activo && (i.tipo === 'MATERIA_PRIMA' || i.tipo === 'SEMIELABORADO'),
+  );
+  const yaCargados = new Set(catalogo.map((i) => normalizar(i.nombre)));
+  const opcionesInsumo = [
+    {
+      group: 'Del catálogo',
+      items: catalogo.map((i) => ({
+        value: i.id,
+        label: `${i.nombre} (${i.codigo_interno})`,
+      })),
+    },
+    {
+      group: 'Sin catalogar',
+      items: MATERIAS_PRIMAS_COMUNES.filter((n) => !yaCargados.has(normalizar(n))).map(
+        (n) => ({
+          value: `libre:${n}`,
+          label: n,
+        }),
+      ),
+    },
+  ];
+
   return (
     <form
       onSubmit={form.onSubmit(async (v) => {
@@ -138,25 +161,26 @@ function FormularioComponente({
       })}
     >
       <Stack gap="sm">
-        <Radio.Group label="Cómo se identifica" {...form.getInputProps('origen')}>
-          <Group gap="lg" mt={4}>
-            <Radio value="CATALOGO" label="Insumo del catálogo" />
-            <Radio value="LIBRE" label="Nombre libre (todavía sin catalogar)" />
-          </Group>
-        </Radio.Group>
-
-        {form.values.origen === 'CATALOGO' ? (
-          <Select
-            label="Insumo"
-            withAsterisk
-            searchable
-            placeholder="Buscar por nombre o código"
-            data={(insumos.data ?? []).map((i) => ({
-              value: i.id,
-              label: `${i.nombre} (${i.codigo_interno})`,
-            }))}
-            onSearchChange={setBuscado}
-            nothingFoundMessage={
+        {/* Un solo «Insumo» (pedido del 2026-10-23): las materias primas del
+            catálogo y, debajo, las habituales que todavía no están cargadas,
+            que entran como nombre libre. */}
+        <Select
+          label="Insumo"
+          withAsterisk
+          searchable
+          placeholder="Buscar por nombre o código"
+          data={opcionesInsumo}
+          value={
+            form.values.origen === 'LIBRE'
+              ? form.values.nombre_libre
+                ? `libre:${form.values.nombre_libre}`
+                : null
+              : form.values.insumo_id
+          }
+          error={form.errors.insumo_id}
+          onSearchChange={setBuscado}
+          nothingFoundMessage={
+            <Stack gap={6}>
               <Button
                 fullWidth
                 size="md"
@@ -166,24 +190,38 @@ function FormularioComponente({
               >
                 Nuevo insumo
               </Button>
+              {buscado.trim() ? (
+                <Button
+                  fullWidth
+                  size="md"
+                  variant="subtle"
+                  onClick={() => {
+                    form.setFieldValue('origen', 'LIBRE');
+                    form.setFieldValue('insumo_id', null);
+                    form.setFieldValue('nombre_libre', buscado.trim());
+                  }}
+                >
+                  Usar «{buscado.trim()}» sin catalogar
+                </Button>
+              ) : null}
+            </Stack>
+          }
+          onChange={(v) => {
+            if (v?.startsWith('libre:')) {
+              form.setFieldValue('origen', 'LIBRE');
+              form.setFieldValue('insumo_id', null);
+              form.setFieldValue('nombre_libre', v.slice('libre:'.length));
+              return;
             }
-            {...form.getInputProps('insumo_id')}
-            onChange={(id) => {
-              form.setFieldValue('insumo_id', id);
-              // Precarga la densidad del insumo (alcohol isopropílico → IPA,
-              // acetato de butilo → acetato de n-butilo). Se puede cambiar.
-              const insumo = (insumos.data ?? []).find((i) => i.id === id);
-              form.setFieldValue('densidad_id', insumo?.densidad_referencia_id ?? null);
-            }}
-          />
-        ) : (
-          <TextInput
-            label="Nombre"
-            withAsterisk
-            placeholder="Nombre del componente"
-            {...form.getInputProps('nombre_libre')}
-          />
-        )}
+            form.setFieldValue('origen', 'CATALOGO');
+            form.setFieldValue('nombre_libre', '');
+            form.setFieldValue('insumo_id', v);
+            // Precarga la densidad del insumo (alcohol isopropílico → IPA,
+            // acetato de butilo → acetato de n-butilo). Se puede cambiar.
+            const insumo = (insumos.data ?? []).find((i) => i.id === v);
+            form.setFieldValue('densidad_id', insumo?.densidad_referencia_id ?? null);
+          }}
+        />
 
         <Grid gutter="sm" align="flex-end">
           <Grid.Col span={{ base: 12, sm: 6 }}>
