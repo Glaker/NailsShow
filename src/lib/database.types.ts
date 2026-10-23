@@ -969,6 +969,42 @@ export type Database = {
           },
         ]
       }
+      correcciones_lote: {
+        Row: {
+          bultos_antes: number
+          bultos_despues: number
+          corregido_en: string
+          corregido_por: string
+          id: string
+          lote_insumo_id: string
+          motivo: string
+          unidades_antes: number | null
+          unidades_despues: number
+        }
+        Insert: {
+          bultos_antes: number
+          bultos_despues: number
+          corregido_en?: string
+          corregido_por?: string
+          id?: string
+          lote_insumo_id: string
+          motivo: string
+          unidades_antes?: number | null
+          unidades_despues: number
+        }
+        Update: {
+          bultos_antes?: number
+          bultos_despues?: number
+          corregido_en?: string
+          corregido_por?: string
+          id?: string
+          lote_insumo_id?: string
+          motivo?: string
+          unidades_antes?: number | null
+          unidades_despues?: number
+        }
+        Relationships: []
+      }
       costos_accesorios: {
         Row: {
           alicuota_iva: number | null
@@ -10032,8 +10068,12 @@ export type Database = {
           formula_consultada_en: string | null
           formula_consultada_por: string | null
           id: string
+          margen_envasado_pct: number
+          minutos_envasado_unidad: number | null
+          minutos_etiquetado_unidad: number | null
           nombre: string
           origen: Database["gmp"]["Enums"]["origen_producto_enum"] | null
+          personas_envasado: number
           producto_base_id: string | null
           sin_formula: boolean
           solo_reventa: boolean
@@ -10052,8 +10092,12 @@ export type Database = {
           formula_consultada_en?: string | null
           formula_consultada_por?: string | null
           id?: string
+          margen_envasado_pct?: number
+          minutos_envasado_unidad?: number | null
+          minutos_etiquetado_unidad?: number | null
           nombre: string
           origen?: Database["gmp"]["Enums"]["origen_producto_enum"] | null
+          personas_envasado?: number
           producto_base_id?: string | null
           sin_formula?: boolean
           solo_reventa?: boolean
@@ -10072,8 +10116,12 @@ export type Database = {
           formula_consultada_en?: string | null
           formula_consultada_por?: string | null
           id?: string
+          margen_envasado_pct?: number
+          minutos_envasado_unidad?: number | null
+          minutos_etiquetado_unidad?: number | null
           nombre?: string
           origen?: Database["gmp"]["Enums"]["origen_producto_enum"] | null
+          personas_envasado?: number
           producto_base_id?: string | null
           sin_formula?: boolean
           solo_reventa?: boolean
@@ -10241,6 +10289,39 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_lotes_insumo"
             referencedColumns: ["proveedor_id"]
+          },
+        ]
+      }
+      recepciones_eliminadas: {
+        Row: {
+          eliminada_en: string
+          eliminada_por: string
+          recepcion_id: string
+        }
+        Insert: {
+          eliminada_en?: string
+          eliminada_por?: string
+          recepcion_id: string
+        }
+        Update: {
+          eliminada_en?: string
+          eliminada_por?: string
+          recepcion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recepciones_eliminadas_recepcion_id_fkey"
+            columns: ["recepcion_id"]
+            isOneToOne: true
+            referencedRelation: "recepciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recepciones_eliminadas_recepcion_id_fkey"
+            columns: ["recepcion_id"]
+            isOneToOne: true
+            referencedRelation: "v_lotes_insumo"
+            referencedColumns: ["recepcion_id"]
           },
         ]
       }
@@ -10807,8 +10888,12 @@ export type Database = {
           formula_consultada_en: string | null
           formula_consultada_por: string | null
           id: string
+          margen_envasado_pct: number
+          minutos_envasado_unidad: number | null
+          minutos_etiquetado_unidad: number | null
           nombre: string
           origen: Database["gmp"]["Enums"]["origen_producto_enum"] | null
+          personas_envasado: number
           producto_base_id: string | null
           sin_formula: boolean
           solo_reventa: boolean
@@ -10883,6 +10968,39 @@ export type Database = {
           p_lote_id: string
           p_observacion?: string
           p_olor_ok: boolean
+          p_rotulo_ok: boolean
+        }
+        Returns: {
+          aprobado: boolean
+          conclusiones: string
+          controlo_en: string
+          controlo_por: string
+          descripcion: string
+          fecha: string
+          id: string
+          lote_insumo_id: string | null
+          motivo: string | null
+          numero: string
+          orden_id: string | null
+          rectifica_a: string | null
+          registro: string
+          tamano_muestra: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "registros_analisis"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      control_recepcion_envase: {
+        Args: {
+          p_aprobado: boolean
+          p_aspecto_ok: boolean
+          p_cantidad_ok: boolean
+          p_contenedor_ok: boolean
+          p_lote_id: string
+          p_observacion?: string
           p_rotulo_ok: boolean
         }
         Returns: {
@@ -11012,6 +11130,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      eliminar_recepcion: {
+        Args: { p_recepcion_id: string }
+        Returns: undefined
+      }
       emitir_rotulo_lote_insumo: {
         Args: {
           p_estado: Database["gmp"]["Enums"]["estado_calidad_enum"]
@@ -11098,6 +11220,7 @@ export type Database = {
       }
       lote_consumible: { Args: { p_lote_id: string }; Returns: boolean }
       lote_despachable: { Args: { p_lote_id: string }; Returns: boolean }
+      lote_es_envase: { Args: { p_lote_id: string }; Returns: boolean }
       lote_es_materia_prima: { Args: { p_lote_id: string }; Returns: boolean }
       marcar_tarea_vista: { Args: { p_id: string }; Returns: undefined }
       nueva_version_especificacion: {
