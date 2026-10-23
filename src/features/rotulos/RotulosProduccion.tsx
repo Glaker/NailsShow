@@ -325,10 +325,7 @@ export function PlanillaRotulosProduccion({
             withBorder
             p="sm"
             radius="md"
-            style={{
-              borderColor: 'var(--superficie-borde)',
-              borderLeft: `6px solid ${r.color}`,
-            }}
+            style={{ borderColor: 'var(--superficie-borde)' }}
           >
             <Stack gap="xs">
               <Group align="flex-end" gap="sm" wrap="wrap">
