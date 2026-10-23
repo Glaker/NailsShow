@@ -5,14 +5,12 @@ import {
   Alert,
   Anchor,
   Badge,
-  Box,
   Button,
   Divider,
   Group,
   Paper,
   Select,
   Stack,
-  Table,
   Text,
   TextInput,
 } from '@mantine/core';
@@ -164,15 +162,50 @@ function NoLaSe({
   );
 }
 
-/** Lo que DT tiene que cargar o aprobar, con acceso al producto. */
-function PendientesDT({
-  abierto,
-  onAbrir,
+/**
+ * Lo que hay que revisar de un pendiente, ahí mismo: la fórmula (la que está
+ * en borrador, si hay), su procedimiento o la especificación del producto.
+ */
+function SeccionPendiente({
+  productoId,
+  seccion,
 }: {
-  abierto: string | null;
-  onAbrir: (productoId: string, seccion: PendienteDT['seccion']) => void;
+  productoId: string;
+  seccion: PendienteDT['seccion'];
 }) {
+  const formulas = useFormulasFabricacion();
+  const especificaciones = useEspecificaciones();
+  const delProducto = (formulas.data ?? []).filter(
+    (f) => f.producto_id === productoId && f.estado !== 'DADO_DE_BAJA',
+  );
+  const formula = delProducto.find((f) => f.estado === 'BORRADOR') ?? delProducto[0];
+  const espec = (especificaciones.data ?? []).find(
+    (e) => e.producto_id === productoId && e.estado !== 'DADO_DE_BAJA',
+  );
+  if (formulas.isLoading || especificaciones.isLoading)
+    return <Text size="sm">Cargando…</Text>;
+  if (seccion === 'ESPECIFICACION')
+    return espec ? (
+      <FichaEspecificacion id={espec.id} onCambiarId={() => {}} />
+    ) : (
+      <CabeceraEspecificacion productoId={productoId} onListo={() => {}} />
+    );
+  if (!formula)
+    return <FormularioNuevaFormula productoInicial={productoId} onListo={() => {}} />;
+  return seccion === 'PROCEDIMIENTO' ? (
+    <PanelProcedimiento formulaId={formula.id} />
+  ) : (
+    <PaginaFormula formulaId={formula.id} />
+  );
+}
+
+/**
+ * Lo que DT tiene que cargar o aprobar. Cada uno se despliega en el lugar,
+ * con lo que hay que revisar (pedido del 2026-10-23).
+ */
+function PendientesDT() {
   const pendientes = usePendientesDT();
+  const [abierto, setAbierto] = useState<string | null>(null);
   const filas = pendientes.data ?? [];
   if (filas.length === 0) return null;
   return (
@@ -186,28 +219,23 @@ function PendientesDT({
       <Text fw={700} mb="xs">
         Para Dirección Técnica ({filas.length})
       </Text>
-      {/* Con altura tope: la lista no tapa el producto que se abre abajo. */}
-      <Box mah={340} style={{ overflowY: 'auto' }}>
-        <Table.ScrollContainer minWidth={640}>
-          <Table verticalSpacing="xs">
-            <Table.Tbody>
-              {filas.map((p) => (
-                <Table.Tr
-                  key={`${p.producto_id}-${p.seccion}-${p.motivo}-${p.desde}`}
-                  {...(p.producto_id === abierto
-                    ? { bg: 'var(--mantine-color-blue-light)' }
-                    : {})}
-                >
-                  <Table.Td>
+      <Accordion value={abierto} onChange={setAbierto} variant="contained" radius="md">
+        {filas.map((p) => {
+          const clave = `${p.producto_id}|${p.seccion}|${p.motivo}|${p.desde}`;
+          return (
+            <Accordion.Item key={clave} value={clave}>
+              <Accordion.Control>
+                <Group justify="space-between" wrap="wrap" gap="xs" pr="sm">
+                  <div>
                     <Text size="sm" fw={600}>
                       {p.nombre}
                     </Text>
                     <Text size="xs" c="dimmed" ff="monospace">
                       {p.codigo_interno}
                     </Text>
-                  </Table.Td>
-                  <Table.Td>{SECCION[p.seccion]}</Table.Td>
-                  <Table.Td>
+                  </div>
+                  <Group gap="sm" wrap="nowrap">
+                    <Text size="sm">{SECCION[p.seccion]}</Text>
                     <Badge
                       variant="light"
                       radius="sm"
@@ -215,27 +243,22 @@ function PendientesDT({
                     >
                       {p.motivo === 'NO_LA_SABE' ? 'No la sabe: cargarla' : 'Aprobar'}
                     </Badge>
-                  </Table.Td>
-                  <Table.Td>
                     <Text size="xs" c="dimmed">
                       {p.pedido_por ?? ''} · {fecha(p.desde)}
                     </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Button
-                      size="compact-sm"
-                      variant="light"
-                      onClick={() => onAbrir(p.producto_id, p.seccion)}
-                    >
-                      Abrir
-                    </Button>
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
-      </Box>
+                  </Group>
+                </Group>
+              </Accordion.Control>
+              <Accordion.Panel>
+                {/* Se monta solo el abierto: cada uno trae su fórmula entera. */}
+                {abierto === clave ? (
+                  <SeccionPendiente productoId={p.producto_id} seccion={p.seccion} />
+                ) : null}
+              </Accordion.Panel>
+            </Accordion.Item>
+          );
+        })}
+      </Accordion>
     </Paper>
   );
 }
@@ -260,26 +283,7 @@ export function PaginaNuevoProducto() {
       return p;
     });
   const esDT = useTieneRol('DIRECCION_TECNICA');
-  // Secciones abiertas: «Abrir» desde los pendientes abre la que corresponde.
   const [abiertas, setAbiertas] = useState<string[]>(['producto']);
-  const abrir = (id: string, seccion: PendienteDT['seccion']) => {
-    const clave =
-      seccion === 'FORMULA'
-        ? 'formula'
-        : seccion === 'PROCEDIMIENTO'
-          ? 'procedimiento'
-          : 'especificacion';
-    elegir(id);
-    setAbiertas(['producto', clave]);
-    // Después de que se dibuje el producto, bajar hasta la sección.
-    setTimeout(
-      () =>
-        document
-          .getElementById(`np-${clave}`)
-          ?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
-      200,
-    );
-  };
 
   const productos = useProductos();
   const formulas = useFormulasFabricacion();
@@ -354,7 +358,7 @@ export function PaginaNuevoProducto() {
 
   return (
     <>
-      {esDT ? <PendientesDT abierto={productoId} onAbrir={abrir} /> : null}
+      {esDT ? <PendientesDT /> : null}
 
       <Accordion
         multiple
@@ -405,11 +409,7 @@ export function PaginaNuevoProducto() {
 
         {productoId ? (
           <>
-            <Accordion.Item
-              value="formula"
-              id={`np-formula`}
-              style={{ scrollMarginTop: 16 }}
-            >
+            <Accordion.Item value="formula">
               <Accordion.Control>
                 <Titulo
                   n={2}
@@ -462,11 +462,7 @@ export function PaginaNuevoProducto() {
               </Accordion.Panel>
             </Accordion.Item>
 
-            <Accordion.Item
-              value="procedimiento"
-              id={`np-procedimiento`}
-              style={{ scrollMarginTop: 16 }}
-            >
+            <Accordion.Item value="procedimiento">
               <Accordion.Control>
                 <Titulo
                   n={4}
@@ -518,11 +514,7 @@ export function PaginaNuevoProducto() {
               </Accordion.Panel>
             </Accordion.Item>
 
-            <Accordion.Item
-              value="especificacion"
-              id={`np-especificacion`}
-              style={{ scrollMarginTop: 16 }}
-            >
+            <Accordion.Item value="especificacion">
               <Accordion.Control>
                 <Titulo
                   n={5}
