@@ -905,6 +905,16 @@ toma la versión que rige, no la última. DT ve lo pendiente en
 **Pendiente.** Los pendientes no avisan por correo: DT los ve al entrar.
 **Dónde está.** `20261023120000_gmp_nuevo_producto_gp.sql`.
 
+### D-nuevo-producto-2 · Copiar fórmula y procedimiento de otra vigente — adoptada 2026-10-23
+
+**Decisión del codirector técnico.** Pasa que dos productos llevan la misma
+fórmula. Al dar de alta una fórmula se puede elegir «Copiar de una fórmula
+vigente»: el borrador nace con sus componentes y, si se marca, con su
+procedimiento. En una fórmula en borrador, «Pegar de otra fórmula vigente» agrega
+sus componentes al final. Lo copiado sigue en borrador y se ajusta: la deja
+vigente DT, y el procedimiento que trae GP espera su aprobación.
+**Dónde está.** `20261023160000_gmp_copiar_componentes_y_procedimiento.sql`.
+
 ### D-rotulos-2 · Cantidad en el rótulo — adoptada 2026-10-23
 
 **Decisión del codirector técnico.** El rótulo muestra la cantidad. En la
