@@ -924,6 +924,7 @@ es uno de tres fijos (Etiquetado, Finalizado, Por reprocesar) y hay casillas
 Show, uno por tercero; se puede cambiar. El QR es texto plano («Producido en
 Nail Show», lote, vencimiento y código): se lee con cualquier celular, sin
 cuenta ni enlace. No hizo falta ninguna API.
+También lo imprimen Agustina y Silveira (Encargada de stock y Recepción) desde Stock, con el botón «Rótulos de producto terminado».
 **Límite.** Es solo papel: no queda registro en el sistema de qué se imprimió
 ni de lo que se marque a mano.
 **Dónde está.** `src/features/rotulos/RotulosProduccion.tsx`.
