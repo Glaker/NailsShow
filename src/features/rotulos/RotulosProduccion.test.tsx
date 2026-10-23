@@ -46,3 +46,12 @@ describe('rótulo de producto terminado', () => {
     );
   });
 });
+
+describe('hoja mixta de producto e insumos', () => {
+  it('las copias de los dos tipos se cuentan juntas: 2 + 7 = 9 rótulos, 2 hojas', async () => {
+    const { copiasDe, POR_HOJA } = await import('./PlanillaRotulos');
+    const total = copiasDe([{ copias: 2 }]).length + copiasDe([{ copias: 7 }]).length;
+    expect(total).toBe(9);
+    expect(Math.ceil(total / POR_HOJA)).toBe(2);
+  });
+});

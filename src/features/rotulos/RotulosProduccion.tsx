@@ -15,20 +15,28 @@ import {
   TextInput,
 } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
-import { IconPlus, IconPrinter, IconTrash } from '@tabler/icons-react';
+import { IconPlus, IconTrash } from '@tabler/icons-react';
 import QRCode from 'qrcode';
 import { useProductos } from '@/lib/consultas';
 import { useOrdenes, type OrdenProduccion } from '@/lib/consultasOrdenes';
 import { useTerceros } from '@/lib/consultasTercerizados';
 import { desdeCalendario, fecha, fechaISO, numero } from '@/lib/formato';
-import { imprimirRotulo } from './imprimir';
-import { RotulosInsumos } from './PlanillaRotulos';
+import {
+  CeldasInsumos,
+  EditorInsumos,
+  PieHoja,
+  VistaHoja,
+  copiasDe,
+  imprimirPlanilla,
+  useLotesRotulo,
+  type RenglonInsumo,
+} from './PlanillaRotulos';
 import { textoLote } from '@/features/produccion/posicionesLoteo';
 
 /** Solo estas tres: no se escriben (pedido del 2026-10-23). */
 const ESTADOS = [
   { value: 'ETIQUETADO', label: 'Etiquetado' },
-  { value: 'FINALIZADO', label: 'Finalizado' },
+  { value: 'APROBADO', label: 'Aprobado' },
   { value: 'POR_REPROCESAR', label: 'Por reprocesar' },
 ] as const;
 type EstadoPT = (typeof ESTADOS)[number]['value'];
@@ -43,9 +51,6 @@ const COLORES_TERCEROS = [
   '#0c8599',
   '#5c940d',
 ];
-
-/** Rótulos por hoja A4, como los de insumos (global.css). */
-const POR_HOJA = 8;
 
 interface Renglon {
   clave: number;
@@ -214,6 +219,9 @@ export function PlanillaRotulosProduccion({
   const [tipo, setTipo] = useState<'producto' | 'insumos'>('producto');
   const [dia, setDia] = useState<Date | null>(new Date());
   const [renglones, setRenglones] = useState<Renglon[]>([]);
+  /* Los de insumos van en la misma hoja (pedido del 2026-10-23). */
+  const [insumos, setInsumos] = useState<RenglonInsumo[]>([]);
+  const lotesRotulo = useLotesRotulo();
   const [cargado, setCargado] = useState(false);
   const [hoy] = useState(() => fecha(new Date().toISOString()));
 
@@ -231,7 +239,7 @@ export function PlanillaRotulosProduccion({
       lote: textoLote(o.jornada),
       cantidad: `${numero(Number(cant), 2)} ${o.unidades_obtenidas !== null ? 'unidades' : o.unidad}`,
       cliente: i >= 0 ? listaTerceros[i]!.nombre : 'Nail Show',
-      estado: 'FINALIZADO',
+      estado: 'APROBADO',
       color: i >= 0 ? COLORES_TERCEROS[i % COLORES_TERCEROS.length]! : MAGENTA,
       copias: 1,
       vence: o.vencimiento_texto || fecha(o.vencimiento),
@@ -277,7 +285,7 @@ export function PlanillaRotulosProduccion({
       lote: textoLote(hoy),
       cantidad: '',
       cliente: i >= 0 ? listaTerceros[i]!.nombre : 'Nail Show',
-      estado: 'FINALIZADO' as EstadoPT,
+      estado: 'APROBADO' as EstadoPT,
       color: i >= 0 ? COLORES_TERCEROS[i % COLORES_TERCEROS.length]! : MAGENTA,
       copias: 1,
       vence: vence ? `${vence.slice(5, 7)}/${vence.slice(2, 4)}` : '',
@@ -300,23 +308,10 @@ export function PlanillaRotulosProduccion({
       return [...rs, ...delDia(dia).map((o, i) => desdeOrden(o, base + i))];
     });
 
-  const rotulos = renglones.flatMap((r) =>
-    Array.from({ length: Math.max(0, r.copias) }, (_, i) => ({ ...r, i })),
-  );
-  const total = rotulos.length;
-  const hojas = Math.ceil(total / POR_HOJA);
+  const rotulos = copiasDe(renglones);
+  const total = rotulos.length + copiasDe(insumos).length;
   const nombreProducto = (id: string) =>
     (productos.data ?? []).find((p) => p.id === id)?.nombre ?? '';
-
-  const imprimir = () => {
-    const planilla = document.querySelector<HTMLElement>('[data-rotulo="planilla-pt"]');
-    const listo = () => (planilla?.querySelectorAll('img').length ?? 0) >= total;
-    const intentar = (n: number) =>
-      listo() || n === 0
-        ? imprimirRotulo(planilla)
-        : setTimeout(() => intentar(n - 1), 150);
-    intentar(20);
-  };
 
   return (
     <Modal
@@ -332,180 +327,189 @@ export function PlanillaRotulosProduccion({
         value={tipo}
         onChange={(v) => setTipo(v as 'producto' | 'insumos')}
         data={[
-          { value: 'producto', label: 'Producto' },
-          { value: 'insumos', label: 'Insumos (cuarentena, aprobado…)' },
+          { value: 'producto', label: `Producto (${rotulos.length})` },
+          { value: 'insumos', label: `Insumos (${copiasDe(insumos).length})` },
         ]}
       />
-      {tipo === 'insumos' ? (
-        <RotulosInsumos onCerrar={onCerrar} />
-      ) : (
-        <Stack gap="md">
-          <Group align="flex-end" gap="sm" wrap="wrap">
-            <DateInput
-              label="Día de producción"
-              value={dia}
-              onChange={(v) => setDia(desdeCalendario(v))}
-              valueFormat="DD/MM/YYYY"
-              w={170}
-            />
-            <Button
-              variant="light"
-              onClick={agregarDia}
-              disabled={delDia(dia).length === 0}
-            >
-              Agregar las {delDia(dia).length} del día
-            </Button>
-            <Select
-              label="Agregar otro"
-              placeholder="Una orden, un producto o escribí lo que quieras"
-              searchable
-              value={null}
-              onChange={agregarOtro}
-              onSearchChange={setBuscado}
-              data={[
-                {
-                  group: 'Órdenes de producción',
-                  items: (ordenes.data ?? [])
-                    .filter((o) => o.estado !== 'ANULADA')
-                    .map((o) => ({
-                      value: o.id,
-                      label: `${textoLote(o.jornada)} · ${nombreProducto(o.producto_id)}`,
-                    })),
-                },
-                {
-                  group: 'Sin orden: productos del catálogo',
-                  items: (productos.data ?? [])
-                    .filter((p) => p.activo)
-                    .map((p) => ({
-                      value: `prod:${p.id}`,
-                      label: `${p.codigo_interno} · ${p.nombre}`,
-                    })),
-                },
-              ]}
-              nothingFoundMessage={
-                buscado.trim() ? (
-                  <Button
-                    fullWidth
-                    variant="light"
-                    leftSection={<IconPlus size={16} />}
-                    onClick={() => {
-                      setRenglones((rs) => [
-                        ...rs,
-                        suelto(siguiente(rs), buscado.trim()),
-                      ]);
-                      setBuscado('');
-                    }}
-                  >
-                    Agregar «{buscado.trim()}» sin orden
-                  </Button>
-                ) : (
-                  'Sin coincidencias'
-                )
-              }
-              style={{ flex: 1, minWidth: 260 }}
-            />
-          </Group>
+      <Stack gap="md">
+        {tipo === 'insumos' ? (
+          <EditorInsumos
+            renglones={insumos}
+            setRenglones={setInsumos}
+            porId={lotesRotulo.porId}
+            opciones={lotesRotulo.opciones}
+          />
+        ) : (
+          <Stack gap="md">
+            <Group align="flex-end" gap="sm" wrap="wrap">
+              <DateInput
+                label="Día de producción"
+                value={dia}
+                onChange={(v) => setDia(desdeCalendario(v))}
+                valueFormat="DD/MM/YYYY"
+                w={170}
+              />
+              <Button
+                variant="light"
+                onClick={agregarDia}
+                disabled={delDia(dia).length === 0}
+              >
+                Agregar las {delDia(dia).length} del día
+              </Button>
+              <Select
+                label="Agregar otro"
+                placeholder="Una orden, un producto o escribí lo que quieras"
+                searchable
+                value={null}
+                onChange={agregarOtro}
+                onSearchChange={setBuscado}
+                data={[
+                  {
+                    group: 'Órdenes de producción',
+                    items: (ordenes.data ?? [])
+                      .filter((o) => o.estado !== 'ANULADA')
+                      .map((o) => ({
+                        value: o.id,
+                        label: `${textoLote(o.jornada)} · ${nombreProducto(o.producto_id)}`,
+                      })),
+                  },
+                  {
+                    group: 'Sin orden: productos del catálogo',
+                    items: (productos.data ?? [])
+                      .filter((p) => p.activo)
+                      .map((p) => ({
+                        value: `prod:${p.id}`,
+                        label: `${p.codigo_interno} · ${p.nombre}`,
+                      })),
+                  },
+                ]}
+                nothingFoundMessage={
+                  buscado.trim() ? (
+                    <Button
+                      fullWidth
+                      variant="light"
+                      leftSection={<IconPlus size={16} />}
+                      onClick={() => {
+                        setRenglones((rs) => [
+                          ...rs,
+                          suelto(siguiente(rs), buscado.trim()),
+                        ]);
+                        setBuscado('');
+                      }}
+                    >
+                      Agregar «{buscado.trim()}» sin orden
+                    </Button>
+                  ) : (
+                    'Sin coincidencias'
+                  )
+                }
+                style={{ flex: 1, minWidth: 260 }}
+              />
+            </Group>
 
-          {renglones.length === 0 ? (
-            <Text size="sm" c="dimmed">
-              No hay órdenes ese día. Elegí otro día o agregá uno con «Agregar otro».
-            </Text>
-          ) : null}
+            {renglones.length === 0 ? (
+              <Text size="sm" c="dimmed">
+                No hay órdenes ese día. Elegí otro día o agregá uno con «Agregar otro».
+              </Text>
+            ) : null}
 
-          {renglones.map((r) => (
-            <Paper
-              key={r.clave}
-              withBorder
-              p="sm"
-              radius="md"
-              style={{ borderColor: 'var(--superficie-borde)' }}
-            >
-              <Stack gap="xs">
-                <Group align="flex-end" gap="sm" wrap="wrap">
-                  <TextInput
-                    label="Código"
-                    value={r.codigo}
-                    onChange={(e) => cambiar(r.clave, { codigo: e.currentTarget.value })}
-                    w={110}
-                  />
-                  <TextInput
-                    label="Producto"
-                    value={r.producto}
-                    onChange={(e) =>
-                      cambiar(r.clave, { producto: e.currentTarget.value })
-                    }
-                    style={{ flex: 1, minWidth: 180 }}
-                  />
-                  <TextInput
-                    label="Lote"
-                    value={r.lote}
-                    onChange={(e) => cambiar(r.clave, { lote: e.currentTarget.value })}
-                    w={150}
-                  />
-                  <TextInput
-                    label="Vence"
-                    placeholder="MM/AA"
-                    value={r.vence}
-                    onChange={(e) => cambiar(r.clave, { vence: e.currentTarget.value })}
-                    w={110}
-                  />
-                </Group>
-                <Group align="flex-end" gap="sm" wrap="wrap">
-                  <TextInput
-                    label="Cantidad"
-                    value={r.cantidad}
-                    onChange={(e) =>
-                      cambiar(r.clave, { cantidad: e.currentTarget.value })
-                    }
-                    w={130}
-                  />
-                  <TextInput
-                    label="Cliente"
-                    value={r.cliente}
-                    onChange={(e) => cambiar(r.clave, { cliente: e.currentTarget.value })}
-                    w={160}
-                  />
-                  <Select
-                    label="Estado"
-                    data={ESTADOS}
-                    value={r.estado}
-                    onChange={(v) => v && cambiar(r.clave, { estado: v as EstadoPT })}
-                    allowDeselect={false}
-                    w={150}
-                  />
-                  <ColorInput
-                    label="Color"
-                    value={r.color}
-                    onChange={(v) => cambiar(r.clave, { color: v })}
-                    swatches={[MAGENTA, ...COLORES_TERCEROS]}
-                    w={130}
-                  />
-                  <NumberInput
-                    label="Cuántos"
-                    min={1}
-                    max={80}
-                    allowDecimal={false}
-                    value={r.copias}
-                    onChange={(v) => cambiar(r.clave, { copias: Number(v) || 0 })}
-                    w={90}
-                  />
-                  <ActionIcon
-                    size="lg"
-                    variant="subtle"
-                    color="estadoRechazado"
-                    aria-label="Quitar renglón"
-                    onClick={() =>
-                      setRenglones((rs) => rs.filter((x) => x.clave !== r.clave))
-                    }
-                  >
-                    <IconTrash size={18} />
-                  </ActionIcon>
-                </Group>
-              </Stack>
-            </Paper>
-          ))}
+            {renglones.map((r) => (
+              <Paper
+                key={r.clave}
+                withBorder
+                p="sm"
+                radius="md"
+                style={{ borderColor: 'var(--superficie-borde)' }}
+              >
+                <Stack gap="xs">
+                  <Group align="flex-end" gap="sm" wrap="wrap">
+                    <TextInput
+                      label="Código"
+                      value={r.codigo}
+                      onChange={(e) =>
+                        cambiar(r.clave, { codigo: e.currentTarget.value })
+                      }
+                      w={110}
+                    />
+                    <TextInput
+                      label="Producto"
+                      value={r.producto}
+                      onChange={(e) =>
+                        cambiar(r.clave, { producto: e.currentTarget.value })
+                      }
+                      style={{ flex: 1, minWidth: 180 }}
+                    />
+                    <TextInput
+                      label="Lote"
+                      value={r.lote}
+                      onChange={(e) => cambiar(r.clave, { lote: e.currentTarget.value })}
+                      w={150}
+                    />
+                    <TextInput
+                      label="Vence"
+                      placeholder="MM/AA"
+                      value={r.vence}
+                      onChange={(e) => cambiar(r.clave, { vence: e.currentTarget.value })}
+                      w={110}
+                    />
+                  </Group>
+                  <Group align="flex-end" gap="sm" wrap="wrap">
+                    <TextInput
+                      label="Cantidad"
+                      value={r.cantidad}
+                      onChange={(e) =>
+                        cambiar(r.clave, { cantidad: e.currentTarget.value })
+                      }
+                      w={130}
+                    />
+                    <TextInput
+                      label="Cliente"
+                      value={r.cliente}
+                      onChange={(e) =>
+                        cambiar(r.clave, { cliente: e.currentTarget.value })
+                      }
+                      w={160}
+                    />
+                    <Select
+                      label="Estado"
+                      data={ESTADOS}
+                      value={r.estado}
+                      onChange={(v) => v && cambiar(r.clave, { estado: v as EstadoPT })}
+                      allowDeselect={false}
+                      w={150}
+                    />
+                    <ColorInput
+                      label="Color"
+                      value={r.color}
+                      onChange={(v) => cambiar(r.clave, { color: v })}
+                      swatches={[MAGENTA, ...COLORES_TERCEROS]}
+                      w={130}
+                    />
+                    <NumberInput
+                      label="Cuántos"
+                      min={1}
+                      max={80}
+                      allowDecimal={false}
+                      value={r.copias}
+                      onChange={(v) => cambiar(r.clave, { copias: Number(v) || 0 })}
+                      w={90}
+                    />
+                    <ActionIcon
+                      size="lg"
+                      variant="subtle"
+                      color="estadoRechazado"
+                      aria-label="Quitar renglón"
+                      onClick={() =>
+                        setRenglones((rs) => rs.filter((x) => x.clave !== r.clave))
+                      }
+                    >
+                      <IconTrash size={18} />
+                    </ActionIcon>
+                  </Group>
+                </Stack>
+              </Paper>
+            ))}
 
-          <Group justify="space-between">
             <Button
               variant="subtle"
               leftSection={<IconPlus size={16} />}
@@ -516,48 +520,28 @@ export function PlanillaRotulosProduccion({
                   { ...rs[rs.length - 1]!, clave: siguiente(rs), copias: 1 },
                 ])
               }
+              style={{ alignSelf: 'flex-start' }}
             >
               Repetir el último
             </Button>
-            <Text size="sm" c="dimmed">
-              {total} {total === 1 ? 'rótulo' : 'rótulos'} · {hojas}{' '}
-              {hojas === 1 ? 'hoja' : 'hojas'} A4 ({POR_HOJA} por hoja)
-            </Text>
-          </Group>
+          </Stack>
+        )}
 
-          {/* Vista previa achicada; se imprime lo de adentro, a tamaño real. */}
-          <Box
-            style={{
-              zoom: 0.5,
-              maxHeight: 900,
-              overflow: 'auto',
-              border: '1px dashed var(--superficie-borde)',
-              padding: 16,
-            }}
-          >
-            <div data-rotulo="planilla-pt" className="planilla-rotulos">
-              {rotulos.map((r) => (
-                <div key={`${r.clave}-${r.i}`} className="planilla-celda">
-                  <RotuloProduccion r={r} impreso={hoy} />
-                </div>
-              ))}
+        {/* Una sola hoja con los dos: primero producto, después insumos. */}
+        <VistaHoja id="planilla-pt">
+          {rotulos.map((r) => (
+            <div key={`p-${r.clave}-${r.i}`} className="planilla-celda">
+              <RotuloProduccion r={r} impreso={hoy} />
             </div>
-          </Box>
-
-          <Group justify="flex-end">
-            <Button variant="default" onClick={onCerrar}>
-              Volver
-            </Button>
-            <Button
-              leftSection={<IconPrinter size={18} />}
-              disabled={total === 0}
-              onClick={imprimir}
-            >
-              Imprimir {hojas} {hojas === 1 ? 'hoja' : 'hojas'}
-            </Button>
-          </Group>
-        </Stack>
-      )}
+          ))}
+          <CeldasInsumos renglones={insumos} porId={lotesRotulo.porId} hoy={hoy} />
+        </VistaHoja>
+        <PieHoja
+          total={total}
+          onCerrar={onCerrar}
+          onImprimir={() => imprimirPlanilla('[data-rotulo="planilla-pt"]', total)}
+        />
+      </Stack>
     </Modal>
   );
 }
