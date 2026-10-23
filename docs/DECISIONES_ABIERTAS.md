@@ -987,6 +987,9 @@ Show, uno por tercero; se puede cambiar. El QR es texto plano («Producido en
 Nail Show», lote, vencimiento y código): se lee con cualquier celular, sin
 cuenta ni enlace. No hizo falta ninguna API.
 También lo imprimen Agustina y Silveira (Encargada de stock y Recepción) desde Stock, con el botón «Rótulos».
+En el mismo «Rótulos», la pestaña «Insumos» arma los rótulos de lotes de insumo
+(cuarentena, en análisis, aprobado, rechazado) como la ficha del lote: todos los
+rótulos en un lugar (pedido del 2026-10-23).
 **Límite.** Es solo papel: no queda registro en el sistema de qué se imprimió
 ni de lo que se marque a mano.
 **Dónde está.** `src/features/rotulos/RotulosProduccion.tsx`.

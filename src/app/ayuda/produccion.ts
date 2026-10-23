@@ -217,7 +217,7 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
       ],
     },
     aTener: [
-      'Arriba a la derecha, «Rótulos» (Encargada de stock, Recepción, Gerencia de Producción y Dirección Técnica) arma la hoja de rótulos con las órdenes del día elegido: código, producto, lote, cantidad y cliente se pueden cambiar; el estado es Etiquetado, Finalizado o Por reprocesar.',
+      'Arriba a la derecha, «Rótulos» (Encargada de stock, Recepción, Gerencia de Producción y Dirección Técnica) arma la hoja de rótulos. En «Producto», con las órdenes del día elegido: código, producto, lote, cantidad y cliente se pueden cambiar; el estado es Etiquetado, Finalizado o Por reprocesar. En «Insumos», los de cuarentena, en análisis, aprobado o rechazado de los lotes que elijas.',
       'Un movimiento de stock no se edita ni se borra. Se anula con un movimiento inverso, con motivo.',
       '«Cargar a stock» y «Dar de baja todo el stock» no se deshacen: la corrección es un ajuste.',
       'La pestaña vuelve a abrirse donde la dejaste: el enlace guarda la pestaña.',

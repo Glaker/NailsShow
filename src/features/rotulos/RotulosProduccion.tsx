@@ -8,6 +8,7 @@ import {
   Modal,
   NumberInput,
   Paper,
+  SegmentedControl,
   Select,
   Stack,
   Text,
@@ -21,6 +22,7 @@ import { useOrdenes, type OrdenProduccion } from '@/lib/consultasOrdenes';
 import { useTerceros } from '@/lib/consultasTercerizados';
 import { desdeCalendario, fecha, fechaISO, numero } from '@/lib/formato';
 import { imprimirRotulo } from './imprimir';
+import { RotulosInsumos } from './PlanillaRotulos';
 import { textoLote } from '@/features/produccion/posicionesLoteo';
 
 /** Solo estas tres: no se escriben (pedido del 2026-10-23). */
@@ -209,6 +211,7 @@ export function PlanillaRotulosProduccion({
   const ordenes = useOrdenes();
   const productos = useProductos();
   const terceros = useTerceros();
+  const [tipo, setTipo] = useState<'producto' | 'insumos'>('producto');
   const [dia, setDia] = useState<Date | null>(new Date());
   const [renglones, setRenglones] = useState<Renglon[]>([]);
   const [cargado, setCargado] = useState(false);
@@ -283,178 +286,197 @@ export function PlanillaRotulosProduccion({
       title={<Text fw={700}>Rótulos</Text>}
       size="xl"
     >
-      <Stack gap="md">
-        <Group align="flex-end" gap="sm" wrap="wrap">
-          <DateInput
-            label="Día de producción"
-            value={dia}
-            onChange={(v) => setDia(desdeCalendario(v))}
-            valueFormat="DD/MM/YYYY"
-            w={170}
-          />
-          <Button
-            variant="light"
-            onClick={agregarDia}
-            disabled={delDia(dia).length === 0}
+      {/* Todos los rótulos en un lugar (pedido del 2026-10-23). */}
+      <SegmentedControl
+        fullWidth
+        mb="md"
+        value={tipo}
+        onChange={(v) => setTipo(v as 'producto' | 'insumos')}
+        data={[
+          { value: 'producto', label: 'Producto' },
+          { value: 'insumos', label: 'Insumos (cuarentena, aprobado…)' },
+        ]}
+      />
+      {tipo === 'insumos' ? (
+        <RotulosInsumos onCerrar={onCerrar} />
+      ) : (
+        <Stack gap="md">
+          <Group align="flex-end" gap="sm" wrap="wrap">
+            <DateInput
+              label="Día de producción"
+              value={dia}
+              onChange={(v) => setDia(desdeCalendario(v))}
+              valueFormat="DD/MM/YYYY"
+              w={170}
+            />
+            <Button
+              variant="light"
+              onClick={agregarDia}
+              disabled={delDia(dia).length === 0}
+            >
+              Agregar las {delDia(dia).length} del día
+            </Button>
+            <Select
+              label="O una orden en particular"
+              placeholder="Buscá por lote o producto"
+              searchable
+              value={null}
+              onChange={agregarOrden}
+              data={(ordenes.data ?? [])
+                .filter((o) => o.estado !== 'ANULADA')
+                .map((o) => ({
+                  value: o.id,
+                  label: `${textoLote(o.jornada)} · ${nombreProducto(o.producto_id)}`,
+                }))}
+              style={{ flex: 1, minWidth: 220 }}
+            />
+          </Group>
+
+          {renglones.length === 0 ? (
+            <Text size="sm" c="dimmed">
+              No hay órdenes ese día. Elegí otro día o agregá una orden.
+            </Text>
+          ) : null}
+
+          {renglones.map((r) => (
+            <Paper
+              key={r.clave}
+              withBorder
+              p="sm"
+              radius="md"
+              style={{ borderColor: 'var(--superficie-borde)' }}
+            >
+              <Stack gap="xs">
+                <Group align="flex-end" gap="sm" wrap="wrap">
+                  <TextInput
+                    label="Código"
+                    value={r.codigo}
+                    onChange={(e) => cambiar(r.clave, { codigo: e.currentTarget.value })}
+                    w={110}
+                  />
+                  <TextInput
+                    label="Producto"
+                    value={r.producto}
+                    onChange={(e) =>
+                      cambiar(r.clave, { producto: e.currentTarget.value })
+                    }
+                    style={{ flex: 1, minWidth: 180 }}
+                  />
+                  <TextInput
+                    label="Lote"
+                    value={r.lote}
+                    onChange={(e) => cambiar(r.clave, { lote: e.currentTarget.value })}
+                    w={150}
+                  />
+                </Group>
+                <Group align="flex-end" gap="sm" wrap="wrap">
+                  <TextInput
+                    label="Cantidad"
+                    value={r.cantidad}
+                    onChange={(e) =>
+                      cambiar(r.clave, { cantidad: e.currentTarget.value })
+                    }
+                    w={130}
+                  />
+                  <TextInput
+                    label="Cliente"
+                    value={r.cliente}
+                    onChange={(e) => cambiar(r.clave, { cliente: e.currentTarget.value })}
+                    w={160}
+                  />
+                  <Select
+                    label="Estado"
+                    data={ESTADOS}
+                    value={r.estado}
+                    onChange={(v) => v && cambiar(r.clave, { estado: v as EstadoPT })}
+                    allowDeselect={false}
+                    w={150}
+                  />
+                  <ColorInput
+                    label="Color"
+                    value={r.color}
+                    onChange={(v) => cambiar(r.clave, { color: v })}
+                    swatches={[MAGENTA, ...COLORES_TERCEROS]}
+                    w={130}
+                  />
+                  <NumberInput
+                    label="Cuántos"
+                    min={1}
+                    max={80}
+                    allowDecimal={false}
+                    value={r.copias}
+                    onChange={(v) => cambiar(r.clave, { copias: Number(v) || 0 })}
+                    w={90}
+                  />
+                  <ActionIcon
+                    size="lg"
+                    variant="subtle"
+                    color="estadoRechazado"
+                    aria-label="Quitar renglón"
+                    onClick={() =>
+                      setRenglones((rs) => rs.filter((x) => x.clave !== r.clave))
+                    }
+                  >
+                    <IconTrash size={18} />
+                  </ActionIcon>
+                </Group>
+              </Stack>
+            </Paper>
+          ))}
+
+          <Group justify="space-between">
+            <Button
+              variant="subtle"
+              leftSection={<IconPlus size={16} />}
+              disabled={renglones.length === 0}
+              onClick={() =>
+                setRenglones((rs) => [
+                  ...rs,
+                  { ...rs[rs.length - 1]!, clave: siguiente(rs), copias: 1 },
+                ])
+              }
+            >
+              Repetir el último
+            </Button>
+            <Text size="sm" c="dimmed">
+              {total} {total === 1 ? 'rótulo' : 'rótulos'} · {hojas}{' '}
+              {hojas === 1 ? 'hoja' : 'hojas'} A4 ({POR_HOJA} por hoja)
+            </Text>
+          </Group>
+
+          {/* Vista previa achicada; se imprime lo de adentro, a tamaño real. */}
+          <Box
+            style={{
+              zoom: 0.5,
+              maxHeight: 900,
+              overflow: 'auto',
+              border: '1px dashed var(--superficie-borde)',
+              padding: 16,
+            }}
           >
-            Agregar las {delDia(dia).length} del día
-          </Button>
-          <Select
-            label="O una orden en particular"
-            placeholder="Buscá por lote o producto"
-            searchable
-            value={null}
-            onChange={agregarOrden}
-            data={(ordenes.data ?? [])
-              .filter((o) => o.estado !== 'ANULADA')
-              .map((o) => ({
-                value: o.id,
-                label: `${textoLote(o.jornada)} · ${nombreProducto(o.producto_id)}`,
-              }))}
-            style={{ flex: 1, minWidth: 220 }}
-          />
-        </Group>
+            <div data-rotulo="planilla-pt" className="planilla-rotulos">
+              {rotulos.map((r) => (
+                <div key={`${r.clave}-${r.i}`} className="planilla-celda">
+                  <RotuloProduccion r={r} impreso={hoy} />
+                </div>
+              ))}
+            </div>
+          </Box>
 
-        {renglones.length === 0 ? (
-          <Text size="sm" c="dimmed">
-            No hay órdenes ese día. Elegí otro día o agregá una orden.
-          </Text>
-        ) : null}
-
-        {renglones.map((r) => (
-          <Paper
-            key={r.clave}
-            withBorder
-            p="sm"
-            radius="md"
-            style={{ borderColor: 'var(--superficie-borde)' }}
-          >
-            <Stack gap="xs">
-              <Group align="flex-end" gap="sm" wrap="wrap">
-                <TextInput
-                  label="Código"
-                  value={r.codigo}
-                  onChange={(e) => cambiar(r.clave, { codigo: e.currentTarget.value })}
-                  w={110}
-                />
-                <TextInput
-                  label="Producto"
-                  value={r.producto}
-                  onChange={(e) => cambiar(r.clave, { producto: e.currentTarget.value })}
-                  style={{ flex: 1, minWidth: 180 }}
-                />
-                <TextInput
-                  label="Lote"
-                  value={r.lote}
-                  onChange={(e) => cambiar(r.clave, { lote: e.currentTarget.value })}
-                  w={150}
-                />
-              </Group>
-              <Group align="flex-end" gap="sm" wrap="wrap">
-                <TextInput
-                  label="Cantidad"
-                  value={r.cantidad}
-                  onChange={(e) => cambiar(r.clave, { cantidad: e.currentTarget.value })}
-                  w={130}
-                />
-                <TextInput
-                  label="Cliente"
-                  value={r.cliente}
-                  onChange={(e) => cambiar(r.clave, { cliente: e.currentTarget.value })}
-                  w={160}
-                />
-                <Select
-                  label="Estado"
-                  data={ESTADOS}
-                  value={r.estado}
-                  onChange={(v) => v && cambiar(r.clave, { estado: v as EstadoPT })}
-                  allowDeselect={false}
-                  w={150}
-                />
-                <ColorInput
-                  label="Color"
-                  value={r.color}
-                  onChange={(v) => cambiar(r.clave, { color: v })}
-                  swatches={[MAGENTA, ...COLORES_TERCEROS]}
-                  w={130}
-                />
-                <NumberInput
-                  label="Cuántos"
-                  min={1}
-                  max={80}
-                  allowDecimal={false}
-                  value={r.copias}
-                  onChange={(v) => cambiar(r.clave, { copias: Number(v) || 0 })}
-                  w={90}
-                />
-                <ActionIcon
-                  size="lg"
-                  variant="subtle"
-                  color="estadoRechazado"
-                  aria-label="Quitar renglón"
-                  onClick={() =>
-                    setRenglones((rs) => rs.filter((x) => x.clave !== r.clave))
-                  }
-                >
-                  <IconTrash size={18} />
-                </ActionIcon>
-              </Group>
-            </Stack>
-          </Paper>
-        ))}
-
-        <Group justify="space-between">
-          <Button
-            variant="subtle"
-            leftSection={<IconPlus size={16} />}
-            disabled={renglones.length === 0}
-            onClick={() =>
-              setRenglones((rs) => [
-                ...rs,
-                { ...rs[rs.length - 1]!, clave: siguiente(rs), copias: 1 },
-              ])
-            }
-          >
-            Repetir el último
-          </Button>
-          <Text size="sm" c="dimmed">
-            {total} {total === 1 ? 'rótulo' : 'rótulos'} · {hojas}{' '}
-            {hojas === 1 ? 'hoja' : 'hojas'} A4 ({POR_HOJA} por hoja)
-          </Text>
-        </Group>
-
-        {/* Vista previa achicada; se imprime lo de adentro, a tamaño real. */}
-        <Box
-          style={{
-            zoom: 0.5,
-            maxHeight: 900,
-            overflow: 'auto',
-            border: '1px dashed var(--superficie-borde)',
-            padding: 16,
-          }}
-        >
-          <div data-rotulo="planilla-pt" className="planilla-rotulos">
-            {rotulos.map((r) => (
-              <div key={`${r.clave}-${r.i}`} className="planilla-celda">
-                <RotuloProduccion r={r} impreso={hoy} />
-              </div>
-            ))}
-          </div>
-        </Box>
-
-        <Group justify="flex-end">
-          <Button variant="default" onClick={onCerrar}>
-            Volver
-          </Button>
-          <Button
-            leftSection={<IconPrinter size={18} />}
-            disabled={total === 0}
-            onClick={imprimir}
-          >
-            Imprimir {hojas} {hojas === 1 ? 'hoja' : 'hojas'}
-          </Button>
-        </Group>
-      </Stack>
+          <Group justify="flex-end">
+            <Button variant="default" onClick={onCerrar}>
+              Volver
+            </Button>
+            <Button
+              leftSection={<IconPrinter size={18} />}
+              disabled={total === 0}
+              onClick={imprimir}
+            >
+              Imprimir {hojas} {hojas === 1 ? 'hoja' : 'hojas'}
+            </Button>
+          </Group>
+        </Stack>
+      )}
     </Modal>
   );
 }
