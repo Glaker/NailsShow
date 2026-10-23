@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button, Group, Tabs } from '@mantine/core';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import {
+  IconAlertTriangle,
   IconBuildingStore,
   IconClipboardCheck,
   IconScale,
@@ -12,13 +13,21 @@ import {
 import { usePuedeVerPestania } from '@/app/navegacion';
 import { useTieneRol } from '@/features/auth/sesion';
 import { PlanillaRotulosProduccion } from '@/features/rotulos/RotulosProduccion';
+import { PuntoPedido } from './PuntoPedido';
 import { PaginaRecepciones } from '@/features/recepcion/PaginaRecepciones';
 import { PaginaDepositos } from '@/features/comercial/PaginaPuntoVenta';
 import { PaginaStock } from './PaginaStock';
 import { PaginaStockSeguridad } from './PaginaStockSeguridad';
 import { PaginaConteo } from './PaginaConteo';
 
-const VISTAS = ['insumos', 'recepciones', 'seguridad', 'depositos', 'conteo'] as const;
+const VISTAS = [
+  'insumos',
+  'recepciones',
+  'seguridad',
+  'pedido',
+  'depositos',
+  'conteo',
+] as const;
 type VistaStock = (typeof VISTAS)[number];
 
 /** Fábrica y Calle 5 eran pestañas; desde el 2026-10-22 son cuadraditos de «Depósitos». */
@@ -47,6 +56,7 @@ export function PaginaStockUnificada() {
     insumos: usePuedeVerPestania('/stock?vista=insumos'),
     recepciones: usePuedeVerPestania('/stock?vista=recepciones'),
     seguridad: usePuedeVerPestania('/stock?vista=seguridad'),
+    pedido: usePuedeVerPestania('/stock?vista=pedido'),
     depositos: usePuedeVerPestania('/stock?vista=depositos'),
     conteo: usePuedeVerPestania('/stock?vista=conteo'),
   };
@@ -77,7 +87,7 @@ export function PaginaStockUnificada() {
             leftSection={<IconTag size={16} />}
             onClick={() => setRotulos(true)}
           >
-            Rótulos de producto terminado
+            Rótulos
           </Button>
         </Group>
       ) : null}
@@ -107,6 +117,11 @@ export function PaginaStockUnificada() {
               Stock de seguridad
             </Tabs.Tab>
           ) : null}
+          {puede.pedido ? (
+            <Tabs.Tab value="pedido" leftSection={<IconAlertTriangle size={18} />}>
+              Punto de pedido
+            </Tabs.Tab>
+          ) : null}
           {puede.depositos ? (
             <Tabs.Tab value="depositos" leftSection={<IconBuildingStore size={18} />}>
               Depósitos
@@ -126,6 +141,7 @@ export function PaginaStockUnificada() {
         <Tabs.Panel value="seguridad">
           {puede.seguridad ? <PaginaStockSeguridad /> : null}
         </Tabs.Panel>
+        <Tabs.Panel value="pedido">{puede.pedido ? <PuntoPedido /> : null}</Tabs.Panel>
         <Tabs.Panel value="depositos">
           {puede.depositos ? <PaginaDepositos /> : null}
         </Tabs.Panel>

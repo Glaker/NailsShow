@@ -8630,6 +8630,7 @@ export type Database = {
         | "VENTAS"
         | "FINANZAS"
         | "RECEPCION"
+        | "PRODUCCION"
       sector_enum:
         | "ADMINISTRACION"
         | "RECEPCION_EXPEDICION"
@@ -8714,6 +8715,45 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ordenes_produccion"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      consultas_dt: {
+        Row: {
+          consultada_en: string
+          consultada_por: string
+          id: string
+          producto_id: string
+          seccion: string
+        }
+        Insert: {
+          consultada_en?: string
+          consultada_por?: string
+          id?: string
+          producto_id: string
+          seccion: string
+        }
+        Update: {
+          consultada_en?: string
+          consultada_por?: string
+          id?: string
+          producto_id?: string
+          seccion?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultas_dt_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consultas_dt_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_formulas_consultadas"
+            referencedColumns: ["producto_id"]
           },
         ]
       }
@@ -9321,6 +9361,7 @@ export type Database = {
           id: string
           motivo_cambio: string | null
           redactado_por: string
+          requiere_aprobacion: boolean
           texto: string
           version: number
         }
@@ -9330,6 +9371,7 @@ export type Database = {
           id?: string
           motivo_cambio?: string | null
           redactado_por?: string
+          requiere_aprobacion?: boolean
           texto: string
           version: number
         }
@@ -9339,6 +9381,7 @@ export type Database = {
           id?: string
           motivo_cambio?: string | null
           redactado_por?: string
+          requiere_aprobacion?: boolean
           texto?: string
           version?: number
         }
@@ -9516,6 +9559,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      jornadas_operarias: {
+        Row: {
+          entrada: string
+          fecha: string
+          id: string
+          orden: number
+          salida: string
+          trabaja: boolean
+          usuario_id: string
+        }
+        Insert: {
+          entrada?: string
+          fecha: string
+          id?: string
+          orden?: number
+          salida?: string
+          trabaja?: boolean
+          usuario_id: string
+        }
+        Update: {
+          entrada?: string
+          fecha?: string
+          id?: string
+          orden?: number
+          salida?: string
+          trabaja?: boolean
+          usuario_id?: string
+        }
+        Relationships: []
       }
       lotes_insumo: {
         Row: {
@@ -10058,6 +10131,39 @@ export type Database = {
           },
         ]
       }
+      procedimiento_aprobaciones: {
+        Row: {
+          aprobado_en: string
+          aprobado_por: string
+          procedimiento_id: string
+        }
+        Insert: {
+          aprobado_en?: string
+          aprobado_por?: string
+          procedimiento_id: string
+        }
+        Update: {
+          aprobado_en?: string
+          aprobado_por?: string
+          procedimiento_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "procedimiento_aprobaciones_procedimiento_id_fkey"
+            columns: ["procedimiento_id"]
+            isOneToOne: true
+            referencedRelation: "formula_procedimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "procedimiento_aprobaciones_procedimiento_id_fkey"
+            columns: ["procedimiento_id"]
+            isOneToOne: true
+            referencedRelation: "v_procedimiento_vigente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       productos: {
         Row: {
           activo: boolean
@@ -10479,6 +10585,47 @@ export type Database = {
           },
         ]
       }
+      tarea_tramos: {
+        Row: {
+          cantidad: number | null
+          cierre: string | null
+          id: string
+          iniciado_en: string
+          iniciado_por: string
+          tarea_id: string
+          terminado_en: string | null
+          terminado_por: string | null
+        }
+        Insert: {
+          cantidad?: number | null
+          cierre?: string | null
+          id?: string
+          iniciado_en?: string
+          iniciado_por?: string
+          tarea_id: string
+          terminado_en?: string | null
+          terminado_por?: string | null
+        }
+        Update: {
+          cantidad?: number | null
+          cierre?: string | null
+          id?: string
+          iniciado_en?: string
+          iniciado_por?: string
+          tarea_id?: string
+          terminado_en?: string | null
+          terminado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarea_tramos_tarea_id_fkey"
+            columns: ["tarea_id"]
+            isOneToOne: false
+            referencedRelation: "tareas_produccion"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tareas_planta: {
         Row: {
           anulada: boolean
@@ -10538,6 +10685,73 @@ export type Database = {
           },
         ]
       }
+      tareas_produccion: {
+        Row: {
+          asignadas: string[]
+          cantidad: number | null
+          creada_en: string
+          creada_por: string
+          descripcion: string
+          estado: string
+          id: string
+          orden_id: string | null
+          prioridad: number
+          producto_id: string | null
+          terminada_en: string | null
+          tipo: string
+        }
+        Insert: {
+          asignadas?: string[]
+          cantidad?: number | null
+          creada_en?: string
+          creada_por?: string
+          descripcion: string
+          estado?: string
+          id?: string
+          orden_id?: string | null
+          prioridad?: number
+          producto_id?: string | null
+          terminada_en?: string | null
+          tipo: string
+        }
+        Update: {
+          asignadas?: string[]
+          cantidad?: number | null
+          creada_en?: string
+          creada_por?: string
+          descripcion?: string
+          estado?: string
+          id?: string
+          orden_id?: string | null
+          prioridad?: number
+          producto_id?: string | null
+          terminada_en?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tareas_produccion_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_produccion"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tareas_produccion_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tareas_produccion_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_formulas_consultadas"
+            referencedColumns: ["producto_id"]
+          },
+        ]
+      }
       terceros: {
         Row: {
           activo: boolean
@@ -10567,6 +10781,41 @@ export type Database = {
           observaciones?: string | null
         }
         Relationships: []
+      }
+      tramo_participantes: {
+        Row: {
+          desde: string
+          hasta: string | null
+          id: string
+          sumada_por: string
+          tramo_id: string
+          usuario_id: string
+        }
+        Insert: {
+          desde?: string
+          hasta?: string | null
+          id?: string
+          sumada_por?: string
+          tramo_id: string
+          usuario_id: string
+        }
+        Update: {
+          desde?: string
+          hasta?: string | null
+          id?: string
+          sumada_por?: string
+          tramo_id?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tramo_participantes_tramo_id_fkey"
+            columns: ["tramo_id"]
+            isOneToOne: false
+            referencedRelation: "tarea_tramos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -10733,8 +10982,22 @@ export type Database = {
         }
         Relationships: []
       }
+      v_pendientes_dt: {
+        Row: {
+          codigo_interno: string | null
+          desde: string | null
+          motivo: string | null
+          nombre: string | null
+          pedido_por: string | null
+          producto_id: string | null
+          seccion: string | null
+        }
+        Relationships: []
+      }
       v_procedimiento_vigente: {
         Row: {
+          aprobado_en: string | null
+          aprobado_por: string | null
           creado_en: string | null
           formula_id: string | null
           id: string | null
@@ -10751,6 +11014,29 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "formulas_fabricacion"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_produccion_semanal: {
+        Row: {
+          cantidad: number | null
+          producto_id: string | null
+          viernes: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordenes_produccion_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordenes_produccion_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_formulas_consultadas"
+            referencedColumns: ["producto_id"]
           },
         ]
       }
@@ -10836,6 +11122,94 @@ export type Database = {
           usuarios_activos: number | null
         }
         Relationships: []
+      }
+      v_tiempo_medido_producto: {
+        Row: {
+          minutos_persona: number | null
+          minutos_por_unidad: number | null
+          producto_id: string | null
+          tipo: string | null
+          tramos: number | null
+          unidades: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tareas_produccion_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tareas_produccion_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_formulas_consultadas"
+            referencedColumns: ["producto_id"]
+          },
+        ]
+      }
+      v_trabajo_operarias: {
+        Row: {
+          cantidad: number | null
+          cierre: string | null
+          codigo_interno: string | null
+          con_quien: string | null
+          descripcion: string | null
+          entrada: string | null
+          fecha: string | null
+          fin: string | null
+          inicio: string | null
+          lote: string | null
+          minutos: number | null
+          operaria: string | null
+          orden_id: string | null
+          participacion_id: string | null
+          producto: string | null
+          producto_id: string | null
+          salida: string | null
+          tarea_id: string | null
+          tipo: string | null
+          tramo_id: string | null
+          usuario_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarea_tramos_tarea_id_fkey"
+            columns: ["tarea_id"]
+            isOneToOne: false
+            referencedRelation: "tareas_produccion"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tareas_produccion_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_produccion"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tareas_produccion_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tareas_produccion_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_formulas_consultadas"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "tramo_participantes_tramo_id_fkey"
+            columns: ["tramo_id"]
+            isOneToOne: false
+            referencedRelation: "tarea_tramos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
@@ -10949,9 +11323,17 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      cambiar_grupo: {
+        Args: { p_entra: boolean; p_tramo_id: string; p_usuario_id: string }
+        Returns: undefined
+      }
       categoria_muestreo: {
         Args: { p_tipo: Database["gmp"]["Enums"]["tipo_insumo_enum"] }
         Returns: Database["gmp"]["Enums"]["categoria_muestreo_enum"]
+      }
+      cerrar_tramo: {
+        Args: { p_cantidad?: number; p_cierre: string; p_tramo_id: string }
+        Returns: undefined
       }
       color_rotulo: {
         Args: { p_estado: Database["gmp"]["Enums"]["estado_calidad_enum"] }
@@ -11025,6 +11407,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      copiar_especificacion: {
+        Args: { p_codigo_poe: string; p_origen: string; p_producto_id: string }
+        Returns: string
+      }
+      copiar_formula: {
+        Args: { p_origen: string; p_producto_id: string }
+        Returns: string
       }
       cumple_parametro: {
         Args: { p_parametro_id: string; p_valor: number }
@@ -11189,6 +11579,7 @@ export type Database = {
         }
       }
       empezar_tarea: { Args: { p_id: string }; Returns: undefined }
+      es_gestor_tareas: { Args: never; Returns: boolean }
       faltantes_liberacion: {
         Args: { p_id: string }
         Returns: {
@@ -11214,6 +11605,10 @@ export type Database = {
         }
         Returns: string
       }
+      iniciar_tarea: {
+        Args: { p_con?: string[]; p_tarea_id: string }
+        Returns: string
+      }
       liberar_orden: {
         Args: { p_aprobado: boolean; p_id: string; p_motivo?: string }
         Returns: undefined
@@ -11228,6 +11623,7 @@ export type Database = {
         Returns: string
       }
       proveedor_de_tercero: { Args: { p_tercero_id: string }; Returns: string }
+      puede_trabajar_tarea: { Args: { p_tarea_id: string }; Returns: boolean }
       registrar_muestreo: {
         Args: {
           p_area_muestreo: string
@@ -11297,6 +11693,7 @@ export type Database = {
         Returns: undefined
       }
       terminar_tarea: { Args: { p_id: string }; Returns: undefined }
+      ve_productividad: { Args: never; Returns: boolean }
     }
     Enums: {
       aprobacion_proveedor_enum: "PENDIENTE" | "APROBADO" | "RECHAZADO"
@@ -11676,6 +12073,7 @@ export const Constants = {
         "VENTAS",
         "FINANZAS",
         "RECEPCION",
+        "PRODUCCION",
       ],
       sector_enum: [
         "ADMINISTRACION",

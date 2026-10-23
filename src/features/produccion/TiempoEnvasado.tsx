@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Button, Group, NumberInput, Paper, Stack, Text, TextInput } from '@mantine/core';
 import { useProductos } from '@/lib/consultas';
 import { useGuardarTiempoEnvasado } from '@/lib/consultasEtiquetado';
+import { useTieneRol } from '@/features/auth/sesion';
+import { useTiempoMedido, type TiempoMedido } from '@/lib/consultasTareasProduccion';
 import {
   aMmss,
   deMmss,
@@ -39,6 +41,29 @@ export function CampoMmss({
   );
 }
 
+/** Lo que midió la planta (D-tareas-1), con «Usar» para pasarlo al campo. */
+function Medido({
+  m,
+  onUsar,
+}: {
+  m: TiempoMedido | undefined;
+  onUsar: (v: string) => void;
+}) {
+  if (!m?.minutos_por_unidad) return null;
+  const v = aMmss(m.minutos_por_unidad);
+  return (
+    <Group gap={6} mt={4}>
+      <Text size="xs" c="dimmed">
+        Medido en planta: <b>{v}</b> ({numero(m.unidades)} u, {m.tramos}{' '}
+        {m.tramos === 1 ? 'vez' : 'veces'})
+      </Text>
+      <Button size="compact-xs" variant="subtle" onClick={() => onUsar(v)}>
+        Usar
+      </Button>
+    </Group>
+  );
+}
+
 /**
  * Tiempo de envasado y etiquetado de un producto (D-tiempo-envasado-1,
  * D-ajustes-2): Naza carga cuánto tarda una persona por unidad en cada uno,
@@ -55,6 +80,10 @@ export function TiempoEnvasado({
 }) {
   const productos = useProductos();
   const guardar = useGuardarTiempoEnvasado();
+  const medido = useTiempoMedido(
+    productoId,
+    useTieneRol('GERENCIA_PRODUCCION', 'DIRECCION_TECNICA'),
+  );
   const p = (productos.data ?? []).find((x) => x.id === productoId) as
     ProductoConTiempo | undefined;
   const [envasado, setEnvasado] = useState(aMmss(p?.minutos_envasado_unidad));
@@ -89,16 +118,22 @@ export function TiempoEnvasado({
     >
       <Stack gap="sm">
         <Group grow align="flex-start">
-          <CampoMmss
-            label="Envasado por unidad"
-            value={envasado}
-            onChange={setEnvasado}
-          />
-          <CampoMmss
-            label="Etiquetado por unidad"
-            value={etiquetado}
-            onChange={setEtiquetado}
-          />
+          <div>
+            <CampoMmss
+              label="Envasado por unidad"
+              value={envasado}
+              onChange={setEnvasado}
+            />
+            <Medido m={medido.data?.get('ENVASAR')} onUsar={setEnvasado} />
+          </div>
+          <div>
+            <CampoMmss
+              label="Etiquetado por unidad"
+              value={etiquetado}
+              onChange={setEtiquetado}
+            />
+            <Medido m={medido.data?.get('ETIQUETAR')} onUsar={setEtiquetado} />
+          </div>
         </Group>
         <Group grow align="flex-start">
           <NumberInput

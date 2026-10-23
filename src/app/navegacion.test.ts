@@ -50,9 +50,27 @@ describe('reparto por rol del 2026-10-01', () => {
   const rutas = (rol: Parameters<typeof itemsVisibles>[0][number]) =>
     itemsVisibles([rol]).map((i) => i.ruta);
 
-  it('la encargada de stock ve su tablero, los pedidos a armar y los catálogos', () => {
-    // Catálogos para todos menos operarios (pedido del 2026-10-21).
-    expect(rutas('ENCARGADA_STOCK')).toEqual(['/', '/armado', '/catalogos']);
+  it('la encargada de stock ve su tablero, los pedidos a armar, los catálogos y sus tareas', () => {
+    // Catálogos para todos menos operarios (pedido del 2026-10-21); tareas, D-tareas-1.
+    expect(rutas('ENCARGADA_STOCK')).toEqual([
+      '/',
+      '/armado',
+      '/catalogos',
+      '/mis-tareas',
+    ]);
+  });
+  it('Producción ve solo su tablero (sus tareas)', () => {
+    expect(rutas('PRODUCCION')).toEqual(['/']);
+  });
+  it('Informes y estadísticas: Naza, DT, Gerencia y Gabriel (Finanzas)', () => {
+    for (const r of [
+      'GERENCIA_PRODUCCION',
+      'DIRECCION_TECNICA',
+      'GERENCIA',
+      'FINANZAS',
+    ] as const)
+      expect(rutas(r)).toContain('/informes');
+    expect(rutas('VENTAS')).not.toContain('/informes');
   });
   it('Dirección Técnica no ve clientes, facturas, pedidos ni producción', () => {
     const r = rutas('DIRECCION_TECNICA');

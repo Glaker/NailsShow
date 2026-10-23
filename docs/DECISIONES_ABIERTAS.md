@@ -913,18 +913,84 @@ ejemplo, para la de un bulto). Vacío, el rótulo no la muestra. El rótulo de l
 ficha muestra la del lote.
 **Dónde está.** `src/features/rotulos/RotuloLote.tsx`, `PlanillaRotulos.tsx`.
 
+### D-tareas-1 · Tareas de producción, tiempos y productividad — adoptada 2026-10-23
+
+**Decisión del codirector técnico.**
+- **Rol.** Nace el rol PRODUCCION (las operarias) y reemplaza a OPERARIO, que
+  queda sin uso; el único usuario que lo tenía pasó a PRODUCCION. Producción
+  solo ve sus tareas: no registra etapas GMP de la orden, que pasan a Naza.
+- **Tablero de Naza.** Naza arma el día en Planificación › Tareas: quién
+  trabaja (8 a 15 por defecto, editable; sacarla del día no la da de baja) y
+  las tareas («Envasar 500 unidades de Sanitizante»), ligadas o no a una orden
+  (de ahí el lote). Las ordena por prioridad arrastrando y les asigna el grupo.
+- **Grupos.** Las operarias inician, paran, cancelan y terminan («listo por
+  hoy» deja la tarea pendiente; «completamos» la cierra). Trabajan de a
+  varias: una carga por todas, y cualquiera suma o saca a alguien del grupo en
+  cualquier momento.
+- **Tiempos y reparto.** Los tiempos los pone la base y a ellas no se les
+  muestran. Lo hecho se reparte entre las del grupo en proporción a sus
+  minutos en el tramo; con todas el tramo completo, es la división en partes
+  iguales.
+- **Estadísticas.** Salen productividad por operaria (barras en el tablero de
+  Naza y de Gabriel, y en «Informes y estadísticas»), el informe mensual (Excel,
+  24 meses atrás), el anual por SKU y viernes (de órdenes terminadas, Excel, 4
+  años atrás) y el tiempo medido por unidad que «Calcular producción» propone
+  con «Usar» (lo cargado sigue mandando).
+
+**Cierre de los informes.** Un mes o un año pasado queda «cerrado» porque lo
+que lo forma no se edita: los tramos y las órdenes terminadas son inmutables.
+No se guarda una foto aparte del informe.
+**Pendiente.**
+- Las 11 cuentas de las operarias se crean más adelante.
+- `@dnd-kit` (arrastre táctil) es dependencia nueva.
+**Dónde está.** `20261023130000_core_rol_produccion.sql`, `20261023130100_gmp_tareas_produccion.sql`.
+
+### D-tareas-2 · La pausa — adoptada 2026-10-23
+
+**Aclaración del codirector técnico.** La pausa es para cortar un rato,
+típicamente para comer. Es un botón estándar: ⏸ para pausar y ▶ para seguir
+con el mismo grupo. No pide cantidad y la tarea queda «En pausa», no
+pendiente. Lo que cargan en el «Listo» cubre también lo hecho antes de la
+pausa, y se reparte por minutos entre todo el bloque. Si una sigue trabajando
+mientras las otras paran, las que paran eligen «Pauso solo yo» (salen del
+grupo) y al volver tocan ▶.
+**Dónde está.** `20261023140000_gmp_pausa_tareas.sql`.
+
+### D-formula-insumo-1 · Un solo «Insumo» al cargar un componente — adoptada 2026-10-23
+
+**Decisión del codirector técnico.** Al cargar un componente de fórmula hay un
+solo campo, «Insumo». Primero muestra las materias primas y los semielaborados
+del catálogo. Debajo, «Sin catalogar», van materias primas cosméticas
+habituales (vaselina, vitamina E, aceite de jojoba y similares). Si se elige
+una de esas, entra como nombre libre. Si no aparece, se da de alta como insumo
+o se usa lo escrito.
+**Límite.** La lista de ayuda no tiene códigos ni densidades: para pesar a
+volumen o costear, hay que darla de alta en el catálogo.
+**Dónde está.** `src/features/produccion/materiasPrimas.ts`.
+
+### D-stock-pp-1 · Punto de pedido como pestaña de Stock — adoptada 2026-10-23
+
+**Decisión del codirector técnico.** «Punto de pedido» es una pestaña de Stock,
+al lado de Stock de seguridad. Muestra los SKU activos debajo del punto de
+pedido, lo más urgente primero, con el mismo cálculo de Stock de seguridad.
+La ven Gerencia de Producción y Gerencia.
+**Dónde está.** `src/features/stock/PuntoPedido.tsx`.
+
 ### D-rotulos-3 · Rótulo de producto terminado del día — adoptada 2026-10-23
 
-**Decisión del codirector técnico.** En Planificación › Órdenes, «Rótulos del
-día» arma una planilla A4 de 8 rótulos (mismo tamaño que los de insumos) con
+**Decisión del codirector técnico.** En Planificación › Órdenes, «Rótulos» arma una planilla A4 de 8 rótulos (mismo tamaño que los de insumos) con
 las órdenes del día elegido, y se suman otras. Cada rótulo lleva código,
-producto, lote, cantidad y cliente, tomados de la orden y editables. El estado
+producto, lote (DDMMAAAA, como el loteo), cantidad y cliente, tomados de la orden y editables. El estado
 es uno de tres fijos (Etiquetado, Finalizado, Por reprocesar) y hay casillas
 «Contado: Sí / No» para marcar a mano. Color por defecto: magenta para Nail
 Show, uno por tercero; se puede cambiar. El QR es texto plano («Producido en
 Nail Show», lote, vencimiento y código): se lee con cualquier celular, sin
 cuenta ni enlace. No hizo falta ninguna API.
-También lo imprimen Agustina y Silveira (Encargada de stock y Recepción) desde Stock, con el botón «Rótulos de producto terminado».
+También lo imprimen Agustina y Silveira (Encargada de stock y Recepción) desde Stock, con el botón «Rótulos».
+«Agregar otro» suma una orden, un producto del catálogo sin orden o lo que se escriba (lote hoy y vencimiento por la vida útil, editables).
+En el mismo «Rótulos», la pestaña «Insumos» arma los rótulos de lotes de insumo
+(cuarentena, en análisis, aprobado, rechazado) como la ficha del lote: todos los
+rótulos en un lugar (pedido del 2026-10-23).
 **Límite.** Es solo papel: no queda registro en el sistema de qué se imprimió
 ni de lo que se marque a mano.
 **Dónde está.** `src/features/rotulos/RotulosProduccion.tsx`.

@@ -67,7 +67,7 @@ export function ListaOrdenes() {
             leftSection={<IconTag size={16} />}
             onClick={() => setRotulos(true)}
           >
-            Rótulos del día
+            Rótulos
           </Button>
           <Button
             variant="default"

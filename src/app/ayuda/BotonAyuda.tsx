@@ -11,7 +11,7 @@ import { AYUDA_COSTOS } from './costos';
 const AYUDA: MapaAyuda = { ...AYUDA_PRODUCCION, ...AYUDA_COMERCIAL, ...AYUDA_COSTOS };
 
 export const NOMBRE_ROL: Record<Rol, string> = {
-  OPERARIO: 'Operario',
+  OPERARIO: 'Operario (sin uso)',
   CONTROL_CALIDAD: 'Control de Calidad',
   DIRECCION_TECNICA: 'Dirección Técnica',
   ADMINISTRACION: 'Administración',
@@ -22,6 +22,7 @@ export const NOMBRE_ROL: Record<Rol, string> = {
   ADMINISTRADOR_SISTEMA: 'Administrador del sistema',
   FINANZAS: 'Finanzas',
   RECEPCION: 'Recepción',
+  PRODUCCION: 'Producción',
 };
 
 /**
