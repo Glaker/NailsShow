@@ -1036,12 +1036,22 @@ export function useCargarRecepcionAStock() {
       recepcionId,
       depositos = {},
       estibas = {},
+      envasesA = {},
     }: {
       recepcionId: string;
       depositos?: Record<string, string>;
       /** Optativas, «A-N» (D-rotulos-y-estiba-1). */
       estibas?: Record<string, string>;
+      /** Envase aprobado → depósito de envases 1 o 2 (D-envases-1-y-2-1). */
+      envasesA?: Record<string, string>;
     }) => {
+      for (const [lote, deposito] of Object.entries(envasesA)) {
+        const { error } = await gmp().rpc('elegir_deposito_envase', {
+          p_lote_id: lote,
+          p_deposito_id: deposito,
+        });
+        if (error) throw error;
+      }
       for (const [lote, estiba] of Object.entries(estibas)) {
         const { error } = await gmp().rpc('asignar_estiba_lote', {
           p_lote_id: lote,

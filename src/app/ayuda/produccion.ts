@@ -199,7 +199,7 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
       ],
       ADMINISTRACION: [
         'En «Recepciones» ves cada recepción con su número, fecha, proveedor, remito, comprobante, cantidad de lotes y si está «Cargada a stock» o «Pendiente».',
-        'Tocá «Cargar a stock» en una recepción pendiente y confirmá: se registra una entrada por cada lote, en el depósito asignado, con la estiba si la anotás (B-12). No se deshace.',
+        'Tocá «Cargar a stock» en una recepción pendiente y confirmá: se registra una entrada por cada lote, en el depósito asignado, con la estiba si la anotás (B-12). Un envase que entra aprobado pregunta si va al Depósito de envases 1 o 2; la estiba, solo en el 1. No se deshace.',
         'Las recepciones con comprobante «sin cargar» aparecen en «Facturas por cargar» de tu inicio. Ahí completás el comprobante del proveedor.',
         'En «Insumos» podés reservar stock con «Reservar» y dar de baja todo el stock de un artículo desde su desglose (pide el motivo).',
         'En «Conteo» cargás lo contado: escribís la cantidad, una observación opcional y tocás «Registrar».',
