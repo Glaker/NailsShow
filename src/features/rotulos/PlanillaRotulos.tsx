@@ -27,8 +27,8 @@ type Estado = Rotulo['estado'];
 /** Los rótulos que tiene sentido tener impresos: los del circuito. */
 const ESTADOS: Estado[] = ['CUARENTENA', 'EN_ANALISIS', 'APROBADO', 'RECHAZADO'];
 
-/** Rótulos por hoja A4: dos de ancho, cuatro de alto (global.css). */
-export const POR_HOJA = 8;
+/** Rótulos por hoja A4 apaisada: tres de ancho, dos de alto (global.css). */
+export const POR_HOJA = 6;
 
 export interface RenglonInsumo {
   clave: number;
@@ -296,7 +296,7 @@ export function PieHoja({
     <Group justify="space-between">
       <Text size="sm" c="dimmed">
         {total} {total === 1 ? 'rótulo' : 'rótulos'} · {hojas}{' '}
-        {hojas === 1 ? 'hoja' : 'hojas'} A4 ({POR_HOJA} por hoja)
+        {hojas === 1 ? 'hoja' : 'hojas'} A4 apaisada ({POR_HOJA} por hoja)
       </Text>
       <Group gap="sm">
         <Button variant="default" onClick={onCerrar}>

@@ -218,13 +218,20 @@ textarea {
 }
 
 /*
- * Planilla de rótulos (D-rotulos-1): en pantalla, dos de ancho al tamaño de
- * diseño (440 px); la vista previa la achica con zoom.
+ * Planilla de rótulos (D-rotulos-1): en pantalla, tres de ancho al tamaño de
+ * diseño (440 x 440 px); la vista previa la achica con zoom. Alto fijo para
+ * que entren justo dos filas por hoja; el pie queda abajo.
  */
 .planilla-rotulos {
   display: grid;
-  grid-template-columns: repeat(2, 440px);
+  grid-template-columns: repeat(3, 440px);
   gap: 12px;
+}
+
+.planilla-celda > .hoja-rotulo {
+  height: 440px;
+  display: flex;
+  flex-direction: column;
 }
 
 /*
@@ -281,26 +288,33 @@ textarea {
     margin: 0;
   }
 
-  /* Planilla: A4 vertical, dos de ancho y cuatro de alto (8 por hoja). Cada
-     rótulo conserva sus proporciones: se diseña a 440 px y se lleva a 91 mm
-     con zoom (0,78), sin reacomodar el contenido. Probado en Chrome: entran
-     8 por hoja mientras el rótulo no pase de 330 px de alto de diseño. */
+  /* Planilla: A4 apaisada, tres de ancho y dos de alto (6 por hoja, pedido
+     del 2026-10-26). Cada rótulo se diseña a 440 x 440 px y se lleva a
+     93 x 93 mm con zoom (0,8): 3 x 93 + 2 x 3 = 285 mm de ancho y
+     2 x 93 + 3 = 189 mm de alto, dentro de los 285 x 198 de la hoja. */
   #impresion-rotulo .planilla-rotulos {
     page: planilla;
-    grid-template-columns: repeat(2, 91mm);
+    grid-template-columns: repeat(3, 93mm);
     gap: 3mm;
     justify-content: center;
   }
 
   .planilla-rotulos .planilla-celda {
     width: 440px;
-    zoom: 0.78;
+    zoom: 0.8;
     break-inside: avoid;
   }
 
   @page planilla {
-    size: A4 portrait;
+    size: A4 landscape;
     margin: 6mm;
+  }
+
+  /* El rótulo suelto de la ficha (A6) se diseñó al tamaño de la planilla:
+     se achica para que siga entrando en una hoja. */
+  #impresion-rotulo > [data-rotulo='rotulo'] > .hoja-rotulo {
+    width: 440px;
+    zoom: 0.75;
   }
 
   /* La cotización va en A4 vertical: página con nombre, no pisa la del rótulo. */

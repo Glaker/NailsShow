@@ -12,6 +12,7 @@ import {
   Switch,
   Table,
   Text,
+  TextInput,
   Tooltip,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
@@ -369,7 +370,11 @@ export function PaginaRecepciones() {
       <Modal
         opened={aCompletar !== null}
         onClose={() => setACompletar(null)}
-        title={<Text fw={700}>Falta marcar algo en la recepción {aCompletar?.recepcion.numero}</Text>}
+        title={
+          <Text fw={700}>
+            Falta marcar algo en la recepción {aCompletar?.recepcion.numero}
+          </Text>
+        }
         centered
       >
         {aCompletar ? (
@@ -426,13 +431,13 @@ export function PaginaRecepciones() {
             controlaEnvases={controlaEnvases}
             enCurso={cargar.isPending || aprobarEnvases.isPending}
             onCancelar={() => setACargar(null)}
-            onConfirmar={(depositos, envasesOk) => {
+            onConfirmar={(depositos, envasesOk, estibas) => {
               const recepcion = aCargar;
               void aprobarEnvases
                 .mutateAsync(envasesOk)
                 .then(() =>
                   cargar.mutate(
-                    { recepcionId: recepcion.id, depositos },
+                    { recepcionId: recepcion.id, depositos, estibas },
                     // Lo pidió la planta: al cargar a stock salta el control de
                     // la materia prima, de a un lote (D-recepcion-1).
                     {
@@ -502,6 +507,9 @@ const eliminable = (r: Recepcion) =>
   !r.cargado_a_stock &&
   r.lotes.every((l) => l.estado === 'RECIBIDO' || l.estado === 'CUARENTENA');
 
+/** Estiba del depósito: una letra y un número (D-rotulos-y-estiba-1). */
+const ESTIBA = /^[A-Z]-\d+$/;
+
 /** Materia prima de la recepción que todavía no tiene veredicto. */
 const pendientesMP = (r: Recepcion): LoteDeRecepcion[] =>
   r.lotes.filter(
@@ -531,8 +539,12 @@ function CargarAStock({
   controlaEnvases: boolean;
   enCurso: boolean;
   onCancelar: () => void;
-  /** Depósitos elegidos y los envases que entran aprobados. */
-  onConfirmar: (depositos: Record<string, string>, envasesOk: string[]) => void;
+  /** Depósitos elegidos, los envases que entran aprobados y las estibas escritas. */
+  onConfirmar: (
+    depositos: Record<string, string>,
+    envasesOk: string[],
+    estibas: Record<string, string>,
+  ) => void;
 }) {
   const lotes = recepcion.lotes;
   const envases = controlaEnvases ? envasesPendientes(recepcion) : [];
@@ -550,6 +562,12 @@ function CargarAStock({
   const elegido = (l: (typeof lotes)[number]) =>
     elegidos[l.id] ?? sugeridos.data?.get(l.insumo_id) ?? null;
   const faltan = sinDeposito.some((l) => !elegido(l));
+  /* Optativa; no va en el rótulo (pedido del 2026-10-26). */
+  const [estibas, setEstibas] = useState<Record<string, string>>({});
+  const escritas = Object.fromEntries(
+    Object.entries(estibas).filter(([, v]) => v !== ''),
+  );
+  const estibaMala = Object.values(escritas).some((v) => !ESTIBA.test(v));
 
   const opciones = (depositos.data ?? [])
     // Los mismos que acepta gmp.asignar_deposito_lote: cuarentena o inflamables.
@@ -615,6 +633,32 @@ function CargarAStock({
           ))}
         </Stack>
       ) : null}
+      <Stack gap="sm">
+        <Text size="sm" fw={600}>
+          Estiba (optativa): una letra y un número, por ejemplo B-12.
+        </Text>
+        {lotes.map((l) => {
+          const v = estibas[l.id] ?? '';
+          return (
+            <TextInput
+              key={l.id}
+              label={`${l.numero_registro_interno} · ${l.insumo?.nombre ?? ''}`}
+              placeholder="A-1"
+              value={v}
+              onChange={(e) =>
+                setEstibas((x) => ({
+                  ...x,
+                  [l.id]: e.currentTarget.value.toUpperCase().replace(/\s/g, ''),
+                }))
+              }
+              error={
+                v !== '' && !ESTIBA.test(v) ? 'Tiene que ser letra-número: B-12' : null
+              }
+              maw={360}
+            />
+          );
+        })}
+      </Stack>
       <Group justify="flex-end">
         <Button variant="subtle" color="gray" onClick={onCancelar}>
           Cancelar
@@ -622,11 +666,13 @@ function CargarAStock({
         <Button
           color="azul"
           loading={enCurso || sugeridos.isLoading}
-          disabled={faltan}
+          disabled={faltan || estibaMala}
           onClick={() =>
-            onConfirmar(Object.fromEntries(sinDeposito.map((l) => [l.id, elegido(l)!])), [
-              ...aprobados,
-            ])
+            onConfirmar(
+              Object.fromEntries(sinDeposito.map((l) => [l.id, elegido(l)!])),
+              [...aprobados],
+              escritas,
+            )
           }
         >
           Cargar a stock

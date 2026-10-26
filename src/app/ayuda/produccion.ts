@@ -185,7 +185,7 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
       GERENCIA_PRODUCCION: [
         'En «Insumos» tocá la flecha de un artículo para ver su desglose por lote y depósito. Ahí está «Dar de baja todo el stock»: registra un descarte «Discontinuado» por cada posición con saldo y pide el motivo.',
         'Debajo de la tabla está «Reservas»: con «Reservar» apartás stock para un cliente (elegís insumo, cantidad, para quién, motivo y fecha de vencimiento; una reserva sin uso libera el stock sola al vencer) y con «Liberar» la devolvés al disponible.',
-        'En «Recepciones» tocá «Nueva recepción» al llegar mercadería (proveedor, remito opcional y un renglón por lote con «Agregar lote»). Cuando la recepción figura «Pendiente», tocá «Cargar a stock» en esa fila y confirmá: se registra una entrada por cada lote, en el depósito que tiene asignado.',
+        'En «Recepciones» tocá «Nueva recepción» al llegar mercadería (proveedor, remito opcional y un renglón por lote con «Agregar lote»). Cuando la recepción figura «Pendiente», tocá «Cargar a stock» en esa fila y confirmá: se registra una entrada por cada lote, en el depósito que tiene asignado. Si querés, anotá la estiba de cada lote (letra-número, por ejemplo B-12); no sale en el rótulo.',
         'En «Stock de seguridad» ves por producto (SKU) qué hay en fábrica y qué falta producir o comprar. Tildá los productos y tocá «Producir para stock» para mandar un pedido a producción; con el lápiz de «SS (meta)» fijás la meta de un producto.',
         'En «Conteo» imprimís la planilla, contás en el depósito y cargás lo contado: el saldo pasa a lo que contaste.',
         'En «En fábrica» ves el producto terminado, unidad por producto, y tenés los botones «Contar» (conteo inicial), «Entró», «Salió» y «Enviar a Calle 5».',
@@ -199,7 +199,7 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
       ],
       ADMINISTRACION: [
         'En «Recepciones» ves cada recepción con su número, fecha, proveedor, remito, comprobante, cantidad de lotes y si está «Cargada a stock» o «Pendiente».',
-        'Tocá «Cargar a stock» en una recepción pendiente y confirmá: se registra una entrada por cada lote, en el depósito asignado. No se deshace.',
+        'Tocá «Cargar a stock» en una recepción pendiente y confirmá: se registra una entrada por cada lote, en el depósito asignado, con la estiba si la anotás (B-12). No se deshace.',
         'Las recepciones con comprobante «sin cargar» aparecen en «Facturas por cargar» de tu inicio. Ahí completás el comprobante del proveedor.',
         'En «Insumos» podés reservar stock con «Reservar» y dar de baja todo el stock de un artículo desde su desglose (pide el motivo).',
         'En «Conteo» cargás lo contado: escribís la cantidad, una observación opcional y tocás «Registrar».',
@@ -217,7 +217,7 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
       ],
     },
     aTener: [
-      'Arriba a la derecha, «Rótulos» (Encargada de stock, Recepción, Gerencia de Producción y Dirección Técnica) arma la hoja de rótulos. En «Producto», con las órdenes del día elegido: código, producto, lote, cantidad y cliente se pueden cambiar; el estado es Etiquetado, Aprobado o Por reprocesar. En «Insumos», los de cuarentena, en análisis, aprobado o rechazado de los lotes que elijas. Los dos van en la misma hoja: «Imprimir» saca todo junto, 8 por hoja.',
+      'Arriba a la derecha, «Rótulos» (Encargada de stock, Recepción, Gerencia de Producción y Dirección Técnica) arma la hoja de rótulos. En «Producto», con las órdenes del día elegido: código, producto, lote, cantidad y cliente se pueden cambiar; el estado se elige (Etiquetado, Aprobado, Por reprocesar) o se escribe el que haga falta; lote y vencimiento salen grandes. En «Insumos», los de cuarentena, en análisis, aprobado o rechazado de los lotes que elijas. Los dos van en la misma hoja: «Imprimir» saca todo junto, 6 por hoja A4 apaisada.',
       'Un movimiento de stock no se edita ni se borra. Se anula con un movimiento inverso, con motivo.',
       '«Cargar a stock» y «Dar de baja todo el stock» no se deshacen: la corrección es un ajuste.',
       'La pestaña vuelve a abrirse donde la dejaste: el enlace guarda la pestaña.',

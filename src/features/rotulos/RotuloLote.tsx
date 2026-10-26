@@ -31,10 +31,10 @@ const TINTA: Record<EstadoCalidad, { fondo: string; texto: string; borde: string
 function Campo({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   return (
     <Box>
-      <Text fz={9} fw={700} style={{ letterSpacing: 0.8, opacity: 0.7 }}>
+      <Text fz={12} fw={700} style={{ letterSpacing: 0.8, opacity: 0.7 }}>
         {etiqueta.toUpperCase()}
       </Text>
-      <Text fz={14} fw={600} lh={1.25}>
+      <Text fz={20} fw={700} lh={1.2}>
         {valor}
       </Text>
     </Box>
@@ -131,18 +131,18 @@ export function RotuloLote({
       <Group
         justify="space-between"
         px="md"
-        py="xs"
+        py="sm"
         wrap="nowrap"
         style={{ background: tinta.fondo, color: tinta.texto }}
       >
-        <Text fz={26} fw={900} lh={1} style={{ letterSpacing: 1 }}>
+        <Text fz={36} fw={900} lh={1} style={{ letterSpacing: 1 }}>
           {TEXTO_ESTADO[estado].toUpperCase()}
         </Text>
         <Stack gap={0} align="flex-end">
-          <Text fz={10} fw={700} style={{ letterSpacing: 1 }}>
+          <Text fz={13} fw={700} style={{ letterSpacing: 1 }}>
             R.20.2.1 v{rotulo.version_formato}
           </Text>
-          <Text fz={10} fw={600}>
+          <Text fz={13} fw={600}>
             NAIL SHOW SRL
           </Text>
         </Stack>
@@ -151,19 +151,19 @@ export function RotuloLote({
       <Group align="flex-start" wrap="nowrap" p="md" gap="md">
         <Stack gap="sm" style={{ flex: 1, minWidth: 0 }}>
           <Campo etiqueta="Nombre" valor={lote.insumo_nombre ?? '—'} />
-          <Group gap="xl" wrap="wrap">
+          <Campo
+            etiqueta="N° interno / código"
+            valor={`${lote.numero_registro_interno ?? '—'} · ${lote.codigo_interno ?? '—'}`}
+          />
+          <Group gap="md" wrap="wrap">
             <Campo etiqueta="N° lote proveedor" valor={lote.lote_proveedor ?? '—'} />
-            <Campo etiqueta="Proveedor" valor={lote.proveedor ?? '—'} />
-          </Group>
-          <Group gap="xl" wrap="wrap">
-            <Campo
-              etiqueta="N° interno / código"
-              valor={`${lote.numero_registro_interno ?? '—'} · ${lote.codigo_interno ?? '—'}`}
-            />
             <Campo
               etiqueta="Plazo de validez"
               valor={lote.plazo_validez ? fecha(lote.plazo_validez) : 'No indicado'}
             />
+          </Group>
+          <Group gap="md" wrap="wrap">
+            <Campo etiqueta="Proveedor" valor={lote.proveedor ?? '—'} />
             {textoCantidad ? <Campo etiqueta="Cantidad" valor={textoCantidad} /> : null}
           </Group>
         </Stack>
@@ -173,14 +173,14 @@ export function RotuloLote({
             <img
               src={qr}
               alt="Código QR del lote"
-              width={104}
-              height={104}
+              width={130}
+              height={130}
               style={{ display: 'block' }}
             />
           ) : (
-            <Box w={104} h={104} style={{ background: '#f1f3f5', borderRadius: 4 }} />
+            <Box w={130} h={130} style={{ background: '#f1f3f5', borderRadius: 4 }} />
           )}
-          <Text fz={8} c="dimmed" ta="center" maw={110}>
+          <Text fz={10} c="dimmed" ta="center" maw={130}>
             Escaneá para ver la ficha del lote
           </Text>
         </Stack>
@@ -188,14 +188,14 @@ export function RotuloLote({
 
       {reservado !== undefined ? (
         <Group gap={6} px="md" pb="xs" wrap="nowrap" align="flex-end">
-          <Text fz={11} fw={700} style={{ letterSpacing: 0.8, opacity: 0.7 }}>
+          <Text fz={14} fw={700} style={{ letterSpacing: 0.8, opacity: 0.7 }}>
             RESERVADO:
           </Text>
           <Text
-            fz={15}
+            fz={20}
             fw={700}
             lh={1.2}
-            style={{ flex: 1, borderBottom: '1px solid #868e96', minHeight: 20 }}
+            style={{ flex: 1, borderBottom: '1px solid #868e96', minHeight: 26 }}
           >
             {reservado}
           </Text>
@@ -206,12 +206,13 @@ export function RotuloLote({
         justify="space-between"
         px="md"
         py={6}
+        mt="auto"
         style={{ borderTop: '1px solid #dee2e6', background: '#fafafa' }}
       >
-        <Text fz={9} c="dimmed">
+        <Text fz={11} c="dimmed">
           {impreso ? `Impreso ${impreso}` : `Emitido ${fechaHora(rotulo.emitido_en)}`}
         </Text>
-        <Text fz={9} c="dimmed">
+        <Text fz={11} c="dimmed">
           Adherir al cuerpo del recipiente, nunca a la tapa (I.20.2)
         </Text>
       </Group>
