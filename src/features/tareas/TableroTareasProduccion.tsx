@@ -469,10 +469,10 @@ export function TableroTareasProduccion() {
   const ejemplos = new Set(
     (personal.data ?? []).filter((p) => p.es_ejemplo).map((p) => p.id),
   );
-  const opcionesPersonal = (personal.data ?? []).map((p) => ({
-    value: p.id,
-    label: p.nombre_completo,
-  }));
+  // Producción primero (también las de ejemplo): son a quienes se les manda.
+  const opcionesPersonal = [...(personal.data ?? [])]
+    .sort((a, b) => Number(b.rol === 'PRODUCCION') - Number(a.rol === 'PRODUCCION'))
+    .map((p) => ({ value: p.id, label: p.nombre_completo }));
   const enCurso = new Set((tramos.data ?? []).map((x) => x.tarea_id));
 
   const sensores = useSensors(
