@@ -635,8 +635,13 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
             label="Producto"
             withAsterisk
             searchable
+            limit={60}
             nothingFoundMessage="Sin coincidencias"
-            data={(productos.data ?? []).map((x) => ({ value: x.id, label: x.nombre }))}
+            // Código y nombre: se busca por cualquiera de los dos (pedido del 2026-10-26).
+            data={(productos.data ?? []).map((x) => ({
+              value: x.id,
+              label: `${x.codigo_interno} · ${x.nombre}`,
+            }))}
             value={productoId}
             onChange={setProductoId}
           />
