@@ -645,12 +645,11 @@ function CargarAStock({
               label={`${l.numero_registro_interno} · ${l.insumo?.nombre ?? ''}`}
               placeholder="A-1"
               value={v}
-              onChange={(e) =>
-                setEstibas((x) => ({
-                  ...x,
-                  [l.id]: e.currentTarget.value.toUpperCase().replace(/\s/g, ''),
-                }))
-              }
+              onChange={(e) => {
+                // Leído antes: en el updater, currentTarget ya es null.
+                const escrita = e.currentTarget.value.toUpperCase().replace(/\s/g, '');
+                setEstibas((x) => ({ ...x, [l.id]: escrita }));
+              }}
               error={
                 v !== '' && !ESTIBA.test(v) ? 'Tiene que ser letra-número: B-12' : null
               }
