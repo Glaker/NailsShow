@@ -9601,6 +9601,7 @@ export type Database = {
           creado_en: string
           deposito_actual_id: string | null
           estado: Database["gmp"]["Enums"]["estado_calidad_enum"]
+          estiba: string | null
           etiquetas_por_plancha: number | null
           id: string
           insumo_id: string
@@ -9629,6 +9630,7 @@ export type Database = {
           creado_en?: string
           deposito_actual_id?: string | null
           estado?: Database["gmp"]["Enums"]["estado_calidad_enum"]
+          estiba?: string | null
           etiquetas_por_plancha?: number | null
           id?: string
           insumo_id: string
@@ -9657,6 +9659,7 @@ export type Database = {
           creado_en?: string
           deposito_actual_id?: string | null
           estado?: Database["gmp"]["Enums"]["estado_calidad_enum"]
+          estiba?: string | null
           etiquetas_por_plancha?: number | null
           id?: string
           insumo_id?: string
@@ -11412,12 +11415,20 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      copiar_componentes: {
+        Args: { p_destino: string; p_origen: string }
+        Returns: number
+      }
       copiar_especificacion: {
         Args: { p_codigo_poe: string; p_origen: string; p_producto_id: string }
         Returns: string
       }
       copiar_formula: {
         Args: { p_origen: string; p_producto_id: string }
+        Returns: string
+      }
+      copiar_procedimiento: {
+        Args: { p_destino: string; p_origen: string }
         Returns: string
       }
       cumple_parametro: {
@@ -11626,8 +11637,10 @@ export type Database = {
         Args: { p_id: string; p_motivo: string }
         Returns: string
       }
+      nueva_version_formula: { Args: { p_formula_id: string }; Returns: string }
       proveedor_de_tercero: { Args: { p_tercero_id: string }; Returns: string }
       puede_trabajar_tarea: { Args: { p_tarea_id: string }; Returns: boolean }
+      reanudar_tarea: { Args: { p_tarea_id: string }; Returns: string }
       registrar_muestreo: {
         Args: {
           p_area_muestreo: string
