@@ -8430,6 +8430,7 @@ export type Database = {
           documento: string | null
           email: string | null
           es_dt_titular: boolean
+          es_ejemplo: boolean
           fecha_alta: string
           fecha_baja: string | null
           id: string
@@ -8445,6 +8446,7 @@ export type Database = {
           documento?: string | null
           email?: string | null
           es_dt_titular?: boolean
+          es_ejemplo?: boolean
           fecha_alta?: string
           fecha_baja?: string | null
           id?: string
@@ -8460,6 +8462,7 @@ export type Database = {
           documento?: string | null
           email?: string | null
           es_dt_titular?: boolean
+          es_ejemplo?: boolean
           fecha_alta?: string
           fecha_baja?: string | null
           id?: string
@@ -8571,18 +8574,21 @@ export type Database = {
       v_nomina: {
         Row: {
           activo: boolean | null
+          es_ejemplo: boolean | null
           id: string | null
           nombre_completo: string | null
           rol: Database["core"]["Enums"]["rol_enum"] | null
         }
         Insert: {
           activo?: boolean | null
+          es_ejemplo?: boolean | null
           id?: string | null
           nombre_completo?: string | null
           rol?: Database["core"]["Enums"]["rol_enum"] | null
         }
         Update: {
           activo?: boolean | null
+          es_ejemplo?: boolean | null
           id?: string | null
           nombre_completo?: string | null
           rol?: Database["core"]["Enums"]["rol_enum"] | null
@@ -8593,6 +8599,7 @@ export type Database = {
     Functions: {
       adjuntar_auditoria: { Args: { p_tabla: unknown }; Returns: undefined }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
+      dar_de_baja_ejemplo: { Args: { p_usuario: string }; Returns: undefined }
       es_escritura_privilegiada: {
         Args: { p_db_role: string }
         Returns: boolean
