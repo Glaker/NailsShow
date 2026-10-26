@@ -23,7 +23,7 @@ import { PaginaVenta } from '@/features/ventas/PaginaVenta';
 import { PaginaArmado } from '@/features/ventas/PaginaArmado';
 import { PaginaUsuarios } from '@/features/usuarios/PaginaUsuarios';
 import { PaginaInformes } from '@/features/informes/PaginaInformes';
-import { MisTareas } from '@/features/tareas/MisTareas';
+import { PaginaTareas } from '@/features/tareas/PaginaTareas';
 import { PaginaAuditoria } from '@/features/auditoria/PaginaAuditoria';
 import { PaginaTercerizados } from '@/features/tercerizados/PaginaTercerizados';
 import { PaginaTercero } from '@/features/tercerizados/PaginaTercero';
@@ -115,7 +115,7 @@ export function AppRoutes() {
       <Route path="/proveedores" element={<RedirigirACatalogo vista="proveedores" />} />
       <Route path="/depositos" element={<RedirigirACatalogo vista="depositos" />} />
       <Route path="/informes" element={<PaginaInformes />} />
-      <Route path="/mis-tareas" element={<MisTareas />} />
+      <Route path="/mis-tareas" element={<PaginaTareas />} />
       <Route path="/usuarios" element={<PaginaUsuarios />} />
       <Route path="/visibilidad" element={<PaginaVisibilidad />} />
       <Route path="/auditoria" element={<PaginaAuditoria />} />

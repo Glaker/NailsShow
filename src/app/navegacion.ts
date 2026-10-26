@@ -318,12 +318,13 @@ export const NAVEGACION: ItemNavegacion[] = [
   },
   {
     // Las tareas que manda Naza, para quien no las tiene en el tablero
-    // (Producción las ve al entrar) (D-tareas-1).
+    // (Producción las ve al entrar) (D-tareas-1). Naza también tiene las
+    // suyas, y la encargada de stock asigna desde acá (D-tareas-agustina-1).
     ruta: '/mis-tareas',
     etiqueta: 'Mis tareas',
     etiquetaCorta: 'Tareas',
     icono: IconChecklist,
-    roles: ['ENCARGADA_STOCK', 'RECEPCION'],
+    roles: ['ENCARGADA_STOCK', 'RECEPCION', 'GERENCIA_PRODUCCION'],
   },
   {
     ruta: '/usuarios',

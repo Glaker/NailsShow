@@ -563,6 +563,10 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
     porRol: {
       ENCARGADA_STOCK: [
         'Cuando Naza te sume a una tarea, la ves acá. Funciona igual que para las chicas de producción.',
+        'En «Asignar tareas» armás el día y mandás tareas a las chicas, igual que Naza en Planificación. Podés cambiar cualquier tarea pendiente o en curso, la hayas cargado vos o ella. También podés asignarte una a vos.',
+      ],
+      GERENCIA_PRODUCCION: [
+        'Si te asignás una tarea, la hacés desde acá como las chicas. En «Asignar tareas» tenés el mismo tablero que en Planificación.',
       ],
       RECEPCION: [
         'Cuando Naza te sume a una tarea, la ves acá. Funciona igual que para las chicas de producción.',
