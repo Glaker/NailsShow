@@ -994,6 +994,22 @@ tareas y Naza tiene «Mis tareas» en el menú.
 **Dónde está.** `20261026150000_gmp_tareas_encargada_stock.sql`
 (`gmp.es_gestor_tareas`), `src/features/tareas/PaginaTareas.tsx`.
 
+### D-operarios-ejemplo-1 · Operarios de ejemplo para practicar las tareas — adoptada 2026-10-26
+
+**Pedido.** Cuentas «Operario de ejemplo 1…N» para que Naza vea cómo funcionan
+las tareas, con tareas de prueba, y poder borrarlas.
+**Decisión del codirector técnico.** En la base real, no en una de práctica (que
+no existe todavía). Cinco cuentas, `operario1@ejemplo.nailshow.com.ar` a
+`operario5@`, con rol Producción y marcadas `es_ejemplo`. El correo es de un
+subdominio de Nail Show para que ningún aviso le llegue a un tercero. No se
+borran (invariante 9): Naza o DT las dan de baja desde la columna del tablero y
+quedan inactivas. El informe de trabajo de operarias y el tiempo medido no las
+cuentan.
+**Límite.** Las tareas de prueba sí quedan en la auditoría y en la lista de
+tareas. Si una tarea de prueba mezcla a un operario de ejemplo con una operaria
+real, a la real le toca la parte de sus minutos sobre el total del grupo.
+**Dónde está.** `20261026170000_core_operarios_ejemplo.sql`.
+
 ### D-tareas-2 · La pausa — adoptada 2026-10-23
 
 **Aclaración del codirector técnico.** La pausa es para cortar un rato,

@@ -19,9 +19,12 @@ import {
   IconArrowsSort,
   IconCheck,
   IconPlus,
+  IconTrash,
   IconUserPlus,
   IconX,
 } from '@tabler/icons-react';
+import { modals } from '@mantine/modals';
+import { useTieneRol } from '@/features/auth/sesion';
 import {
   DndContext,
   KeyboardSensor,
@@ -44,6 +47,7 @@ import { useProductos } from '@/lib/consultas';
 import { useOrdenes } from '@/lib/consultasOrdenes';
 import {
   TEXTO_TIPO,
+  useDarDeBajaEjemplo,
   useGuardarJornada,
   useGuardarTarea,
   useHechoPorTarea,
@@ -351,8 +355,19 @@ function ModalTarea({
 }
 
 /** Cabecera de una operaria del día: nombre, horario y sacarla del día. */
-function ColumnaOperaria({ j, nombre }: { j: Jornada; nombre: string }) {
+function ColumnaOperaria({
+  j,
+  nombre,
+  ejemplo,
+}: {
+  j: Jornada;
+  nombre: string;
+  /** Operario de ejemplo: se puede dar de baja desde acá (D-operarios-ejemplo-1). */
+  ejemplo: boolean;
+}) {
   const guardar = useGuardarJornada();
+  const darDeBaja = useDarDeBajaEjemplo();
+  const puedeDarDeBaja = useTieneRol('GERENCIA_PRODUCCION', 'DIRECCION_TECNICA');
   const cambiar = (c: Partial<Jornada>) =>
     guardar.mutate({ fecha: j.fecha, usuario_id: j.usuario_id, ...c });
   return (
@@ -375,6 +390,32 @@ function ColumnaOperaria({ j, nombre }: { j: Jornada; nombre: string }) {
         >
           <IconX size={14} />
         </ActionIcon>
+        {ejemplo && puedeDarDeBaja ? (
+          <ActionIcon
+            size="sm"
+            variant="subtle"
+            color="estadoRechazado"
+            aria-label={`Dar de baja a ${nombre}`}
+            loading={darDeBaja.isPending}
+            onClick={() =>
+              modals.openConfirmModal({
+                title: `Dar de baja a ${nombre}`,
+                children: (
+                  <Text size="sm">
+                    Deja de aparecer para asignarle tareas. No se borra: lo que hizo queda
+                    registrado, pero no cuenta en los informes.
+                  </Text>
+                ),
+                labels: { confirm: 'Dar de baja', cancel: 'Cancelar' },
+                confirmProps: { color: 'estadoRechazado' },
+                onConfirm: () =>
+                  darDeBaja.mutate({ fecha: j.fecha, usuario_id: j.usuario_id }),
+              })
+            }
+          >
+            <IconTrash size={14} />
+          </ActionIcon>
+        ) : null}
       </Group>
       <Group gap={2} wrap="nowrap">
         <TextInput
@@ -425,6 +466,9 @@ export function TableroTareasProduccion() {
   const delDia = (jornadas.data ?? []).filter((j) => j.trabaja);
   const columnas = delDia.map((j) => j.usuario_id);
   const nombres = new Map((personal.data ?? []).map((p) => [p.id, p.nombre_completo]));
+  const ejemplos = new Set(
+    (personal.data ?? []).filter((p) => p.es_ejemplo).map((p) => p.id),
+  );
   const opcionesPersonal = (personal.data ?? []).map((p) => ({
     value: p.id,
     label: p.nombre_completo,
@@ -537,6 +581,7 @@ export function TableroTareasProduccion() {
                 key={j.id}
                 j={j}
                 nombre={nombres.get(j.usuario_id) ?? '—'}
+                ejemplo={ejemplos.has(j.usuario_id)}
               />
             ))}
           </Box>

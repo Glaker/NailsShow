@@ -66,6 +66,8 @@ export interface Persona {
   id: string;
   nombre_completo: string;
   rol: string;
+  /** Operario de ejemplo, para practicar (D-operarios-ejemplo-1). */
+  es_ejemplo: boolean;
 }
 
 /** El personal activo, para armar el día y los grupos. */
@@ -77,7 +79,7 @@ export function usePersonal() {
       const { data, error } = await (supabase as unknown as SupabaseClient)
         .schema('core')
         .from('v_nomina')
-        .select('id, nombre_completo, rol')
+        .select('id, nombre_completo, rol, es_ejemplo')
         .eq('activo', true)
         .order('nombre_completo');
       if (error) throw error;
@@ -173,6 +175,32 @@ export function useJornadas(fecha: string) {
       if (error) throw error;
       return (data ?? []) as Jornada[];
     },
+  });
+}
+
+/**
+ * Da de baja un operario de ejemplo: lo saca del día y lo desactiva. No se
+ * borra (invariante 9); lo que hizo queda en la auditoría (D-operarios-ejemplo-1).
+ */
+export function useDarDeBajaEjemplo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (j: { fecha: string; usuario_id: string }) => {
+      const { error: e1 } = await gmpST()
+        .from('jornadas_operarias')
+        .upsert({ ...j, trabaja: false }, { onConflict: 'fecha,usuario_id' });
+      if (e1) throw e1;
+      const { error } = await (supabase as unknown as SupabaseClient)
+        .schema('core')
+        .rpc('dar_de_baja_ejemplo', { p_usuario: j.usuario_id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidar(qc);
+      void qc.invalidateQueries({ queryKey: ['personal'] });
+      avisarExito('Operario de ejemplo dado de baja.');
+    },
+    onError: avisarError,
   });
 }
 
