@@ -8091,6 +8091,7 @@ export type Database = {
         | "EXENTO"
         | "CONSUMIDOR_FINAL"
         | "NO_ALCANZADO"
+        | "NO_CATEGORIZADO"
       destino_cotizacion_enum: "CLIENTE" | "POTENCIAL" | "INTERNO"
       estado_aviso_enum: "PENDIENTE" | "EN_COMPRA" | "RESUELTO" | "DESCARTADO"
       estado_cotizacion_enum: "BORRADOR" | "EMITIDA" | "ANULADA"
@@ -12002,6 +12003,7 @@ export const Constants = {
         "EXENTO",
         "CONSUMIDOR_FINAL",
         "NO_ALCANZADO",
+        "NO_CATEGORIZADO",
       ],
       destino_cotizacion_enum: ["CLIENTE", "POTENCIAL", "INTERNO"],
       estado_aviso_enum: ["PENDIENTE", "EN_COMPRA", "RESUELTO", "DESCARTADO"],

@@ -1,13 +1,26 @@
 import { useForm } from '@mantine/form';
 import { zod4Resolver } from 'mantine-form-zod-resolver';
 import { z } from 'zod';
-import { Alert, Button, Group, Select, Stack, Switch, TextInput } from '@mantine/core';
-import { IconInfoCircle } from '@tabler/icons-react';
+import { useState } from 'react';
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Group,
+  Select,
+  Stack,
+  Switch,
+  Text,
+  TextInput,
+} from '@mantine/core';
+import { IconAlertTriangle, IconInfoCircle } from '@tabler/icons-react';
 import {
   TEXTO_CONDICION,
   TEXTO_DOCUMENTO,
   claseFactura,
+  clientesRepetidos,
   cuitValido,
+  useClientes,
   useGuardarCliente,
   type Cliente,
   type CondicionIva,
@@ -29,6 +42,7 @@ const esquema = z
       'EXENTO',
       'CONSUMIDOR_FINAL',
       'NO_ALCANZADO',
+      'NO_CATEGORIZADO',
     ]),
     tipo_documento: z.enum(['CUIT', 'CUIL', 'DNI', 'SIN_IDENTIFICAR']),
     numero_documento: z.string().trim(),
@@ -98,6 +112,9 @@ export function FormularioCliente({
   onListo: (c: Cliente) => void;
 }) {
   const guardar = useGuardarCliente();
+  const clientes = useClientes();
+  /* «Es otro cliente»: confirmado para estos parecidos (D-clientes-duplicados-1). */
+  const [esOtro, setEsOtro] = useState(false);
   const form = useForm<Valores>({
     initialValues: {
       razon_social: cliente?.razon_social ?? '',
@@ -113,6 +130,15 @@ export function FormularioCliente({
   });
 
   const clase = claseFactura(form.values.condicion_iva);
+  const { mismoDocumento, parecidos } = clientesRepetidos(clientes.data ?? [], {
+    id: cliente?.id ?? null,
+    razon_social: form.values.razon_social,
+    numero_documento:
+      form.values.tipo_documento === 'SIN_IDENTIFICAR'
+        ? ''
+        : form.values.numero_documento,
+  });
+  const frena = !!mismoDocumento || (parecidos.length > 0 && !esOtro);
 
   return (
     <form
@@ -142,6 +168,10 @@ export function FormularioCliente({
           label="Razón social o nombre"
           withAsterisk
           {...form.getInputProps('razon_social')}
+          onChange={(e) => {
+            form.setFieldValue('razon_social', e.currentTarget.value);
+            setEsOtro(false);
+          }}
         />
         <Select
           label="Condición frente al IVA"
@@ -171,8 +201,46 @@ export function FormularioCliente({
             placeholder={form.values.tipo_documento === 'CUIT' ? '20-12345678-9' : ''}
             style={{ minWidth: 180 }}
             {...form.getInputProps('numero_documento')}
+            onChange={(e) => {
+              form.setFieldValue('numero_documento', e.currentTarget.value);
+              setEsOtro(false);
+            }}
+            error={
+              form.errors.numero_documento ??
+              (mismoDocumento
+                ? `Ya está cargado: ${mismoDocumento.razon_social}. No se carga dos veces.`
+                : null)
+            }
           />
         </Group>
+        {parecidos.length > 0 && !mismoDocumento ? (
+          <Alert
+            color="estadoCuarentena"
+            variant="light"
+            radius="md"
+            icon={<IconAlertTriangle size={18} />}
+            title="¿Ya existe?"
+          >
+            <Stack gap="xs">
+              <Text size="sm">
+                Se parece a {parecidos.length === 1 ? 'este cliente' : 'estos clientes'}:{' '}
+                {parecidos
+                  .slice(0, 5)
+                  .map(
+                    (c) =>
+                      `${c.razon_social} (${TEXTO_DOCUMENTO[c.tipo_documento]} ${c.numero_documento})`,
+                  )
+                  .join(', ')}
+                {parecidos.length > 5 ? '…' : '.'}
+              </Text>
+              <Checkbox
+                label="Lo revisé: es otro cliente, cargarlo igual"
+                checked={esOtro}
+                onChange={(e) => setEsOtro(e.currentTarget.checked)}
+              />
+            </Stack>
+          </Alert>
+        ) : null}
         <TextInput label="Domicilio" {...form.getInputProps('domicilio')} />
         <TextInput label="Correo" type="email" {...form.getInputProps('email')} />
         {cliente ? (
@@ -193,7 +261,7 @@ export function FormularioCliente({
             : ''}
         </Alert>
         <Group justify="flex-end">
-          <Button type="submit" loading={guardar.isPending}>
+          <Button type="submit" loading={guardar.isPending} disabled={frena}>
             {cliente ? 'Guardar' : 'Dar de alta'}
           </Button>
         </Group>
