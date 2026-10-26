@@ -1031,6 +1031,18 @@ mismos roles que «Cargar a stock».
 **Dónde está.** `20261026120000_gmp_estiba_lote.sql`, `CargarAStock` en
 `src/features/recepcion/PaginaRecepciones.tsx`.
 
+### D-envases-1-y-2-1 · Depósitos de envases 1 y 2 — adoptada 2026-10-26
+
+**Decisión del codirector técnico.** Hay dos depósitos de envases aprobados:
+«Envases aprobados» (ENV-APR) pasa a llamarse «Depósito de envases 1» y se crea
+«Depósito de envases 2» (ENV-2). Al cargar a stock un envase (solo material de
+envase; empaques y etiquetas siguen como antes) que entra aprobado se pregunta a
+cuál va, el 1 por defecto, y la estiba se pregunta solo si va al 1: es el único
+con estibas. Un envase que entra a cuarentena sigue yendo al 01, sin estiba.
+`gmp.elegir_deposito_envase` lo cambia mientras la recepción no se cargó; después
+es una transferencia.
+**Dónde está.** `20261026130000_gmp_depositos_envases_1_y_2.sql`, `CargarAStock`.
+
 ### D-catalogo-1 · Catálogo de insumos y proveedores editable por todos — adoptada 2026-10-22
 
 **Decisión del codirector técnico.** Todos los roles menos operario dan de

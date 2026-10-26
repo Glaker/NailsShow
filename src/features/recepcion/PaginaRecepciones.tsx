@@ -431,13 +431,13 @@ export function PaginaRecepciones() {
             controlaEnvases={controlaEnvases}
             enCurso={cargar.isPending || aprobarEnvases.isPending}
             onCancelar={() => setACargar(null)}
-            onConfirmar={(depositos, envasesOk, estibas) => {
+            onConfirmar={(depositos, envasesOk, estibas, envasesA) => {
               const recepcion = aCargar;
               void aprobarEnvases
                 .mutateAsync(envasesOk)
                 .then(() =>
                   cargar.mutate(
-                    { recepcionId: recepcion.id, depositos, estibas },
+                    { recepcionId: recepcion.id, depositos, estibas, envasesA },
                     // Lo pidió la planta: al cargar a stock salta el control de
                     // la materia prima, de a un lote (D-recepcion-1).
                     {
@@ -528,7 +528,7 @@ const pendientesMP = (r: Recepcion): LoteDeRecepcion[] =>
  * cuarentena en la ficha) se resuelve acá mismo: se propone el de su tipo y
  * se puede cambiar.
  */
-function CargarAStock({
+export function CargarAStock({
   recepcion,
   controlaEnvases,
   enCurso,
@@ -539,11 +539,15 @@ function CargarAStock({
   controlaEnvases: boolean;
   enCurso: boolean;
   onCancelar: () => void;
-  /** Depósitos elegidos, los envases que entran aprobados y las estibas escritas. */
+  /**
+   * Depósitos elegidos, los envases que entran aprobados, las estibas
+   * escritas y a qué depósito de envases (1 o 2) va cada envase aprobado.
+   */
   onConfirmar: (
     depositos: Record<string, string>,
     envasesOk: string[],
     estibas: Record<string, string>,
+    envasesA: Record<string, string>,
   ) => void;
 }) {
   const lotes = recepcion.lotes;
@@ -562,10 +566,28 @@ function CargarAStock({
   const elegido = (l: (typeof lotes)[number]) =>
     elegidos[l.id] ?? sugeridos.data?.get(l.insumo_id) ?? null;
   const faltan = sinDeposito.some((l) => !elegido(l));
-  /* Optativa; no va en el rótulo (pedido del 2026-10-26). */
+  /* Envase que entra aprobado: depósito de envases 1 o 2; el 1 por defecto
+     (D-envases-1-y-2-1). Solo envases: empaques y etiquetas, como siempre. */
+  const depEnvases = (depositos.data ?? []).filter(
+    (d) =>
+      d.activo &&
+      d.tipo_contenido === 'ENVASE_EMPAQUE' &&
+      d.estado_admitido === 'APROBADO',
+  );
+  const deposito1 = depEnvases.find((d) => d.numero === 'ENV-APR')?.id ?? null;
+  const esEnvase = (l: (typeof lotes)[number]) => l.insumo?.tipo === 'MATERIAL_ENVASE';
+  const envasesAprobados = lotes.filter((l) => esEnvase(l) && aprobados.has(l.id));
+  const [depEnvase, setDepEnvase] = useState<Record<string, string>>({});
+  const depDe = (l: (typeof lotes)[number]) => depEnvase[l.id] ?? deposito1;
+  /* Optativa; no va en el rótulo (pedido del 2026-10-26). De los envases,
+     solo en el depósito 1: es el único con estibas. */
+  const llevaEstiba = (l: (typeof lotes)[number]) =>
+    !esEnvase(l) || (aprobados.has(l.id) && depDe(l) === deposito1);
   const [estibas, setEstibas] = useState<Record<string, string>>({});
   const escritas = Object.fromEntries(
-    Object.entries(estibas).filter(([, v]) => v !== ''),
+    Object.entries(estibas).filter(
+      ([id, v]) => v !== '' && lotes.some((l) => l.id === id && llevaEstiba(l)),
+    ),
   );
   const estibaMala = Object.values(escritas).some((v) => !ESTIBA.test(v));
 
@@ -604,7 +626,7 @@ function CargarAStock({
             }
             description={
               envasesBien
-                ? `Van a «Envases aprobados» a tu nombre: ${envases
+                ? `Van a aprobados a tu nombre: ${envases
                     .map((l) => l.insumo?.nombre ?? l.numero_registro_interno)
                     .join(', ')}.`
                 : 'Entran a cuarentena y se controlan después con «Control de calidad».'
@@ -633,11 +655,29 @@ function CargarAStock({
           ))}
         </Stack>
       ) : null}
+      {envasesAprobados.length > 0 ? (
+        <Stack gap="sm">
+          <Text size="sm" fw={600}>
+            ¿En qué depósito de envases va?
+          </Text>
+          {envasesAprobados.map((l) => (
+            <Select
+              key={l.id}
+              label={`${l.numero_registro_interno} · ${l.insumo?.nombre ?? ''}`}
+              data={depEnvases.map((d) => ({ value: d.id, label: d.nombre }))}
+              value={depDe(l)}
+              onChange={(v) => v && setDepEnvase((e) => ({ ...e, [l.id]: v }))}
+              allowDeselect={false}
+              maw={360}
+            />
+          ))}
+        </Stack>
+      ) : null}
       <Stack gap="sm">
         <Text size="sm" fw={600}>
           Estiba (optativa): una letra y un número, por ejemplo B-12.
         </Text>
-        {lotes.map((l) => {
+        {lotes.filter(llevaEstiba).map((l) => {
           const v = estibas[l.id] ?? '';
           return (
             <TextInput
@@ -665,12 +705,13 @@ function CargarAStock({
         <Button
           color="azul"
           loading={enCurso || sugeridos.isLoading}
-          disabled={faltan || estibaMala}
+          disabled={faltan || estibaMala || envasesAprobados.some((l) => !depDe(l))}
           onClick={() =>
             onConfirmar(
               Object.fromEntries(sinDeposito.map((l) => [l.id, elegido(l)!])),
               [...aprobados],
               escritas,
+              Object.fromEntries(envasesAprobados.map((l) => [l.id, depDe(l)!])),
             )
           }
         >

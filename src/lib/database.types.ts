@@ -11303,6 +11303,10 @@ export type Database = {
         Args: { p_deposito_id: string; p_lote_id: string }
         Returns: undefined
       }
+      elegir_deposito_envase: {
+        Args: { p_deposito_id: string; p_lote_id: string }
+        Returns: undefined
+      }
       asignar_estiba_lote: {
         Args: { p_estiba: string; p_lote_id: string }
         Returns: undefined
