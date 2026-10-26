@@ -83,6 +83,9 @@ const esquemaLote = z.object({
     // Sin predicado de tipo: el formulario arranca en null y tiene que admitirlo.
     .refine((n): boolean => n !== null, 'Falta la cantidad'),
   unidad: z.string().trim().min(1, 'Falta la unidad'),
+  /* La cantidad se tipeó en kg (o L) con la ficha en g (o ml): se guarda
+     convertida, en la unidad de la ficha (pedido del 2026-10-26). */
+  en_mayor: z.boolean(),
   plazo_validez: z.date().nullable(),
   /* 'si' | 'no' | 'na' — I.20.1 paso 3 admite que no aplique. */
   peso_bultos: z.enum(['si', 'no', 'na']),
@@ -152,12 +155,20 @@ const esquemaRecepcion = z
 
 type ValoresRecepcion = z.infer<typeof esquemaRecepcion>;
 
+/** Unidad de la ficha → la que se puede tipear en su lugar, ×1000. */
+const MAYOR: Record<string, string> = { g: 'kg', ml: 'l' };
+
+/** La cantidad en la unidad de la ficha, la haya tipeado en kg o en g. */
+export const enUnidadFicha = (n: number | null, enMayor: boolean) =>
+  n === null || !enMayor ? n : Math.round(n * 1000 * 1000) / 1000;
+
 const LOTE_VACIO = {
   insumo_id: '',
   lote_proveedor: '',
   cantidad_bultos: 1,
   cantidad_unidades: null,
   unidad: 'kg',
+  en_mayor: false,
   plazo_validez: null,
   peso_bultos: 'na' as const,
   unidades_contadas: null,
@@ -299,6 +310,7 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
     form.setFieldValue(`lotes.${i}.insumo_id`, insumo.id);
     const u = insumo.unidad_medida ?? '';
     form.setFieldValue(`lotes.${i}.unidad`, u);
+    form.setFieldValue(`lotes.${i}.en_mayor`, false);
     if (UNIDADES_COSTO.includes(u)) form.setFieldValue(`lotes.${i}.costo.unidad`, u);
   };
 
@@ -351,7 +363,7 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
         insumo_id: l.insumo_id,
         lote_proveedor: l.lote_proveedor.trim() || null,
         cantidad_bultos: l.cantidad_bultos,
-        cantidad_unidades: l.cantidad_unidades,
+        cantidad_unidades: enUnidadFicha(l.cantidad_unidades, l.en_mayor),
         unidad: l.unidad.trim(),
         plazo_validez: fechaISO(l.plazo_validez),
         bultos_peso_similar: l.peso_bultos === 'na' ? null : l.peso_bultos === 'si',
@@ -631,8 +643,13 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
                     <NumberInput
                       label={
                         lote.unidad
-                          ? `Cantidad (${etiquetaUnidad(lote.unidad)})`
+                          ? `Cantidad (${etiquetaUnidad(lote.en_mayor ? MAYOR[lote.unidad]! : lote.unidad)})`
                           : 'Cantidad'
+                      }
+                      description={
+                        lote.en_mayor && lote.cantidad_unidades !== null
+                          ? `Se guarda como ${numero(enUnidadFicha(lote.cantidad_unidades, true), 3)} ${etiquetaUnidad(lote.unidad)}`
+                          : undefined
                       }
                       min={0}
                       decimalScale={3}
@@ -649,14 +666,40 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
                     {/* La del catálogo, no se tipea: el stock y los consumos
                         comparan la unidad del lote con la de la ficha, y «Kg»
                         no es «kg». Si llegó en otra, se convierte la cantidad. */}
-                    <TextInput
-                      label="Unidad"
-                      value={lote.unidad ? etiquetaUnidad(lote.unidad) : ''}
-                      placeholder="Elegí el insumo"
-                      description="La de la ficha del insumo"
-                      readOnly
-                      error={form.errors[`lotes.${i}.unidad`]}
-                    />
+                    {MAYOR[lote.unidad] ? (
+                      /* Se tipea en la que vino; se guarda en la de la ficha. */
+                      <Stack gap={4}>
+                        <Text size="sm" fw={500}>
+                          Cargar en
+                        </Text>
+                        <SegmentedControl
+                          fullWidth
+                          value={lote.en_mayor ? 'mayor' : 'ficha'}
+                          onChange={(v) =>
+                            form.setFieldValue(`lotes.${i}.en_mayor`, v === 'mayor')
+                          }
+                          data={[
+                            { value: 'ficha', label: etiquetaUnidad(lote.unidad) },
+                            {
+                              value: 'mayor',
+                              label: etiquetaUnidad(MAYOR[lote.unidad]!),
+                            },
+                          ]}
+                        />
+                        <Text size="xs" c="dimmed">
+                          Se guarda en {etiquetaUnidad(lote.unidad)}, la de la ficha
+                        </Text>
+                      </Stack>
+                    ) : (
+                      <TextInput
+                        label="Unidad"
+                        value={lote.unidad ? etiquetaUnidad(lote.unidad) : ''}
+                        placeholder="Elegí el insumo"
+                        description="La de la ficha del insumo"
+                        readOnly
+                        error={form.errors[`lotes.${i}.unidad`]}
+                      />
+                    )}
                   </Grid.Col>
                   <Grid.Col span={{ base: 6, sm: 3 }}>
                     <DateInput
