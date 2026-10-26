@@ -969,6 +969,42 @@ export type Database = {
           },
         ]
       }
+      correcciones_dato_lote: {
+        Row: {
+          campo: string
+          corregido_en: string
+          corregido_por: string
+          id: string
+          lote_insumo_id: string
+          motivo: string
+          motivo_detalle: string | null
+          valor_antes: string | null
+          valor_despues: string | null
+        }
+        Insert: {
+          campo: string
+          corregido_en?: string
+          corregido_por?: string
+          id?: string
+          lote_insumo_id: string
+          motivo: string
+          motivo_detalle?: string | null
+          valor_antes?: string | null
+          valor_despues?: string | null
+        }
+        Update: {
+          campo?: string
+          corregido_en?: string
+          corregido_por?: string
+          id?: string
+          lote_insumo_id?: string
+          motivo?: string
+          motivo_detalle?: string | null
+          valor_antes?: string | null
+          valor_despues?: string | null
+        }
+        Relationships: []
+      }
       correcciones_lote: {
         Row: {
           bultos_antes: number
@@ -11304,10 +11340,6 @@ export type Database = {
         Args: { p_deposito_id: string; p_lote_id: string }
         Returns: undefined
       }
-      elegir_deposito_envase: {
-        Args: { p_deposito_id: string; p_lote_id: string }
-        Returns: undefined
-      }
       asignar_estiba_lote: {
         Args: { p_estiba: string; p_lote_id: string }
         Returns: undefined
@@ -11539,6 +11571,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      elegir_deposito_envase: {
+        Args: { p_deposito_id: string; p_lote_id: string }
+        Returns: undefined
       }
       eliminar_recepcion: {
         Args: { p_recepcion_id: string }
