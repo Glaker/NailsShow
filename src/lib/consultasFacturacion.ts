@@ -50,7 +50,56 @@ export const TEXTO_CONDICION: Record<CondicionIva, string> = {
   EXENTO: 'Exento',
   CONSUMIDOR_FINAL: 'Consumidor Final',
   NO_ALCANZADO: 'No alcanzado',
+  // En lugar de «Responsable no inscripto», que ARCA ya no acepta (D-clientes-iva-1).
+  NO_CATEGORIZADO: 'No categorizado',
 };
+
+/** Para comparar nombres: sin tildes, signos ni «SRL», «SA» y parecidos. */
+const normalizarNombre = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .split(/\s+/)
+    .filter((p) => p && !['srl', 'sa', 'sas', 'sh', 's', 'r', 'l', 'de', 'y'].includes(p))
+    .join(' ');
+
+/**
+ * El cliente que se está cargando, ¿ya existe? (D-clientes-duplicados-1).
+ * Mismo número de documento: es el mismo, no se carga (lo rechaza además
+ * clientes_documento_idx). Un CUIT que contiene ese DNI, o un nombre igual o
+ * contenido en otro: puede serlo, se avisa.
+ */
+export function clientesRepetidos(
+  lista: Pick<Cliente, 'id' | 'razon_social' | 'numero_documento' | 'tipo_documento'>[],
+  nuevo: { id: string | null; razon_social: string; numero_documento: string },
+) {
+  const otros = lista.filter((c) => c.id !== nuevo.id);
+  const numero = nuevo.numero_documento.replace(/[^0-9]/g, '');
+  const conNumero = otros.filter((c) => c.tipo_documento !== 'SIN_IDENTIFICAR');
+  const mismoDocumento = numero
+    ? conNumero.find((c) => c.numero_documento === numero)
+    : undefined;
+  const nombre = normalizarNombre(nuevo.razon_social);
+  const parecidos = otros.filter((c) => {
+    if (c === mismoDocumento) return false;
+    const otro = normalizarNombre(c.razon_social);
+    const porNombre =
+      nombre.length >= 4 &&
+      otro.length >= 4 &&
+      (otro === nombre || otro.includes(nombre) || nombre.includes(otro));
+    // El DNI va en el medio del CUIT: 20-30111222-3.
+    const porDni =
+      numero.length >= 7 &&
+      c.tipo_documento !== 'SIN_IDENTIFICAR' &&
+      c.numero_documento !== numero &&
+      (c.numero_documento.slice(2, 10) === numero.padStart(8, '0') ||
+        numero.slice(2, 10) === c.numero_documento.padStart(8, '0'));
+    return porNombre || porDni;
+  });
+  return { mismoDocumento, parecidos };
+}
 
 export const TEXTO_DOCUMENTO: Record<TipoDocumento, string> = {
   CUIT: 'CUIT',

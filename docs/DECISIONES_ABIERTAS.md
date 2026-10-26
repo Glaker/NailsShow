@@ -996,6 +996,33 @@ pedido, lo más urgente primero, con el mismo cálculo de Stock de seguridad.
 La ven Gerencia de Producción y Gerencia.
 **Dónde está.** `src/features/stock/PuntoPedido.tsx`.
 
+### D-clientes-iva-1 · «No categorizado» en lugar de «Responsable no inscripto» — adoptada 2026-10-26
+
+**Pedido.** Agregar la condición «IVA responsable no inscripto» a los clientes.
+**Decisión del codirector técnico.** Esa condición no existe desde la Ley 24.977
+(1998) y ARCA no la acepta como condición del receptor (RG 5616): la factura
+saldría rechazada. Se agrega «No categorizado» (código ARCA 7), que es la vigente
+para ese caso y lleva Factura B.
+**Dónde está.** `20261026160000` y `20261026160100`.
+
+### D-clientes-duplicados-1 · Aviso de cliente repetido — adoptada 2026-10-26
+
+**Decisión del codirector técnico.** Al cargar o editar un cliente, si el número
+de documento ya existe no deja guardarlo y dice cuál es (además lo rechaza
+`clientes_documento_idx`). Si el nombre se parece a otro (sin tildes, signos ni
+«SRL», «SA»), o el DNI está dentro de un CUIT cargado, avisa con los parecidos y
+deja cargarlo tildando «Lo revisé: es otro cliente».
+**Dónde está.** `clientesRepetidos` en `src/lib/consultasFacturacion.ts`.
+
+### D-clientes-cc-1 · Ventas ve y cobra la cuenta corriente de clientes — adoptada 2026-10-26
+
+**Decisión del codirector técnico.** «Cuentas de clientes» la ve y la modifica el
+rol Ventas (Mati, y Agustina por tener el rol), además de Administración (Diego)
+y Gerencia: registra y anula cobros y los imputa. Ve la lista de cajas y bancos
+para elegir dónde entró la plata, no sus saldos ni movimientos. El movimiento de
+fondos del cobro lo asienta el trigger como dueño (SECURITY DEFINER).
+**Dónde está.** `20261026160200_comercial_ventas_cobra.sql`.
+
 ### D-rotulos-3 · Rótulo de producto terminado del día — adoptada 2026-10-23
 
 **Decisión del codirector técnico.** En Planificación › Órdenes, «Rótulos» arma una planilla A4 de rótulos (mismo tamaño que los de insumos) con

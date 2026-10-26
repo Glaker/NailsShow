@@ -198,7 +198,8 @@
       "etiqueta": "Cuentas de clientes",
       "roles": [
         "ADMINISTRACION",
-        "GERENCIA"
+        "GERENCIA",
+        "VENTAS"
       ],
       "queEs": "Es la cuenta corriente de cada cliente: lo facturado, lo cobrado, lo que debe y hace cuánto. La lista muestra el saldo de cada cliente repartido por antigüedad (hasta 30 días, 31 a 60, 61 a 90 y más de 90, este último en rojo) y lo cobrado que todavía no se imputó a una factura. Al abrir un cliente se ve su cuenta con facturas, notas de crédito y cobros."
     },

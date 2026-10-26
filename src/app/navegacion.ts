@@ -243,7 +243,8 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiqueta: 'Cuentas de clientes',
     etiquetaCorta: 'Ctas. cli.',
     icono: IconClientes,
-    roles: ['ADMINISTRACION', 'GERENCIA'],
+    // Mati (Ventas) la ve y cobra, como Diego (D-clientes-cc-1).
+    roles: ['ADMINISTRACION', 'GERENCIA', 'VENTAS'],
   },
   {
     ruta: '/tesoreria',

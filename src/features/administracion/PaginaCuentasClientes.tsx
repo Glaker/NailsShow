@@ -167,7 +167,8 @@ export function PaginaCuentasClientes() {
 
 function FichaCliente({ clienteId, nombre }: { clienteId: string; nombre: string }) {
   const cc = useCuentaCorrienteCliente(clienteId);
-  const puedeAnular = useTieneRol('ADMINISTRACION', 'GERENCIA');
+  // Cobran y anulan Administración, Gerencia y Ventas (D-clientes-cc-1).
+  const puedeAnular = useTieneRol('ADMINISTRACION', 'GERENCIA', 'VENTAS');
   const veHistorial = useTieneRol(
     'DIRECCION_TECNICA',
     'GERENCIA',
@@ -185,11 +186,13 @@ function FichaCliente({ clienteId, nombre }: { clienteId: string; nombre: string
   const periodo = periodoCuenta(filas, desdeCc, hastaCc);
   return (
     <Stack gap="md">
-      <Group>
-        <Button leftSection={<IconCash size={18} />} onClick={() => setCobrando(true)}>
-          Registrar cobro
-        </Button>
-      </Group>
+      {puedeAnular ? (
+        <Group>
+          <Button leftSection={<IconCash size={18} />} onClick={() => setCobrando(true)}>
+            Registrar cobro
+          </Button>
+        </Group>
+      ) : null}
       <FiltroPeriodo
         desde={desdeCc}
         hasta={hastaCc}
