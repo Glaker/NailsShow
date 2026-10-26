@@ -528,7 +528,7 @@ const pendientesMP = (r: Recepcion): LoteDeRecepcion[] =>
  * cuarentena en la ficha) se resuelve acá mismo: se propone el de su tipo y
  * se puede cambiar.
  */
-function CargarAStock({
+export function CargarAStock({
   recepcion,
   controlaEnvases,
   enCurso,
