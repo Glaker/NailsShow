@@ -855,6 +855,24 @@ que queda, se rechaza y corresponde un ajuste de inventario. El material de
 tercerizados ya ingresado no se corrige por acá.
 **Dónde está.** `20261022200000_comercial_corregir_cantidad_lote.sql`.
 
+### D-corregir-datos-lote-1 · Corregir remito, proveedor, lote del proveedor y validez — adoptada 2026-10-26
+
+**Decisión del codirector técnico.** Además de la cantidad, DT y GP corrigen
+desde la ficha del lote («Corregir datos») el n° de remito y el proveedor (de la
+recepción entera), el lote del proveedor y el plazo de validez, en cualquier
+estado del lote. Cada corrección es un registro nuevo en
+`comercial.correcciones_dato_lote` con valor anterior (lo pone la base), valor
+nuevo, quién, cuándo y motivo: «Error de tipeo», «Error del proveedor» u «Otro
+(especificar)», este último con detalle obligatorio. Es el registro
+rectificativo de PG.60.18; la guarda de la recepción y la del lote dejan pasar
+el cambio solo dentro de la corrección. «Corregir cantidad» ofrece los mismos
+tres motivos.
+**Límite.** El proveedor no cambia si la recepción tiene un comprobante de
+proveedor vigente del otro: primero se anula el comprobante. No abre una no
+conformidad por sí sola.
+**Dónde está.** `20261026140000_comercial_corregir_datos_lote.sql`,
+`CorregirDatos` en `src/features/trazabilidad/PaginaLote.tsx`.
+
 ### D-ajustes-2 · Tiempo de envasado y de etiquetado, en MM:SS — adoptada 2026-10-22
 
 **Decisión del codirector técnico.** Amplía D-tiempo-envasado-1. Son dos

@@ -7,6 +7,7 @@ import {
   Grid,
   Group,
   Paper,
+  Select,
   Skeleton,
   Modal,
   NumberInput,
@@ -15,8 +16,10 @@ import {
   Text,
   Timeline,
   Textarea,
+  TextInput,
   Title,
 } from '@mantine/core';
+import { DateInput } from '@mantine/dates';
 import { modals } from '@mantine/modals';
 import { useDisclosure } from '@mantine/hooks';
 import { Link, useParams } from 'react-router-dom';
@@ -37,15 +40,20 @@ import { FormularioMuestreo } from '@/features/muestreo/FormularioMuestreo';
 import { PanelBloqueos } from '@/features/stock/PanelBloqueos';
 import { PanelStockLote } from '@/features/stock/PanelStockLote';
 import {
+  MOTIVOS_CORRECCION,
   useBloqueosDeLote,
+  useCorregirDatoLote,
   useCorregirLote,
+  useProveedores,
+  useRemitoRecepcion,
+  type MotivoCorreccion,
   useEmitirRotulo,
   useLote,
   useMuestreosDeLote,
   useRotulosDeLote,
   type EstadoCalidad,
 } from '@/lib/consultas';
-import { fecha, fechaHora, numero } from '@/lib/formato';
+import { desdeCalendario, fecha, fechaHora, fechaISO, numero } from '@/lib/formato';
 import { useSesion, type Rol } from '@/features/auth/sesion';
 import { imprimirRotulo } from '@/features/rotulos/imprimir';
 import { PlanillaRotulos } from '@/features/rotulos/PlanillaRotulos';
@@ -110,6 +118,179 @@ const TRANSICIONES: Record<
 };
 
 /**
+ * El motivo de cualquier corrección del lote: los tres que pidió el
+ * codirector; «Otro» pide el detalle (D-corregir-datos-lote-1).
+ */
+function CampoMotivo({
+  motivo,
+  detalle,
+  onMotivo,
+  onDetalle,
+}: {
+  motivo: MotivoCorreccion | null;
+  detalle: string;
+  onMotivo: (m: MotivoCorreccion) => void;
+  onDetalle: (d: string) => void;
+}) {
+  return (
+    <>
+      <Select
+        label="Motivo"
+        withAsterisk
+        placeholder="Elegí el motivo"
+        data={MOTIVOS_CORRECCION}
+        value={motivo}
+        onChange={(v) => v && onMotivo(v as MotivoCorreccion)}
+        allowDeselect={false}
+      />
+      {motivo === 'OTRO' ? (
+        <Textarea
+          label="¿Cuál?"
+          withAsterisk
+          autosize
+          minRows={2}
+          value={detalle}
+          onChange={(e) => onDetalle(e.currentTarget.value)}
+        />
+      ) : null}
+    </>
+  );
+}
+
+const motivoCompleto = (m: MotivoCorreccion | null, detalle: string) =>
+  m !== null && (m !== 'OTRO' || detalle.trim().length >= 3);
+
+const CAMPOS = [
+  { value: 'numero_remito', label: 'N° de remito (de toda la recepción)' },
+  { value: 'proveedor', label: 'Proveedor (de toda la recepción)' },
+  { value: 'lote_proveedor', label: 'Lote del proveedor' },
+  { value: 'plazo_validez', label: 'Plazo de validez' },
+] as const;
+type Campo = (typeof CAMPOS)[number]['value'];
+
+/**
+ * Corregir remito, proveedor, lote del proveedor o plazo de validez
+ * (D-corregir-datos-lote-1). Se guarda como corrección con el valor anterior,
+ * el motivo y quién; la base aplica el cambio.
+ */
+export function CorregirDatos({
+  lote,
+  onCerrar,
+}: {
+  lote: {
+    id: string;
+    recepcion_id: string | null;
+    proveedor_id: string | null;
+    lote_proveedor: string | null;
+    plazo_validez: string | null;
+  };
+  onCerrar: () => void;
+}) {
+  const corregir = useCorregirDatoLote();
+  const remito = useRemitoRecepcion(lote.recepcion_id);
+  const proveedores = useProveedores();
+  const [campo, setCampo] = useState<Campo>('lote_proveedor');
+  const [texto, setTexto] = useState(lote.lote_proveedor ?? '');
+  const [fechaNueva, setFechaNueva] = useState<Date | null>(
+    lote.plazo_validez ? new Date(`${lote.plazo_validez}T12:00:00`) : null,
+  );
+  const [proveedor, setProveedor] = useState<string | null>(lote.proveedor_id);
+  const [motivo, setMotivo] = useState<MotivoCorreccion | null>(null);
+  const [detalle, setDetalle] = useState('');
+  const elegir = (c: Campo) => {
+    setCampo(c);
+    setTexto(c === 'numero_remito' ? (remito.data ?? '') : (lote.lote_proveedor ?? ''));
+  };
+  const valor =
+    campo === 'plazo_validez'
+      ? (fechaISO(fechaNueva) ?? '')
+      : campo === 'proveedor'
+        ? (proveedor ?? '')
+        : texto.trim();
+  const anterior =
+    campo === 'plazo_validez'
+      ? (lote.plazo_validez ?? '')
+      : campo === 'proveedor'
+        ? (lote.proveedor_id ?? '')
+        : campo === 'numero_remito'
+          ? (remito.data ?? '')
+          : (lote.lote_proveedor ?? '');
+  const valido =
+    valor !== anterior &&
+    (campo !== 'proveedor' || valor !== '') &&
+    motivoCompleto(motivo, detalle);
+  return (
+    <Stack gap="sm">
+      <Text size="sm">
+        Se guarda como corrección, con el valor anterior, tu nombre y el motivo. El remito
+        y el proveedor son de la recepción: cambian para todos sus lotes.
+      </Text>
+      <Select
+        label="Qué corregís"
+        data={CAMPOS}
+        value={campo}
+        onChange={(v) => v && elegir(v as Campo)}
+        allowDeselect={false}
+      />
+      {campo === 'plazo_validez' ? (
+        <DateInput
+          label="Plazo de validez correcto"
+          placeholder="dd/mm/aaaa"
+          valueFormat="DD/MM/YYYY"
+          clearable
+          value={fechaNueva}
+          onChange={(v) => setFechaNueva(desdeCalendario(v))}
+        />
+      ) : campo === 'proveedor' ? (
+        <Select
+          label="Proveedor correcto"
+          searchable
+          data={(proveedores.data ?? []).map((p) => ({
+            value: p.id,
+            label: p.razon_social,
+          }))}
+          value={proveedor}
+          onChange={setProveedor}
+        />
+      ) : (
+        <TextInput
+          label={
+            campo === 'numero_remito'
+              ? 'N° de remito correcto'
+              : 'Lote del proveedor correcto'
+          }
+          value={texto}
+          onChange={(e) => setTexto(e.currentTarget.value)}
+        />
+      )}
+      <CampoMotivo
+        motivo={motivo}
+        detalle={detalle}
+        onMotivo={setMotivo}
+        onDetalle={setDetalle}
+      />
+      <Group justify="flex-end">
+        <Button variant="subtle" color="gray" onClick={onCerrar}>
+          Cancelar
+        </Button>
+        <Button
+          disabled={!valido}
+          loading={corregir.isPending}
+          onClick={() =>
+            corregir.mutate(
+              { loteId: lote.id, campo, valor, motivo: motivo!, detalle: detalle.trim() },
+              { onSuccess: onCerrar },
+            )
+          }
+        >
+          Corregir
+        </Button>
+      </Group>
+    </Stack>
+  );
+}
+
+/**
  * Corregir la cantidad cargada mal en la recepción (D-ajustes-1). Pide
  * motivo; si el lote ya está en stock, la base asienta la diferencia como
  * ajuste. Lo que ya se consumió no se descuenta.
@@ -129,12 +310,18 @@ function CorregirCantidad({
   const corregir = useCorregirLote();
   const [bultos, setBultos] = useState<number | string>(lote.cantidad_bultos ?? 1);
   const [unidades, setUnidades] = useState<number | string>(lote.cantidad_unidades ?? '');
-  const [motivo, setMotivo] = useState('');
+  const [motivo, setMotivo] = useState<MotivoCorreccion | null>(null);
+  const [detalle, setDetalle] = useState('');
   const b = Number(bultos);
   const u = unidades === '' ? NaN : Number(unidades);
   const cambia = b !== lote.cantidad_bultos || u !== Number(lote.cantidad_unidades);
   const valido =
-    Number.isInteger(b) && b > 0 && u >= 0 && motivo.trim().length >= 3 && cambia;
+    Number.isInteger(b) && b > 0 && u >= 0 && motivoCompleto(motivo, detalle) && cambia;
+  /* comercial.correcciones_lote guarda el motivo como texto. */
+  const textoMotivo =
+    motivo === 'OTRO'
+      ? `Otro: ${detalle.trim()}`
+      : (MOTIVOS_CORRECCION.find((m) => m.value === motivo)?.label ?? '');
   return (
     <Stack gap="sm">
       <Text size="sm">
@@ -158,14 +345,11 @@ function CorregirCantidad({
           onChange={setUnidades}
         />
       </Group>
-      <Textarea
-        label="Motivo"
-        withAsterisk
-        placeholder="Se contó mal en la recepción, el remito decía otra cosa…"
-        autosize
-        minRows={2}
-        value={motivo}
-        onChange={(e) => setMotivo(e.currentTarget.value)}
+      <CampoMotivo
+        motivo={motivo}
+        detalle={detalle}
+        onMotivo={setMotivo}
+        onDetalle={setDetalle}
       />
       <Group justify="flex-end">
         <Button variant="subtle" color="gray" onClick={onCerrar}>
@@ -176,7 +360,7 @@ function CorregirCantidad({
           loading={corregir.isPending}
           onClick={() =>
             corregir.mutate(
-              { loteId: lote.id, bultos: b, unidades: u, motivo: motivo.trim() },
+              { loteId: lote.id, bultos: b, unidades: u, motivo: textoMotivo },
               { onSuccess: onCerrar },
             )
           }
@@ -216,6 +400,7 @@ export function PaginaLote() {
   /* Aprobar o rechazar abre el registro de análisis (I.50.5, I.50.6). */
   const [dictamen, setDictamen] = useState<boolean | null>(null);
   const [corrigiendo, setCorrigiendo] = useState(false);
+  const [corrigiendoDatos, setCorrigiendoDatos] = useState(false);
 
   if (lote.isLoading) {
     return <Skeleton h={420} radius="lg" />;
@@ -361,15 +546,35 @@ export function PaginaLote() {
                 <Title order={3}>Datos del lote</Title>
                 {roles.includes('DIRECCION_TECNICA') ||
                 roles.includes('GERENCIA_PRODUCCION') ? (
-                  <Button
-                    variant="light"
-                    leftSection={<IconPencil size={18} />}
-                    onClick={() => setCorrigiendo(true)}
-                  >
-                    Corregir cantidad
-                  </Button>
+                  <Group gap="xs">
+                    <Button
+                      variant="light"
+                      leftSection={<IconPencil size={18} />}
+                      onClick={() => setCorrigiendo(true)}
+                    >
+                      Corregir cantidad
+                    </Button>
+                    <Button
+                      variant="light"
+                      leftSection={<IconPencil size={18} />}
+                      onClick={() => setCorrigiendoDatos(true)}
+                    >
+                      Corregir datos
+                    </Button>
+                  </Group>
                 ) : null}
               </Group>
+              <Modal
+                opened={corrigiendoDatos}
+                onClose={() => setCorrigiendoDatos(false)}
+                title={<Text fw={700}>Corregir datos del lote</Text>}
+                centered
+              >
+                <CorregirDatos
+                  lote={{ ...l, id: loteId }}
+                  onCerrar={() => setCorrigiendoDatos(false)}
+                />
+              </Modal>
               <Modal
                 opened={corrigiendo}
                 onClose={() => setCorrigiendo(false)}

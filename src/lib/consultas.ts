@@ -153,6 +153,72 @@ export function useLote(id: string | undefined) {
   });
 }
 
+/** Motivos de una corrección del lote (D-corregir-datos-lote-1). */
+export const MOTIVOS_CORRECCION = [
+  { value: 'ERROR_TIPEO', label: 'Error de tipeo' },
+  { value: 'ERROR_PROVEEDOR', label: 'Error del proveedor' },
+  { value: 'OTRO', label: 'Otro (especificar)' },
+] as const;
+export type MotivoCorreccion = (typeof MOTIVOS_CORRECCION)[number]['value'];
+
+/** El remito de la recepción del lote: la vista del lote no lo trae. */
+export function useRemitoRecepcion(recepcionId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['remito-recepcion', recepcionId],
+    enabled: !!recepcionId,
+    queryFn: async () => {
+      const { data, error } = await gmp()
+        .from('recepciones')
+        .select('numero_remito')
+        .eq('id', recepcionId!)
+        .single();
+      if (error) throw error;
+      return data.numero_remito;
+    },
+  });
+}
+
+/**
+ * Corrige remito, proveedor, lote del proveedor o plazo de validez
+ * (D-corregir-datos-lote-1). Registro nuevo con motivo: la base completa el
+ * valor anterior y aplica el cambio. Remito y proveedor son de la recepción.
+ */
+export function useCorregirDatoLote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (c: {
+      loteId: string;
+      campo: 'numero_remito' | 'proveedor' | 'lote_proveedor' | 'plazo_validez';
+      valor: string;
+      motivo: MotivoCorreccion;
+      detalle: string;
+    }) => {
+      /* Tabla de 20261026140000, todavía no en database.types.ts. */
+      const { error } = await (comercial() as unknown as SupabaseClient)
+        .from('correcciones_dato_lote')
+        .insert({
+          lote_insumo_id: c.loteId,
+          campo: c.campo,
+          valor_despues: c.valor,
+          motivo: c.motivo,
+          motivo_detalle: c.detalle || null,
+        });
+      if (error) throw error;
+    },
+    onSuccess: (_d, c) => {
+      for (const k of [
+        ['lote', c.loteId],
+        ['lotes'],
+        ['recepciones'],
+        ['remito-recepcion'],
+      ])
+        void qc.invalidateQueries({ queryKey: k });
+      avisarExito('Dato corregido. Quedó registrado con el valor anterior y el motivo.');
+    },
+    onError: avisarError,
+  });
+}
+
 /**
  * Corrige la cantidad de un lote mal cargado (D-ajustes-1). Es un registro
  * nuevo con motivo: la base completa el valor anterior, corrige el lote y, si
