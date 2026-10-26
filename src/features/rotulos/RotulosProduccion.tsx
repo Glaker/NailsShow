@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   ActionIcon,
+  Autocomplete,
   Box,
   Button,
   ColorInput,
@@ -33,13 +34,8 @@ import {
 } from './PlanillaRotulos';
 import { textoLote } from '@/features/produccion/posicionesLoteo';
 
-/** Solo estas tres: no se escriben (pedido del 2026-10-23). */
-const ESTADOS = [
-  { value: 'ETIQUETADO', label: 'Etiquetado' },
-  { value: 'APROBADO', label: 'Aprobado' },
-  { value: 'POR_REPROCESAR', label: 'Por reprocesar' },
-] as const;
-type EstadoPT = (typeof ESTADOS)[number]['value'];
+/** Sugeridos; se puede escribir cualquier otro (pedido del 2026-10-26). */
+const ESTADOS = ['Etiquetado', 'Aprobado', 'Por reprocesar'];
 
 /** Nail Show sale en magenta; cada tercero, con uno de estos. */
 const MAGENTA = '#c2185b';
@@ -60,7 +56,8 @@ interface Renglon {
   lote: string;
   cantidad: string;
   cliente: string;
-  estado: EstadoPT;
+  /** Lo que dice el encabezado, tal cual se escribió. */
+  estado: string;
   color: string;
   copias: number;
   /** De la orden (o por la vida útil, sin orden); va en el QR. */
@@ -70,10 +67,10 @@ interface Renglon {
 function Campo({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   return (
     <Box>
-      <Text fz={9} fw={700} style={{ letterSpacing: 0.8, opacity: 0.7 }}>
+      <Text fz={12} fw={700} style={{ letterSpacing: 0.8, opacity: 0.7 }}>
         {etiqueta.toUpperCase()}
       </Text>
-      <Text fz={14} fw={600} lh={1.25}>
+      <Text fz={20} fw={700} lh={1.2}>
         {valor || '—'}
       </Text>
     </Box>
@@ -83,8 +80,8 @@ function Campo({ etiqueta, valor }: { etiqueta: string; valor: string }) {
 function Casilla({ texto }: { texto: string }) {
   return (
     <Group gap={4} wrap="nowrap">
-      <Box w={18} h={18} style={{ border: '2px solid #212529', borderRadius: 2 }} />
-      <Text fz={13} fw={700}>
+      <Box w={24} h={24} style={{ border: '2px solid #212529', borderRadius: 2 }} />
+      <Text fz={17} fw={700}>
         {texto}
       </Text>
     </Group>
@@ -116,7 +113,6 @@ export function RotuloProduccion({ r, impreso }: { r: Renglon; impreso: string }
       vigente = false;
     };
   }, [contenido]);
-  const etiquetaEstado = ESTADOS.find((e) => e.value === r.estado)?.label ?? '';
 
   return (
     <Paper
@@ -128,18 +124,18 @@ export function RotuloProduccion({ r, impreso }: { r: Renglon; impreso: string }
       <Group
         justify="space-between"
         px="md"
-        py="xs"
+        py="sm"
         wrap="nowrap"
         style={{ background: r.color, color: '#fff' }}
       >
-        <Text fz={26} fw={900} lh={1} style={{ letterSpacing: 1 }}>
-          {etiquetaEstado.toUpperCase()}
+        <Text fz={36} fw={900} lh={1} style={{ letterSpacing: 1 }}>
+          {r.estado.toUpperCase()}
         </Text>
-        <Stack gap={0} align="flex-end">
-          <Text fz={10} fw={700} style={{ letterSpacing: 1 }}>
+        <Stack gap={0} align="flex-end" style={{ flexShrink: 0 }}>
+          <Text fz={13} fw={700} style={{ letterSpacing: 1 }}>
             PRODUCTO TERMINADO
           </Text>
-          <Text fz={10} fw={600}>
+          <Text fz={13} fw={600}>
             NAIL SHOW SRL
           </Text>
         </Stack>
@@ -148,35 +144,37 @@ export function RotuloProduccion({ r, impreso }: { r: Renglon; impreso: string }
       <Group align="flex-start" wrap="nowrap" p="md" gap="md">
         <Stack gap="sm" style={{ flex: 1, minWidth: 0 }}>
           <Campo etiqueta="Producto" valor={r.producto} />
-          <Group gap="xl" wrap="wrap">
-            <Campo etiqueta="Código" valor={r.codigo} />
+          {/* Lote y vencimiento a la vista (pedido del 2026-10-26). */}
+          <Group gap="md" wrap="wrap">
             <Campo etiqueta="Lote" valor={r.lote} />
+            <Campo etiqueta="Vence" valor={r.vence} />
           </Group>
-          <Group gap="xl" wrap="wrap">
+          <Group gap="md" wrap="wrap">
+            <Campo etiqueta="Código" valor={r.codigo} />
             <Campo etiqueta="Cantidad" valor={r.cantidad} />
-            <Campo etiqueta="Cliente" valor={r.cliente} />
           </Group>
+          <Campo etiqueta="Cliente" valor={r.cliente} />
         </Stack>
         <Stack gap={4} align="center">
           {qr ? (
             <img
               src={qr}
               alt="Código QR del lote"
-              width={104}
-              height={104}
+              width={130}
+              height={130}
               style={{ display: 'block' }}
             />
           ) : (
-            <Box w={104} h={104} style={{ background: '#f1f3f5', borderRadius: 4 }} />
+            <Box w={130} h={130} style={{ background: '#f1f3f5', borderRadius: 4 }} />
           )}
-          <Text fz={8} c="dimmed" ta="center" maw={110}>
+          <Text fz={10} c="dimmed" ta="center" maw={130}>
             Lote, vencimiento y código
           </Text>
         </Stack>
       </Group>
 
       <Group gap="lg" px="md" pb="xs" wrap="nowrap">
-        <Text fz={11} fw={700} style={{ letterSpacing: 0.8, opacity: 0.7 }}>
+        <Text fz={14} fw={700} style={{ letterSpacing: 0.8, opacity: 0.7 }}>
           CONTADO:
         </Text>
         <Casilla texto="Sí" />
@@ -184,16 +182,13 @@ export function RotuloProduccion({ r, impreso }: { r: Renglon; impreso: string }
       </Group>
 
       <Group
-        justify="space-between"
         px="md"
         py={6}
+        mt="auto"
         style={{ borderTop: '1px solid #dee2e6', background: '#fafafa' }}
       >
-        <Text fz={9} c="dimmed">
+        <Text fz={11} c="dimmed">
           Impreso {impreso}
-        </Text>
-        <Text fz={9} c="dimmed">
-          Vence {r.vence}
         </Text>
       </Group>
     </Paper>
@@ -203,8 +198,8 @@ export function RotuloProduccion({ r, impreso }: { r: Renglon; impreso: string }
 /**
  * Planilla de rótulos de producto terminado (pedido del 2026-10-23): arranca
  * con las órdenes del día y se agregan otras. Todo viene de la orden y se
- * puede cambiar, menos el estado, que es uno de tres. Mismo tamaño y hoja que
- * los rótulos de insumos.
+ * puede cambiar, también el estado: se sugieren tres y se escribe el que haga
+ * falta. Mismo tamaño y hoja que los rótulos de insumos.
  */
 export function PlanillaRotulosProduccion({
   abierto,
@@ -239,7 +234,7 @@ export function PlanillaRotulosProduccion({
       lote: textoLote(o.jornada),
       cantidad: `${numero(Number(cant), 2)} ${o.unidades_obtenidas !== null ? 'unidades' : o.unidad}`,
       cliente: i >= 0 ? listaTerceros[i]!.nombre : 'Nail Show',
-      estado: 'APROBADO',
+      estado: 'Aprobado',
       color: i >= 0 ? COLORES_TERCEROS[i % COLORES_TERCEROS.length]! : MAGENTA,
       copias: 1,
       vence: o.vencimiento_texto || fecha(o.vencimiento),
@@ -285,7 +280,7 @@ export function PlanillaRotulosProduccion({
       lote: textoLote(hoy),
       cantidad: '',
       cliente: i >= 0 ? listaTerceros[i]!.nombre : 'Nail Show',
-      estado: 'APROBADO' as EstadoPT,
+      estado: 'Aprobado',
       color: i >= 0 ? COLORES_TERCEROS[i % COLORES_TERCEROS.length]! : MAGENTA,
       copias: 1,
       vence: vence ? `${vence.slice(5, 7)}/${vence.slice(2, 4)}` : '',
@@ -470,13 +465,13 @@ export function PlanillaRotulosProduccion({
                       }
                       w={160}
                     />
-                    <Select
+                    <Autocomplete
                       label="Estado"
+                      placeholder="Elegí o escribí"
                       data={ESTADOS}
                       value={r.estado}
-                      onChange={(v) => v && cambiar(r.clave, { estado: v as EstadoPT })}
-                      allowDeselect={false}
-                      w={150}
+                      onChange={(v) => cambiar(r.clave, { estado: v })}
+                      w={170}
                     />
                     <ColorInput
                       label="Color"

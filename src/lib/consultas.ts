@@ -1035,10 +1035,20 @@ export function useCargarRecepcionAStock() {
     mutationFn: async ({
       recepcionId,
       depositos = {},
+      estibas = {},
     }: {
       recepcionId: string;
       depositos?: Record<string, string>;
+      /** Optativas, «A-N» (D-rotulos-y-estiba-1). */
+      estibas?: Record<string, string>;
     }) => {
+      for (const [lote, estiba] of Object.entries(estibas)) {
+        const { error } = await gmp().rpc('asignar_estiba_lote', {
+          p_lote_id: lote,
+          p_estiba: estiba,
+        });
+        if (error) throw error;
+      }
       for (const [lote, deposito] of Object.entries(depositos)) {
         const { error } = await gmp().rpc('asignar_deposito_lote', {
           p_lote_id: lote,
@@ -1057,7 +1067,7 @@ export function useCargarRecepcionAStock() {
       const n = Array.isArray(data) ? data.length : 0;
       avisarExito(`${n} ${n === 1 ? 'lote cargado' : 'lotes cargados'} a stock.`);
     },
-    // Aunque la carga falle, los depósitos asignados antes ya quedaron.
+    // Aunque la carga falle, los depósitos y estibas asignados antes ya quedaron.
     onSettled: () => void qc.invalidateQueries({ queryKey: ['recepciones'] }),
     onError: avisarError,
   });

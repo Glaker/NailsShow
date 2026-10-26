@@ -998,7 +998,7 @@ La ven Gerencia de Producción y Gerencia.
 
 ### D-rotulos-3 · Rótulo de producto terminado del día — adoptada 2026-10-23
 
-**Decisión del codirector técnico.** En Planificación › Órdenes, «Rótulos» arma una planilla A4 de 8 rótulos (mismo tamaño que los de insumos) con
+**Decisión del codirector técnico.** En Planificación › Órdenes, «Rótulos» arma una planilla A4 de rótulos (mismo tamaño que los de insumos) con
 las órdenes del día elegido, y se suman otras. Cada rótulo lleva código,
 producto, lote (DDMMAAAA, como el loteo), cantidad y cliente, tomados de la orden y editables. El estado
 es uno de tres fijos (Etiquetado, Aprobado, Por reprocesar) y hay casillas
@@ -1008,13 +1008,28 @@ Nail Show», lote, vencimiento y código): se lee con cualquier celular, sin
 cuenta ni enlace. No hizo falta ninguna API.
 También lo imprimen Agustina y Silveira (Encargada de stock y Recepción) desde Stock, con el botón «Rótulos».
 «Agregar otro» suma una orden, un producto del catálogo sin orden o lo que se escriba (lote hoy y vencimiento por la vida útil, editables).
-Producto e insumos se imprimen en la misma hoja (8 por hoja, primero los de producto).
+Producto e insumos se imprimen en la misma hoja (primero los de producto).
 En el mismo «Rótulos», la pestaña «Insumos» arma los rótulos de lotes de insumo
 (cuarentena, en análisis, aprobado, rechazado) como la ficha del lote: todos los
 rótulos en un lugar (pedido del 2026-10-23).
+**Cambio del 2026-10-26.** La hoja pasa a A4 apaisada con 6 rótulos (3 × 2) más
+grandes, de producto y de insumos. El estado del de producto ya no es fijo: se
+sugieren los tres y se escribe el que haga falta. Lote y vencimiento van como
+campos grandes del rótulo, no en el pie.
 **Límite.** Es solo papel: no queda registro en el sistema de qué se imprimió
 ni de lo que se marque a mano.
 **Dónde está.** `src/features/rotulos/RotulosProduccion.tsx`.
+
+### D-rotulos-y-estiba-1 · Estiba del lote de insumo — adoptada 2026-10-26
+
+**Decisión del codirector técnico.** Al cargar una recepción a stock (no al
+recibirla) se pregunta, optativa, la estiba de cada lote: una letra y un número,
+«A-N» (por ejemplo B-12). Es ubicación dentro del depósito, como el depósito
+mismo: se puede cambiar y no va en el rótulo R.20.2.1. La base valida el formato
+(`lotes_insumo_estiba_formato`) y la asigna `gmp.asignar_estiba_lote`, con los
+mismos roles que «Cargar a stock».
+**Dónde está.** `20261026120000_gmp_estiba_lote.sql`, `CargarAStock` en
+`src/features/recepcion/PaginaRecepciones.tsx`.
 
 ### D-catalogo-1 · Catálogo de insumos y proveedores editable por todos — adoptada 2026-10-22
 

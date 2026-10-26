@@ -11300,6 +11300,10 @@ export type Database = {
         Args: { p_deposito_id: string; p_lote_id: string }
         Returns: undefined
       }
+      asignar_estiba_lote: {
+        Args: { p_estiba: string; p_lote_id: string }
+        Returns: undefined
+      }
       asignar_etapa: {
         Args: {
           p_etapa: Database["gmp"]["Enums"]["etapa_orden_enum"]
