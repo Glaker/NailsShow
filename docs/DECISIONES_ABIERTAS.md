@@ -965,6 +965,17 @@ No se guarda una foto aparte del informe.
 - `@dnd-kit` (arrastre táctil) es dependencia nueva.
 **Dónde está.** `20261023130000_core_rol_produccion.sql`, `20261023130100_gmp_tareas_produccion.sql`.
 
+### D-tareas-agustina-1 · La encargada de stock también asigna tareas — adoptada 2026-10-26
+
+**Decisión del codirector técnico.** Además de Naza (Gerencia de Producción) y
+DT, el rol Encargada de stock (Agustina como rol adicional, y Silveira) asigna
+tareas, arma el día y modifica cualquier tarea pendiente o en curso, la haya
+cargado quien sea. Lo hace desde «Mis tareas › Asignar tareas», porque no ve
+Planificación. Naza y Agustina aparecen en la lista de personal para asignarse
+tareas y Naza tiene «Mis tareas» en el menú.
+**Dónde está.** `20261026150000_gmp_tareas_encargada_stock.sql`
+(`gmp.es_gestor_tareas`), `src/features/tareas/PaginaTareas.tsx`.
+
 ### D-tareas-2 · La pausa — adoptada 2026-10-23
 
 **Aclaración del codirector técnico.** La pausa es para cortar un rato,

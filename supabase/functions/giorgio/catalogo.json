@@ -297,7 +297,8 @@
       "etiqueta": "Mis tareas",
       "roles": [
         "ENCARGADA_STOCK",
-        "RECEPCION"
+        "RECEPCION",
+        "GERENCIA_PRODUCCION"
       ],
       "queEs": "Las tareas que te mandó Gerencia de Producción y las que están en curso para sumarte. «Iniciar» con quién trabajás, pausa (⏸) y seguir (▶), «Cancelar» y «Listo» (cuántas hicieron, y si quedan pendientes o se completó)."
     },
