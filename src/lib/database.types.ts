@@ -8087,6 +8087,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      ubicacion_insumos_producto: {
+        Args: { p_producto_id: string }
+        Returns: {
+          codigo: string
+          deposito: string
+          estiba: string
+          insumo: string
+          insumo_id: string
+          lote: string
+          para: string
+          saldo: number
+          unidad: string
+          vence: string
+        }[]
+      }
       unidad_base: { Args: { p_unidad: string }; Returns: string }
       verificar_stock_pedido: {
         Args: { p_nota?: string; p_ok: boolean; p_pedido_id: string }
@@ -10739,8 +10754,11 @@ export type Database = {
           creada_en: string
           creada_por: string
           descripcion: string
+          donde_buscar: string | null
+          donde_dejar: string | null
           estado: string
           id: string
+          notas: string | null
           orden_id: string | null
           prioridad: number
           producto_id: string | null
@@ -10753,8 +10771,11 @@ export type Database = {
           creada_en?: string
           creada_por?: string
           descripcion: string
+          donde_buscar?: string | null
+          donde_dejar?: string | null
           estado?: string
           id?: string
+          notas?: string | null
           orden_id?: string | null
           prioridad?: number
           producto_id?: string | null
@@ -10767,8 +10788,11 @@ export type Database = {
           creada_en?: string
           creada_por?: string
           descripcion?: string
+          donde_buscar?: string | null
+          donde_dejar?: string | null
           estado?: string
           id?: string
+          notas?: string | null
           orden_id?: string | null
           prioridad?: number
           producto_id?: string | null
