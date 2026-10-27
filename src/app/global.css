@@ -232,7 +232,7 @@ textarea {
 
 .planilla-celda > .hoja-rotulo {
   height: 100%;
-  max-height: 440px;
+  max-height: 455px;
   display: flex;
   flex-direction: column;
 }
@@ -292,10 +292,10 @@ textarea {
   }
 
   /* Planilla: A4 apaisada, tres de ancho y dos de alto (6 por hoja, pedido
-     del 2026-10-26). Cada rótulo se diseña a 440 px de ancho y hasta 440 de
-     alto y se lleva con zoom (0,8) a 93 mm por hasta 93: 3 x 93 + 2 x 3 =
-     285 mm de ancho y 2 x 93 + 3 = 189 mm de alto, dentro de los 285 x 198
-     de la hoja. El de producto sale de unos 93 x 72 mm. */
+     del 2026-10-26). Cada rótulo se diseña a 440 px de ancho y hasta 455 de
+     alto y se lleva con zoom (0,8) a 93 mm por hasta 96: 3 x 93 + 2 x 3 =
+     285 mm de ancho y 2 x 96 + 3 = 195 mm de alto, dentro de los 285 x 198
+     de la hoja. El nombre va a 1 cm (NombreGrande, RotuloLote.tsx). */
   #impresion-rotulo .planilla-rotulos {
     page: planilla;
     grid-template-columns: repeat(3, 93mm);

@@ -572,7 +572,10 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
         'Cuando Naza te sume a una tarea, la ves acá. Funciona igual que para las chicas de producción.',
       ],
     },
-    aTener: ['Una sola carga la cantidad por todo el grupo.'],
+    aTener: [
+      'Una sola carga la cantidad por todo el grupo.',
+      'En cada tarea dice dónde están las cosas, dónde dejarlas y las notas de Naza. «Dónde están los insumos» muestra el depósito, la estiba y el lote de cada uno, el que vence antes primero.',
+    ],
   },
 
   '/planificacion': {

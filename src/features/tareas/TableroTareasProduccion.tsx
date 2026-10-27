@@ -14,6 +14,7 @@ import {
   Stack,
   Text,
   TextInput,
+  Textarea,
 } from '@mantine/core';
 import {
   IconArrowsSort,
@@ -46,7 +47,10 @@ import { CSS } from '@dnd-kit/utilities';
 import { useProductos } from '@/lib/consultas';
 import { useOrdenes } from '@/lib/consultasOrdenes';
 import {
+  DEJAR_POR_DEFECTO,
   TEXTO_TIPO,
+  textoUbicacion,
+  useUbicacionInsumos,
   useDarDeBajaEjemplo,
   useGuardarJornada,
   useGuardarTarea,
@@ -203,15 +207,26 @@ function ModalTarea({
   const [asignadas, setAsignadas] = useState<string[]>(tarea?.asignadas ?? []);
   const [texto, setTexto] = useState(tarea?.descripcion ?? '');
   const [tocado, setTocado] = useState(Boolean(tarea));
+  /* D-tareas-3: el sistema propone y Naza cambia; una vez tocado, manda lo suyo. */
+  const [buscar, setBuscar] = useState<string | null>(
+    tarea ? (tarea.donde_buscar ?? '') : null,
+  );
+  const [dejar, setDejar] = useState<string | null>(
+    tarea ? (tarea.donde_dejar ?? '') : null,
+  );
+  const [notas, setNotas] = useState(tarea?.notas ?? '');
+  const ubicacion = useUbicacionInsumos(producto, buscar === null);
 
   const nombreProducto =
     (productos.data ?? []).find((p) => p.id === producto)?.nombre ?? '';
-  // «Etiquetar 500 unidades de Sanitizante», mientras no la escriba a mano.
+  // «Envasar Sanitizante de 100 ML AMOR», mientras no la escriba a mano. La
+  // cantidad va en su campo: el texto queda igual para las estadísticas.
   const sugerida =
-    tipo === 'OTRA'
-      ? ''
-      : `${TEXTO_TIPO[tipo]}${cantidad !== '' ? ` ${numero(Number(cantidad))} unidades` : ''}${nombreProducto ? ` de ${nombreProducto}` : ''}`;
+    tipo === 'OTRA' ? '' : [TEXTO_TIPO[tipo], nombreProducto].filter(Boolean).join(' ');
   const descripcion = tocado ? texto : sugerida;
+  const buscarTexto = buscar ?? (producto ? textoUbicacion(ubicacion.data ?? []) : '');
+  const dejarTexto =
+    dejar ?? (producto && tipo !== 'LIMPIAR' && tipo !== 'OTRA' ? DEJAR_POR_DEFECTO : '');
   const ordenesDelProducto = (ordenes.data ?? []).filter(
     (o) => o.estado === 'ABIERTA' && (!producto || o.producto_id === producto),
   );
@@ -291,6 +306,30 @@ function ModalTarea({
           }}
           disabled={!editable}
         />
+        <Textarea
+          label="Dónde están las cosas"
+          description="Lo propone el sistema por el producto (depósito y estiba); cambialo si hace falta"
+          autosize
+          minRows={2}
+          value={buscarTexto}
+          onChange={(e) => setBuscar(e.currentTarget.value)}
+          disabled={!editable}
+        />
+        <TextInput
+          label="Dónde dejarlo"
+          value={dejarTexto}
+          onChange={(e) => setDejar(e.currentTarget.value)}
+          disabled={!editable}
+        />
+        <Textarea
+          label="Notas para las chicas"
+          placeholder="Instrucciones, cuidados, en qué orden…"
+          autosize
+          minRows={2}
+          value={notas}
+          onChange={(e) => setNotas(e.currentTarget.value)}
+          disabled={!editable}
+        />
         <MultiSelect
           label="Quiénes la hacen"
           description="Las que trabajan juntas comparten color en el tablero"
@@ -340,6 +379,9 @@ function ModalTarea({
                     orden_id: orden,
                     cantidad: cantidad === '' ? null : Number(cantidad),
                     asignadas,
+                    donde_buscar: buscarTexto.trim() || null,
+                    donde_dejar: dejarTexto.trim() || null,
+                    notas: notas.trim() || null,
                   },
                   { onSuccess: onCerrar },
                 )
