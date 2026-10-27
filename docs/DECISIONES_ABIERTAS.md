@@ -1010,6 +1010,28 @@ tareas. Si una tarea de prueba mezcla a un operario de ejemplo con una operaria
 real, a la real le toca la parte de sus minutos sobre el total del grupo.
 **Dónde está.** `20261026170000_core_operarios_ejemplo.sql`.
 
+### D-pedidos-por-deposito-1 · El pedido de venta sale de un depósito elegido — adoptada 2026-10-27
+
+**Decisión del codirector técnico.** Ventas elige de qué depósito sale cada pedido
+de venta: Fábrica, Berna o Calle 5. Por defecto, Fábrica para BELLA CENTRAL, BELLA
+CENTRAL (DEPÓSITO), BELLA CENTRAL (LOCAL MITRE), CESAR CUEVA (TAURO) y YESSICA
+FRANCHESCA CONTRERAS DUQUE (en cualquier variante de escritura:
+`comercial.sale_de_fabrica`), y Berna para el resto. Gerencia de Producción, al
+proponer fecha, compara cada producto con ese depósito: lo que hay dice «En stock»
+y lo reserva ahí mismo; pone fecha solo para lo que hay que producir. Si reserva
+todo, el pedido queda aprobado con fecha de hoy, sin pasar por Ventas. Al aprobar,
+lo reservado cuenta y lo que falta va a Producción (S-xxxx con destino Fábrica, o
+Calle 5 si el pedido sale de ahí). Se despacha también desde Berna. Lo de lotes
+retenidos (sin liberar, vencidos o bloqueados: RN-51/RN-52) no cuenta como
+disponible. «Descartar pedido» (Ventas, GP, DT) y «Descartar» de producciones y
+órdenes los cancelan con motivo y liberan lo reservado.
+**Límites.** La lista de clientes está en la base (`comercial.sale_de_fabrica`):
+si se suma un cliente, es una migración. Los pedidos anteriores sin depósito se leen
+como Calle 5. Lo producido para un pedido de Berna entra a Fábrica y se reserva ahí;
+llevarlo a Berna es una transferencia.
+**Dónde está.** `20261027130000_comercial_venta_por_deposito.sql`,
+`VentasEsperandoFecha.tsx`, `PaginaVenta.tsx`, `Calle5.tsx`.
+
 ### D-tareas-3 · Tareas con tipo, ubicación y notas — adoptada 2026-10-27
 
 **Decisión del codirector técnico.** Al mandar una tarea, Naza elige el tipo

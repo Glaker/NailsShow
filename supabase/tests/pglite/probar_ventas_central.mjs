@@ -13,7 +13,8 @@ let cliPadron = null;
 const venta = async (n) =>
   (
     await uno(
-      `insert into comercial.pedidos (numero, cliente, cliente_id, es_venta, forma_pago) values ($1,'Cliente mayorista',$2,true,'Transferencia a Nail') returning id`,
+      // Sale de Calle 5, elegido por Ventas (desde 20261027130000 el de por defecto es Berna).
+      `insert into comercial.pedidos (numero, cliente, cliente_id, es_venta, forma_pago, deposito_origen_id) values ($1,'Cliente mayorista',$2,true,'Transferencia a Nail',(select id from gmp.depositos where numero='C5')) returning id`,
       [n, cliPadron],
     )
   ).id;

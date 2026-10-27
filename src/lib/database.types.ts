@@ -4179,6 +4179,7 @@ export type Database = {
           plan_dias: number | null
           plan_inicio: string | null
           reservar_calle5: boolean
+          deposito_origen_id: string | null
           stock_nota: string | null
           stock_ok: boolean | null
           stock_ok_en: string | null
@@ -4213,6 +4214,7 @@ export type Database = {
           plan_dias?: number | null
           plan_inicio?: string | null
           reservar_calle5?: boolean
+          deposito_origen_id?: string | null
           stock_nota?: string | null
           stock_ok?: boolean | null
           stock_ok_en?: string | null
@@ -4247,6 +4249,7 @@ export type Database = {
           plan_dias?: number | null
           plan_inicio?: string | null
           reservar_calle5?: boolean
+          deposito_origen_id?: string | null
           stock_nota?: string | null
           stock_ok?: boolean | null
           stock_ok_en?: string | null

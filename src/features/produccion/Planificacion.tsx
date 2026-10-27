@@ -42,6 +42,7 @@ import { useProductos } from '@/lib/consultas';
 import {
   useAsignarProduccion,
   useCrearProduccion,
+  useEliminarPedido,
   usePedidos,
   usePlanificarPedido,
   type PedidoConConteoRow,
@@ -592,6 +593,7 @@ function ModalPlanificar({
 }) {
   const planificar = usePlanificarPedido();
   const asignar = useAsignarProduccion();
+  const descartar = useEliminarPedido();
   const nombres = useNombresProducto();
   const tiempos = useTiempos();
   const [inicio, setInicio] = useState<Date | null>(null);
@@ -682,6 +684,22 @@ function ModalPlanificar({
             ) : (
               <span />
             )}
+            {/* Descartar la producción: queda cancelada con motivo (pedido del 2026-10-27). */}
+            <Button
+              variant="subtle"
+              color="estadoRechazado"
+              loading={descartar.isPending}
+              onClick={() => {
+                const motivo = window.prompt('¿Por qué se descarta esta producción?');
+                if (motivo !== null)
+                  descartar.mutate(
+                    { id: pedido.id, motivo: motivo.trim() || 'Descartada' },
+                    { onSuccess: cerrar },
+                  );
+              }}
+            >
+              Descartar producción
+            </Button>
             <Button
               loading={planificar.isPending || asignar.isPending}
               disabled={n < 1 || n > 60}

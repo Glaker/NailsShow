@@ -347,7 +347,7 @@ export function PaginaPedido() {
                 leftSection={<IconTrash size={18} />}
                 onClick={() => setBorrando(true)}
               >
-                Borrar pedido
+                Descartar pedido
               </Button>
             ) : null}
             {puedeTerminar &&
@@ -581,7 +581,7 @@ export function PaginaPedido() {
       <Modal
         opened={borrando}
         onClose={() => setBorrando(false)}
-        title={`Borrar el pedido ${p.numero}`}
+        title={`Descartar el pedido ${p.numero}`}
         centered
         radius="md"
       >
@@ -617,7 +617,7 @@ export function PaginaPedido() {
                 )
               }
             >
-              Borrar pedido
+              Descartar pedido
             </Button>
           </Group>
         </Stack>

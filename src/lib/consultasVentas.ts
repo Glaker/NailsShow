@@ -14,7 +14,148 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Database } from './database.types';
 import { avisarError, avisarExito } from './consultas';
-import { comercial } from './supabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { comercial, gmp, supabase } from './supabase';
+
+const comercialST = () => (supabase as unknown as SupabaseClient).schema('comercial');
+
+/**
+ * Igual que comercial.normalizar_nombre: minúsculas, sin tildes, signos ni
+ * espacios dobles («CESAR CUEVA ( TAURO )» = «cesar cueva tauro»).
+ */
+export const normalizarNombre = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+/** Clientes cuyo pedido sale por defecto de la fábrica (D-venta-deposito-1). */
+const DE_FABRICA = new Set([
+  'bella central',
+  'bella central deposito',
+  'bella central local mitre',
+  'cesar cueva tauro',
+  'yessica franchesca contreras duque',
+]);
+
+/** Igual que comercial.sale_de_fabrica: el resto sale de Berna. */
+export const saleDeFabrica = (cliente: string) =>
+  DE_FABRICA.has(normalizarNombre(cliente));
+
+/** Los depósitos de los que sale un pedido de venta, en el orden en que se ofrecen. */
+export const DEPOSITOS_VENTA = [
+  { numero: 'PTF', etiqueta: 'Fábrica' },
+  { numero: 'BER', etiqueta: 'Berna' },
+  { numero: 'C5', etiqueta: 'Calle 5' },
+] as const;
+
+/** Lo libre de cada producto en un depósito (comercial.v_disponible_pt). */
+export function useDisponiblePt(depositoId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['disponible-pt', depositoId],
+    enabled: !!depositoId,
+    queryFn: async () => {
+      const r = (await comercialST()
+        .from('v_disponible_pt')
+        .select('producto_id, disponible')
+        .eq('deposito_id', depositoId)) as {
+        data: { producto_id: string; disponible: number | string }[] | null;
+        error: Error | null;
+      };
+      if (r.error) throw r.error;
+      return new Map((r.data ?? []).map((d) => [d.producto_id, n(d.disponible)]));
+    },
+  });
+}
+
+/** De qué depósito sale un pedido de venta: C5, PTF o BER (nulo = C5, los de antes). */
+export function useOrigenPedido(pedidoId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['origen-pedido', pedidoId],
+    enabled: !!pedidoId,
+    queryFn: async () => {
+      const { data, error } = await comercial()
+        .from('pedidos')
+        .select('deposito_origen_id')
+        .eq('id', pedidoId!)
+        .single();
+      if (error) throw error;
+      if (!data.deposito_origen_id) return 'C5' as const;
+      const d = await gmp()
+        .from('depositos')
+        .select('numero')
+        .eq('id', data.deposito_origen_id)
+        .single();
+      if (d.error) throw d.error;
+      return d.data.numero as 'C5' | 'PTF' | 'BER';
+    },
+  });
+}
+
+/** Lo que el pedido ya tiene reservado, por producto. */
+export function useReservadoPedido(pedidoId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['reservado-pedido', pedidoId],
+    enabled: !!pedidoId,
+    queryFn: async () => {
+      const r = (await comercialST()
+        .from('reservas_pt')
+        .select('producto_id, cantidad, consumido')
+        .eq('pedido_id', pedidoId)
+        .eq('liberada', false)) as {
+        data:
+          | {
+              producto_id: string;
+              cantidad: number | string;
+              consumido: number | string;
+            }[]
+          | null;
+        error: Error | null;
+      };
+      if (r.error) throw r.error;
+      const m = new Map<string, number>();
+      for (const x of r.data ?? [])
+        m.set(
+          x.producto_id,
+          (m.get(x.producto_id) ?? 0) + n(x.cantidad) - n(x.consumido),
+        );
+      return m;
+    },
+  });
+}
+
+/**
+ * Naza reserva lo que hay de un producto en el depósito del pedido
+ * (comercial.reservar_producto_venta). Si con eso queda todo reservado, el
+ * pedido se aprueba solo con fecha de hoy.
+ */
+export function useReservarProductoVenta() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: { pedidoId: string; productoId: string }) => {
+      const r = (await comercialST().rpc('reservar_producto_venta', {
+        p_pedido_id: a.pedidoId,
+        p_producto_id: a.productoId,
+      })) as {
+        data: { reservado: number; aprobado: boolean } | null;
+        error: Error | null;
+      };
+      if (r.error) throw r.error;
+      return r.data!;
+    },
+    onSuccess: (d) => {
+      invalidar(qc);
+      avisarExito(
+        d.aprobado
+          ? 'Reservado. Estaba todo en stock: el pedido quedó aprobado para hoy.'
+          : `Reservadas ${n(d.reservado)} unidades.`,
+      );
+    },
+    onError: avisarError,
+  });
+}
 
 type Vistas = Database['comercial']['Views'];
 type Tablas = Database['comercial']['Tables'];
@@ -269,8 +410,16 @@ export function useVenta(id: string | undefined) {
         .eq('pedido_id', id!)
         .eq('anulado', false);
       if (e2) throw e2;
+      // v_ventas no lo trae (D-venta-deposito-1).
+      const { data: o, error: e3 } = await comercial()
+        .from('pedidos')
+        .select('deposito_origen_id')
+        .eq('id', id!)
+        .single();
+      if (e3) throw e3;
       return {
         venta: aFilaVenta(data),
+        depositoOrigenId: o.deposito_origen_id,
         renglones: (rs ?? []).map((r) => ({
           ...r,
           cantidad: n(r.cantidad),
@@ -293,6 +442,8 @@ const invalidar = (qc: ReturnType<typeof useQueryClient>) => {
     'pedidos',
     'pedido',
     'disponible-calle5',
+    'disponible-pt',
+    'reservado-pedido',
     'calle5',
     'pendientes-despacho',
     'propuesta-fecha',
@@ -310,6 +461,7 @@ export type CabeceraVenta = Pick<
   | 'observaciones'
   | 'descuento_pct'
   | 'gestionado_por'
+  | 'deposito_origen_id'
 > & { cliente: string };
 
 export interface LineaGuardar {

@@ -27,7 +27,8 @@ const aprobada = async (numero, renglones) => {
   await como('mati@x');
   const v = (
     await uno(
-      `insert into comercial.pedidos (numero, cliente, es_venta) values ($1,'Cliente ' || $1, true) returning id`,
+      // Sale de Calle 5, elegido por Ventas (desde 20261027130000 el de por defecto es Berna).
+      `insert into comercial.pedidos (numero, cliente, es_venta, deposito_origen_id) values ($1,'Cliente ' || $1, true, (select id from gmp.depositos where numero='C5')) returning id`,
       [numero],
     )
   ).id;
