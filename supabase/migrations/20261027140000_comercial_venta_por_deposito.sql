@@ -19,7 +19,10 @@
 -- ---------------------------------------------------------------------------
 --
 -- Pedidos viejos: deposito_origen_id nulo se lee como Calle 5, que es como
--- funcionaban. Los que todavía no se aprobaron toman el depósito por defecto.
+-- funcionaban, también los que todavía no se aprobaron: Ventas les elige el
+-- depósito al editarlos. No se reasignan acá porque fn_pedido_entrega_solo
+-- pide un rol de sesión que una migración no tiene (la versión 20261027130000
+-- lo intentaba y falló al aplicarse; no llegó a la base).
 
 -- ===========================================================================
 -- 1. Depósito de origen del pedido de venta
@@ -111,13 +114,6 @@ create trigger trg_pedido_origen
 revoke execute on function comercial.fn_pedido_origen() from public, anon, authenticated;
 
 create index if not exists reservas_pt_pedido_idx on comercial.reservas_pt (pedido_id);
-
--- Los que todavía no se aprobaron toman el de por defecto; el resto queda en
--- Calle 5 (nulo), como funcionaban.
-update comercial.pedidos
-   set deposito_origen_id = (select id from gmp.depositos
-                              where numero = case when comercial.sale_de_fabrica(cliente) then 'PTF' else 'BER' end)
- where es_venta and estado in ('BORRADOR', 'ESPERANDO_FECHA', 'FECHA_PROPUESTA') and eliminado_en is null;
 
 -- ===========================================================================
 -- 2. Lo disponible por depósito
