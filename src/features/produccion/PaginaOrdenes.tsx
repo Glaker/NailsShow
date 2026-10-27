@@ -17,7 +17,13 @@ import {
   TextInput,
 } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
-import { IconClipboardList, IconPlus, IconTag, IconTool } from '@tabler/icons-react';
+import {
+  IconClipboardList,
+  IconPlus,
+  IconTag,
+  IconTool,
+  IconTrash,
+} from '@tabler/icons-react';
 import { Vacio } from '@/components/Vacio';
 import { useTieneRol } from '@/features/auth/sesion';
 import { useFormulasFabricacion, useProductos } from '@/lib/consultas';
@@ -29,6 +35,7 @@ import {
 import { fecha, fechaISO, numero, desdeCalendario } from '@/lib/formato';
 import {
   useAbrirOrden,
+  useAnularOrden,
   useCrearEquipo,
   useEquipos,
   useEspecificaciones,
@@ -52,6 +59,7 @@ export function ListaOrdenes() {
   const ordenes = useOrdenes();
   const productos = useProductos();
   const puede = useTieneRol('GERENCIA_PRODUCCION', 'DIRECCION_TECNICA');
+  const anular = useAnularOrden();
   const [equipos, setEquipos] = useState(false);
   const [rotulos, setRotulos] = useState(false);
   const nombre = (id: string) =>
@@ -103,6 +111,7 @@ export function ListaOrdenes() {
                   <Table.Th>Vencimiento</Table.Th>
                   <Table.Th ta="right">Cantidad</Table.Th>
                   <Table.Th>Estado</Table.Th>
+                  {puede ? <Table.Th /> : null}
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
@@ -127,6 +136,32 @@ export function ListaOrdenes() {
                         {o.estado.toLowerCase()}
                       </Badge>
                     </Table.Td>
+                    {puede ? (
+                      <Table.Td>
+                        {/* Descartar: queda anulada con motivo (pedido del 2026-10-27). */}
+                        {o.estado === 'ABIERTA' ? (
+                          <Button
+                            size="xs"
+                            variant="subtle"
+                            color="estadoRechazado"
+                            leftSection={<IconTrash size={14} />}
+                            loading={anular.isPending && anular.variables?.id === o.id}
+                            onClick={() => {
+                              const motivo = window.prompt(
+                                `¿Por qué se descarta la orden ${o.numero}?`,
+                              );
+                              if (motivo !== null)
+                                anular.mutate({
+                                  id: o.id,
+                                  motivo: motivo.trim() || 'Descartada',
+                                });
+                            }}
+                          >
+                            Descartar
+                          </Button>
+                        ) : null}
+                      </Table.Td>
+                    ) : null}
                   </Table.Tr>
                 ))}
               </Table.Tbody>

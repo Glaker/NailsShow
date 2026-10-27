@@ -478,7 +478,9 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
       ],
       GERENCIA_PRODUCCION: [
         'Arriba de todo, «Ventas esperando fecha» lista los pedidos de venta que Ventas te mandó para que comprometas cuándo salen. Tocá «Proponer fecha», poné la «Fecha del pedido entero» y, si algún producto demora más que el resto, su fecha en «Demora hasta» (la del pedido entero no puede ser anterior). Podés dejarle una nota a Ventas. Al tocar «Proponer fecha», Ventas la ve y decide si aprueba.',
-        'Si Ventas cambia productos o cantidades de un pedido al que ya le pusiste fecha, el pedido vuelve solo a «Ventas esperando fecha» para que la reconfirmes.',
+        'Cada producto se compara con el depósito del que sale el pedido (Fábrica, Berna o Calle 5). Si hay, dice «En stock» y tocás «Reservar»: queda apartado para ese pedido. La fecha la ponés solo para lo que hay que producir. Si reservás todo, el pedido queda aprobado para hoy, sin pasar por Ventas.',
+        '«Descartar pedido» lo cancela con el motivo que escribas y libera lo que tenía reservado.',
+        'Si Ventas cambia productos o cantidades de un pedido al que ya le pusiste fecha, el pedido vuelve solo a «Ventas esperando fecha» para que la reconfirmes. Si bajó la cantidad de algo que habías reservado, esa reserva se libera y la volvés a hacer.',
         'En «Para revisar» están los pedidos enviados y todavía sin tomar. Abrí cada uno para ver si alcanza el material: la cobertura de stock se calcula al abrirlo, no en la lista.',
         'En «En producción» están los que ya tomaste.',
         'En «Tablero» ves todo lo que está en curso de un vistazo, también los de clientes tercerizados.',

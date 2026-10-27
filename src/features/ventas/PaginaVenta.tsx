@@ -15,6 +15,7 @@ import {
   Paper,
   Popover,
   SegmentedControl,
+  Select,
   Skeleton,
   Stack,
   Table,
@@ -32,21 +33,26 @@ import {
   IconFileInvoice,
   IconPencil,
   IconSearch,
+  IconTrash,
 } from '@tabler/icons-react';
 import { useClientes } from '@/lib/consultasFacturacion';
-import { useNomina } from '@/lib/consultasComercial';
+import { useEliminarPedido, useNomina } from '@/lib/consultasComercial';
+import { useDepositos } from '@/lib/consultas';
 import { useTieneRol } from '@/features/auth/sesion';
 import { BadgeEstadoPedido } from '@/features/comercial/estadoPedido';
 import { TablaEscala } from './TablaEscala';
 import { fecha, fechaHora, fechaISO, numero, desdeCalendario } from '@/lib/formato';
 import {
+  DEPOSITOS_VENTA,
   ESTADOS_SIN_APROBAR,
   FORMAS_PAGO,
   TEXTO_PAGO,
   calcularVenta,
   proximoEscalon,
-  useDisponibleCalle5,
+  saleDeFabrica,
+  useDisponiblePt,
   useEnviarVenta,
+  useReservadoPedido,
   useEscalaDescuento,
   useGuardarVenta,
   useListaMayorista,
@@ -164,9 +170,12 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
   const navigate = useNavigate();
   const lista = useListaMayorista();
   const escala = useEscalaDescuento();
-  const disponible = useDisponibleCalle5();
   const clientes = useClientes();
   const venta = useVenta(id ?? undefined);
+  const depositos = useDepositos();
+  const descartar = useEliminarPedido();
+  const [descartando, setDescartando] = useState(false);
+  const [motivoDescarte, setMotivoDescarte] = useState('');
   const guardar = useGuardarVenta();
   const enviar = useEnviarVenta();
   const pedirFecha = usePedirFecha();
@@ -177,6 +186,24 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
 
   const g = datos?.venta;
   const [cliente, setCliente] = useState(g?.cliente ?? '');
+  /* De qué depósito sale (D-venta-deposito-1): por defecto Fábrica para los
+     clientes de la lista y Berna para el resto; Ventas lo cambia. */
+  const [origen, setOrigen] = useState<string | null>(datos?.depositoOrigenId ?? null);
+  const idDeposito = (numero: string) =>
+    (depositos.data ?? []).find((d) => d.numero === numero)?.id ?? null;
+  const origenId =
+    origen ??
+    (datos && !datos.depositoOrigenId && id !== null
+      ? idDeposito('C5') // pedidos de antes: salían de Calle 5
+      : idDeposito(saleDeFabrica(cliente) ? 'PTF' : 'BER'));
+  const nombreOrigen =
+    DEPOSITOS_VENTA.find((d) => idDeposito(d.numero) === origenId)?.etiqueta ??
+    'el depósito';
+  const libres = useDisponiblePt(origenId);
+  const reservado = useReservadoPedido(id);
+  /** Lo que puede salir del depósito para este pedido: lo libre más lo que ya tiene reservado. */
+  const dispDe = (pid: string) =>
+    (libres.data?.get(pid) ?? 0) + (reservado.data?.get(pid) ?? 0);
   const [entrega, setEntrega] = useState<Date | null>(
     g?.fecha_entrega ? new Date(`${g.fecha_entrega}T12:00:00`) : null,
   );
@@ -203,7 +230,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
   const [buscar, setBuscar] = useState('');
   const [soloPedido, setSoloPedido] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
-  // Cuánto se arma de Calle 5 por producto: lo decide Ventas (sugerido: lo disponible).
+  // Cuánto se arma del depósito por producto: lo decide Ventas (sugerido: lo disponible).
   const [deC5, setDeC5] = useState<Record<string, number | string>>({});
 
   const v = venta.data?.venta;
@@ -265,6 +292,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
     observaciones: obs.trim() || null,
     descuento_pct: modoDesc === 'fijo' ? Number(descFijo) || 0 : null,
     gestionado_por: v?.gestionado_por ?? null,
+    deposito_origen_id: origenId,
   });
   const lineas = () =>
     [
@@ -370,6 +398,17 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
               ) : null}
             </>
           ) : null}
+          {/* Descartar: queda cancelado con motivo y libera lo reservado (pedido del 2026-10-27). */}
+          {!nuevo && v!.estado !== 'CUMPLIDO' && v!.estado !== 'CANCELADO' ? (
+            <Button
+              variant="subtle"
+              color="estadoRechazado"
+              leftSection={<IconTrash size={18} />}
+              onClick={() => setDescartando(true)}
+            >
+              Descartar pedido
+            </Button>
+          ) : null}
         </Group>
       </Group>
 
@@ -412,9 +451,9 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
               </Text>
             ) : null}
             <Text size="sm" c="dimmed">
-              Si la aprobás, el pedido impacta: se reserva lo de Calle 5 y lo que falta va
-              a Producción. Si cambiás productos o cantidades, vuelve a Producción para
-              reconfirmar la fecha; precio, descuento o forma de pago no.
+              Si la aprobás, el pedido impacta: se reserva lo de {nombreOrigen} y lo que
+              falta va a Producción. Si cambiás productos o cantidades, vuelve a
+              Producción para reconfirmar la fecha; precio, descuento o forma de pago no.
             </Text>
           </Stack>
         </Alert>
@@ -530,7 +569,23 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
               </Group>
             </Stack>
           </Grid.Col>
-          <Grid.Col span={{ base: 12, md: 6 }}>
+          <Grid.Col span={{ base: 12, md: 3 }}>
+            <Select
+              label="Sale de"
+              description={
+                editable ? 'Por defecto, Fábrica o Berna según el cliente' : undefined
+              }
+              data={DEPOSITOS_VENTA.flatMap((d) => {
+                const value = idDeposito(d.numero);
+                return value ? [{ value, label: d.etiqueta }] : [];
+              })}
+              value={origenId}
+              onChange={(x) => x && setOrigen(x)}
+              allowDeselect={false}
+              disabled={!editable}
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, md: 3 }}>
             <TextInput
               label="Destino (envío o retiro)"
               placeholder="Nombre, DNI, domicilio o «retira en el local»"
@@ -591,13 +646,13 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                 <Table.Th ta="right">Con promoción</Table.Th>
                 <Table.Th ta="right">Total</Table.Th>
                 <Table.Th ta="right">Unitario final</Table.Th>
-                <Table.Th ta="right">Calle 5</Table.Th>
+                <Table.Th ta="right">{nombreOrigen}</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
               {visibles.map((f, i) => {
                 const c = cant.get(f.producto_id) ?? 0;
-                const d = disponible.data?.get(f.producto_id)?.disponible ?? 0;
+                const d = dispDe(f.producto_id);
                 const r = renglonDe(f.producto_id);
                 const bajoMinimo = c > 0 && f.minimo !== null && c < f.minimo;
                 const titulo =
@@ -817,22 +872,22 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                 cuenta en las estadísticas.{' '}
               </>
             ) : null}
-            Decidí cuánto se arma de Calle 5 para este cliente (se sugiere lo disponible):
-            eso queda reservado para él. Lo que falta va a Producción. El sistema no
-            reparte entre clientes.
+            Decidí cuánto se arma de {nombreOrigen} para este cliente (se sugiere lo
+            disponible, con lo que Producción ya reservó): eso queda reservado para él. Lo
+            que falta va a Producción. El sistema no reparte entre clientes.
           </Text>
           <Table fz="sm" verticalSpacing={4}>
             <Table.Thead>
               <Table.Tr>
                 <Table.Th>Producto</Table.Th>
                 <Table.Th ta="right">Pedido</Table.Th>
-                <Table.Th ta="right">De Calle 5</Table.Th>
+                <Table.Th ta="right">De {nombreOrigen}</Table.Th>
                 <Table.Th ta="right">A producir</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
               {pedidos.map(({ f, c, pid }) => {
-                const d = disponible.data?.get(pid)?.disponible ?? 0;
+                const d = dispDe(pid);
                 const tope = Math.min(c, d);
                 const de = pid in deC5 ? Math.min(Number(deC5[pid]) || 0, tope) : tope;
                 return (
@@ -852,7 +907,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                         value={de}
                         onChange={(x) => setDeC5((m) => ({ ...m, [pid]: x }))}
                         description={`hay ${numero(d)}`}
-                        aria-label={`De Calle 5 de ${f?.producto ?? ''}`}
+                        aria-label={`De ${nombreOrigen} de ${f?.producto ?? ''}`}
                       />
                     </Table.Td>
                     <Table.Td
@@ -880,7 +935,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                   await enviar.mutateAsync({
                     id: pid,
                     deCalle5: pedidos.map(({ c, pid: p }) => {
-                      const tope = Math.min(c, disponible.data?.get(p)?.disponible ?? 0);
+                      const tope = Math.min(c, dispDe(p));
                       return {
                         producto_id: p,
                         cantidad: p in deC5 ? Math.min(Number(deC5[p]) || 0, tope) : tope,
@@ -892,6 +947,46 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
               }
             >
               Aprobar
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Modal
+        opened={descartando}
+        onClose={() => setDescartando(false)}
+        title="Descartar el pedido"
+        centered
+      >
+        <Stack gap="sm">
+          <Text size="sm">
+            Queda cancelado, con tu nombre y el motivo, y se libera lo que tenía
+            reservado. No se borra: sigue en el historial.
+          </Text>
+          <Textarea
+            label="Motivo"
+            placeholder="El cliente no lo quiere más, se cargó dos veces…"
+            autosize
+            minRows={2}
+            value={motivoDescarte}
+            onChange={(e) => setMotivoDescarte(e.currentTarget.value)}
+          />
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setDescartando(false)}>
+              Volver
+            </Button>
+            <Button
+              color="estadoRechazado"
+              loading={descartar.isPending}
+              onClick={() =>
+                id &&
+                descartar.mutate(
+                  { id, motivo: motivoDescarte.trim() || 'Descartado' },
+                  { onSuccess: () => void navigate('/ventas') },
+                )
+              }
+            >
+              Descartar pedido
             </Button>
           </Group>
         </Stack>

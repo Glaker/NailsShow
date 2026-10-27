@@ -31,6 +31,11 @@ import { fecha, numero } from '@/lib/formato';
 import { useClientes } from '@/lib/consultasFacturacion';
 import { ROLES_STOCK_PT } from '@/lib/consultasStockSeguridad';
 import {
+  useDisponiblePt,
+  useOrigenPedido,
+  useReservadoPedido,
+} from '@/lib/consultasVentas';
+import {
   agruparPorPedido,
   disponiblePara,
   useCalle5,
@@ -211,27 +216,38 @@ function FormularioDespacho({
   const calle5 = useCalle5();
   const reservas = useReservasPt();
   const despachar = useDespacharPedido();
-  const [deposito, setDeposito] = useState<DepositoPt>('C5');
+  const depositos = useDepositos();
+  /* Arranca con el depósito del que sale el pedido (D-venta-deposito-1). */
+  const origen = useOrigenPedido(pedido.pedido_id);
+  const [elegido, setElegido] = useState<DepositoPt | null>(null);
+  const deposito: DepositoPt = elegido ?? origen.data ?? 'C5';
+  const berna = useDisponiblePt(
+    (depositos.data ?? []).find((d) => d.numero === 'BER')?.id,
+  );
+  const reservadoPedido = useReservadoPedido(pedido.pedido_id);
   const [observacion, setObservacion] = useState('');
   const renglones = pedido.renglones.filter((r) => Number(r.pendiente) > 0);
 
   const puedeSalir = (productoId: string, enFabrica: number) =>
-    deposito === 'C5'
-      ? disponiblePara(
-          productoId,
-          pedido.pedido_id,
-          pedido.cliente_id,
-          calle5.data ?? [],
-          reservas.data ?? [],
-        )
-      : // Desde fábrica: lo producido para este pedido o el stock libre de fábrica.
-        Math.max(
-          enFabrica,
-          Number(
-            (calle5.data ?? []).find((f) => f.producto_id === productoId)?.en_fabrica ??
-              0,
-          ),
-        );
+    deposito === 'BER'
+      ? // Desde Berna: lo libre ahí más lo reservado para este pedido.
+        (berna.data?.get(productoId) ?? 0) + (reservadoPedido.data?.get(productoId) ?? 0)
+      : deposito === 'C5'
+        ? disponiblePara(
+            productoId,
+            pedido.pedido_id,
+            pedido.cliente_id,
+            calle5.data ?? [],
+            reservas.data ?? [],
+          )
+        : // Desde fábrica: lo producido para este pedido o el stock libre de fábrica.
+          Math.max(
+            enFabrica,
+            Number(
+              (calle5.data ?? []).find((f) => f.producto_id === productoId)?.en_fabrica ??
+                0,
+            ),
+          );
 
   const [cantidades, setCantidades] = useState<Record<string, number | string> | null>(
     null,
@@ -262,19 +278,21 @@ function FormularioDespacho({
       cant(r.producto_id ?? '') > Number(r.pendiente) || cant(r.producto_id ?? '') < 0,
   );
 
-  if (calle5.isLoading || reservas.isLoading) return <Skeleton h={200} />;
+  if (calle5.isLoading || reservas.isLoading || origen.isLoading)
+    return <Skeleton h={200} />;
 
   return (
     <Stack gap="md">
       <SegmentedControl
         value={deposito}
         onChange={(v) => {
-          setDeposito(v as DepositoPt);
+          setElegido(v as DepositoPt);
           setCantidades(null);
         }}
         data={[
           { value: 'C5', label: 'Sale de Calle 5' },
           { value: 'PTF', label: 'Sale de fábrica' },
+          { value: 'BER', label: 'Sale de Berna' },
         ]}
       />
       <Table.ScrollContainer minWidth={620}>

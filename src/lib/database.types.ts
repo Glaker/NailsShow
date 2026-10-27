@@ -4156,6 +4156,7 @@ export type Database = {
           cliente_id: string | null
           creado_en: string
           creado_por: string
+          deposito_origen_id: string | null
           descuento_pct: number | null
           destino_deposito_id: string | null
           destino_envio: string | null
@@ -4190,6 +4191,7 @@ export type Database = {
           cliente_id?: string | null
           creado_en?: string
           creado_por?: string
+          deposito_origen_id?: string | null
           descuento_pct?: number | null
           destino_deposito_id?: string | null
           destino_envio?: string | null
@@ -4224,6 +4226,7 @@ export type Database = {
           cliente_id?: string | null
           creado_en?: string
           creado_por?: string
+          deposito_origen_id?: string | null
           descuento_pct?: number | null
           destino_deposito_id?: string | null
           destino_envio?: string | null
@@ -5843,6 +5846,41 @@ export type Database = {
           saldo_apertura: number | null
         }
         Relationships: []
+      }
+      v_disponible_pt: {
+        Row: {
+          deposito: string | null
+          deposito_id: string | null
+          deposito_numero: string | null
+          disponible: number | null
+          en_deposito: number | null
+          producto_id: string | null
+          reservado: number | null
+          tomado_sin_reservar: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimientos_pt_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "movimientos_pt_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "movimientos_pt_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
+        ]
       }
       v_escala_descuento: {
         Row: {
@@ -7467,6 +7505,10 @@ export type Database = {
         Returns: number
       }
       aplicar_precios_pedido: { Args: { p_pedido_id: string }; Returns: number }
+      aprobar_venta_interna: {
+        Args: { p_de_deposito?: Json; p_pedido_id: string }
+        Returns: Json
+      }
       articulo_de_insumo: { Args: { p_insumo_id: string }; Returns: string }
       asignar_lotes_pt: {
         Args: {
@@ -7646,6 +7688,7 @@ export type Database = {
       }
       cuit_valido: { Args: { p: string }; Returns: boolean }
       densidad_insumo: { Args: { p_insumo_id: string }; Returns: number }
+      deposito_de_venta: { Args: { p_pedido_id: string }; Returns: string }
       descartar_articulo: {
         Args: { p_articulo_id: string; p_motivo: string }
         Returns: number
@@ -7857,6 +7900,7 @@ export type Database = {
           necesario: number
         }[]
       }
+      normalizar_nombre: { Args: { p: string }; Returns: string }
       origen_insumo: {
         Args: { p_insumo_id: string; p_pedido_id: string }
         Returns: string
@@ -8007,11 +8051,16 @@ export type Database = {
         Args: { p_deposito_id: string; p_producto_id: string }
         Returns: number
       }
+      reservar_producto_venta: {
+        Args: { p_pedido_id: string; p_producto_id: string }
+        Returns: Json
+      }
       reservar_venta: { Args: { p_pedido_id: string }; Returns: number }
       saldo_fondos: {
         Args: { p_cuenta_id: string; p_hasta?: string }
         Returns: number
       }
+      sale_de_fabrica: { Args: { p_cliente: string }; Returns: boolean }
       siguiente_numero: {
         Args: { p_ambito: string; p_anio: number }
         Returns: number
@@ -8087,7 +8136,23 @@ export type Database = {
         }
         Returns: undefined
       }
+      ubicacion_insumos_producto: {
+        Args: { p_producto_id: string }
+        Returns: {
+          codigo: string
+          deposito: string
+          estiba: string
+          insumo: string
+          insumo_id: string
+          lote: string
+          para: string
+          saldo: number
+          unidad: string
+          vence: string
+        }[]
+      }
       unidad_base: { Args: { p_unidad: string }; Returns: string }
+      venta_toda_reservada: { Args: { p_pedido_id: string }; Returns: boolean }
       verificar_stock_pedido: {
         Args: { p_nota?: string; p_ok: boolean; p_pedido_id: string }
         Returns: undefined
@@ -10739,8 +10804,11 @@ export type Database = {
           creada_en: string
           creada_por: string
           descripcion: string
+          donde_buscar: string | null
+          donde_dejar: string | null
           estado: string
           id: string
+          notas: string | null
           orden_id: string | null
           prioridad: number
           producto_id: string | null
@@ -10753,8 +10821,11 @@ export type Database = {
           creada_en?: string
           creada_por?: string
           descripcion: string
+          donde_buscar?: string | null
+          donde_dejar?: string | null
           estado?: string
           id?: string
+          notas?: string | null
           orden_id?: string | null
           prioridad?: number
           producto_id?: string | null
@@ -10767,8 +10838,11 @@ export type Database = {
           creada_en?: string
           creada_por?: string
           descripcion?: string
+          donde_buscar?: string | null
+          donde_dejar?: string | null
           estado?: string
           id?: string
+          notas?: string | null
           orden_id?: string | null
           prioridad?: number
           producto_id?: string | null

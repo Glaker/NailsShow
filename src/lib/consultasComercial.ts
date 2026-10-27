@@ -61,6 +61,8 @@ export interface PedidoRow {
   es_venta?: boolean;
   /** En un pedido de stock: la venta para la que se produce. */
   para_pedido_id?: string | null;
+  /** Pedido de venta: de qué depósito sale (D-venta-deposito-1). Nulo = Calle 5. */
+  deposito_origen_id?: string | null;
 }
 
 export interface PedidoConConteoRow extends PedidoRow {
@@ -598,7 +600,7 @@ export function useQuitarRenglon() {
 }
 
 /**
- * «Borrar pedido» (comercial.eliminar_pedido): lo cancela y lo saca de todas
+ * «Descartar pedido» (comercial.eliminar_pedido): lo cancela y lo saca de todas
  * las bandejas, libera sus reservas y descarta sus avisos de compra. La fila
  * queda, con quién y por qué, para la trazabilidad.
  */
@@ -616,7 +618,7 @@ export function useEliminarPedido() {
       invalidarPedido(qc, v.id);
       void qc.invalidateQueries({ queryKey: ['avisos-compra'] });
       void qc.invalidateQueries({ queryKey: ['tercerizados'] });
-      avisarExito('Pedido borrado.');
+      avisarExito('Pedido descartado.');
     },
     onError: avisarError,
   });
