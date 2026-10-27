@@ -28,6 +28,31 @@ const TINTA: Record<EstadoCalidad, { fondo: string; texto: string; borde: string
   SALDO_APERTURA: { fondo: '#74c0fc', texto: '#0b2e4f', borde: '#1971c2' },
 };
 
+/**
+ * El nombre del insumo o del producto, a 1 cm impreso (pedido del 2026-10-27).
+ * La planilla imprime el rótulo con zoom 0,8 (global.css): 1 cm / 0,8 en el
+ * diseño es 1 cm en la hoja. Hasta tres renglones; el resto del rótulo
+ * conserva sus tamaños.
+ */
+export function NombreGrande({ etiqueta, valor }: { etiqueta: string; valor: string }) {
+  return (
+    <Box px="md" pt="sm">
+      <Text fz={12} fw={700} style={{ letterSpacing: 0.8, opacity: 0.7 }}>
+        {etiqueta.toUpperCase()}
+      </Text>
+      <Text
+        fz="calc(1cm / 0.8)"
+        fw={800}
+        lh={1.05}
+        lineClamp={3}
+        style={{ overflowWrap: 'anywhere' }}
+      >
+        {valor}
+      </Text>
+    </Box>
+  );
+}
+
 function Campo({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   return (
     <Box>
@@ -148,9 +173,10 @@ export function RotuloLote({
         </Stack>
       </Group>
 
-      <Group align="flex-start" wrap="nowrap" p="md" gap="md">
+      <NombreGrande etiqueta="Nombre" valor={lote.insumo_nombre ?? '—'} />
+
+      <Group align="flex-start" wrap="nowrap" p="md" pt="xs" gap="md">
         <Stack gap="sm" style={{ flex: 1, minWidth: 0 }}>
-          <Campo etiqueta="Nombre" valor={lote.insumo_nombre ?? '—'} />
           <Campo
             etiqueta="N° interno / código"
             valor={`${lote.numero_registro_interno ?? '—'} · ${lote.codigo_interno ?? '—'}`}

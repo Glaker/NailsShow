@@ -32,6 +32,7 @@ import {
   useLotesRotulo,
   type RenglonInsumo,
 } from './PlanillaRotulos';
+import { NombreGrande } from './RotuloLote';
 import { textoLote } from '@/features/produccion/posicionesLoteo';
 
 /** Sugeridos; se puede escribir cualquier otro (pedido del 2026-10-26). */
@@ -141,9 +142,10 @@ export function RotuloProduccion({ r, impreso }: { r: Renglon; impreso: string }
         </Stack>
       </Group>
 
-      <Group align="flex-start" wrap="nowrap" p="md" gap="md">
+      <NombreGrande etiqueta="Producto" valor={r.producto || '—'} />
+
+      <Group align="flex-start" wrap="nowrap" p="md" pt="xs" gap="md">
         <Stack gap="sm" style={{ flex: 1, minWidth: 0 }}>
-          <Campo etiqueta="Producto" valor={r.producto} />
           {/* Lote y vencimiento a la vista (pedido del 2026-10-26). */}
           <Group gap="md" wrap="wrap">
             <Campo etiqueta="Lote" valor={r.lote} />
@@ -173,20 +175,22 @@ export function RotuloProduccion({ r, impreso }: { r: Renglon; impreso: string }
         </Stack>
       </Group>
 
-      <Group gap="lg" px="md" pb="xs" wrap="nowrap">
-        <Text fz={14} fw={700} style={{ letterSpacing: 0.8, opacity: 0.7 }}>
-          CONTADO:
-        </Text>
-        <Casilla texto="Sí" />
-        <Casilla texto="No" />
-      </Group>
-
+      {/* «Contado» va en la franja de abajo: deja lugar al nombre grande. */}
       <Group
+        justify="space-between"
         px="md"
         py={6}
         mt="auto"
+        wrap="nowrap"
         style={{ borderTop: '1px solid #dee2e6', background: '#fafafa' }}
       >
+        <Group gap="lg" wrap="nowrap">
+          <Text fz={14} fw={700} style={{ letterSpacing: 0.8, opacity: 0.7 }}>
+            CONTADO:
+          </Text>
+          <Casilla texto="Sí" />
+          <Casilla texto="No" />
+        </Group>
         <Text fz={11} c="dimmed">
           Impreso {impreso}
         </Text>
