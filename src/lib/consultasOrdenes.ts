@@ -8,6 +8,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Database } from './database.types';
 import { avisarError, avisarExito } from './consultas';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { comercial, gmp } from './supabase';
 
 type TablasGmp = Database['gmp']['Tables'];
@@ -334,6 +335,74 @@ export function useOrdenesAbiertasConEtapas() {
       if (error) throw error;
       return data ?? [];
     },
+  });
+}
+
+/**
+ * Vencimiento como lo escribe planta: «MM/AA» (D-orden-producto-1). Por
+ * defecto, la fecha de elaboración más dos años.
+ */
+export const vencimientoPorDefecto = (jornada: Date) => {
+  const d = new Date(jornada.getFullYear() + 2, jornada.getMonth(), 1);
+  return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getFullYear()).slice(2)}`;
+};
+
+/** «MM/AA» → último día de ese mes (AAAA-MM-DD), o null si no es válido. */
+export const vencimientoISO = (texto: string): string | null => {
+  const m = /^(0[1-9]|1[0-2])\/(\d{2})$/.exec(texto.trim());
+  if (!m) return null;
+  const mes = Number(m[1]);
+  const anio = 2000 + Number(m[2]);
+  const ultimo = new Date(anio, mes, 0).getDate();
+  return `${anio}-${String(mes).padStart(2, '0')}-${String(ultimo).padStart(2, '0')}`;
+};
+
+/**
+ * Producto que no trae fórmula: se envasa un granel comprado
+ * (D-orden-producto-1). Se arma una fórmula en borrador con ese granel al
+ * 100 %, así la pesada registra qué lote de granel se usó.
+ */
+export function useCrearFormulaEnvasado() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: { productoId: string; granelId: string }) => {
+      const { data, error } = await gmp()
+        .from('formulas_fabricacion')
+        .insert({ producto_id: a.productoId, version: 'Envasado', estado: 'BORRADOR' })
+        .select('id')
+        .single();
+      if (error) throw error;
+      const { error: e2 } = await gmp().from('formula_componentes').insert({
+        formula_id: data.id,
+        orden: 1,
+        insumo_id: a.granelId,
+        porcentaje_pp: 100,
+        etapa: 'Envasado del granel',
+      });
+      if (e2) throw e2;
+      return data.id;
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['formulas-fabricacion'] }),
+    onError: avisarError,
+  });
+}
+
+/** DT completa la especificación de una orden que se abrió sin ella. */
+export function useAsignarEspecificacionOrden() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: { ordenId: string; especificacionId: string }) => {
+      const { error } = await (gmp() as unknown as SupabaseClient).rpc(
+        'asignar_especificacion_orden',
+        { p_orden_id: a.ordenId, p_especificacion_id: a.especificacionId },
+      );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['ordenes'] });
+      avisarExito('Especificación asignada.');
+    },
+    onError: avisarError,
   });
 }
 

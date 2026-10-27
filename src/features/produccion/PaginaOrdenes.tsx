@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import {
+  Alert,
   Anchor,
   Badge,
   Button,
@@ -26,7 +27,7 @@ import {
 } from '@tabler/icons-react';
 import { Vacio } from '@/components/Vacio';
 import { useTieneRol } from '@/features/auth/sesion';
-import { useFormulasFabricacion, useProductos } from '@/lib/consultas';
+import { useFormulasFabricacion, useInsumos, useProductos } from '@/lib/consultas';
 import {
   useCrearProduccion,
   usePedidos,
@@ -36,6 +37,9 @@ import { fecha, fechaISO, numero, desdeCalendario } from '@/lib/formato';
 import {
   useAbrirOrden,
   useAnularOrden,
+  useCrearFormulaEnvasado,
+  vencimientoISO,
+  vencimientoPorDefecto,
   useCrearEquipo,
   useEquipos,
   useEspecificaciones,
@@ -227,8 +231,13 @@ export function ModalAbrirOrden({
 }) {
   const formulas = useFormulasFabricacion();
   const productos = useProductos();
+  const insumos = useInsumos();
   const especificaciones = useEspecificaciones();
   const abrir = useAbrirOrden();
+  const crearEnvasado = useCrearFormulaEnvasado();
+  // Naza no ve la especificación: la toma de la fórmula, y si falta la
+  // completa DT desde su tablero (D-orden-producto-1).
+  const esDT = useTieneRol('DIRECCION_TECNICA');
   const pedidos = usePedidos();
   const crearProduccion = useCrearProduccion();
   /* Lo que el plan dice para la jornada (pedido del 2026-10-21): elegir uno
@@ -245,9 +254,19 @@ export function ModalAbrirOrden({
   const [presentacionTexto, setPresentacionTexto] = useState('');
   const [cantidad, setCantidad] = useState<number | string>('');
   const [unidad, setUnidad] = useState<'kg' | 'L'>('kg');
-  const [vencimiento, setVencimiento] = useState<Date | null>(null);
-  const formula = (formulas.data ?? []).find((f) => f.id === formulaId);
-  const producto = productoId ?? formula?.producto_id ?? null;
+  /* «MM/AA»; null = el de por defecto (elaboración + 2 años). */
+  const [vencimiento, setVencimiento] = useState<string | null>(null);
+  /* El producto no trae fórmula: se envasa un granel comprado. */
+  const [sinFormula, setSinFormula] = useState(false);
+  const [granelId, setGranelId] = useState<string | null>(null);
+  const producto = productoId;
+  // Las del producto, vigentes primero (useFormulasFabricacion).
+  const delProducto = (formulas.data ?? []).filter((f) => f.producto_id === producto);
+  const formula =
+    delProducto.find((f) => f.id === formulaId) ?? delProducto[0] ?? undefined;
+  const faltaFormula = !!producto && !formulas.isLoading && delProducto.length === 0;
+  const textoVenc = vencimiento ?? (jornada ? vencimientoPorDefecto(jornada) : '');
+  const vencValido = vencimientoISO(textoVenc) !== null;
   const n = (v: number | string) => (typeof v === 'number' ? v : Number(v || 0));
   const delDia =
     pedidoId === null && jornada ? enElPlan(pedidos.data ?? [], fechaISO(jornada)!) : [];
@@ -259,10 +278,8 @@ export function ModalAbrirOrden({
   const elegir = (x: EnElPlan) => {
     setEleccion(x.clave);
     setProductoId(x.productoId);
-    // Las vigentes vienen primero (useFormulasFabricacion).
-    setFormulaId(
-      (formulas.data ?? []).find((f) => f.producto_id === x.productoId)?.id ?? null,
-    );
+    setFormulaId(null);
+    setSinFormula(false);
   };
   const dd = jornada
     ? `${String(jornada.getDate()).padStart(2, '0')}/${String(jornada.getMonth() + 1).padStart(2, '0')}/${String(jornada.getFullYear()).slice(2)}`
@@ -312,19 +329,9 @@ export function ModalAbrirOrden({
           </Stack>
         ) : null}
         <Select
-          label="Fórmula"
+          label="Producto"
+          description="La fórmula la trae el sistema"
           withAsterisk
-          searchable
-          data={(formulas.data ?? []).map((f) => ({
-            value: f.id,
-            label: `${f.producto?.nombre ?? ''}${f.variedad ? ` — ${f.variedad}` : ''} · v${f.version}${f.codigo_me ? ` · ${f.codigo_me}` : ''}`,
-          }))}
-          value={formulaId}
-          onChange={setFormulaId}
-        />
-        <Select
-          label="Producto (presentación que se fracciona)"
-          description="Por defecto, el de la fórmula"
           searchable
           clearable
           limit={60}
@@ -332,49 +339,124 @@ export function ModalAbrirOrden({
             .filter((p) => p.activo)
             .map((p) => ({ value: p.id, label: `${p.codigo_interno} · ${p.nombre}` }))}
           value={producto}
-          onChange={setProductoId}
+          onChange={(v) => {
+            setProductoId(v);
+            setFormulaId(null);
+            setSinFormula(false);
+            setGranelId(null);
+          }}
         />
-        <Group align="flex-end" wrap="nowrap">
+        {delProducto.length > 1 ? (
           <Select
-            style={{ flex: 1 }}
-            label="Especificación"
-            description="Contra la que se controla el producto terminado. Un borrador lo aprueba la DT."
-            clearable
-            searchable
-            nothingFoundMessage="Sin coincidencias: cargala con «Nueva»"
-            data={(especificaciones.data ?? [])
-              .filter((e) => e.estado === 'VIGENTE' || e.estado === 'BORRADOR')
-              .map((e) => ({
-                value: e.id,
-                label: `${e.codigo_poe} v${e.version} · ${e.denominacion}${
-                  e.estado === 'BORRADOR' ? ' (borrador)' : ''
-                }`,
-              }))}
-            value={especId}
-            onChange={setEspecId}
+            label="Fórmula"
+            data={delProducto.map((f) => ({
+              value: f.id,
+              label: `${f.variedad ? `${f.variedad} · ` : ''}v${f.version}${f.codigo_me ? ` · ${f.codigo_me}` : ''}${f.estado === 'VIGENTE' ? '' : ' (borrador)'}`,
+            }))}
+            value={formula?.id ?? null}
+            onChange={setFormulaId}
+            allowDeselect={false}
           />
-          <Button
-            size="md"
-            variant="light"
-            leftSection={<IconPlus size={18} />}
-            onClick={() => setNuevaEspec(true)}
-          >
-            Nueva
-          </Button>
-        </Group>
-        <Modal
-          opened={nuevaEspec}
-          onClose={() => setNuevaEspec(false)}
-          title="Nueva especificación"
-          centered
-        >
-          <CabeceraEspecificacion
-            onListo={(id) => {
-              setNuevaEspec(false);
-              setEspecId(id);
-            }}
-          />
-        </Modal>
+        ) : formula ? (
+          <Text size="sm" c="dimmed">
+            Fórmula: v{formula.version}
+            {formula.codigo_me ? ` · ${formula.codigo_me}` : ''}
+            {formula.estado === 'VIGENTE' ? '' : ' (borrador)'}
+          </Text>
+        ) : null}
+        {faltaFormula ? (
+          <Alert color="estadoCuarentena" variant="light" title="Falta la fórmula">
+            <Stack gap="sm">
+              <Group gap="sm">
+                <Button
+                  component={Link}
+                  to="/formulas"
+                  target="_blank"
+                  variant="light"
+                  leftSection={<IconPlus size={16} />}
+                >
+                  Cargar fórmula
+                </Button>
+                <Button
+                  variant={sinFormula ? 'filled' : 'default'}
+                  onClick={() => setSinFormula((x) => !x)}
+                >
+                  No trae fórmula (se envasa el granel)
+                </Button>
+              </Group>
+              {sinFormula ? (
+                <Select
+                  label="¿Qué granel se envasa?"
+                  description="La pesada va a registrar qué lote de ese granel se usó."
+                  searchable
+                  limit={60}
+                  data={(insumos.data ?? [])
+                    .filter(
+                      (i) =>
+                        i.activo &&
+                        (i.tipo === 'SEMIELABORADO' || i.tipo === 'MATERIA_PRIMA'),
+                    )
+                    .map((i) => ({
+                      value: i.id,
+                      label: `${i.codigo_interno} · ${i.nombre}`,
+                    }))}
+                  value={granelId}
+                  onChange={setGranelId}
+                />
+              ) : (
+                <Text size="sm">
+                  Si cargás la fórmula en la otra pestaña, volvé y elegí el producto de
+                  nuevo.
+                </Text>
+              )}
+            </Stack>
+          </Alert>
+        ) : null}
+        {esDT ? (
+          <>
+            <Group align="flex-end" wrap="nowrap">
+              <Select
+                style={{ flex: 1 }}
+                label="Especificación"
+                description="Contra la que se controla el producto terminado. Un borrador lo aprueba la DT."
+                clearable
+                searchable
+                nothingFoundMessage="Sin coincidencias: cargala con «Nueva»"
+                data={(especificaciones.data ?? [])
+                  .filter((e) => e.estado === 'VIGENTE' || e.estado === 'BORRADOR')
+                  .map((e) => ({
+                    value: e.id,
+                    label: `${e.codigo_poe} v${e.version} · ${e.denominacion}${
+                      e.estado === 'BORRADOR' ? ' (borrador)' : ''
+                    }`,
+                  }))}
+                value={especId}
+                onChange={setEspecId}
+              />
+              <Button
+                size="md"
+                variant="light"
+                leftSection={<IconPlus size={18} />}
+                onClick={() => setNuevaEspec(true)}
+              >
+                Nueva
+              </Button>
+            </Group>
+            <Modal
+              opened={nuevaEspec}
+              onClose={() => setNuevaEspec(false)}
+              title="Nueva especificación"
+              centered
+            >
+              <CabeceraEspecificacion
+                onListo={(id) => {
+                  setNuevaEspec(false);
+                  setEspecId(id);
+                }}
+              />
+            </Modal>
+          </>
+        ) : null}
         <Group grow>
           <DateInput
             label="Fecha de elaboración"
@@ -428,13 +510,16 @@ export function ModalAbrirOrden({
             value={presentacionTexto}
             onChange={(e) => setPresentacionTexto(e.currentTarget.value)}
           />
-          <DateInput
-            label="Vencimiento"
-            description="Vacío: fecha de elaboración + vida útil"
-            valueFormat="DD/MM/YYYY"
-            clearable
-            value={vencimiento}
-            onChange={(v) => setVencimiento(desdeCalendario(v))}
+          <TextInput
+            label="Vencimiento (MM/AA)"
+            description="Por defecto, dos años después de la elaboración"
+            placeholder="10/28"
+            value={textoVenc}
+            onChange={(e) => setVencimiento(e.currentTarget.value)}
+            error={
+              textoVenc && !vencValido ? 'Escribilo como MM/AA, por ejemplo 10/28' : null
+            }
+            maxLength={5}
           />
         </Group>
         {otro ? (
@@ -452,16 +537,34 @@ export function ModalAbrirOrden({
           <b>
             #{n(presentacion)} {dd}
           </b>{' '}
-          · vencimiento <b>P{n(partida)} …</b> (I.40.25, borrador: R-08)
+          · vencimiento{' '}
+          <b>
+            P{n(partida)} {vencValido ? textoVenc : '…'}
+          </b>{' '}
+          (I.40.25, borrador: R-08)
         </Text>
         <Group justify="flex-end">
           <Button
-            loading={abrir.isPending || crearProduccion.isPending}
-            disabled={!formula || !producto || !jornada || n(cantidad) <= 0}
+            loading={
+              abrir.isPending || crearProduccion.isPending || crearEnvasado.isPending
+            }
+            disabled={
+              !(formula || (faltaFormula && sinFormula && granelId)) ||
+              !producto ||
+              !jornada ||
+              !vencValido ||
+              n(cantidad) <= 0
+            }
             onClick={() =>
               void (async () => {
-                if (!formula || !producto || !jornada) return;
+                if (!producto || !jornada) return;
                 const dia = fechaISO(jornada)!;
+                const formulaUsada =
+                  formula?.id ??
+                  (granelId
+                    ? await crearEnvasado.mutateAsync({ productoId: producto, granelId })
+                    : null);
+                if (!formulaUsada) return;
                 // ponytail: dos llamadas, no una transacción. Si la orden falla,
                 // la producción queda en el plan y se saca desde Planificación.
                 const nueva =
@@ -475,7 +578,7 @@ export function ModalAbrirOrden({
                       })
                     : null;
                 await abrir.mutateAsync({
-                  formula_id: formula.id,
+                  formula_id: formulaUsada,
                   producto_id: producto,
                   jornada: dia,
                   partida: n(partida),
@@ -483,8 +586,8 @@ export function ModalAbrirOrden({
                   presentacion_texto: presentacionTexto.trim() || null,
                   cantidad_teorica: n(cantidad),
                   unidad,
-                  vencimiento: fechaISO(vencimiento),
-                  especificacion_id: especId,
+                  vencimiento: vencimientoISO(textoVenc),
+                  especificacion_id: esDT ? especId : null,
                   pedidoId: pedidoId ?? elegido?.pedidoId ?? nueva ?? null,
                 });
                 setEleccion(null);

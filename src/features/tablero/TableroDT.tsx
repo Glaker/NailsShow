@@ -19,6 +19,7 @@ import { useLotes, useProductos } from '@/lib/consultas';
 import { useOrdenes } from '@/lib/consultasOrdenes';
 import { fecha, numero } from '@/lib/formato';
 import { useAnalisisPendientes } from '@/lib/consultasAnalisis';
+import { OrdenesSinEspecificacion } from './OrdenesSinEspecificacion';
 
 /**
  * Tablero de Dirección Técnica (pedido del 2026-10-01): cuánto y qué espera su
@@ -91,6 +92,8 @@ export function TableroDT() {
           </Text>
         </Paper>
       </SimpleGrid>
+
+      <OrdenesSinEspecificacion />
 
       {cargando ? (
         <Skeleton h={260} radius="lg" />
