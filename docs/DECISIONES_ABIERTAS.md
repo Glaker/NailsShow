@@ -1029,7 +1029,7 @@ disponible. «Descartar pedido» (Ventas, GP, DT) y «Descartar» de produccione
 si se suma un cliente, es una migración. Los pedidos anteriores sin depósito se leen
 como Calle 5. Lo producido para un pedido de Berna entra a Fábrica y se reserva ahí;
 llevarlo a Berna es una transferencia.
-**Dónde está.** `20261027130000_comercial_venta_por_deposito.sql`,
+**Dónde está.** `20261027140000_comercial_venta_por_deposito.sql`,
 `VentasEsperandoFecha.tsx`, `PaginaVenta.tsx`, `Calle5.tsx`.
 
 ### D-tareas-3 · Tareas con tipo, ubicación y notas — adoptada 2026-10-27
