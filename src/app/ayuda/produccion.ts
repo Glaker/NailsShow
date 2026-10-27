@@ -256,10 +256,10 @@ export const AYUDA_PRODUCCION: MapaAyuda = {
       'Las órdenes de producción: una por lote, con su registro de la pesada a la liberación. La tabla muestra orden, producto, lote, vencimiento, cantidad y estado. Cada orden toma la fórmula y guía las etapas que se registran en su ficha; de ahí sale el batch record.',
     porRol: {
       GERENCIA_PRODUCCION: [
-        'Tocá «Abrir orden». Elegí la fórmula, el producto (presentación que se fracciona, por defecto el de la fórmula), la especificación contra la que se controla el producto terminado, la fecha de elaboración y la cantidad teórica en kg.',
+        'Tocá «Abrir orden» y elegí el producto: el sistema trae su fórmula. Si no tiene, dice «Falta la fórmula»: «Cargar fórmula» abre Fórmulas en otra pestaña, y «No trae fórmula (se envasa el granel)» te pide qué granel se envasa; la pesada registra el lote de ese granel. Después, la fecha de elaboración y la cantidad teórica en kg.',
         'Completá la partida del granel (1 si es el primer granel del día), el número de presentación (1, 2… si un granel va a varias) y la presentación en texto («14 g, 45 g…»). Con eso el sistema arma el número de lote según I.40.25.',
-        'En «Vencimiento», si lo dejás vacío se calcula con la fecha de elaboración más la vida útil.',
-        'El botón «Abrir orden» del formulario se habilita cuando elegiste fórmula, producto, fecha y una cantidad mayor que cero. Al guardar, la orden aparece en la lista; tocala para empezar a registrar las etapas.',
+        'El «Vencimiento» se escribe MM/AA (por ejemplo 10/28): por defecto, dos años después de la elaboración; cambialo si hace falta. La especificación no la elegís vos: si la fórmula no la trae, la asigna Dirección Técnica.',
+        'El botón «Abrir orden» del formulario se habilita cuando elegiste producto (con fórmula o con el granel), fecha, vencimiento y una cantidad mayor que cero. Al guardar, la orden aparece en la lista; tocala para empezar a registrar las etapas.',
         'Con «Equipos» ves los equipos cargados y das de alta uno nuevo (Código, Tipo y Nombre, y «Dar de alta»): las balanzas y demás equipos se eligen después en los registros.',
         'Si la orden se abrió por error, abrila y usá «Anular» con motivo mientras esté abierta.',
       ],

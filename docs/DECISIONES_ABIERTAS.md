@@ -1010,6 +1010,21 @@ tareas. Si una tarea de prueba mezcla a un operario de ejemplo con una operaria
 real, a la real le toca la parte de sus minutos sobre el total del grupo.
 **Dónde está.** `20261026170000_core_operarios_ejemplo.sql`.
 
+### D-orden-producto-1 · Abrir una orden por el producto — adoptada 2026-10-27
+
+**Decisión del codirector técnico.** Al abrir una orden, Gerencia de Producción
+elige el producto y el sistema trae su fórmula. Si no tiene, avisa «Falta la
+fórmula» y ofrece cargarla o «No trae fórmula»: un granel comprado que solo se
+envasa. En ese caso se arma una fórmula en borrador del producto con ese granel al
+100 %, para que la pesada registre qué lote de granel se usó. Las etapas que no
+correspondan (elaboración) se marcan «No aplica en este lote». El vencimiento se
+escribe MM/AA, por defecto elaboración + 2 años, y vence el último día de ese mes.
+GP ya no elige la especificación: la orden toma la de la fórmula y, si falta,
+Dirección Técnica la asigna desde su tablero (`gmp.asignar_especificacion_orden`,
+solo de vacía a una, en órdenes abiertas o terminadas).
+**Dónde está.** `20261027150000_gmp_especificacion_orden_dt.sql`,
+`ModalAbrirOrden` en `PaginaOrdenes.tsx`, `OrdenesSinEspecificacion.tsx`.
+
 ### D-pedidos-por-deposito-1 · El pedido de venta sale de un depósito elegido — adoptada 2026-10-27
 
 **Decisión del codirector técnico.** Ventas elige de qué depósito sale cada pedido
