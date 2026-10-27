@@ -89,6 +89,7 @@ const CLAVES = [
   'pendientes-despacho',
   'reservas-pt',
   'stock-punto-venta',
+  'stock-pt-lotes',
   'movimientos-pt',
   'stock-seguridad',
   'pedidos',

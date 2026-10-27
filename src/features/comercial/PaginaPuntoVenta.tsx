@@ -32,12 +32,13 @@ import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { TarjetaIndicador } from '@/components/TarjetaIndicador';
 import { Vacio } from '@/components/Vacio';
 import { useDepositos, useProductos } from '@/lib/consultas';
-import { numero } from '@/lib/formato';
+import { fecha, numero } from '@/lib/formato';
 import {
   TIPOS_MOVIMIENTO_PT,
   TIPOS_PT_CON_MOTIVO,
   useMovimientosPuntoVenta,
   useRegistrarMovimientoPt,
+  useStockPtLotes,
   useStockPuntoVenta,
 } from '@/lib/consultasComercial';
 import { useRegistrarConteoPt } from '@/lib/consultasStockSeguridad';
@@ -217,6 +218,10 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
     data: (stockTodos.data ?? []).filter((f) => f.deposito_id === deposito?.id),
   };
   const movimientos = useMovimientosPuntoVenta(deposito?.id);
+  const lotes = useStockPtLotes(deposito?.id);
+  /* Por producto, sus lotes con saldo en este depósito (pedido del 2026-10-26). */
+  const lotesDe = (productoId: string | null) =>
+    (lotes.data ?? []).filter((l) => l.producto_id === productoId && Number(l.saldo) > 0);
 
   const [abierto, setAbierto] = useState(false);
   const [sentido, setSentido] = useState<'entra' | 'sale'>('sale');
@@ -409,6 +414,18 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
                         <Text size="sm" fw={600}>
                           {f.producto}
                         </Text>
+                        {lotesDe(f.producto_id).map((l) => (
+                          <Text key={l.orden_id ?? 'sin-lote'} size="xs" c="dimmed">
+                            {l.numero_lote ? `Lote ${l.numero_lote}` : 'Sin lote'}
+                            {l.vencimiento_texto
+                              ? ` · vence ${l.vencimiento_texto}`
+                              : l.vencimiento
+                                ? ` · vence ${fecha(l.vencimiento)}`
+                                : ''}
+                            {' · '}
+                            {numero(Number(l.saldo), 0)} u
+                          </Text>
+                        ))}
                       </Table.Td>
                       <Table.Td ta="right">
                         <Text size="lg" ff="monospace" fw={700}>

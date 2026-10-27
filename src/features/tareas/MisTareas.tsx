@@ -13,11 +13,13 @@ import {
   SimpleGrid,
   Skeleton,
   Stack,
+  Table,
   Text,
   Title,
 } from '@mantine/core';
 import {
   IconCheck,
+  IconMapPin,
   IconPlayerPause,
   IconPlayerPlay,
   IconUserPlus,
@@ -36,11 +38,12 @@ import {
   usePersonal,
   useTareasProduccion,
   useTramosAbiertos,
+  useUbicacionInsumos,
   type Participante,
   type TareaProduccion,
   type Tramo,
 } from '@/lib/consultasTareasProduccion';
-import { numero } from '@/lib/formato';
+import { fecha, numero } from '@/lib/formato';
 
 type TramoConGrupo = Tramo & { tramo_participantes: Participante[] };
 
@@ -168,6 +171,97 @@ function ModalListo({
   );
 }
 
+/**
+ * Dónde está cada insumo que se usa para el producto de la tarea: depósito,
+ * estiba, cuánto queda y cuándo vence, el que vence antes primero
+ * (D-ubicacion-insumos-1).
+ */
+export function UbicacionInsumos({
+  productoId,
+  producto,
+  onCerrar,
+}: {
+  productoId: string;
+  producto: string | null;
+  onCerrar: () => void;
+}) {
+  const ubicacion = useUbicacionInsumos(productoId, true);
+  const filas = ubicacion.data ?? [];
+  const insumos = [...new Set(filas.map((f) => f.insumo_id))];
+  return (
+    <Modal
+      opened
+      onClose={onCerrar}
+      title={
+        <Text fw={700}>Dónde está cada insumo{producto ? ` · ${producto}` : ''}</Text>
+      }
+      size="xl"
+    >
+      {ubicacion.isLoading ? (
+        <Skeleton h={200} />
+      ) : insumos.length === 0 ? (
+        <Text c="dimmed">
+          Este producto todavía no tiene fórmula vigente ni materiales cargados.
+        </Text>
+      ) : (
+        <Table.ScrollContainer minWidth={560}>
+          <Table verticalSpacing="sm" fz="md">
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Insumo</Table.Th>
+                <Table.Th>Depósito</Table.Th>
+                <Table.Th>Estiba</Table.Th>
+                <Table.Th>Lote</Table.Th>
+                <Table.Th ta="right">Queda</Table.Th>
+                <Table.Th>Vence</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {filas.map((f, i) => {
+                const primero = i === 0 || filas[i - 1]!.insumo_id !== f.insumo_id;
+                return (
+                  <Table.Tr key={`${f.insumo_id}-${f.lote ?? 'sin'}-${i}`}>
+                    <Table.Td>
+                      {primero ? (
+                        <>
+                          <Text fw={700}>{f.insumo}</Text>
+                          <Text size="xs" c="dimmed">
+                            {f.codigo} · {f.para}
+                          </Text>
+                        </>
+                      ) : null}
+                    </Table.Td>
+                    {f.lote === null ? (
+                      <Table.Td colSpan={5}>
+                        <Text c="estadoRechazado" fw={600}>
+                          Sin stock aprobado
+                        </Text>
+                      </Table.Td>
+                    ) : (
+                      <>
+                        <Table.Td>{f.deposito}</Table.Td>
+                        <Table.Td>
+                          <Text fw={700}>{f.estiba ?? '—'}</Text>
+                        </Table.Td>
+                        <Table.Td>{f.lote}</Table.Td>
+                        <Table.Td ta="right">
+                          {numero(Number(f.saldo), 3)}{' '}
+                          {f.unidad === 'UNIDAD' ? 'u' : f.unidad}
+                        </Table.Td>
+                        <Table.Td>{f.vence ? fecha(f.vence) : '—'}</Table.Td>
+                      </>
+                    )}
+                  </Table.Tr>
+                );
+              })}
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
+      )}
+    </Modal>
+  );
+}
+
 function TarjetaTarea({
   t,
   tramo,
@@ -191,6 +285,7 @@ function TarjetaTarea({
   const [eligiendo, setEligiendo] = useState(false);
   const [con, setCon] = useState<string[]>(t.asignadas.filter((a) => a !== yo));
   const [listo, setListo] = useState(false);
+  const [buscando, setBuscando] = useState(false);
   const nombre = new Map(personal.map((p) => [p.value, p.label]));
   const estoy = tramo?.tramo_participantes.some(
     (p) => p.usuario_id === yo && p.hasta === null,
@@ -234,6 +329,24 @@ function TarjetaTarea({
           <Text size="lg">
             Hechas <b>{numero(hecho)}</b> de <b>{numero(t.cantidad)}</b>
           </Text>
+        ) : null}
+        {t.producto_id ? (
+          <Button
+            size="lg"
+            variant="light"
+            leftSection={<IconMapPin size={22} />}
+            onClick={() => setBuscando(true)}
+            style={{ alignSelf: 'flex-start' }}
+          >
+            Dónde están los insumos
+          </Button>
+        ) : null}
+        {buscando && t.producto_id ? (
+          <UbicacionInsumos
+            productoId={t.producto_id}
+            producto={producto}
+            onCerrar={() => setBuscando(false)}
+          />
         ) : null}
 
         {tramo ? (

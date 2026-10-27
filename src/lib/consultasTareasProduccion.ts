@@ -70,6 +70,38 @@ export interface Persona {
   es_ejemplo: boolean;
 }
 
+/** Un lote usable de un insumo del producto, con dónde está. */
+export interface UbicacionInsumo {
+  insumo_id: string;
+  codigo: string;
+  insumo: string;
+  para: 'Fórmula' | 'Acondicionamiento';
+  lote: string | null;
+  deposito: string | null;
+  estiba: string | null;
+  saldo: number | null;
+  unidad: string | null;
+  vence: string | null;
+}
+
+/**
+ * Dónde está cada insumo del producto: fórmula vigente y acondicionamiento,
+ * lotes usables con stock, el que vence antes primero (D-ubicacion-insumos-1).
+ */
+export function useUbicacionInsumos(productoId: string | null, habilitado: boolean) {
+  return useQuery({
+    queryKey: ['ubicacion-insumos', productoId],
+    enabled: !!productoId && habilitado,
+    queryFn: async () => {
+      const { data, error } = await (supabase as unknown as SupabaseClient)
+        .schema('comercial')
+        .rpc('ubicacion_insumos_producto', { p_producto_id: productoId });
+      if (error) throw error;
+      return (data ?? []) as UbicacionInsumo[];
+    },
+  });
+}
+
 /** El personal activo, para armar el día y los grupos. */
 export function usePersonal() {
   return useQuery({

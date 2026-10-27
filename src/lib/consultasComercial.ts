@@ -781,6 +781,7 @@ export function useTerminarPedido() {
         'kardex',
         'kardex-general',
         'stock-punto-venta',
+        'stock-pt-lotes',
         'movimientos-pt',
         'stock-seguridad',
         'calle5',
@@ -1037,6 +1038,25 @@ export function useStockPuntoVenta() {
   });
 }
 
+export type StockPtLote = Database['comercial']['Views']['v_stock_pt_lotes']['Row'];
+
+/** Saldo de producto terminado por lote en un depósito (pedido del 2026-10-26). */
+export function useStockPtLotes(depositoId: string | undefined) {
+  return useQuery({
+    queryKey: ['stock-pt-lotes', depositoId],
+    enabled: !!depositoId,
+    queryFn: async () => {
+      const { data, error } = await comercial()
+        .from('v_stock_pt_lotes')
+        .select('*')
+        .eq('deposito_id', depositoId!)
+        .order('vencimiento', { ascending: true, nullsFirst: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 export function useMovimientosPuntoVenta(depositoId: string | undefined) {
   return useQuery({
     queryKey: ['movimientos-pt', depositoId],
@@ -1083,6 +1103,7 @@ export function useRegistrarMovimientoPt() {
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['stock-punto-venta'] });
+      void qc.invalidateQueries({ queryKey: ['stock-pt-lotes'] });
       void qc.invalidateQueries({ queryKey: ['movimientos-pt'] });
       avisarExito('Movimiento registrado.');
     },

@@ -37,7 +37,13 @@ export const faltaTotal = (f: FilaStockSeguridad) =>
   Math.ceil(Number(f.falta_disponible ?? 0) + Number(f.falta_ss ?? 0));
 
 function invalidar(qc: ReturnType<typeof useQueryClient>) {
-  for (const k of ['stock-seguridad', 'stock-punto-venta', 'movimientos-pt', 'pedidos'])
+  for (const k of [
+    'stock-seguridad',
+    'stock-punto-venta',
+    'stock-pt-lotes',
+    'movimientos-pt',
+    'pedidos',
+  ])
     void qc.invalidateQueries({ queryKey: [k] });
 }
 
