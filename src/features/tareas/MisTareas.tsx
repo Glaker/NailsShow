@@ -330,6 +330,31 @@ function TarjetaTarea({
             Hechas <b>{numero(hecho)}</b> de <b>{numero(t.cantidad)}</b>
           </Text>
         ) : null}
+        {t.donde_buscar ? (
+          <Stack gap={2}>
+            <Text size="sm" fw={700} c="dimmed">
+              DÓNDE ESTÁN LAS COSAS
+            </Text>
+            <Text size="lg" style={{ whiteSpace: 'pre-line' }}>
+              {t.donde_buscar}
+            </Text>
+          </Stack>
+        ) : null}
+        {t.donde_dejar ? (
+          <Text size="lg">
+            <b>Dejarlo en:</b> {t.donde_dejar}
+          </Text>
+        ) : null}
+        {t.notas ? (
+          <Paper p="sm" radius="md" bg="var(--mantine-color-yellow-0)">
+            <Text size="sm" fw={700} c="dimmed">
+              NOTAS DE NAZA
+            </Text>
+            <Text size="lg" style={{ whiteSpace: 'pre-line' }}>
+              {t.notas}
+            </Text>
+          </Paper>
+        ) : null}
         {t.producto_id ? (
           <Button
             size="lg"

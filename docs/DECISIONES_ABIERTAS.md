@@ -1010,6 +1010,20 @@ tareas. Si una tarea de prueba mezcla a un operario de ejemplo con una operaria
 real, a la real le toca la parte de sus minutos sobre el total del grupo.
 **Dónde está.** `20261026170000_core_operarios_ejemplo.sql`.
 
+### D-tareas-3 · Tareas con tipo, ubicación y notas — adoptada 2026-10-27
+
+**Decisión del codirector técnico.** Al mandar una tarea, Naza elige el tipo
+(Envasar, Etiquetar, Reprocesar, Limpiar, Lotear u Otra) y el producto, y el
+texto sale solo («Envasar Sanitizante de 100 ML AMOR»), editable; la cantidad va
+en su campo. Así las estadísticas agrupan por tipo y producto. El sistema propone
+«Dónde están las cosas» (depósito y estiba del lote que vence antes de cada
+insumo de la fórmula vigente y del acondicionamiento) y «Dónde dejarlo»
+(Producto terminado — fábrica); Naza los cambia. Hay un campo de notas. Las
+chicas ven todo en su tarjeta y, con «Dónde están los insumos», el detalle por
+lote (D-ubicacion-insumos-1, `comercial.ubicacion_insumos_producto`).
+**Dónde está.** `20261026180000`, `20261027120000`,
+`src/features/tareas/TableroTareasProduccion.tsx`, `MisTareas.tsx`.
+
 ### D-tareas-2 · La pausa — adoptada 2026-10-23
 
 **Aclaración del codirector técnico.** La pausa es para cortar un rato,

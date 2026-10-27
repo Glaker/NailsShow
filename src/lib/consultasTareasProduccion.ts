@@ -12,16 +12,42 @@ import { avisarError, avisarExito } from './consultas';
 
 const gmpST = () => (supabase as unknown as SupabaseClient).schema('gmp');
 
-export type TipoTarea = 'ETIQUETAR' | 'ENVASAR' | 'LOTEAR' | 'OTRA';
+export type TipoTarea =
+  'ENVASAR' | 'ETIQUETAR' | 'REPROCESAR' | 'LIMPIAR' | 'LOTEAR' | 'OTRA';
 export type EstadoTarea = 'PENDIENTE' | 'EN_CURSO' | 'LISTA' | 'CANCELADA';
 export type CierreTramo = 'PAUSA' | 'LISTO_HOY' | 'COMPLETA' | 'CANCELADO';
 
+/** En este orden se ofrecen (D-tareas-3). */
 export const TEXTO_TIPO: Record<TipoTarea, string> = {
-  ETIQUETAR: 'Etiquetar',
   ENVASAR: 'Envasar',
+  ETIQUETAR: 'Etiquetar',
+  REPROCESAR: 'Reprocesar',
+  LIMPIAR: 'Limpiar',
   LOTEAR: 'Lotear',
   OTRA: 'Otra',
 };
+
+/** Dónde dejar lo hecho, si la tarea produce algo: el depósito de fábrica. */
+export const DEJAR_POR_DEFECTO = 'Producto terminado — fábrica';
+
+/**
+ * «Dónde están las cosas» que propone el sistema (D-tareas-3): por insumo,
+ * el depósito y la estiba del lote que vence antes; o que no hay stock.
+ */
+export function textoUbicacion(filas: UbicacionInsumo[]): string {
+  const vistos = new Set<string>();
+  const renglones: string[] = [];
+  for (const f of filas) {
+    if (vistos.has(f.insumo_id)) continue;
+    vistos.add(f.insumo_id);
+    renglones.push(
+      f.lote === null
+        ? `${f.insumo}: sin stock aprobado`
+        : `${f.insumo}: ${f.deposito ?? '—'}${f.estiba ? ` · estiba ${f.estiba}` : ''}`,
+    );
+  }
+  return renglones.join('\n');
+}
 
 export interface TareaProduccion {
   id: string;
@@ -35,6 +61,10 @@ export interface TareaProduccion {
   estado: EstadoTarea;
   creada_en: string;
   terminada_en: string | null;
+  /** D-tareas-3: los propone el sistema y Naza los cambia. */
+  donde_buscar: string | null;
+  donde_dejar: string | null;
+  notas: string | null;
 }
 
 export interface Tramo {
@@ -93,11 +123,14 @@ export function useUbicacionInsumos(productoId: string | null, habilitado: boole
     queryKey: ['ubicacion-insumos', productoId],
     enabled: !!productoId && habilitado,
     queryFn: async () => {
-      const { data, error } = await (supabase as unknown as SupabaseClient)
+      const r = (await (supabase as unknown as SupabaseClient)
         .schema('comercial')
-        .rpc('ubicacion_insumos_producto', { p_producto_id: productoId });
-      if (error) throw error;
-      return (data ?? []) as UbicacionInsumo[];
+        .rpc('ubicacion_insumos_producto', { p_producto_id: productoId })) as {
+        data: UbicacionInsumo[] | null;
+        error: Error | null;
+      };
+      if (r.error) throw r.error;
+      return r.data ?? [];
     },
   });
 }
