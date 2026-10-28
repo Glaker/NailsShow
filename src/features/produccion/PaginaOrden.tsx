@@ -49,13 +49,14 @@ import {
   useLiberarOrden,
   useOrden,
   usePesadaTeorica,
-  useTerminarOrden,
   type DatosEtapa,
   type EtapaOrden,
   type EtapaRegistrada,
   type OrdenProduccion,
 } from '@/lib/consultasOrdenes';
 import { TrazabilidadOrden } from './TrazabilidadOrden';
+import { CorregirReparto } from './Hermanos';
+import { ModalEnvasado } from './Tandas';
 import { useDictaminarGranel, useRegistrosAnalisis } from '@/lib/consultasAnalisis';
 import { FichaAnalisis, FormularioAnalisis } from '@/features/calidad/RegistroAnalisis';
 import { MasInformacion } from './PanelProcedimiento';
@@ -92,9 +93,11 @@ export function PaginaOrden() {
   const esCalidad = useTieneRol('CONTROL_CALIDAD', 'DIRECCION_TECNICA');
   const esDT = useTieneRol('DIRECCION_TECNICA');
   const esProduccion = useTieneRol('GERENCIA_PRODUCCION', 'DIRECCION_TECNICA');
+  const esGP = useTieneRol('GERENCIA_PRODUCCION');
   const controlar = useControlarEtapa();
   const [editando, setEditando] = useState<EtapaOrden | null>(null);
-  const [cierre, setCierre] = useState<'terminar' | 'liberar' | 'anular' | null>(null);
+  const [cierre, setCierre] = useState<'liberar' | 'anular' | null>(null);
+  const [envasando, setEnvasando] = useState(false);
   const analisisGranel = useRegistrosAnalisis({ ordenId: id });
   const dictaminarGranel = useDictaminarGranel();
   const [analizando, setAnalizando] = useState(false);
@@ -143,10 +146,14 @@ export function PaginaOrden() {
                 producto: producto?.nombre ?? '',
               }}
             />
-            {esProduccion && abierta ? (
-              <Button color="estadoAprobado" onClick={() => setCierre('terminar')}>
-                Terminar
+            {/* D-tandas-1: lo que salió lo carga Gerencia de Producción, por día. */}
+            {esGP && abierta ? (
+              <Button color="estadoAprobado" onClick={() => setEnvasando(true)}>
+                Cargar lo que salió
               </Button>
+            ) : null}
+            {esGP && (o.estado === 'TERMINADA' || o.estado === 'LIBERADA') ? (
+              <CorregirReparto ordenId={o.id} productoId={o.producto_id} />
             ) : null}
             {esDT && o.estado === 'TERMINADA' ? (
               <Button
@@ -348,12 +355,16 @@ export function PaginaOrden() {
           />
         ) : null}
       </Modal>
-      <ModalCierre
+      <ModalEnvasado
         orden={o}
-        tipo={cierre}
-        recuento={unidadesRecuento(porEtapa.get('FRACCIONAMIENTO')?.datos ?? {})}
-        onCerrar={() => setCierre(null)}
+        granelAprobado={Boolean(
+          porEtapa.get('CC_GRANEL')?.datos.aprobado ||
+          porEtapa.get('CC_GRANEL')?.datos.no_aplica,
+        )}
+        abierto={envasando}
+        onCerrar={() => setEnvasando(false)}
       />
+      <ModalCierre orden={o} tipo={cierre} onCerrar={() => setCierre(null)} />
     </>
   );
 }
@@ -900,25 +911,18 @@ function EditorTabla({
 function ModalCierre({
   orden,
   tipo,
-  recuento,
   onCerrar,
 }: {
   orden: OrdenProduccion;
-  tipo: 'terminar' | 'liberar' | 'anular' | null;
-  recuento: number;
+  tipo: 'liberar' | 'anular' | null;
   onCerrar: () => void;
 }) {
-  const terminar = useTerminarOrden();
   const liberar = useLiberarOrden();
   const anular = useAnularOrden();
   const faltantes = useFaltantesLiberacion(orden.id, tipo === 'liberar');
-  const [cantidad, setCantidad] = useState<number | string>('');
-  const [unidades, setUnidades] = useState<number | string>('');
   const [motivo, setMotivo] = useState('');
-  const n = (v: number | string) => (typeof v === 'number' ? v : Number(v || 0));
   const faltan = faltantes.data ?? [];
   const titulo = {
-    terminar: 'Terminar la orden',
     liberar: 'Liberación del producto terminado',
     anular: 'Anular la orden',
   };
@@ -930,45 +934,6 @@ function ModalCierre({
       title={tipo ? titulo[tipo] : ''}
       centered
     >
-      {tipo === 'terminar' ? (
-        <Stack gap="md">
-          <NumberInput
-            label={`Cantidad obtenida (${orden.unidad})`}
-            decimalScale={3}
-            min={0}
-            value={cantidad}
-            onChange={setCantidad}
-          />
-          <NumberInput
-            label="Unidades obtenidas"
-            description={
-              recuento ? `El recuento del fraccionamiento da ${recuento}` : undefined
-            }
-            allowDecimal={false}
-            min={0}
-            value={unidades === '' && recuento ? recuento : unidades}
-            onChange={setUnidades}
-          />
-          <Group justify="flex-end">
-            <Button
-              loading={terminar.isPending}
-              disabled={cantidad === ''}
-              onClick={() =>
-                terminar.mutate(
-                  {
-                    id: orden.id,
-                    cantidad: n(cantidad),
-                    unidades: unidades === '' ? recuento : n(unidades),
-                  },
-                  { onSuccess: onCerrar },
-                )
-              }
-            >
-              Terminar
-            </Button>
-          </Group>
-        </Stack>
-      ) : null}
       {tipo === 'liberar' ? (
         <Stack gap="md">
           {faltan.length > 0 ? (

@@ -49,6 +49,7 @@ import { FormularioInsumo } from '@/features/maestros/PaginaInsumos';
 import { FormularioNuevaFormula } from './PaginaFormulas';
 import { TiempoEnvasado } from './TiempoEnvasado';
 import { GranelPorUnidad } from './GranelPorUnidad';
+import { ProductosHermanos } from './Hermanos';
 import { useCrearFormulaEnvasado } from '@/lib/consultasOrdenes';
 import { etiquetaUnidad, numero } from '@/lib/formato';
 
@@ -503,6 +504,10 @@ export function MaterialesProducto({
 
       <Seccion titulo="Granel por unidad">
         <GranelPorUnidad productoId={productoId} />
+      </Seccion>
+
+      <Seccion titulo="Productos hermanos (mismo granel)">
+        <ProductosHermanos productoId={productoId} />
       </Seccion>
 
       <Seccion titulo="Envase">
