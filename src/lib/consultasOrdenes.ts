@@ -421,8 +421,10 @@ export function useAbrirOrden() {
       vencimiento: string | null;
       especificacion_id: string | null;
       pedidoId: string | null;
+      /** D-tandas-1: las que se espera envasar, para mostrar lo pendiente. */
+      unidades_previstas?: number | null;
     }) => {
-      const { pedidoId, vencimiento, especificacion_id, ...fila } = o;
+      const { pedidoId, vencimiento, especificacion_id, unidades_previstas, ...fila } = o;
       const { data, error } = await gmp()
         .from('ordenes_produccion')
         // numero, numero_lote y vencimiento_texto los asigna un trigger de la base.
@@ -430,6 +432,7 @@ export function useAbrirOrden() {
           ...fila,
           ...(vencimiento ? { vencimiento } : {}),
           ...(especificacion_id ? { especificacion_id } : {}),
+          ...(unidades_previstas ? { unidades_previstas } : {}),
         } as TablasGmp['ordenes_produccion']['Insert'])
         .select('id, numero')
         .single();
@@ -499,38 +502,6 @@ export function useControlarEtapa() {
     onSuccess: (_d, v) => {
       inv(v.ordenId);
       avisarExito('Etapa controlada: queda cerrada.');
-    },
-    onError: avisarError,
-  });
-}
-
-export function useTerminarOrden() {
-  const inv = useInvalidarOrden();
-  return useMutation({
-    mutationFn: async (t: {
-      id: string;
-      cantidad: number;
-      unidades: number;
-      /** D-hermanos-1: cuántas de cada hermano; sin él, todas del producto. */
-      reparto?: { producto_id: string; unidades: number }[];
-    }) => {
-      // 20261022150100: la de comercial termina la orden y carga lo obtenido en PTF.
-      const { error } = await (comercial() as unknown as SupabaseClient).rpc(
-        'terminar_orden',
-        {
-          p_id: t.id,
-          p_cantidad: t.cantidad,
-          p_unidades: t.unidades,
-          ...(t.reparto ? { p_reparto: t.reparto } : {}),
-        },
-      );
-      if (error) throw error;
-    },
-    onSuccess: (_d, v) => {
-      inv(v.id);
-      avisarExito(
-        'Orden terminada: lo obtenido ya está en el stock de fábrica, retenido hasta que la DT libere.',
-      );
     },
     onError: avisarError,
   });
@@ -639,4 +610,88 @@ export function useTrazabilidadOrden(ordenId: string | undefined) {
       return data ?? [];
     },
   });
+}
+
+/** Una fila de lo envasado en el día (gmp.orden_tandas, D-tandas-1). */
+export interface TandaFila {
+  numero: number;
+  fecha: string;
+  producto_id: string;
+  unidades: number;
+  observaciones: string | null;
+  registrada_por: string;
+}
+
+/* orden_tandas entra en los tipos cuando se regeneren con 20261028140000. */
+const gmpST = () => gmp() as unknown as SupabaseClient;
+
+export function useTandasOrden(ordenId: string | undefined) {
+  return useQuery({
+    queryKey: ['orden', ordenId, 'tandas'],
+    enabled: Boolean(ordenId),
+    queryFn: async () => {
+      const { data, error } = await gmpST()
+        .from('orden_tandas')
+        .select('numero, fecha, producto_id, unidades, observaciones, registrada_por')
+        .eq('orden_id', ordenId!)
+        .order('numero');
+      if (error) throw error;
+      const filas: TandaFila[] = data ?? [];
+      return filas;
+    },
+  });
+}
+
+/** Lo que salió hoy; con `finaliza`, también termina la orden. */
+export function useRegistrarTanda() {
+  const inv = useInvalidarOrden();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (t: {
+      ordenId: string;
+      fecha: string;
+      reparto: { producto_id: string; unidades: number }[];
+      observaciones: string | null;
+      finaliza: boolean;
+      cantidadObtenida: number | null;
+    }) => {
+      const { error } = await (comercial() as unknown as SupabaseClient).rpc(
+        'registrar_tanda',
+        {
+          p_orden_id: t.ordenId,
+          p_fecha: t.fecha,
+          p_reparto: t.reparto,
+          p_observaciones: t.observaciones,
+          p_finaliza: t.finaliza,
+          p_cantidad_obtenida: t.cantidadObtenida,
+        },
+      );
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      inv(v.ordenId);
+      for (const k of [
+        'stock-pt-lotes',
+        'stock-punto-venta',
+        'stock-articulos',
+        'kardex',
+      ])
+        void qc.invalidateQueries({ queryKey: [k] });
+      avisarExito(
+        v.finaliza
+          ? 'Orden terminada: lo envasado está en la fábrica, retenido hasta que la DT libere.'
+          : 'Cargado: entró a la fábrica (retenido) y se descontaron los insumos del día.',
+      );
+    },
+    onError: avisarError,
+  });
+}
+
+/** Lo envasado hasta ahora y lo que falta, si se cargaron las previstas. */
+export function totalesTandas(tandas: TandaFila[], previstas: number | null) {
+  const hechas = tandas.reduce((a, t) => a + Number(t.unidades), 0);
+  return {
+    hechas,
+    pendientes: previstas === null ? null : Math.max(previstas - hechas, 0),
+  };
 }

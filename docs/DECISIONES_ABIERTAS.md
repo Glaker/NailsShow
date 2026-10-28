@@ -1085,6 +1085,27 @@ de producción y no los ajustes: después de un reparto puede mostrar de más.
 **Dónde está.** `20261028130000_productos_hermanos.sql`, `Hermanos.tsx`,
 `PaginaOrden.tsx`, `TareasCarga.tsx`.
 
+### D-tandas-1 · Envasado por días de un mismo granel — adoptada 2026-10-28
+
+**Decisión** (pedido del 2026-10-28, opciones elegidas): con el granel aprobado por
+Calidad (R.50.10.1, o «no aplica»), lo que salió lo carga **solo Gerencia de
+Producción**, no la DT. Puede cargar por días (tandas: «hoy salieron 200, quedan
+700») o todo de una vez; marca «Con esto termina la orden» para cerrarla. Es el
+**mismo lote** de la orden: las tandas quedan en el batch record con fecha,
+unidades por producto (hermanos incluidos) y quién cargó, y la DT libera una vez.
+Cada tanda entra a la fábrica (retenida) y descuenta **ese día** envase, etiqueta y
+lo demás de la lista de materiales; primero usa los envases ya etiquetados. La
+materia prima del granel se descuenta una sola vez, con la primera tanda.
+**Para no descontar dos veces.** El «Terminado» del pedido resta lo que envasaron
+las tandas de su orden, y no se puede hacer mientras la orden se sigue envasando.
+Una orden cuyo pedido ya se terminó no recibe tandas.
+**Límites.** «Pendientes» se ve solo si al abrir la orden se cargaron las unidades a
+producir. El cierre por la vía de `gmp.terminar_orden` directa sigue abierto a DT
+desde la base (la pantalla no lo ofrece). Si un pedido va a Calle 5, lo envasado
+entra a la fábrica y hay que mandarlo con «Enviar a otro depósito».
+**Dónde está.** `20261028140000_tandas_envasado.sql`, `Tandas.tsx`, `PaginaOrden.tsx`,
+`BatchRecord.tsx`.
+
 ### D-tareas-3 · Tareas con tipo, ubicación y notas — adoptada 2026-10-27
 
 **Decisión del codirector técnico.** Al mandar una tarea, Naza elige el tipo

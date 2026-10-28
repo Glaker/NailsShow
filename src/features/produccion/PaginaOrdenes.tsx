@@ -635,6 +635,7 @@ export function ModalAbrirOrden({
                   unidad: unidadFinal,
                   vencimiento: vencimientoISO(textoVenc),
                   especificacion_id: esDT ? especId : null,
+                  unidades_previstas: n(unidades) > 0 ? n(unidades) : null,
                   pedidoId: pedidoId ?? elegido?.pedidoId ?? nueva ?? null,
                 });
                 setEleccion(null);
