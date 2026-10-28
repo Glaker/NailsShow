@@ -48,6 +48,9 @@ import {
 import { useRegistrarConteoPt } from '@/lib/consultasStockSeguridad';
 import { type DepositoPt, useTransferirPt } from '@/lib/consultasCalle5';
 import { ModalRemito, ModalRemitosEmitidos } from './Remito';
+import { useTieneRol } from '@/features/auth/sesion';
+import { CorregirReparto } from '@/features/produccion/Hermanos';
+import type { DepositoHermanos } from '@/lib/consultasHermanos';
 import { PanelCalle5 } from './Calle5';
 
 /**
@@ -209,6 +212,7 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
   const [conteoCantidad, setConteoCantidad] = useState<number | ''>('');
   const [conteoObs, setConteoObs] = useState('');
   const esCalle5 = config.numero === 'C5';
+  const esGP = useTieneRol('GERENCIA_PRODUCCION');
   const transferir = useTransferirPt();
   const [enviando, setEnviando] = useState(false);
   const [envio, setEnvio] = useState<RenglonPt[]>(() => [renglonVacio()]);
@@ -467,16 +471,28 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
                           {f.producto}
                         </Text>
                         {lotesDe(f.producto_id).map((l) => (
-                          <Text key={l.orden_id ?? 'sin-lote'} size="xs" c="dimmed">
-                            {l.numero_lote ? `Lote ${l.numero_lote}` : 'Sin lote'}
-                            {l.vencimiento_texto
-                              ? ` · vence ${l.vencimiento_texto}`
-                              : l.vencimiento
-                                ? ` · vence ${fecha(l.vencimiento)}`
-                                : ''}
-                            {' · '}
-                            {numero(Number(l.saldo), 0)} u
-                          </Text>
+                          <Group key={l.orden_id ?? 'sin-lote'} gap="xs" wrap="nowrap">
+                            <Text size="xs" c="dimmed">
+                              {l.numero_lote ? `Lote ${l.numero_lote}` : 'Sin lote'}
+                              {l.vencimiento_texto
+                                ? ` · vence ${l.vencimiento_texto}`
+                                : l.vencimiento
+                                  ? ` · vence ${fecha(l.vencimiento)}`
+                                  : ''}
+                              {' · '}
+                              {numero(Number(l.saldo), 0)} u
+                            </Text>
+                            {/* D-hermanos-1: «se cargaron como N ml y eran algunas
+                                de M» (pedido del 2026-10-28). Solo si tiene hermanos. */}
+                            {esGP ? (
+                              <CorregirReparto
+                                ordenId={l.orden_id}
+                                productoId={f.producto_id}
+                                deposito={config.numero as DepositoHermanos}
+                                etiqueta="Corregir presentación"
+                              />
+                            ) : null}
+                          </Group>
                         ))}
                       </Table.Td>
                       <Table.Td ta="right">

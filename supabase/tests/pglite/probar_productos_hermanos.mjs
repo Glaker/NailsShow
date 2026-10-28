@@ -111,18 +111,18 @@ await prueba('sin reparto, como antes: todo del producto de la orden', async () 
 });
 await rechaza(
   'repartir de nuevo exige el mismo total',
-  `select comercial.repartir_lote_hermanos('${o2}', '[{"producto_id":"${chico}","unidades":300}]', 'conteo')`,
+  `select comercial.repartir_stock_hermanos('PTF', '${o2}', '[{"producto_id":"${chico}","unidades":300}]', 'conteo')`,
   /suma 300/,
 );
 await rechaza(
   'y un motivo',
-  `select comercial.repartir_lote_hermanos('${o2}', '[{"producto_id":"${chico}","unidades":771}]', '')`,
+  `select comercial.repartir_stock_hermanos('PTF', '${o2}', '[{"producto_id":"${chico}","unidades":771}]', '')`,
   /por qué/,
 );
 await prueba(
   '«salieron 300 de 250 ml y el resto de litro»: dos ajustes con el lote',
   async () => {
-    await q(`select comercial.repartir_lote_hermanos($1, $2, 'Conteo en planta')`, [
+    await q(`select comercial.repartir_stock_hermanos('PTF', $1, $2, 'Conteo en planta')`, [
       o2,
       JSON.stringify([
         { producto_id: chico, unidades: 300 },
@@ -142,9 +142,43 @@ await prueba(
 await como(DT);
 await rechaza(
   'la DT no reparte (es de Gerencia de Producción)',
-  `select comercial.repartir_lote_hermanos('${o2}', '[{"producto_id":"${litro}","unidades":771}]', 'x y z')`,
+  `select comercial.repartir_stock_hermanos('PTF', '${o2}', '[{"producto_id":"${litro}","unidades":771}]', 'x y z')`,
   /Gerencia de Producción/,
 );
+
+// 20261028170000: en cualquier depósito y también lo que no tiene lote.
+await como('naza@x');
+const enBer = async (p) =>
+  Number(
+    (
+      await uno(
+        `select coalesce(sum(m.cantidad),0) s from comercial.movimientos_pt m join gmp.depositos d on d.id=m.deposito_id
+          where d.numero='BER' and m.producto_id=$1 and m.orden_id is null`,
+        [p],
+      )
+    ).s,
+  );
+await q(
+  `insert into comercial.movimientos_pt (producto_id, deposito_id, tipo, cantidad, motivo)
+   select $1, id, 'ENTRADA_AJUSTE', 771, 'carga inicial' from gmp.depositos where numero='BER'`,
+  [litro],
+);
+await rechaza(
+  'sin lote también exige el mismo total',
+  `select comercial.repartir_stock_hermanos('BER', null, '[{"producto_id":"${chico}","unidades":700}]', 'conteo')`,
+  /sin lote y el reparto suma 700/,
+);
+await prueba('sin lote en Berna: 300 de 250 ml y 471 de litro, sin tocar el lote', async () => {
+  await q(`select comercial.repartir_stock_hermanos('BER', null, $1, 'Conteo en Berna')`, [
+    JSON.stringify([
+      { producto_id: litro, unidades: 471 },
+      { producto_id: chico, unidades: 300 },
+    ]),
+  ]);
+  if ((await enBer(litro)) !== 471 || (await enBer(chico)) !== 300) throw new Error('reparto');
+  if ((await enPtf(o2, litro)) !== 471) throw new Error('tocó el lote');
+});
+await como(DT);
 
 await liberarAtajo(o1);
 await como('naza@x');

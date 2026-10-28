@@ -17,10 +17,11 @@ import {
   hermanosDe,
   repartoDe,
   useDesvincularHermano,
-  useLoteEnFabrica,
   useRepartirLote,
+  useStockFamilia,
   useVincularHermano,
   type ConFamilia,
+  type DepositoHermanos,
 } from '@/lib/consultasHermanos';
 import { numero } from '@/lib/formato';
 
@@ -107,7 +108,7 @@ export function CamposReparto({
           key={p.id}
           label={`${p.codigo_interno} · ${p.nombre}`}
           description={
-            actual ? `Hoy en fábrica: ${numero(actual[p.id] ?? 0)}` : undefined
+            actual ? `Hoy hay: ${numero(actual[p.id] ?? 0)}` : undefined
           }
           allowDecimal={false}
           min={0}
@@ -120,15 +121,19 @@ export function CamposReparto({
 }
 
 /**
- * Corregir de cuál hermano son las unidades de un lote que están en la
- * fábrica: «salieron 300 de 100 ml y el resto de 200 ml». El total no cambia.
+ * Corregir de cuál hermano son las unidades de un lote (o las sin lote) en un
+ * depósito: «salieron 300 de 100 ml y el resto de 200 ml». El total no cambia.
  */
 export function CorregirReparto({
   ordenId,
   productoId,
+  deposito = 'PTF',
+  etiqueta = 'Corregir reparto entre hermanos',
 }: {
-  ordenId: string;
+  ordenId: string | null;
   productoId: string;
+  deposito?: DepositoHermanos;
+  etiqueta?: string;
 }) {
   const productos = conFamilia(useProductos().data);
   const familia = [
@@ -136,7 +141,12 @@ export function CorregirReparto({
     ...hermanosDe(productos, productoId),
   ];
   const [abierto, setAbierto] = useState(false);
-  const lote = useLoteEnFabrica(ordenId, abierto);
+  const lote = useStockFamilia(
+    deposito,
+    ordenId,
+    familia.map((p) => p.id),
+    abierto,
+  );
   const repartir = useRepartirLote();
   const [valores, setValores] = useState<Record<string, number | string> | null>(null);
   const [motivo, setMotivo] = useState('');
@@ -153,7 +163,7 @@ export function CorregirReparto({
   return (
     <>
       <Button variant="default" onClick={() => setAbierto(true)}>
-        Corregir reparto entre hermanos
+        {etiqueta}
       </Button>
       <Modal
         opened={abierto}
@@ -163,7 +173,8 @@ export function CorregirReparto({
       >
         <Stack gap="md">
           <Text size="sm">
-            En la fábrica hay <b>{numero(total)}</b> de este lote. Poné cuántas son de
+            Hay <b>{numero(total)}</b> {ordenId ? 'de este lote' : 'sin lote'} entre
+            estos productos. Poné cuántas son de
             cada uno; el total no cambia. Queda registrado como ajuste, con el motivo.
           </Text>
           <CamposReparto
@@ -187,7 +198,7 @@ export function CorregirReparto({
               loading={repartir.isPending}
               onClick={() =>
                 repartir.mutate(
-                  { ordenId, reparto: repartoDe(v), motivo: motivo.trim() },
+                  { deposito, ordenId, reparto: repartoDe(v), motivo: motivo.trim() },
                   {
                     onSuccess: () => {
                       setAbierto(false);
