@@ -3502,6 +3502,79 @@ export type Database = {
           },
         ]
       }
+      orden_consumos: {
+        Row: {
+          cantidad: number
+          creado_en: string
+          id: string
+          insumo_id: string
+          orden_id: string
+          tanda_numero: number | null
+          unidad: string
+        }
+        Insert: {
+          cantidad: number
+          creado_en?: string
+          id?: string
+          insumo_id: string
+          orden_id: string
+          tanda_numero?: number | null
+          unidad: string
+        }
+        Update: {
+          cantidad?: number
+          creado_en?: string
+          id?: string
+          insumo_id?: string
+          orden_id?: string
+          tanda_numero?: number | null
+          unidad?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orden_consumos_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_costo_referencia"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "orden_consumos_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_costos_pendientes"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "orden_consumos_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_disponible_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "orden_consumos_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_existencias"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "orden_consumos_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_proveedores_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "orden_consumos_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_stock_por_articulo"
+            referencedColumns: ["insumo_id"]
+          },
+        ]
+      }
       pagos_proveedor: {
         Row: {
           anulado_en: string | null
@@ -4482,6 +4555,134 @@ export type Database = {
           },
         ]
       }
+      remito_renglones: {
+        Row: {
+          bultos: number | null
+          cantidad: number
+          codigo: string | null
+          descripcion: string
+          id: string
+          observaciones: string | null
+          orden: number
+          producto_id: string | null
+          remito_id: string
+        }
+        Insert: {
+          bultos?: number | null
+          cantidad: number
+          codigo?: string | null
+          descripcion: string
+          id?: string
+          observaciones?: string | null
+          orden: number
+          producto_id?: string | null
+          remito_id: string
+        }
+        Update: {
+          bultos?: number | null
+          cantidad?: number
+          codigo?: string | null
+          descripcion?: string
+          id?: string
+          observaciones?: string | null
+          orden?: number
+          producto_id?: string | null
+          remito_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "remito_renglones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "remito_renglones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "remito_renglones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "remito_renglones_remito_id_fkey"
+            columns: ["remito_id"]
+            isOneToOne: false
+            referencedRelation: "remitos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      remitos: {
+        Row: {
+          cai: string | null
+          cai_vencimiento: string | null
+          confeccionado_por: string
+          creado_en: string
+          deposito_origen_id: string | null
+          entrega_domicilio: string | null
+          fecha: string
+          id: string
+          letra: string
+          motivo: string
+          numero: number
+          observaciones: string | null
+          punto_venta: number
+          receptor_cuit: string | null
+          receptor_domicilio: string | null
+          receptor_iva: string | null
+          receptor_nombre: string
+          transporte: string | null
+        }
+        Insert: {
+          cai?: string | null
+          cai_vencimiento?: string | null
+          confeccionado_por?: string
+          creado_en?: string
+          deposito_origen_id?: string | null
+          entrega_domicilio?: string | null
+          fecha?: string
+          id?: string
+          letra?: string
+          motivo: string
+          numero: number
+          observaciones?: string | null
+          punto_venta?: number
+          receptor_cuit?: string | null
+          receptor_domicilio?: string | null
+          receptor_iva?: string | null
+          receptor_nombre: string
+          transporte?: string | null
+        }
+        Update: {
+          cai?: string | null
+          cai_vencimiento?: string | null
+          confeccionado_por?: string
+          creado_en?: string
+          deposito_origen_id?: string | null
+          entrega_domicilio?: string | null
+          fecha?: string
+          id?: string
+          letra?: string
+          motivo?: string
+          numero?: number
+          observaciones?: string | null
+          punto_venta?: number
+          receptor_cuit?: string | null
+          receptor_domicilio?: string | null
+          receptor_iva?: string | null
+          receptor_nombre?: string
+          transporte?: string | null
+        }
+        Relationships: []
+      }
       reservas_pt: {
         Row: {
           cantidad: number
@@ -5010,6 +5211,72 @@ export type Database = {
             foreignKeyName: "stock_seguridad_sku_producto_id_fkey"
             columns: ["producto_id"]
             isOneToOne: true
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
+        ]
+      }
+      tanda_etiquetados: {
+        Row: {
+          cantidad: number
+          creado_en: string
+          etiquetado_id: string
+          id: string
+          orden_id: string
+          producto_id: string
+          tanda_numero: number
+        }
+        Insert: {
+          cantidad: number
+          creado_en?: string
+          etiquetado_id: string
+          id?: string
+          orden_id: string
+          producto_id: string
+          tanda_numero: number
+        }
+        Update: {
+          cantidad?: number
+          creado_en?: string
+          etiquetado_id?: string
+          id?: string
+          orden_id?: string
+          producto_id?: string
+          tanda_numero?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tanda_etiquetados_etiquetado_id_fkey"
+            columns: ["etiquetado_id"]
+            isOneToOne: false
+            referencedRelation: "etiquetados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tanda_etiquetados_etiquetado_id_fkey"
+            columns: ["etiquetado_id"]
+            isOneToOne: false
+            referencedRelation: "v_etiquetados_saldo"
+            referencedColumns: ["etiquetado_id"]
+          },
+          {
+            foreignKeyName: "tanda_etiquetados_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "tanda_etiquetados_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "tanda_etiquetados_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
             referencedRelation: "v_tareas_carga"
             referencedColumns: ["producto_id"]
           },
@@ -7613,6 +7880,7 @@ export type Database = {
         }
         Returns: number
       }
+      consumir_mp_orden: { Args: { p_id: string }; Returns: undefined }
       convertir_cantidad: {
         Args: {
           p_cantidad: number
@@ -7693,6 +7961,10 @@ export type Database = {
         Args: { p_articulo_id: string; p_motivo: string }
         Returns: number
       }
+      descontar_insumo_orden: {
+        Args: { p_consumo: string; p_motivo: string }
+        Returns: undefined
+      }
       descuento_por_monto: { Args: { p_monto: number }; Returns: number }
       deshacer_apertura: {
         Args: { p_migracion_id: string; p_motivo: string }
@@ -7748,6 +8020,35 @@ export type Database = {
       emitir_cotizacion: {
         Args: { p_id: string; p_justificacion?: string }
         Returns: number
+      }
+      emitir_remito: {
+        Args: { p_remito: Json; p_renglones: Json }
+        Returns: {
+          cai: string | null
+          cai_vencimiento: string | null
+          confeccionado_por: string
+          creado_en: string
+          deposito_origen_id: string | null
+          entrega_domicilio: string | null
+          fecha: string
+          id: string
+          letra: string
+          motivo: string
+          numero: number
+          observaciones: string | null
+          punto_venta: number
+          receptor_cuit: string | null
+          receptor_domicilio: string | null
+          receptor_iva: string | null
+          receptor_nombre: string
+          transporte: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "remitos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       en_etiquetados: { Args: { p_insumo_id: string }; Returns: number }
       entregar_pedido: { Args: { p_pedido_id: string }; Returns: undefined }
@@ -8047,6 +8348,26 @@ export type Database = {
         }
         Returns: Json
       }
+      registrar_tanda: {
+        Args: {
+          p_cantidad_obtenida?: number
+          p_fecha: string
+          p_finaliza?: boolean
+          p_observaciones?: string
+          p_orden_id: string
+          p_reparto: Json
+        }
+        Returns: number
+      }
+      repartir_stock_hermanos: {
+        Args: {
+          p_deposito: string
+          p_motivo: string
+          p_orden_id: string
+          p_reparto: Json
+        }
+        Returns: undefined
+      }
       reservado_pt: {
         Args: { p_deposito_id: string; p_producto_id: string }
         Returns: number
@@ -8066,7 +8387,12 @@ export type Database = {
         Returns: number
       }
       terminar_orden: {
-        Args: { p_cantidad: number; p_id: string; p_unidades: number }
+        Args: {
+          p_cantidad: number
+          p_id: string
+          p_reparto?: Json
+          p_unidades: number
+        }
         Returns: undefined
       }
       terminar_pedido: {
@@ -8136,6 +8462,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      transferir_pt_varios: {
+        Args: {
+          p_destino: string
+          p_motivo?: string
+          p_origen: string
+          p_renglones: Json
+        }
+        Returns: undefined
+      }
       ubicacion_insumos_producto: {
         Args: { p_producto_id: string }
         Returns: {
@@ -8152,6 +8487,10 @@ export type Database = {
         }[]
       }
       unidad_base: { Args: { p_unidad: string }; Returns: string }
+      unidades_por_tandas: {
+        Args: { p_pedido_id: string; p_producto_id: string }
+        Returns: number
+      }
       venta_toda_reservada: { Args: { p_pedido_id: string }; Returns: boolean }
       verificar_stock_pedido: {
         Args: { p_nota?: string; p_ok: boolean; p_pedido_id: string }
@@ -9508,6 +9847,7 @@ export type Database = {
         Row: {
           aprobada_en: string | null
           aprobada_por: string | null
+          base_porcentaje: string
           codigo_me: string | null
           creado_en: string
           densidad_producto: number | null
@@ -9526,6 +9866,7 @@ export type Database = {
         Insert: {
           aprobada_en?: string | null
           aprobada_por?: string | null
+          base_porcentaje?: string
           codigo_me?: string | null
           creado_en?: string
           densidad_producto?: number | null
@@ -9544,6 +9885,7 @@ export type Database = {
         Update: {
           aprobada_en?: string | null
           aprobada_por?: string | null
+          base_porcentaje?: string
           codigo_me?: string | null
           creado_en?: string
           densidad_producto?: number | null
@@ -10070,6 +10412,64 @@ export type Database = {
           },
         ]
       }
+      orden_tandas: {
+        Row: {
+          fecha: string
+          id: string
+          numero: number
+          observaciones: string | null
+          orden_id: string
+          producto_id: string
+          registrada_en: string
+          registrada_por: string
+          unidades: number
+        }
+        Insert: {
+          fecha: string
+          id?: string
+          numero: number
+          observaciones?: string | null
+          orden_id: string
+          producto_id: string
+          registrada_en?: string
+          registrada_por?: string
+          unidades: number
+        }
+        Update: {
+          fecha?: string
+          id?: string
+          numero?: number
+          observaciones?: string | null
+          orden_id?: string
+          producto_id?: string
+          registrada_en?: string
+          registrada_por?: string
+          unidades?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orden_tandas_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_produccion"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orden_tandas_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orden_tandas_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_formulas_consultadas"
+            referencedColumns: ["producto_id"]
+          },
+        ]
+      }
       ordenes_produccion: {
         Row: {
           abierta_en: string
@@ -10096,6 +10496,7 @@ export type Database = {
           terminada_por: string | null
           unidad: string
           unidades_obtenidas: number | null
+          unidades_previstas: number | null
           vencimiento: string
           vencimiento_texto: string
         }
@@ -10124,6 +10525,7 @@ export type Database = {
           terminada_por?: string | null
           unidad?: string
           unidades_obtenidas?: number | null
+          unidades_previstas?: number | null
           vencimiento: string
           vencimiento_texto: string
         }
@@ -10152,6 +10554,7 @@ export type Database = {
           terminada_por?: string | null
           unidad?: string
           unidades_obtenidas?: number | null
+          unidades_previstas?: number | null
           vencimiento?: string
           vencimiento_texto?: string
         }
@@ -10282,6 +10685,7 @@ export type Database = {
           codigo_interno: string
           contenido_neto: number | null
           creado_en: string
+          familia_granel: string | null
           forma_cosmetica: string | null
           formula_consultada_en: string | null
           formula_consultada_por: string | null
@@ -10306,6 +10710,7 @@ export type Database = {
           codigo_interno: string
           contenido_neto?: number | null
           creado_en?: string
+          familia_granel?: string | null
           forma_cosmetica?: string | null
           formula_consultada_en?: string | null
           formula_consultada_por?: string | null
@@ -10330,6 +10735,7 @@ export type Database = {
           codigo_interno?: string
           contenido_neto?: number | null
           creado_en?: string
+          familia_granel?: string | null
           forma_cosmetica?: string | null
           formula_consultada_en?: string | null
           formula_consultada_por?: string | null
@@ -11379,6 +11785,7 @@ export type Database = {
           codigo_interno: string
           contenido_neto: number | null
           creado_en: string
+          familia_granel: string | null
           forma_cosmetica: string | null
           formula_consultada_en: string | null
           formula_consultada_por: string | null
@@ -11592,6 +11999,10 @@ export type Database = {
           p_categoria: Database["gmp"]["Enums"]["categoria_muestreo_enum"]
         }
         Returns: Database["gmp"]["Enums"]["destino_muestra_enum"]
+      }
+      desvincular_hermano: {
+        Args: { p_producto_id: string }
+        Returns: undefined
       }
       dictaminar_granel: {
         Args: {
@@ -11823,6 +12234,7 @@ export type Database = {
         Returns: number
       }
       siguiente_numero_orden: { Args: { p_anio: number }; Returns: number }
+      son_hermanos: { Args: { p_a: string; p_b: string }; Returns: boolean }
       tamano_muestra_sugerido: {
         Args: {
           p_cantidad: number
@@ -11837,6 +12249,10 @@ export type Database = {
       }
       terminar_tarea: { Args: { p_id: string }; Returns: undefined }
       ve_productividad: { Args: never; Returns: boolean }
+      vincular_hermano: {
+        Args: { p_hermano_id: string; p_producto_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       aprobacion_proveedor_enum: "PENDIENTE" | "APROBADO" | "RECHAZADO"
