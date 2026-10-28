@@ -254,6 +254,20 @@ textarea {
     display: block !important;
   }
 
+  /* imprimirRemito() (D-remito-1): solo las hojas del remito, una por página. */
+  body.imprimiendo-remito > *:not(#impresion-remito) {
+    display: none !important;
+  }
+
+  #impresion-remito .remito {
+    page: remito;
+    break-after: page;
+  }
+
+  #impresion-remito .remito:last-child {
+    break-after: auto;
+  }
+
   /* imprimirRotulo() copia el rótulo elegido a #impresion-rotulo: solo eso
      sale en la hoja, a todo el ancho y con sus colores de estado. */
   body.imprimiendo-rotulo > *:not(#impresion-rotulo) {
@@ -330,6 +344,11 @@ textarea {
   @page cotizacion {
     size: A4 portrait;
     margin: 15mm;
+  }
+
+  @page remito {
+    size: A4 portrait;
+    margin: 8mm;
   }
 }
 
