@@ -11,9 +11,11 @@ import {
   textoCriterio,
   useEspecificacionCompleta,
   useOrden,
+  useTandasOrden,
   type EtapaOrden,
   type EtapaRegistrada,
   type OrdenProduccion,
+  type TandaFila,
 } from '@/lib/consultasOrdenes';
 import { MarcaEjemplo } from '@/components/MarcaEjemplo';
 import {
@@ -294,6 +296,7 @@ export function BatchRecord() {
   const granel = useRegistrosAnalisis({ ordenId: id });
   const traza = useTrazabilidadOrden(id);
   const porLote = useAnalisisPorLoteInterno();
+  const tandas = useTandasOrden(id);
 
   if (orden.isLoading || !o || traza.isLoading || porLote.isLoading)
     return <Skeleton h={500} />;
@@ -325,6 +328,10 @@ export function BatchRecord() {
       volver={{ a: `/ordenes/${o.id}`, texto: 'Volver a la orden' }}
       analisisGranel={(granel.data ?? []).find((r) => r.vigente) ?? null}
       analisisInsumos={insumos}
+      tandas={{
+        tandas: tandas.data ?? [],
+        nombre: (pid) => (productos.data ?? []).find((p) => p.id === pid)?.nombre ?? '',
+      }}
     />
   );
 }
@@ -364,6 +371,8 @@ export interface PropsDocumento {
   }[];
   /** Documento de demostración: marca de agua y aviso. */
   ejemplo?: boolean;
+  /** D-tandas-1: lo envasado cada día del granel. */
+  tandas?: { tandas: TandaFila[]; nombre: (productoId: string) => string };
 }
 
 /** El documento, separado de la carga de datos para poder mostrar un ejemplo. */
@@ -380,6 +389,7 @@ export function DocumentoBatchRecord({
   analisisGranel,
   analisisInsumos,
   ejemplo = false,
+  tandas,
 }: PropsDocumento) {
   const etapas = new Map(lista.map((e) => [e.etapa, e]));
   const registro = formula?.codigo_me
@@ -496,6 +506,47 @@ export function DocumentoBatchRecord({
             {x.etapa === 'CC_GRANEL' ? <AnalisisImpreso r={analisisGranel} /> : null}
           </div>
         ))}
+
+        {tandas && tandas.tandas.length > 0 ? (
+          <>
+            <h2>Envasado por días</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Tanda</th>
+                  <th>Fecha</th>
+                  <th>Producto</th>
+                  <th>Unidades</th>
+                  <th>Observaciones</th>
+                  <th>Cargó</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tandas.tandas.map((t) => (
+                  <tr key={`${t.numero}-${t.producto_id}`}>
+                    <td>{t.numero}</td>
+                    <td>{fecha(t.fecha)}</td>
+                    <td>{tandas.nombre(t.producto_id)}</td>
+                    <td>{numero(Number(t.unidades))}</td>
+                    <td>{t.observaciones ?? ''}</td>
+                    <td>{quien(t.registrada_por)}</td>
+                  </tr>
+                ))}
+                <tr>
+                  <td colSpan={3}>
+                    <b>Total</b>
+                  </td>
+                  <td>
+                    <b>
+                      {numero(tandas.tandas.reduce((a, t) => a + Number(t.unidades), 0))}
+                    </b>
+                  </td>
+                  <td colSpan={2} />
+                </tr>
+              </tbody>
+            </table>
+          </>
+        ) : null}
 
         <h2>Revisión de documentación del lote (batch record)</h2>
         <table>
