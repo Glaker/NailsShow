@@ -25,6 +25,7 @@ import {
   IconArrowUp,
   IconBuildingStore,
   IconClipboardCheck,
+  IconFileText,
   IconInfoCircle,
   IconPackage,
 } from '@tabler/icons-react';
@@ -43,6 +44,7 @@ import {
 } from '@/lib/consultasComercial';
 import { useRegistrarConteoPt } from '@/lib/consultasStockSeguridad';
 import { type DepositoPt, useTransferirPt } from '@/lib/consultasCalle5';
+import { ModalRemito, ModalRemitosEmitidos } from './Remito';
 import { PanelCalle5 } from './Calle5';
 
 /**
@@ -210,6 +212,16 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
   const [envioCantidad, setEnvioCantidad] = useState<number | ''>('');
   const destinos = DEPOSITOS_PT.filter((d) => d.config.numero !== config.numero);
   const [envioDestino, setEnvioDestino] = useState<string>(destinos[0]!.config.numero);
+  /* D-remito-1: el remito de lo que sale, con el producto y la cantidad del
+     movimiento ya puestos; la clave lo arma de nuevo en cada apertura. */
+  const [remito, setRemito] = useState<{
+    clave: number;
+    motivo: 'TRANSFERENCIA' | 'SALIDA';
+    receptor: string;
+    productoId: string;
+    cantidad: number;
+  } | null>(null);
+  const [verRemitos, setVerRemitos] = useState(false);
 
   const deposito = (depositos.data ?? []).find((d) => d.numero === config.numero) ?? null;
   // La vista trae todos los depósitos comerciales: acá solo el de la pantalla.
@@ -311,6 +323,14 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
               onClick={() => setContando(true)}
             >
               Contar
+            </Button>
+            <Button
+              size="md"
+              variant="default"
+              leftSection={<IconFileText size={18} />}
+              onClick={() => setVerRemitos(true)}
+            >
+              Remitos
             </Button>
             <Button
               size="md"
@@ -585,6 +605,26 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
               Cancelar
             </Button>
             <Button
+              variant="default"
+              leftSection={<IconFileText size={18} />}
+              disabled={
+                !envioProducto || typeof envioCantidad !== 'number' || envioCantidad <= 0
+              }
+              onClick={() =>
+                envioProducto &&
+                typeof envioCantidad === 'number' &&
+                setRemito({
+                  clave: Date.now(),
+                  motivo: 'TRANSFERENCIA',
+                  receptor: `Nailshow — ${destinos.find((d) => d.config.numero === envioDestino)?.nombre ?? ''}`,
+                  productoId: envioProducto,
+                  cantidad: envioCantidad,
+                })
+              }
+            >
+              Remito
+            </Button>
+            <Button
               loading={transferir.isPending}
               disabled={
                 !envioProducto ||
@@ -698,6 +738,26 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
             <Button variant="default" onClick={() => setAbierto(false)}>
               Cancelar
             </Button>
+            {sentido === 'sale' ? (
+              <Button
+                variant="default"
+                leftSection={<IconFileText size={18} />}
+                disabled={!productoId || typeof cantidad !== 'number' || cantidad <= 0}
+                onClick={() =>
+                  productoId &&
+                  typeof cantidad === 'number' &&
+                  setRemito({
+                    clave: Date.now(),
+                    motivo: 'SALIDA',
+                    receptor: '',
+                    productoId,
+                    cantidad,
+                  })
+                }
+              >
+                Remito
+              </Button>
+            ) : null}
             <Button
               onClick={guardar}
               loading={registrar.isPending}
@@ -713,6 +773,34 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
           </Group>
         </Stack>
       </Modal>
+
+      {remito ? (
+        <ModalRemito
+          key={remito.clave}
+          abierto
+          onCerrar={() => setRemito(null)}
+          motivo={remito.motivo}
+          depositoOrigenId={deposito.id}
+          receptorInicial={remito.receptor}
+          renglonesIniciales={[
+            {
+              producto_id: remito.productoId,
+              codigo:
+                (productos.data ?? []).find((p) => p.id === remito.productoId)
+                  ?.codigo_interno ?? '',
+              descripcion:
+                (productos.data ?? []).find((p) => p.id === remito.productoId)?.nombre ??
+                '',
+              cantidad: remito.cantidad,
+            },
+          ]}
+        />
+      ) : null}
+      <ModalRemitosEmitidos
+        abierto={verRemitos}
+        onCerrar={() => setVerRemitos(false)}
+        depositoId={deposito.id}
+      />
     </>
   );
 }

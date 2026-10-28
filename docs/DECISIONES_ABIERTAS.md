@@ -1106,6 +1106,25 @@ entra a la fábrica y hay que mandarlo con «Enviar a otro depósito».
 **Dónde está.** `20261028140000_tandas_envasado.sql`, `Tandas.tsx`, `PaginaOrden.tsx`,
 `BatchRecord.tsx`.
 
+### D-remito-1 · Remito de lo que sale de un depósito — provisoria 2026-10-28
+
+**Decisión** (pedido del 2026-10-28): al enviar a otro depósito (p. ej. Berna) y en
+«Salió», un botón «Remito» abre lo que hay que completar (quién recibe, CUIT,
+domicilio, IVA, lugar de entrega, transporte, bultos, observaciones), con el
+producto y la cantidad del movimiento ya puestos. Lleva logo, Nailshow, CUIT
+30-54667116-6, fecha, número PPPP-NNNNNNNN, «Documento no válido como factura»,
+tabla código / nombre y descripción / bultos / cantidad / observaciones, «Recibí
+conforme · firma y sello» y quién lo confeccionó. Se descarga el original y la copia
+(marca de agua «COPIA»), cada uno con su nombre, y se imprime uno, el otro o los dos.
+**Abierta.** Por ahora es **remito interno «X»** (sin CAI), numeración propia
+0001-00000001 sin huecos (RN-55). Queda por definir con ARCA y el contador si
+pasa a «R»: la tabla ya guarda CAI y vencimiento, y no emite un «R» sin ellos.
+**Límites.** Un remito emitido no se modifica (RN-54): si salió mal, se emite otro.
+El remito no está atado al movimiento de stock: se emite aparte, desde el mismo
+modal. «Descargar» usa «Guardar como PDF» del navegador, igual que el batch record.
+**Dónde está.** `20261028150000_comercial_remitos.sql`, `Remito.tsx`,
+`PaginaPuntoVenta.tsx`.
+
 ### D-tareas-3 · Tareas con tipo, ubicación y notas — adoptada 2026-10-27
 
 **Decisión del codirector técnico.** Al mandar una tarea, Naza elige el tipo
