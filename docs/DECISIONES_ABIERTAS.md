@@ -1080,9 +1080,11 @@ un ajuste de salida y uno de entrada del mismo lote (RN-54). Desde 2026-10-28
 fábrica, Calle 5 o Berna, por lote o en lo que no tiene lote
 (`comercial.repartir_stock_hermanos`, que reemplaza a `repartir_lote_hermanos`).
 **Límites.** El reparto corrige de cuál hermano son, no cuántas: el total del lote
-(o del sin lote) en ese depósito no cambia, y lo vendido no se toca. En Calle 5 no
-mira las reservas de pedidos: si se baja un hermano reservado, la reserva queda
-corta. Lo corrige Gerencia de
+(o del sin lote) en ese depósito no cambia, y lo vendido no se toca. Es un ajuste:
+como todo ajuste, no lo frenan las reservas de pedidos, que desde
+D-pedidos-por-deposito-1 hay en los tres depósitos (los pedidos salen de Calle 5,
+la fábrica o Berna). Si baja un hermano reservado, la reserva queda corta y la
+pantalla del pedido lo muestra. Lo corrige Gerencia de
 Producción (es la que tiene el permiso de ajustar stock de producto terminado).
 «En fábrica para el pedido» (`v_pendientes_despacho`) sigue contando las entradas
 de producción y no los ajustes: después de un reparto puede mostrar de más.
