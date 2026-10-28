@@ -56,6 +56,8 @@ import {
   type OrdenProduccion,
 } from '@/lib/consultasOrdenes';
 import { TrazabilidadOrden } from './TrazabilidadOrden';
+import { CamposReparto, CorregirReparto } from './Hermanos';
+import { hermanosDe, repartoDe, type ConFamilia } from '@/lib/consultasHermanos';
 import { useDictaminarGranel, useRegistrosAnalisis } from '@/lib/consultasAnalisis';
 import { FichaAnalisis, FormularioAnalisis } from '@/features/calidad/RegistroAnalisis';
 import { MasInformacion } from './PanelProcedimiento';
@@ -92,6 +94,7 @@ export function PaginaOrden() {
   const esCalidad = useTieneRol('CONTROL_CALIDAD', 'DIRECCION_TECNICA');
   const esDT = useTieneRol('DIRECCION_TECNICA');
   const esProduccion = useTieneRol('GERENCIA_PRODUCCION', 'DIRECCION_TECNICA');
+  const esGP = useTieneRol('GERENCIA_PRODUCCION');
   const controlar = useControlarEtapa();
   const [editando, setEditando] = useState<EtapaOrden | null>(null);
   const [cierre, setCierre] = useState<'terminar' | 'liberar' | 'anular' | null>(null);
@@ -147,6 +150,9 @@ export function PaginaOrden() {
               <Button color="estadoAprobado" onClick={() => setCierre('terminar')}>
                 Terminar
               </Button>
+            ) : null}
+            {esGP && (o.estado === 'TERMINADA' || o.estado === 'LIBERADA') ? (
+              <CorregirReparto ordenId={o.id} productoId={o.producto_id} />
             ) : null}
             {esDT && o.estado === 'TERMINADA' ? (
               <Button
@@ -911,6 +917,16 @@ function ModalCierre({
   const terminar = useTerminarOrden();
   const liberar = useLiberarOrden();
   const anular = useAnularOrden();
+  /* D-hermanos-1: del mismo granel salen el producto y sus hermanos. */
+  const productos = (useProductos().data ?? []) as ConFamilia[];
+  const familia = [
+    ...productos.filter((p) => p.id === orden.producto_id),
+    ...hermanosDe(productos, orden.producto_id),
+  ];
+  const conHermanos = familia.length > 1;
+  const [porHermano, setPorHermano] = useState<Record<string, number | string>>({});
+  const reparto = repartoDe(porHermano);
+  const sumaHermanos = reparto.reduce((a, r) => a + r.unidades, 0);
   const faltantes = useFaltantesLiberacion(orden.id, tipo === 'liberar');
   const [cantidad, setCantidad] = useState<number | string>('');
   const [unidades, setUnidades] = useState<number | string>('');
@@ -939,27 +955,46 @@ function ModalCierre({
             value={cantidad}
             onChange={setCantidad}
           />
-          <NumberInput
-            label="Unidades obtenidas"
-            description={
-              recuento ? `El recuento del fraccionamiento da ${recuento}` : undefined
-            }
-            allowDecimal={false}
-            min={0}
-            value={unidades === '' && recuento ? recuento : unidades}
-            onChange={setUnidades}
-          />
+          {conHermanos ? (
+            <Stack gap={6}>
+              <Text size="sm" fw={600}>
+                Unidades obtenidas de cada uno
+              </Text>
+              <CamposReparto
+                productos={familia}
+                valores={porHermano}
+                onCambio={setPorHermano}
+              />
+              <Text size="sm" c="dimmed">
+                Total: {numero(sumaHermanos)}
+                {recuento ? ` · el recuento del fraccionamiento da ${recuento}` : ''}
+              </Text>
+            </Stack>
+          ) : (
+            <NumberInput
+              label="Unidades obtenidas"
+              description={
+                recuento ? `El recuento del fraccionamiento da ${recuento}` : undefined
+              }
+              allowDecimal={false}
+              min={0}
+              value={unidades === '' && recuento ? recuento : unidades}
+              onChange={setUnidades}
+            />
+          )}
           <Group justify="flex-end">
             <Button
               loading={terminar.isPending}
-              disabled={cantidad === ''}
+              disabled={cantidad === '' || (conHermanos && sumaHermanos === 0)}
               onClick={() =>
                 terminar.mutate(
-                  {
-                    id: orden.id,
-                    cantidad: n(cantidad),
-                    unidades: unidades === '' ? recuento : n(unidades),
-                  },
+                  conHermanos
+                    ? { id: orden.id, cantidad: n(cantidad), unidades: sumaHermanos, reparto }
+                    : {
+                        id: orden.id,
+                        cantidad: n(cantidad),
+                        unidades: unidades === '' ? recuento : n(unidades),
+                      },
                   { onSuccess: onCerrar },
                 )
               }

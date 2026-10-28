@@ -1067,6 +1067,24 @@ hacia atrás.
 `comercial.orden_consumos`, `gmp.calcular_lote`), `PaginaFormula.tsx`,
 `PaginaOrdenes.tsx`.
 
+### D-hermanos-1 · Productos hermanos: un granel, varias presentaciones — adoptada 2026-10-28
+
+**Decisión del codirector técnico.** Gerencia de Producción marca como hermanos
+los productos que se envasan del mismo granel (sanitizante de 1 L y de 250 ml),
+en «Qué lleva cada producto». Al terminar la orden de uno, carga cuántas unidades
+salieron de cada hermano; todas entran a la fábrica con el lote de esa orden y se
+liberan con ella (RN-51). Lo que ya entró se puede repartir de nuevo entre los
+hermanos («salieron 300 de 100 ml y el resto de 200 ml»), con motivo: queda como
+un ajuste de salida y uno de entrada del mismo lote (RN-54).
+**Límites.** El reparto corrige de cuál hermano son, no cuántas: el total del lote
+en la fábrica no cambia. Solo lo que sigue en la fábrica (PTF): lo que ya se
+mandó a Calle 5 o Berna, o se vendió, no se toca. Lo corrige Gerencia de
+Producción (es la que tiene el permiso de ajustar stock de producto terminado).
+«En fábrica para el pedido» (`v_pendientes_despacho`) sigue contando las entradas
+de producción y no los ajustes: después de un reparto puede mostrar de más.
+**Dónde está.** `20261028130000_productos_hermanos.sql`, `Hermanos.tsx`,
+`PaginaOrden.tsx`, `TareasCarga.tsx`.
+
 ### D-tareas-3 · Tareas con tipo, ubicación y notas — adoptada 2026-10-27
 
 **Decisión del codirector técnico.** Al mandar una tarea, Naza elige el tipo
