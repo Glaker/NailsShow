@@ -48,6 +48,8 @@ import {
 import { FormularioInsumo } from '@/features/maestros/PaginaInsumos';
 import { FormularioNuevaFormula } from './PaginaFormulas';
 import { TiempoEnvasado } from './TiempoEnvasado';
+import { GranelPorUnidad } from './GranelPorUnidad';
+import { useCrearFormulaEnvasado } from '@/lib/consultasOrdenes';
 import { etiquetaUnidad, numero } from '@/lib/formato';
 
 type TipoInsumo = Insumo['tipo'];
@@ -499,6 +501,10 @@ export function MaterialesProducto({
         <Seccion titulo="Cargado antes">{sinClasificar.map(fila)}</Seccion>
       ) : null}
 
+      <Seccion titulo="Granel por unidad">
+        <GranelPorUnidad productoId={productoId} />
+      </Seccion>
+
       <Seccion titulo="Envase">
         {envases.map(fila)}
         <Agregar
@@ -571,8 +577,21 @@ function DetalleProducto({
   const sinFormula = useMarcarSinFormula();
   const consultar = useConsultarFormula();
   const reventa = useMarcarReventa();
+  const envasado = useCrearFormulaEnvasado();
   const navegar = useNavigate();
   const [formula, setFormula] = useState(false);
+  const [comprado, setComprado] = useState(false);
+  const [altaGranel, setAltaGranel] = useState<string | null>(null);
+  const elegirGranel = (granelId: string) =>
+    envasado.mutate(
+      { productoId: t.producto_id, granelId },
+      {
+        onSuccess: () => {
+          onTocar({ tiene_formula: true });
+          setComprado(false);
+        },
+      },
+    );
 
   return (
     <Grid gutter="xl">
@@ -655,10 +674,33 @@ function DetalleProducto({
                 </Group>
               ) : t.formula_consultada ? (
                 <Text size="sm">La carga Dirección Técnica (Fórmulas › Pendientes).</Text>
+              ) : comprado ? (
+                /* D-orden-producto-1: el granel comprado va como fórmula de
+                   envasado, en borrador, con el granel al 100 %. */
+                <Stack gap="xs">
+                  <ElegirInsumo
+                    tipos={['SEMIELABORADO']}
+                    placeholder="Buscá el granel que se compra"
+                    onElegir={elegirGranel}
+                    onNuevo={setAltaGranel}
+                  />
+                  <Button
+                    variant="subtle"
+                    color="gray"
+                    size="compact-sm"
+                    onClick={() => setComprado(false)}
+                    style={{ alignSelf: 'flex-start' }}
+                  >
+                    Cancelar
+                  </Button>
+                </Stack>
               ) : (
                 <Group gap="xs">
                   <Button size="md" variant="light" onClick={() => setFormula(true)}>
                     Cargar fórmula
+                  </Button>
+                  <Button size="md" variant="default" onClick={() => setComprado(true)}>
+                    Se compra el granel
                   </Button>
                   <Button
                     size="md"
@@ -695,6 +737,24 @@ function DetalleProducto({
           </Seccion>
         </Stack>
       </Grid.Col>
+
+      <Modal
+        opened={altaGranel !== null}
+        onClose={() => setAltaGranel(null)}
+        title={<Text fw={700}>Nuevo granel</Text>}
+        size="lg"
+      >
+        {altaGranel !== null ? (
+          <FormularioInsumo
+            nombreInicial={altaGranel}
+            tipoInicial="SEMIELABORADO"
+            onListo={(creado) => {
+              if (creado) elegirGranel(creado.id);
+              setAltaGranel(null);
+            }}
+          />
+        ) : null}
+      </Modal>
 
       <Modal
         opened={formula}

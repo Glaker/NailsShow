@@ -834,6 +834,21 @@ export function useCargarMinutos() {
   });
 }
 
+/** Lo que Naza elige; en la base queda en g o mL (gmp.productos.unidad_contenido). */
+export const UNIDADES_GRANEL = [
+  { value: 'kg', base: 'g', factor: 1000 },
+  { value: 'g', base: 'g', factor: 1 },
+  { value: 'L', base: 'mL', factor: 1000 },
+  { value: 'ml', base: 'mL', factor: 1 },
+] as const;
+export type UnidadGranel = (typeof UNIDADES_GRANEL)[number]['value'];
+
+/** Cantidad en la unidad elegida → lo que guarda la base. */
+export function aContenido(cantidad: number, unidad: UnidadGranel) {
+  const u = UNIDADES_GRANEL.find((x) => x.value === unidad)!;
+  return { contenido_neto: cantidad * u.factor, unidad_contenido: u.base };
+}
+
 /** Contenido neto por unidad: dato de rótulo, en gmp.productos. */
 export function useCargarContenidoNeto() {
   const qc = useQueryClient();
