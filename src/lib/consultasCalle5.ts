@@ -12,7 +12,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Database } from './database.types';
 import { avisarError, avisarExito } from './consultas';
-import { comercial } from './supabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { comercial, supabase } from './supabase';
 
 /** Una fila de `comercial.v_calle5`: por producto. */
 export type FilaCalle5 = Database['comercial']['Views']['v_calle5']['Row'];
@@ -226,23 +227,24 @@ export function useDespacharPedido() {
 export function useTransferirPt() {
   const qc = useQueryClient();
   return useMutation({
+    // Varios productos juntos, todo o nada (20261028160000).
     mutationFn: async (t: {
-      productoId: string;
-      cantidad: number;
+      renglones: { productoId: string; cantidad: number }[];
       origen: DepositoPt;
       destino: DepositoPt;
     }) => {
-      const { error } = await comercial().rpc('transferir_pt', {
-        p_producto_id: t.productoId,
-        p_cantidad: t.cantidad,
+      // Entra en los tipos al regenerarlos con 20261028160000.
+      const sinTipos = (supabase as unknown as SupabaseClient).schema('comercial');
+      const { error } = await sinTipos.rpc('transferir_pt_varios', {
+        p_renglones: t.renglones.map((r) => ({ producto_id: r.productoId, cantidad: r.cantidad })),
         p_origen: t.origen,
         p_destino: t.destino,
       });
       if (error) throw error;
     },
-    onSuccess: (_d, t) => {
+    onSuccess: () => {
       invalidar(qc);
-      avisarExito(t.destino === 'C5' ? 'Enviado a Calle 5.' : 'Devuelto a fábrica.');
+      avisarExito('Enviado.');
     },
     onError: avisarError,
   });

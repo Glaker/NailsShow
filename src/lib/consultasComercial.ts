@@ -1084,23 +1084,24 @@ export function useMovimientosPuntoVenta(depositoId: string | undefined) {
 export function useRegistrarMovimientoPt() {
   const qc = useQueryClient();
   return useMutation({
+    // Varios productos con el mismo motivo: un solo insert, todo o nada.
     mutationFn: async (m: {
-      productoId: string;
       depositoId: string;
       tipo: string;
-      cantidad: number;
-      loteTexto: string | null;
       motivo: string | null;
+      renglones: { productoId: string; cantidad: number; loteTexto: string | null }[];
     }) => {
       const sale = m.tipo.startsWith('SALIDA');
-      const { error } = await tablaComercial<MovimientoPtRow>('movimientos_pt').insert({
-        producto_id: m.productoId,
-        deposito_id: m.depositoId,
-        tipo: m.tipo,
-        cantidad: sale ? -Math.abs(m.cantidad) : Math.abs(m.cantidad),
-        lote_texto: m.loteTexto,
-        motivo: m.motivo,
-      });
+      const { error } = await tablaComercial<MovimientoPtRow>('movimientos_pt').insert(
+        m.renglones.map((r) => ({
+          producto_id: r.productoId,
+          deposito_id: m.depositoId,
+          tipo: m.tipo,
+          cantidad: sale ? -Math.abs(r.cantidad) : Math.abs(r.cantidad),
+          lote_texto: r.loteTexto,
+          motivo: m.motivo,
+        })),
+      );
       if (error) throw error;
     },
     onSuccess: () => {

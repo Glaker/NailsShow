@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
+  ActionIcon,
   Alert,
   Badge,
   Box,
@@ -28,6 +29,8 @@ import {
   IconFileText,
   IconInfoCircle,
   IconPackage,
+  IconPlus,
+  IconTrash,
 } from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { TarjetaIndicador } from '@/components/TarjetaIndicador';
@@ -208,18 +211,16 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
   const esCalle5 = config.numero === 'C5';
   const transferir = useTransferirPt();
   const [enviando, setEnviando] = useState(false);
-  const [envioProducto, setEnvioProducto] = useState<string | null>(null);
-  const [envioCantidad, setEnvioCantidad] = useState<number | ''>('');
+  const [envio, setEnvio] = useState<RenglonPt[]>(() => [renglonVacio()]);
   const destinos = DEPOSITOS_PT.filter((d) => d.config.numero !== config.numero);
   const [envioDestino, setEnvioDestino] = useState<string>(destinos[0]!.config.numero);
-  /* D-remito-1: el remito de lo que sale, con el producto y la cantidad del
-     movimiento ya puestos; la clave lo arma de nuevo en cada apertura. */
+  /* D-remito-1: al registrar lo que sale, el remito se abre solo con todos los
+     productos y cantidades; la clave lo arma de nuevo en cada apertura. */
   const [remito, setRemito] = useState<{
     clave: number;
     motivo: 'TRANSFERENCIA' | 'SALIDA';
     receptor: string;
-    productoId: string;
-    cantidad: number;
+    renglones: { productoId: string; cantidad: number }[];
   } | null>(null);
   const [verRemitos, setVerRemitos] = useState(false);
 
@@ -238,9 +239,7 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
   const [abierto, setAbierto] = useState(false);
   const [sentido, setSentido] = useState<'entra' | 'sale'>('sale');
   const [tipo, setTipo] = useState<string>('SALIDA_VENTA');
-  const [productoId, setProductoId] = useState<string | null>(null);
-  const [cantidad, setCantidad] = useState<number | ''>('');
-  const [lote, setLote] = useState('');
+  const [renglones, setRenglones] = useState<RenglonPt[]>(() => [renglonVacio()]);
   const [motivo, setMotivo] = useState('');
 
   const delSentido = TIPOS_MOVIMIENTO_PT.filter((t) =>
@@ -268,23 +267,56 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
   }
 
   function guardar() {
-    if (!deposito || !productoId || typeof cantidad !== 'number') return;
+    const listos = completos(renglones);
+    if (!deposito || !listos) return;
     registrar.mutate(
       {
-        productoId,
         depositoId: deposito.id,
         tipo,
-        cantidad,
-        loteTexto: lote.trim() || null,
         motivo: motivo.trim() || null,
+        renglones: listos.map((r) => ({
+          productoId: r.productoId,
+          cantidad: r.cantidad,
+          loteTexto: r.lote.trim() || null,
+        })),
       },
       {
         onSuccess: () => {
+          // Una venta lleva remito: se abre solo, con todo lo que salió.
+          if (tipo === 'SALIDA_VENTA')
+            setRemito({ clave: Date.now(), motivo: 'SALIDA', receptor: '', renglones: listos });
           setAbierto(false);
-          setProductoId(null);
-          setCantidad('');
-          setLote('');
+          setRenglones([renglonVacio()]);
           setMotivo('');
+        },
+      },
+    );
+  }
+
+  const envioListo = completos(envio);
+  const envioExcede = envio.some(
+    (f) =>
+      typeof f.cantidad === 'number' &&
+      f.cantidad > saldoDe(f.productoId) - retenidoDe(f.productoId),
+  );
+  function enviar() {
+    if (!envioListo) return;
+    transferir.mutate(
+      {
+        renglones: envioListo,
+        origen: config.numero as DepositoPt,
+        destino: envioDestino as DepositoPt,
+      },
+      {
+        onSuccess: () => {
+          setRemito({
+            clave: Date.now(),
+            motivo: 'TRANSFERENCIA',
+            receptor: `Nailshow — ${destinos.find((d) => d.config.numero === envioDestino)?.nombre ?? ''}`,
+            renglones: envioListo,
+          });
+          setEnviando(false);
+          setEnvio([renglonVacio()]);
         },
       },
     );
@@ -579,78 +611,28 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
             onChange={setEnvioDestino}
             data={destinos.map((d) => ({ value: d.config.numero, label: d.nombre }))}
           />
-          <Select
-            label="Producto"
-            searchable
-            nothingFoundMessage="Sin stock en este depósito"
-            data={conStock.map((f) => ({
+          <RenglonesPt
+            filas={envio}
+            onChange={setEnvio}
+            sinOpciones="Sin stock en este depósito"
+            opciones={conStock.map((f) => ({
               value: f.producto_id,
               // Fuera de la fábrica va solo lo liberado o sin lote (R-09).
               label: `${f.producto} · ${numero(Number(f.saldo) - Number(f.retenido), 0)} para enviar`,
             }))}
-            value={envioProducto}
-            onChange={setEnvioProducto}
+            maximo={(id) => saldoDe(id) - retenidoDe(id)}
           />
-          <NumberInput
-            label="Unidades"
-            min={1}
-            max={saldoDe(envioProducto) - retenidoDe(envioProducto)}
-            allowDecimal={false}
-            hideControls
-            value={envioCantidad}
-            onChange={(v) => setEnvioCantidad(typeof v === 'number' ? v : '')}
-          />
+          <Text size="sm" c="dimmed">
+            Al enviar se abre el remito con todos los productos.
+          </Text>
           <Group justify="flex-end">
             <Button variant="default" onClick={() => setEnviando(false)}>
               Cancelar
             </Button>
             <Button
-              variant="default"
-              leftSection={<IconFileText size={18} />}
-              disabled={
-                !envioProducto || typeof envioCantidad !== 'number' || envioCantidad <= 0
-              }
-              onClick={() =>
-                envioProducto &&
-                typeof envioCantidad === 'number' &&
-                setRemito({
-                  clave: Date.now(),
-                  motivo: 'TRANSFERENCIA',
-                  receptor: `Nailshow — ${destinos.find((d) => d.config.numero === envioDestino)?.nombre ?? ''}`,
-                  productoId: envioProducto,
-                  cantidad: envioCantidad,
-                })
-              }
-            >
-              Remito
-            </Button>
-            <Button
               loading={transferir.isPending}
-              disabled={
-                !envioProducto ||
-                typeof envioCantidad !== 'number' ||
-                envioCantidad <= 0 ||
-                envioCantidad > saldoDe(envioProducto) - retenidoDe(envioProducto)
-              }
-              onClick={() =>
-                envioProducto &&
-                typeof envioCantidad === 'number' &&
-                transferir.mutate(
-                  {
-                    productoId: envioProducto,
-                    cantidad: envioCantidad,
-                    origen: config.numero as DepositoPt,
-                    destino: envioDestino as DepositoPt,
-                  },
-                  {
-                    onSuccess: () => {
-                      setEnviando(false);
-                      setEnvioProducto(null);
-                      setEnvioCantidad('');
-                    },
-                  },
-                )
-              }
+              disabled={!envioListo || envioExcede}
+              onClick={enviar}
             >
               Enviar
             </Button>
@@ -688,37 +670,22 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
             onChange={(v) => v && setTipo(v)}
           />
 
-          <Select
-            label="Producto"
-            withAsterisk
-            searchable
-            limit={60}
-            nothingFoundMessage="Sin coincidencias"
+          <RenglonesPt
+            filas={renglones}
+            onChange={setRenglones}
+            sinOpciones="Sin coincidencias"
             // Código y nombre: se busca por cualquiera de los dos (pedido del 2026-10-26).
-            data={(productos.data ?? []).map((x) => ({
+            opciones={(productos.data ?? []).map((x) => ({
               value: x.id,
               label: `${x.codigo_interno} · ${x.nombre}`,
             }))}
-            value={productoId}
-            onChange={setProductoId}
+            conLote
           />
-
-          <NumberInput
-            label="Cantidad"
-            withAsterisk
-            description="Siempre en positivo. El signo lo pone el sistema según el motivo."
-            min={1}
-            hideControls
-            value={cantidad}
-            onChange={(v) => setCantidad(typeof v === 'number' ? v : '')}
-          />
-
-          <TextInput
-            label="Lote"
-            description="El que figura en el envase. Es lo que permite alcanzar esta mercadería en un retiro."
-            value={lote}
-            onChange={(e) => setLote(e.currentTarget.value)}
-          />
+          <Text size="sm" c="dimmed">
+            Cantidades en positivo: el signo lo pone el sistema. El lote es el que figura en
+            el envase y permite alcanzar la mercadería en un retiro.
+            {tipo === 'SALIDA_VENTA' ? ' Al registrar se abre el remito con todo.' : ''}
+          </Text>
 
           <Textarea
             label={exigeMotivo ? 'Motivo' : 'Observaciones'}
@@ -738,35 +705,10 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
             <Button variant="default" onClick={() => setAbierto(false)}>
               Cancelar
             </Button>
-            {sentido === 'sale' ? (
-              <Button
-                variant="default"
-                leftSection={<IconFileText size={18} />}
-                disabled={!productoId || typeof cantidad !== 'number' || cantidad <= 0}
-                onClick={() =>
-                  productoId &&
-                  typeof cantidad === 'number' &&
-                  setRemito({
-                    clave: Date.now(),
-                    motivo: 'SALIDA',
-                    receptor: '',
-                    productoId,
-                    cantidad,
-                  })
-                }
-              >
-                Remito
-              </Button>
-            ) : null}
             <Button
               onClick={guardar}
               loading={registrar.isPending}
-              disabled={
-                !productoId ||
-                typeof cantidad !== 'number' ||
-                cantidad <= 0 ||
-                (exigeMotivo && !motivo.trim())
-              }
+              disabled={!completos(renglones) || (exigeMotivo && !motivo.trim())}
             >
               Registrar
             </Button>
@@ -782,18 +724,15 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
           motivo={remito.motivo}
           depositoOrigenId={deposito.id}
           receptorInicial={remito.receptor}
-          renglonesIniciales={[
-            {
-              producto_id: remito.productoId,
-              codigo:
-                (productos.data ?? []).find((p) => p.id === remito.productoId)
-                  ?.codigo_interno ?? '',
-              descripcion:
-                (productos.data ?? []).find((p) => p.id === remito.productoId)?.nombre ??
-                '',
-              cantidad: remito.cantidad,
-            },
-          ]}
+          renglonesIniciales={remito.renglones.map((r) => {
+            const p = (productos.data ?? []).find((x) => x.id === r.productoId);
+            return {
+              producto_id: r.productoId,
+              codigo: p?.codigo_interno ?? '',
+              descripcion: p?.nombre ?? '',
+              cantidad: r.cantidad,
+            };
+          })}
         />
       ) : null}
       <ModalRemitosEmitidos
@@ -802,6 +741,107 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
         depositoId={deposito.id}
       />
     </>
+  );
+}
+
+interface RenglonPt {
+  clave: string;
+  productoId: string | null;
+  cantidad: number | '';
+  lote: string;
+}
+
+function renglonVacio(): RenglonPt {
+  return { clave: crypto.randomUUID(), productoId: null, cantidad: '', lote: '' };
+}
+
+/** Los renglones listos para mandar, o null si a alguno le falta algo. */
+function completos(filas: RenglonPt[]) {
+  const listos = filas.flatMap((f) =>
+    f.productoId && typeof f.cantidad === 'number' && f.cantidad > 0
+      ? [{ productoId: f.productoId, cantidad: f.cantidad, lote: f.lote }]
+      : [],
+  );
+  return listos.length > 0 && listos.length === filas.length ? listos : null;
+}
+
+/** Varios productos en un mismo movimiento (pedido del 2026-10-28). */
+function RenglonesPt({
+  filas,
+  onChange,
+  opciones,
+  sinOpciones,
+  maximo,
+  conLote = false,
+}: {
+  filas: RenglonPt[];
+  onChange: (f: RenglonPt[]) => void;
+  opciones: { value: string; label: string }[];
+  sinOpciones: string;
+  maximo?: (productoId: string | null) => number;
+  conLote?: boolean;
+}) {
+  const cambiar = (clave: string, c: Partial<RenglonPt>) =>
+    onChange(filas.map((f) => (f.clave === clave ? { ...f, ...c } : f)));
+  return (
+    <Stack gap="xs">
+      {filas.map((f, i) => (
+        <Group key={f.clave} align="flex-end" gap="xs" wrap="nowrap">
+          <Select
+            style={{ flex: 1 }}
+            label={i === 0 ? 'Producto' : null}
+            aria-label="Producto"
+            searchable
+            limit={60}
+            nothingFoundMessage={sinOpciones}
+            // Un producto va una sola vez: los ya elegidos no se ofrecen en otro renglón.
+            data={opciones.filter(
+              (o) => o.value === f.productoId || !filas.some((x) => x.productoId === o.value),
+            )}
+            value={f.productoId}
+            onChange={(v) => cambiar(f.clave, { productoId: v })}
+          />
+          <NumberInput
+            w={110}
+            label={i === 0 ? 'Unidades' : null}
+            aria-label="Unidades"
+            min={1}
+            {...(maximo ? { max: maximo(f.productoId) } : {})}
+            allowDecimal={false}
+            hideControls
+            value={f.cantidad}
+            onChange={(v) => cambiar(f.clave, { cantidad: typeof v === 'number' ? v : '' })}
+          />
+          {conLote ? (
+            <TextInput
+              w={110}
+              label={i === 0 ? 'Lote' : null}
+              aria-label="Lote"
+              value={f.lote}
+              onChange={(e) => cambiar(f.clave, { lote: e.currentTarget.value })}
+            />
+          ) : null}
+          <ActionIcon
+            size="input-sm"
+            variant="subtle"
+            color="gray"
+            aria-label="Quitar producto"
+            disabled={filas.length === 1}
+            onClick={() => onChange(filas.filter((x) => x.clave !== f.clave))}
+          >
+            <IconTrash size={18} />
+          </ActionIcon>
+        </Group>
+      ))}
+      <Button
+        variant="subtle"
+        leftSection={<IconPlus size={18} />}
+        style={{ alignSelf: 'flex-start' }}
+        onClick={() => onChange([...filas, renglonVacio()])}
+      >
+        Agregar producto
+      </Button>
+    </Stack>
   );
 }
 
