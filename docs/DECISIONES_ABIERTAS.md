@@ -1071,19 +1071,24 @@ hacia atrás.
 
 **Decisión del codirector técnico.** Gerencia de Producción marca como hermanos
 los productos que se envasan del mismo granel (sanitizante de 1 L y de 250 ml),
-en «Qué lleva cada producto». Al terminar la orden de uno, carga cuántas unidades
+en «Qué lleva cada producto» o en la ficha del catálogo. Al terminar la orden de uno, carga cuántas unidades
 salieron de cada hermano; todas entran a la fábrica con el lote de esa orden y se
 liberan con ella (RN-51). Lo que ya entró se puede repartir de nuevo entre los
 hermanos («salieron 300 de 100 ml y el resto de 200 ml»), con motivo: queda como
-un ajuste de salida y uno de entrada del mismo lote (RN-54).
+un ajuste de salida y uno de entrada del mismo lote (RN-54). Desde 2026-10-28
+(pedido del codirector técnico) se corrige también desde «Depósitos», en la
+fábrica, Calle 5 o Berna, por lote o en lo que no tiene lote
+(`comercial.repartir_stock_hermanos`, que reemplaza a `repartir_lote_hermanos`).
 **Límites.** El reparto corrige de cuál hermano son, no cuántas: el total del lote
-en la fábrica no cambia. Solo lo que sigue en la fábrica (PTF): lo que ya se
-mandó a Calle 5 o Berna, o se vendió, no se toca. Lo corrige Gerencia de
+(o del sin lote) en ese depósito no cambia, y lo vendido no se toca. En Calle 5 no
+mira las reservas de pedidos: si se baja un hermano reservado, la reserva queda
+corta. Lo corrige Gerencia de
 Producción (es la que tiene el permiso de ajustar stock de producto terminado).
 «En fábrica para el pedido» (`v_pendientes_despacho`) sigue contando las entradas
 de producción y no los ajustes: después de un reparto puede mostrar de más.
-**Dónde está.** `20261028130000_productos_hermanos.sql`, `Hermanos.tsx`,
-`PaginaOrden.tsx`, `TareasCarga.tsx`.
+**Dónde está.** `20261028130000_productos_hermanos.sql`,
+`20261028170000_repartir_stock_hermanos.sql`, `Hermanos.tsx`, `PaginaOrden.tsx`,
+`TareasCarga.tsx`, `PaginaProductos.tsx`, `PaginaPuntoVenta.tsx`.
 
 ### D-tandas-1 · Envasado por días de un mismo granel — adoptada 2026-10-28
 

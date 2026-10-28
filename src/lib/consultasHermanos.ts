@@ -71,17 +71,29 @@ export function useDesvincularHermano() {
   });
 }
 
-/** Cuántas de cada producto hay en la fábrica (PTF) de un lote. */
-export function useLoteEnFabrica(ordenId: string, habilitado: boolean) {
+/** Depósitos de producto terminado donde se corrige el reparto. */
+export type DepositoHermanos = 'PTF' | 'C5' | 'BER';
+
+/**
+ * Cuántas de cada hermano hay en un depósito, de un lote o (ordenId null) sin
+ * lote (20261028170000).
+ */
+export function useStockFamilia(
+  deposito: DepositoHermanos,
+  ordenId: string | null,
+  familia: string[],
+  habilitado: boolean,
+) {
   return useQuery({
-    queryKey: ['stock-pt-lotes', 'orden', ordenId],
+    queryKey: ['stock-pt-lotes', 'familia', deposito, ordenId, familia],
     enabled: habilitado,
     queryFn: async () => {
-      const { data, error } = await comercialST()
+      const base = comercialST()
         .from('v_stock_pt_lotes')
         .select('producto_id, saldo')
-        .eq('orden_id', ordenId)
-        .eq('deposito_numero', 'PTF');
+        .eq('deposito_numero', deposito)
+        .in('producto_id', familia);
+      const { data, error } = await (ordenId ? base.eq('orden_id', ordenId) : base.is('orden_id', null));
       if (error) throw error;
       const filas: { producto_id: string; saldo: number }[] = data ?? [];
       return filas;
@@ -93,11 +105,13 @@ export function useRepartirLote() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (a: {
-      ordenId: string;
+      deposito: DepositoHermanos;
+      ordenId: string | null;
       reparto: { producto_id: string; unidades: number }[];
       motivo: string;
     }) => {
-      const { error } = await comercialST().rpc('repartir_lote_hermanos', {
+      const { error } = await comercialST().rpc('repartir_stock_hermanos', {
+        p_deposito: a.deposito,
         p_orden_id: a.ordenId,
         p_reparto: a.reparto,
         p_motivo: a.motivo,
@@ -106,7 +120,7 @@ export function useRepartirLote() {
     },
     onSuccess: () => {
       invalidar(qc);
-      avisarExito('Reparto corregido en el stock de fábrica.');
+      avisarExito('Reparto entre hermanos corregido en el stock.');
     },
     onError: avisarError,
   });

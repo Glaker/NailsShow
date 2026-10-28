@@ -33,6 +33,7 @@ import {
 import { etiquetaEnum } from '@/lib/formato';
 import { useTieneRol } from '@/features/auth/sesion';
 import { TiempoEnvasado } from '@/features/produccion/TiempoEnvasado';
+import { ProductosHermanos } from '@/features/produccion/Hermanos';
 
 const ORIGENES = ['FABRICADO', 'FRACCIONADO', 'IMPORTADO'] as const;
 
@@ -69,6 +70,7 @@ export function FormularioProducto({
   const crear = useCrearProducto();
   const actualizar = useActualizarProducto();
   const editando = Boolean(producto);
+  const cargaHermanos = useTieneRol('GERENCIA_PRODUCCION', 'DIRECCION_TECNICA');
   const form = useForm<Valores>({
     mode: 'controlled',
     initialValues: {
@@ -167,6 +169,15 @@ export function FormularioProducto({
 
         {producto ? (
           <TiempoEnvasado productoId={producto.id} cantidadSugerida={0} />
+        ) : null}
+
+        {/* D-hermanos-1: también desde el catálogo (pedido del 2026-10-28). Se
+            guarda al elegirlo, sin «Guardar cambios». */}
+        {producto && cargaHermanos ? (
+          <Stack gap={4}>
+            <Text fw={600}>Productos hermanos</Text>
+            <ProductosHermanos productoId={producto.id} />
+          </Stack>
         ) : null}
 
         {editando ? (
