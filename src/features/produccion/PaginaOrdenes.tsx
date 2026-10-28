@@ -34,6 +34,7 @@ import {
   type PedidoConConteoRow,
 } from '@/lib/consultasComercial';
 import { fecha, fechaISO, numero, desdeCalendario } from '@/lib/formato';
+import { UNIDADES_GRANEL, totalOrden, type UnidadGranel } from '@/lib/consultasCostos';
 import {
   useAbrirOrden,
   useAnularOrden,
@@ -254,6 +255,13 @@ export function ModalAbrirOrden({
   const [presentacionTexto, setPresentacionTexto] = useState('');
   const [cantidad, setCantidad] = useState<number | string>('');
   const [unidad, setUnidad] = useState<'kg' | 'L'>('kg');
+  /* Cuánto lleva cada frasco (pedido del 2026-10-28): por defecto el del
+     producto («Granel por unidad»); con las unidades, da la cantidad. */
+  const [porUnidad, setPorUnidad] = useState<{
+    de: string | null;
+    valor: number | string;
+    unidad: UnidadGranel;
+  } | null>(null);
   /* «MM/AA»; null = el de por defecto (elaboración + 2 años). */
   const [vencimiento, setVencimiento] = useState<string | null>(null);
   /* El producto no trae fórmula: se envasa un granel comprado. */
@@ -268,6 +276,18 @@ export function ModalAbrirOrden({
   const textoVenc = vencimiento ?? (jornada ? vencimientoPorDefecto(jornada) : '');
   const vencValido = vencimientoISO(textoVenc) !== null;
   const n = (v: number | string) => (typeof v === 'number' ? v : Number(v || 0));
+  const fichaProducto = (productos.data ?? []).find((x) => x.id === producto);
+  const pu =
+    porUnidad?.de === producto
+      ? porUnidad
+      : {
+          de: producto,
+          valor: fichaProducto?.contenido_neto ?? '',
+          unidad: (fichaProducto?.unidad_contenido === 'mL' ? 'ml' : 'g') as UnidadGranel,
+        };
+  const calculada = totalOrden(n(pu.valor), pu.unidad, n(unidades));
+  const cantidadFinal = calculada?.cantidad ?? n(cantidad);
+  const unidadFinal = calculada?.unidad ?? unidad;
   const delDia =
     pedidoId === null && jornada ? enElPlan(pedidos.data ?? [], fechaISO(jornada)!) : [];
   const elegido = delDia.find((x) => x.clave === eleccion) ?? null;
@@ -466,15 +486,22 @@ export function ModalAbrirOrden({
           />
           <Stack gap={6}>
             <NumberInput
-              label={`Cantidad teórica (${unidad})`}
+              label={`Cantidad teórica (${unidadFinal})`}
+              description={
+                calculada
+                  ? `${numero(n(pu.valor), 3)} ${pu.unidad} × ${numero(n(unidades))} unidades`
+                  : undefined
+              }
               min={0}
               decimalScale={3}
-              value={cantidad}
+              value={calculada ? calculada.cantidad : cantidad}
               onChange={setCantidad}
+              disabled={calculada !== null}
             />
             {/* En litros, la pesada pasa a kg con la densidad de la fórmula (calcular_lote). */}
             <SegmentedControl
-              value={unidad}
+              disabled={calculada !== null}
+              value={unidadFinal}
               onChange={(v) => setUnidad(v as 'kg' | 'L')}
               data={[
                 { label: 'kg', value: 'kg' },
@@ -522,16 +549,36 @@ export function ModalAbrirOrden({
             maxLength={5}
           />
         </Group>
-        {otro ? (
+        <Group grow align="flex-start">
           <NumberInput
-            label="Unidades a envasar (opcional)"
-            description="Si las cargás, la producción se suma a la planificación de ese día."
+            label="Cantidad por unidad"
+            description="Lo que lleva cada frasco"
+            min={0}
+            decimalSeparator=","
+            decimalScale={3}
+            value={pu.valor}
+            onChange={(v) => setPorUnidad({ ...pu, valor: v })}
+          />
+          <Select
+            label="Unidad"
+            data={UNIDADES_GRANEL.map((u) => u.value)}
+            value={pu.unidad}
+            onChange={(v) => v && setPorUnidad({ ...pu, unidad: v as UnidadGranel })}
+            allowDeselect={false}
+          />
+          <NumberInput
+            label="Unidades a producir"
+            description={
+              otro
+                ? 'Si las cargás, la producción se suma a la planificación de ese día.'
+                : 'Con la cantidad por unidad, calcula la teórica.'
+            }
             min={1}
             allowDecimal={false}
             value={unidades}
             onChange={setUnidades}
           />
-        ) : null}
+        </Group>
         <Text size="sm">
           Lote:{' '}
           <b>
@@ -553,7 +600,7 @@ export function ModalAbrirOrden({
               !producto ||
               !jornada ||
               !vencValido ||
-              n(cantidad) <= 0
+              cantidadFinal <= 0
             }
             onClick={() =>
               void (async () => {
@@ -584,8 +631,8 @@ export function ModalAbrirOrden({
                   partida: n(partida),
                   presentacion: n(presentacion),
                   presentacion_texto: presentacionTexto.trim() || null,
-                  cantidad_teorica: n(cantidad),
-                  unidad,
+                  cantidad_teorica: cantidadFinal,
+                  unidad: unidadFinal,
                   vencimiento: vencimientoISO(textoVenc),
                   especificacion_id: esDT ? especId : null,
                   pedidoId: pedidoId ?? elegido?.pedidoId ?? nueva ?? null,

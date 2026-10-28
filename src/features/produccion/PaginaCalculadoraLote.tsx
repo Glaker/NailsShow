@@ -422,6 +422,13 @@ export function PaginaCalculadoraLote() {
             descripcion="La calculadora dice cuánto pesar o medir de cada componente."
           />
         </Paper>
+      ) : formulaSeleccionada?.base_porcentaje === 'VV' ? (
+        /* D-consumo-orden-1: calculoLote.ts lee los % como masa. La pesada de
+           la orden (gmp.calcular_lote) sí sabe de V/V. */
+        <Alert color="azul" variant="light" radius="md">
+          Esta fórmula está en % V/V y la calculadora trabaja en % P/P. Abrí la orden de
+          producción: su pesada ya calcula cuánto medir de cada componente.
+        </Alert>
       ) : formulaCompleta.isLoading ? (
         <Skeleton h={240} />
       ) : !objetivo ? (

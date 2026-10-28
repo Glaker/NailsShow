@@ -924,10 +924,9 @@ los saldos no. Hace falta un conteo físico cargado como ajuste de inventario.
 
 ### Pedido del codirector técnico, sin hacer
 
-Cargar fórmulas en %V/V además de %P/P. Hoy `gmp.formula_componentes` tiene
-solo `porcentaje_pp` y la pantalla de fórmulas y la calculadora trabajan solo
-en masa; «se mide a volumen» cambia cómo se muestra la hoja de pesada, no cómo
-se interpreta el porcentaje.
+~~Cargar fórmulas en %V/V además de %P/P.~~ Hecho el 2026-10-28
+(`20261028120000`, D-consumo-orden-1): `gmp.formulas_fabricacion.base_porcentaje`
+dice cómo se lee `porcentaje_pp`, y `gmp.calcular_lote` lo respeta.
 
 ### Segunda tanda del mismo día: insumos faltantes, unidades y saldo provisorio
 

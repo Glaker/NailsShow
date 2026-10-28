@@ -1349,7 +1349,13 @@ export interface FormulaFabricacionRow {
   densidad_temp_c: number | null;
   rendimiento: number;
   estado: EstadoDocumento;
+  /** Cómo se leen los % de los componentes (D-consumo-orden-1). */
+  base_porcentaje: 'PP' | 'VV';
 }
+
+/** «% P/P» o «% V/V», según la fórmula. */
+export const textoPorcentaje = (base: 'PP' | 'VV' | undefined) =>
+  base === 'VV' ? '% V/V' : '% P/P';
 
 export interface DensidadReferenciaRow {
   id: string;
@@ -1444,7 +1450,7 @@ export function useFormulasFabricacion() {
         (FormulaFabricacionRow & { producto: { nombre: string } | null })[]
       >('formulas_fabricacion')
         .select(
-          'id, producto_id, variedad, codigo_me, version, densidad_producto, densidad_temp_c, rendimiento, estado, producto:productos(nombre)',
+          'id, producto_id, variedad, codigo_me, version, densidad_producto, densidad_temp_c, rendimiento, estado, base_porcentaje, producto:productos(nombre)',
         )
         .order('version', { ascending: false });
       if (error) throw error;
@@ -1643,6 +1649,7 @@ export function useActualizarFormula() {
         densidad_producto: number | null;
         densidad_temp_c: number | null;
         estado: EstadoDocumento;
+        base_porcentaje: 'PP' | 'VV';
       }>;
     }) => {
       const { data, error } = await tablaSinTipar<FormulaFabricacionRow>(

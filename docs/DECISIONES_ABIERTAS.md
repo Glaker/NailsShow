@@ -1047,6 +1047,26 @@ llevarlo a Berna es una transferencia.
 **Dónde está.** `20261027140000_comercial_venta_por_deposito.sql`,
 `VentasEsperandoFecha.tsx`, `PaginaVenta.tsx`, `Calle5.tsx`.
 
+### D-consumo-orden-1 · La orden descuenta la materia prima al terminarse — adoptada 2026-10-28
+
+**Decisión del codirector técnico.** Cada fórmula dice si sus porcentajes son
+% P/P o % V/V (los líquidos como el removedor van en V/V; se cambia solo en
+borrador). Al terminar una orden se descuenta del stock la materia prima que lleva
+**la cantidad teórica de esa orden** (la fórmula no tiene un total propio): 100 ml
+de removedor 50/50 → 50 ml de acetona y 50 ml de etanol. Sale de los lotes
+consumibles que vencen primero, como el envase y la etiqueta (R-06). Si la ficha
+del insumo está en otra magnitud (kg contra ml) se convierte con su densidad; si
+falta la densidad o no alcanza el stock, la orden no se termina y dice qué falta.
+Al abrir la orden, la cantidad teórica puede salir de cantidad por frasco
+(por defecto la del producto) × unidades.
+**Límites.** Se descuenta lo teórico, no lo pesado (la pesada guarda el lote como
+texto). Los componentes de nombre libre no se descuentan. Los productos de un
+tercerizado no descuentan por acá. Las órdenes terminadas antes no se descuentan
+hacia atrás.
+**Dónde está.** `20261028120000_consumo_mp_orden.sql` (`comercial.terminar_orden`,
+`comercial.orden_consumos`, `gmp.calcular_lote`), `PaginaFormula.tsx`,
+`PaginaOrdenes.tsx`.
+
 ### D-tareas-3 · Tareas con tipo, ubicación y notas — adoptada 2026-10-27
 
 **Decisión del codirector técnico.** Al mandar una tarea, Naza elige el tipo

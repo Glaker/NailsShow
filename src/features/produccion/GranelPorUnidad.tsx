@@ -56,12 +56,16 @@ function Formulario({
   productoId: string;
   producto:
     { contenido_neto: number | null; unidad_contenido: string | null } | undefined;
-  formula: { id: string; densidad_producto: number | null } | undefined;
+  formula:
+    | { id: string; densidad_producto: number | null; base_porcentaje: 'PP' | 'VV' }
+    | undefined;
 }) {
   const guardar = useCargarContenidoNeto();
   const actualizarFormula = useActualizarFormula();
+  const enVV = formula?.base_porcentaje === 'VV';
+  // El modelo de mezcla lee los % como masa: para una V/V no vale.
   const estimada = useDensidadEstimadaFormula(
-    formula && formula.densidad_producto == null ? formula.id : undefined,
+    formula && !enVV && formula.densidad_producto == null ? formula.id : undefined,
   );
 
   const [cantidad, setCantidad] = useState<number | string>(
@@ -73,9 +77,11 @@ function Formulario({
   const [densidad, setDensidad] = useState<number | string>('');
 
   const enVolumen = unidad === 'L' || unidad === 'ml';
+  // P/P se calcula en masa y V/V en volumen: la densidad hace falta al cruzar.
+  const cruza = enVV ? !enVolumen : enVolumen;
   const densidadConocida =
     formula?.densidad_producto ?? estimada.data?.densidad_real ?? null;
-  const pideDensidad = enVolumen && formula != null && densidadConocida == null;
+  const pideDensidad = cruza && formula != null && densidadConocida == null;
   const listo =
     typeof cantidad === 'number' &&
     cantidad > 0 &&
@@ -131,7 +137,7 @@ function Formulario({
           {pideDensidad ? (
             <NumberInput
               label="Densidad del granel (g/ml)"
-              description="La fórmula no la tiene: hace falta para pasar a kg."
+              description={`La fórmula no la tiene: hace falta para pasar a ${enVV ? 'litros' : 'kg'}.`}
               w={220}
               min={0}
               decimalSeparator=","
@@ -150,7 +156,7 @@ function Formulario({
             Guardar
           </Button>
         </Group>
-        {enVolumen && densidadConocida != null ? (
+        {cruza && densidadConocida != null ? (
           <Text size="xs" c="dimmed">
             Densidad del granel: {numero(densidadConocida, 3)} g/ml
             {formula?.densidad_producto == null ? ' (estimada por la fórmula)' : ''}.
