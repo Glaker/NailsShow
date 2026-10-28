@@ -1047,6 +1047,65 @@ llevarlo a Berna es una transferencia.
 **Dónde está.** `20261027140000_comercial_venta_por_deposito.sql`,
 `VentasEsperandoFecha.tsx`, `PaginaVenta.tsx`, `Calle5.tsx`.
 
+### D-consumo-orden-1 · La orden descuenta la materia prima al terminarse — adoptada 2026-10-28
+
+**Decisión del codirector técnico.** Cada fórmula dice si sus porcentajes son
+% P/P o % V/V (los líquidos como el removedor van en V/V; se cambia solo en
+borrador). Al terminar una orden se descuenta del stock la materia prima que lleva
+**la cantidad teórica de esa orden** (la fórmula no tiene un total propio): 100 ml
+de removedor 50/50 → 50 ml de acetona y 50 ml de etanol. Sale de los lotes
+consumibles que vencen primero, como el envase y la etiqueta (R-06). Si la ficha
+del insumo está en otra magnitud (kg contra ml) se convierte con su densidad; si
+falta la densidad o no alcanza el stock, la orden no se termina y dice qué falta.
+Al abrir la orden, la cantidad teórica puede salir de cantidad por frasco
+(por defecto la del producto) × unidades.
+**Límites.** Se descuenta lo teórico, no lo pesado (la pesada guarda el lote como
+texto). Los componentes de nombre libre no se descuentan. Los productos de un
+tercerizado no descuentan por acá. Las órdenes terminadas antes no se descuentan
+hacia atrás.
+**Dónde está.** `20261028120000_consumo_mp_orden.sql` (`comercial.terminar_orden`,
+`comercial.orden_consumos`, `gmp.calcular_lote`), `PaginaFormula.tsx`,
+`PaginaOrdenes.tsx`.
+
+### D-hermanos-1 · Productos hermanos: un granel, varias presentaciones — adoptada 2026-10-28
+
+**Decisión del codirector técnico.** Gerencia de Producción marca como hermanos
+los productos que se envasan del mismo granel (sanitizante de 1 L y de 250 ml),
+en «Qué lleva cada producto». Al terminar la orden de uno, carga cuántas unidades
+salieron de cada hermano; todas entran a la fábrica con el lote de esa orden y se
+liberan con ella (RN-51). Lo que ya entró se puede repartir de nuevo entre los
+hermanos («salieron 300 de 100 ml y el resto de 200 ml»), con motivo: queda como
+un ajuste de salida y uno de entrada del mismo lote (RN-54).
+**Límites.** El reparto corrige de cuál hermano son, no cuántas: el total del lote
+en la fábrica no cambia. Solo lo que sigue en la fábrica (PTF): lo que ya se
+mandó a Calle 5 o Berna, o se vendió, no se toca. Lo corrige Gerencia de
+Producción (es la que tiene el permiso de ajustar stock de producto terminado).
+«En fábrica para el pedido» (`v_pendientes_despacho`) sigue contando las entradas
+de producción y no los ajustes: después de un reparto puede mostrar de más.
+**Dónde está.** `20261028130000_productos_hermanos.sql`, `Hermanos.tsx`,
+`PaginaOrden.tsx`, `TareasCarga.tsx`.
+
+### D-tandas-1 · Envasado por días de un mismo granel — adoptada 2026-10-28
+
+**Decisión** (pedido del 2026-10-28, opciones elegidas): con el granel aprobado por
+Calidad (R.50.10.1, o «no aplica»), lo que salió lo carga **solo Gerencia de
+Producción**, no la DT. Puede cargar por días (tandas: «hoy salieron 200, quedan
+700») o todo de una vez; marca «Con esto termina la orden» para cerrarla. Es el
+**mismo lote** de la orden: las tandas quedan en el batch record con fecha,
+unidades por producto (hermanos incluidos) y quién cargó, y la DT libera una vez.
+Cada tanda entra a la fábrica (retenida) y descuenta **ese día** envase, etiqueta y
+lo demás de la lista de materiales; primero usa los envases ya etiquetados. La
+materia prima del granel se descuenta una sola vez, con la primera tanda.
+**Para no descontar dos veces.** El «Terminado» del pedido resta lo que envasaron
+las tandas de su orden, y no se puede hacer mientras la orden se sigue envasando.
+Una orden cuyo pedido ya se terminó no recibe tandas.
+**Límites.** «Pendientes» se ve solo si al abrir la orden se cargaron las unidades a
+producir. El cierre por la vía de `gmp.terminar_orden` directa sigue abierto a DT
+desde la base (la pantalla no lo ofrece). Si un pedido va a Calle 5, lo envasado
+entra a la fábrica y hay que mandarlo con «Enviar a otro depósito».
+**Dónde está.** `20261028140000_tandas_envasado.sql`, `Tandas.tsx`, `PaginaOrden.tsx`,
+`BatchRecord.tsx`.
+
 ### D-remito-1 · Remito de lo que sale de un depósito — provisoria 2026-10-28
 
 **Decisión** (pedido del 2026-10-28): al enviar a otro depósito (p. ej. Berna) y en

@@ -849,6 +849,20 @@ export function aContenido(cantidad: number, unidad: UnidadGranel) {
   return { contenido_neto: cantidad * u.factor, unidad_contenido: u.base };
 }
 
+/**
+ * Cantidad teórica de una orden por frasco × unidades (pedido del
+ * 2026-10-28): en kg si va en masa, en L si va en volumen, a 3 decimales
+ * como gmp.ordenes_produccion.cantidad_teorica. Null si falta un dato.
+ */
+export function totalOrden(porUnidad: number, unidad: UnidadGranel, unidades: number) {
+  if (!(porUnidad > 0) || !(unidades > 0)) return null;
+  const c = aContenido(porUnidad, unidad);
+  return {
+    cantidad: Math.round(c.contenido_neto * unidades) / 1000,
+    unidad: c.unidad_contenido === 'g' ? ('kg' as const) : ('L' as const),
+  };
+}
+
 /** Contenido neto por unidad: dato de rótulo, en gmp.productos. */
 export function useCargarContenidoNeto() {
   const qc = useQueryClient();

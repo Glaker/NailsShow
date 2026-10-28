@@ -14,6 +14,7 @@ import {
   Modal,
   NumberInput,
   Paper,
+  SegmentedControl,
   Select,
   Skeleton,
   Stack,
@@ -37,6 +38,7 @@ import {
   useEliminarComponenteFormula,
   useFormulaCompleta,
   useFormulasFabricacion,
+  textoPorcentaje,
   useInsumos,
   type FormulaComponenteRow,
   type FormulaFabricacionRow,
@@ -93,11 +95,13 @@ function FormularioComponente({
   formulaId,
   proximoOrden,
   hayCsp,
+  etiquetaPct,
   onListo,
 }: {
   formulaId: string;
   proximoOrden: number;
   hayCsp: boolean;
+  etiquetaPct: string;
   onListo: () => void;
 }) {
   const insumos = useInsumos();
@@ -239,7 +243,7 @@ function FormularioComponente({
           </Grid.Col>
           <Grid.Col span={{ base: 12, sm: 6 }}>
             <NumberInput
-              label="% P/P"
+              label={etiquetaPct}
               disabled={form.values.es_csp}
               placeholder={form.values.es_csp ? 'Se calcula por diferencia' : undefined}
               min={0}
@@ -716,6 +720,29 @@ export function PaginaFormula({ formulaId: embebida }: { formulaId?: string } = 
         </Alert>
       ) : null}
 
+      {/* D-consumo-orden-1: los líquidos como el removedor van en volumen; al
+          terminar la orden se descuenta de stock según esto. */}
+      <Group gap="sm" mb="md" align="center">
+        <Text size="sm" fw={600}>
+          Porcentajes en
+        </Text>
+        <SegmentedControl
+          size="md"
+          value={f.base_porcentaje ?? 'PP'}
+          disabled={!editableBorrador || actualizar.isPending}
+          onChange={(v) =>
+            actualizar.mutate({
+              id: f.id,
+              cambios: { base_porcentaje: v as 'PP' | 'VV' },
+            })
+          }
+          data={[
+            { value: 'PP', label: '% P/P (masa)' },
+            { value: 'VV', label: '% V/V (volumen)' },
+          ]}
+        />
+      </Group>
+
       <PanelDensidadProducto
         key={f.id}
         formula={f}
@@ -737,7 +764,7 @@ export function PaginaFormula({ formulaId: embebida }: { formulaId?: string } = 
             <Table.Thead>
               <Table.Tr>
                 <Table.Th>Componente</Table.Th>
-                <Table.Th ta="right">% P/P</Table.Th>
+                <Table.Th ta="right">{textoPorcentaje(f.base_porcentaje)}</Table.Th>
                 <Table.Th>Se mide a</Table.Th>
                 <Table.Th>Etapa</Table.Th>
                 {editableBorrador ? <Table.Th w={48} /> : null}
@@ -834,6 +861,7 @@ export function PaginaFormula({ formulaId: embebida }: { formulaId?: string } = 
             formulaId={formulaId}
             proximoOrden={proximoOrden}
             hayCsp={hayCsp}
+            etiquetaPct={textoPorcentaje(f.base_porcentaje)}
             onListo={() => {}}
           />
         </Paper>
