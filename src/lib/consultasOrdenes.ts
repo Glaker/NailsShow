@@ -507,13 +507,23 @@ export function useControlarEtapa() {
 export function useTerminarOrden() {
   const inv = useInvalidarOrden();
   return useMutation({
-    mutationFn: async (t: { id: string; cantidad: number; unidades: number }) => {
+    mutationFn: async (t: {
+      id: string;
+      cantidad: number;
+      unidades: number;
+      /** D-hermanos-1: cuántas de cada hermano; sin él, todas del producto. */
+      reparto?: { producto_id: string; unidades: number }[];
+    }) => {
       // 20261022150100: la de comercial termina la orden y carga lo obtenido en PTF.
-      const { error } = await comercial().rpc('terminar_orden', {
-        p_id: t.id,
-        p_cantidad: t.cantidad,
-        p_unidades: t.unidades,
-      });
+      const { error } = await (comercial() as unknown as SupabaseClient).rpc(
+        'terminar_orden',
+        {
+          p_id: t.id,
+          p_cantidad: t.cantidad,
+          p_unidades: t.unidades,
+          ...(t.reparto ? { p_reparto: t.reparto } : {}),
+        },
+      );
       if (error) throw error;
     },
     onSuccess: (_d, v) => {
