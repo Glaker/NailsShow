@@ -1116,6 +1116,19 @@ entra a la fábrica y hay que mandarlo con «Enviar a otro depósito».
 **Dónde está.** `20261028140000_tandas_envasado.sql`, `Tandas.tsx`, `PaginaOrden.tsx`,
 `BatchRecord.tsx`.
 
+### D-cotiza-dt-1 · Dirección Técnica también cotiza — adoptada 2026-10-29
+
+**Decisión del codirector técnico.** Dirección Técnica cotiza como Gerencia de
+Producción (D-52): crea, edita y emite sus cotizaciones y ve solo las suyas. Los
+componentes pueden ser insumos del catálogo con su costo, o un nombre y un precio
+escritos a mano; esos componentes son de uso interno. El PDF del cliente dice solo
+producto, cantidad, precio unitario y total.
+**Alcance.** Para costear, la DT lee los costos que usa el cotizador (costo de
+referencia, lotes, estimados, accesorios, parámetros de costo, tipo de cambio):
+amplía D-38. No ve el menú de Costos, Resultado ni Eficiencia.
+**Dónde está.** `20261029130000_dt_cotiza.sql`, `consultasCotizador.ts`,
+`navegacion.ts`.
+
 ### D-remito-1 · Remito de lo que sale de un depósito — provisoria 2026-10-28
 
 **Decisión** (pedido del 2026-10-28): al enviar a otro depósito (p. ej. Berna) y en
