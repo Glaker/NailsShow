@@ -4,6 +4,11 @@ import type { FotoCotizacion } from '@/lib/consultasCotizador';
 
 const pesos = (v: number | null | undefined, d = 2) =>
   v === null || v === undefined ? '—' : `$ ${numero(v, d)}`;
+/** Hasta `max` decimales, sin ceros de más: 88,5 y no 88,500. */
+const corto = (v: number, min: number, max: number) => {
+  const dec = (String(Number(v.toFixed(max))).split('.')[1] ?? '').length;
+  return numero(v, Math.max(min, dec));
+};
 const pct = (v: number | null | undefined) =>
   v === null || v === undefined ? '—' : `${numero(v * 100, 1)} %`;
 
@@ -52,15 +57,17 @@ export function DetalleCostosPdf({ foto }: { foto: FotoCotizacion }) {
           {lineas.map((l) => (
             <Table.Tr key={l.orden}>
               <Table.Td>{l.nombre}</Table.Td>
-              <Table.Td ta="right">
-                {numero(l.cantidad, l.cantidad % 1 ? 3 : 0)} {etiquetaUnidad(l.unidad)}
+              <Table.Td ta="right" style={{ whiteSpace: 'nowrap' }}>
+                {corto(l.cantidad, 0, 3)} {etiquetaUnidad(l.unidad)}
               </Table.Td>
-              <Table.Td ta="right">
-                {pesos(l.precio_base, 4)}
+              <Table.Td ta="right" style={{ whiteSpace: 'nowrap' }}>
+                {l.precio_base === null ? '—' : `$ ${corto(l.precio_base, 2, 4)}`}
                 {l.unidad_base ? ` / ${etiquetaUnidad(l.unidad_base)}` : ''}
               </Table.Td>
               <Table.Td ta="right">{l.merma ? pct(l.merma) : '—'}</Table.Td>
-              <Table.Td ta="right">{pesos(l.subtotal)}</Table.Td>
+              <Table.Td ta="right" style={{ whiteSpace: 'nowrap' }}>
+                {pesos(l.subtotal)}
+              </Table.Td>
             </Table.Tr>
           ))}
         </Table.Tbody>

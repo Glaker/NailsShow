@@ -246,6 +246,16 @@ textarea {
     background: #fff;
   }
 
+  /* Una animación con filter o transform (entrada-pagina) hace que el
+     navegador imprima ese bloque como imagen y el texto sale pixelado. */
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    filter: none !important;
+  }
+
   .no-imprimir {
     display: none !important;
   }
