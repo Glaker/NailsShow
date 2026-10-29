@@ -4,6 +4,7 @@ import { MantineProvider } from '@mantine/core';
 import { theme } from '@/app/theme';
 import type { FotoCotizacion } from '@/lib/consultasCotizador';
 import { CotizacionPdf } from './CotizacionPdf';
+import { DetalleCostosPdf } from './DetalleCostosPdf';
 
 // Una foto completa, como la guarda emitir_cotizacion: con costos y márgenes
 // AFUERA del bloque pdf. Nada de eso puede aparecer en la hoja.
@@ -13,7 +14,22 @@ const foto = {
   margen_sobre_precio: 0.3004,
   recargo_sobre_costo: 0.4295,
   mano_de_obra: 200,
-  lineas: [{ nombre: 'Óxido de zinc (ZnO)', subtotal: 119.01 }],
+  costo_materiales: 256.81,
+  costo_hora: 6000,
+  minutos_por_unidad: 2,
+  lineas: [
+    {
+      orden: 1,
+      tipo: 'NUEVO',
+      nombre: 'Óxido de zinc (ZnO)',
+      cantidad: 6,
+      unidad: 'g',
+      precio_base: 19.8347,
+      unidad_base: 'g',
+      merma: 0,
+      subtotal: 119.01,
+    },
+  ],
   pdf: {
     numero: 7,
     anio: 2026,
@@ -32,7 +48,7 @@ const foto = {
     observaciones: 'Entrega a 15 días.',
     emitida_por: 'Nazarena Bakás',
   },
-} as FotoCotizacion & { lineas: unknown[] };
+} as FotoCotizacion;
 
 const hoja = (marcaPractica = false) =>
   render(
@@ -76,5 +92,28 @@ describe('PDF de la cotización', () => {
   });
   it('en la base de práctica lleva la marca PRÁCTICA', () => {
     expect(hoja(true)).toContain('PRÁCTICA');
+  });
+});
+
+describe('PDF interno de la cotización (con costos)', () => {
+  const interna = () =>
+    render(
+      <MantineProvider theme={theme}>
+        <CotizacionPdf datos={foto.pdf} marcaPractica={false} interna />
+        <DetalleCostosPdf foto={foto} />
+      </MantineProvider>,
+    ).container.textContent ?? '';
+  it('lleva la marca USO INTERNO y el detalle de costos', () => {
+    const t = interna();
+    for (const v of [
+      'USO INTERNO',
+      'Detalle de costos',
+      'Óxido de zinc (ZnO)',
+      '119,01',
+      'Mano de obra',
+      '456,81',
+      '30,0 %',
+    ])
+      expect(t).toContain(v);
   });
 });

@@ -12,9 +12,12 @@ import type { DatosPdf } from '@/lib/consultasCotizador';
 export function CotizacionPdf({
   datos,
   marcaPractica = MODO_PRACTICA,
+  interna = false,
 }: {
   datos: DatosPdf;
   marcaPractica?: boolean;
+  /** La hoja interna (con el detalle de costos abajo): lleva «USO INTERNO». */
+  interna?: boolean;
 }) {
   const pesos = (v: number) => `$ ${numero(v, 2)}`;
   const contenido =
@@ -35,7 +38,7 @@ export function CotizacionPdf({
       c="black"
       style={{ position: 'relative' }}
     >
-      {marcaPractica || datos.destino === 'INTERNO' ? (
+      {marcaPractica || interna || datos.destino === 'INTERNO' ? (
         <Text
           aria-hidden="true"
           style={{
