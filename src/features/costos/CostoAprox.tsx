@@ -9,9 +9,9 @@ import { etiquetaUnidad, numero } from '@/lib/formato';
 import { ORIGEN_PRECIO } from './comun';
 
 /**
- * Costo aproximado de un insumo, opcional (D-costo-estimado-1). Si ya tiene
- * costo de Finanzas o de una compra, solo lo muestra: un estimado no lo pisa.
- * Se carga como se compra: «$ 85.000 por 20 l».
+ * Costo de un insumo que carga Gerencia de Producción, como se compra:
+ * «$ 85.000 por 20 l». Es el que manda sobre Finanzas y las compras, y se
+ * cambia cuando haga falta: vale el último (D-costo-naza-1, 20261029140000).
  */
 export function CostoAprox({
   insumoId,
@@ -31,21 +31,19 @@ export function CostoAprox({
     unidad && UNIDADES_COSTO.includes(unidad) ? unidad : 'UNIDAD',
   );
   const ref = (referencias.data ?? []).find((r) => r.insumo_id === insumoId);
-  const firme = ref?.costo_unitario_ars != null && ref.origen !== 'ESTIMADO';
-
-  if (firme || (ref?.origen === 'ESTIMADO' && !abierto)) {
+  if (ref?.costo_unitario_ars != null && !abierto) {
     return (
       <Group gap="xs" pl={sangria}>
         <Text size="xs" c="dimmed">
-          {firme ? 'Costo' : 'Costo aprox.'}: $ {numero(ref.costo_unitario_ars, 2)} por{' '}
+          Costo: $ {numero(ref.costo_unitario_ars, 2)} por{' '}
           {etiquetaUnidad(ref.unidad_medida ?? 'UNIDAD')}
-          {firme ? ` (${ORIGEN_PRECIO[ref.origen ?? '']?.label ?? ''})` : ''}
+          {ref.origen !== 'ESTIMADO'
+            ? ` (${ORIGEN_PRECIO[ref.origen ?? '']?.label ?? ''})`
+            : ''}
         </Text>
-        {!firme ? (
-          <Button size="compact-xs" variant="subtle" onClick={() => setAbierto(true)}>
-            Cambiar
-          </Button>
-        ) : null}
+        <Button size="compact-xs" variant="subtle" onClick={() => setAbierto(true)}>
+          Cambiar
+        </Button>
       </Group>
     );
   }
@@ -53,7 +51,7 @@ export function CostoAprox({
     return (
       <Group pl={sangria}>
         <Button size="compact-xs" variant="subtle" onClick={() => setAbierto(true)}>
-          + Costo aproximado (opcional)
+          + Costo
         </Button>
       </Group>
     );

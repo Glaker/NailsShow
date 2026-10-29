@@ -1,5 +1,5 @@
-// Costo estimado de Gerencia de Producción (20261021140000): llena el hueco,
-// nunca le gana a Finanzas ni a una compra.
+// Precio de Gerencia de Producción (20261021140000). Desde 20261029140000
+// (D-costo-naza-1) es el que manda: le gana a Finanzas y a las compras.
 import { banco } from './lib.mjs';
 const { uno, q, prueba, rechaza, como, usuario, fin, invariantes } = await banco();
 await usuario('naza@x', 'GERENCIA_PRODUCCION');
@@ -21,7 +21,7 @@ await prueba('sin nada cargado no hay costo', async () => {
   if (r.costo_unitario_ars !== null) throw new Error(JSON.stringify(r));
 });
 await prueba(
-  'el tacho de 20 l a $ 85.000 da $ 4,25 el ml, estimado y provisorio',
+  'el tacho de 20 l a $ 85.000 da $ 4,25 el ml, y no es provisorio',
   async () => {
     await q(
       `insert into comercial.costos_estimados (insumo_id, importe, cantidad, unidad) values ($1, 85000, 20, 'l')`,
@@ -31,7 +31,7 @@ await prueba(
     if (
       Number(r.costo_unitario_ars) !== 4.25 ||
       r.origen !== 'ESTIMADO' ||
-      !r.desactualizado
+      r.desactualizado
     )
       throw new Error(JSON.stringify(r));
   },
@@ -51,16 +51,28 @@ await rechaza(
   /row-level security|policy/i,
 );
 await como('fin@x');
-await prueba('el precio de Finanzas le gana al estimado', async () => {
+await prueba('el precio de Naza le gana al de Finanzas', async () => {
   await q(
     `insert into comercial.costos_referencia (insumo_id, importe, incluye_iva, cantidad, unidad) values ($1, 60000, false, 20, 'l')`,
     [alcohol],
   );
   const r = await ref();
-  if (Number(r.costo_unitario_ars) !== 3 || r.origen !== 'MANUAL' || r.desactualizado)
+  if (
+    Number(r.costo_unitario_ars) !== 5 ||
+    r.origen !== 'ESTIMADO' ||
+    Number(r.costo_manual) !== 3
+  )
     throw new Error(JSON.stringify(r));
 });
 await como('naza@x');
+await prueba('Naza lo vuelve a cambiar y vale el último', async () => {
+  await q(
+    `insert into comercial.costos_estimados (insumo_id, importe, cantidad, unidad) values ($1, 120000, 20, 'l')`,
+    [alcohol],
+  );
+  if (Number((await ref()).costo_unitario_ars) !== 6)
+    throw new Error('no tomó el último');
+});
 await rechaza(
   'un estimado no se edita',
   `update comercial.costos_estimados set importe = 1 where insumo_id = '${alcohol}' returning id`,

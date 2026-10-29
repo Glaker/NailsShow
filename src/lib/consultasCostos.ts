@@ -116,7 +116,7 @@ export function comprobanteDeRecepcion(
 // Filas (puente, ver arriba)
 // ---------------------------------------------------------------------------
 
-/** ESTIMADO: lo aproximó Gerencia de Producción; vale último (20261021140000). */
+/** ESTIMADO: el precio de Gerencia de Producción; manda (20261029140000). */
 export type OrigenReferencia = 'MANUAL' | 'ULTIMO_LOTE' | 'APERTURA' | 'ESTIMADO';
 
 export interface CostoReferencia {
