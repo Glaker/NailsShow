@@ -84,12 +84,29 @@ export interface DatosPdf {
   emitida_por: string | null;
 }
 
+/** Un componente como lo costeó la base al emitir (comercial.costear_cotizacion). */
+export interface LineaFoto {
+  orden: number;
+  tipo: string;
+  nombre: string;
+  cantidad: number;
+  unidad: string;
+  precio_base: number | null;
+  unidad_base: string | null;
+  merma: number;
+  subtotal: number | null;
+}
+
 export interface FotoCotizacion {
   costo_unitario: number;
   precio_unitario: number;
   margen_sobre_precio: number;
   recargo_sobre_costo: number | null;
   mano_de_obra: number;
+  costo_materiales?: number;
+  costo_hora?: number | null;
+  minutos_por_unidad?: number | null;
+  lineas?: LineaFoto[];
   pdf: DatosPdf;
 }
 

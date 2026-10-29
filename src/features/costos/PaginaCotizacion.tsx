@@ -115,6 +115,14 @@ export function PaginaCotizacion() {
                   PDF para el cliente
                 </Button>
                 <Button
+                  component={Link}
+                  to={`/cotizaciones/${c.id}/pdf?interno=1`}
+                  variant="default"
+                  leftSection={<IconFileTypePdf size={18} />}
+                >
+                  PDF interno (con costos)
+                </Button>
+                <Button
                   variant="default"
                   leftSection={<IconCopy size={18} />}
                   loading={duplicar.isPending}
