@@ -1116,6 +1116,20 @@ entra a la fábrica y hay que mandarlo con «Enviar a otro depósito».
 **Dónde está.** `20261028140000_tandas_envasado.sql`, `Tandas.tsx`, `PaginaOrden.tsx`,
 `BatchRecord.tsx`.
 
+### D-costo-naza-1 · El costo del insumo es el que carga Gerencia de Producción — adoptada 2026-10-29
+
+**Decisión del codirector técnico.** El costo de un insumo es siempre el último
+precio que cargó Gerencia de Producción (desde el catálogo de insumos, Tareas de
+carga o la fórmula), aunque tenga costo de Finanzas, de una compra o de la
+apertura. Cada carga nueva lo reemplaza y ya no se marca como estimado ni
+provisorio. Sin precio de Gerencia de Producción sigue el orden de antes
+(Finanzas, último lote, apertura). Cambia la prioridad de D-38 y de
+D-costo-estimado-1.
+**Alcance.** Es el costo de referencia: lo usan el costo de los productos, el
+cotizador y los avisos. El costo real de cada lote comprado (costos_lote) no
+cambia. Cada precio queda registrado con quién y cuándo (RN-50).
+**Dónde está.** `20261029140000_costo_naza_manda.sql`, `CostoAprox.tsx`.
+
 ### D-cotiza-dt-1 · Dirección Técnica también cotiza — adoptada 2026-10-29
 
 **Decisión del codirector técnico.** Dirección Técnica cotiza como Gerencia de

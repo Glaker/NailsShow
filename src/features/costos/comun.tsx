@@ -17,7 +17,8 @@ export const ORIGEN_PRECIO: Record<string, { label: string; color: string }> = {
   MANUAL: { label: 'Finanzas', color: 'blue' },
   ULTIMO_LOTE: { label: 'Último lote', color: 'green' },
   APERTURA: { label: 'Apertura', color: 'gray' },
-  ESTIMADO: { label: 'Estimado (planta)', color: 'orange' },
+  // El precio de Gerencia de Producción: manda (D-costo-naza-1).
+  ESTIMADO: { label: 'Gerencia de Producción', color: 'teal' },
   COSTO_HORA: { label: 'Costo hora', color: 'violet' },
 };
 
