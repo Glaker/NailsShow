@@ -358,5 +358,30 @@ await prueba('una solicitud nace pendiente aunque se mande atendida', async () =
   if (!/permission|privilegi/.test(err ?? '')) throw new Error('no rechazó: ' + err);
 });
 
+// 20261029130000: Dirección Técnica también cotiza (D-cotiza-dt-1).
+await usuario('dt2@x', 'DIRECCION_TECNICA');
+await como('dt@x');
+let cotDt;
+await prueba('la DT cotiza con un componente a mano y la emite', async () => {
+  cotDt = await nueva({ titulo: 'Cotización de la DT' });
+  await q(
+    `insert into comercial.cotizacion_lineas (cotizacion_id, orden, tipo, nombre, cantidad, unidad, precio, cantidad_presentacion, unidad_presentacion, incluye_iva)
+         values ($1, 1, 'NUEVO', 'Extracto que pongo yo', 5, 'g', 1000, 100, 'g', false)`,
+    [cotDt],
+  );
+  const n = await uno(`select comercial.emitir_cotizacion($1) n`, [cotDt]);
+  if (!(N(n.n) > 0)) throw new Error(JSON.stringify(n));
+});
+await prueba('la DT lee los costos que usa el cotizador', async () => {
+  await q(`select * from comercial.v_costo_referencia limit 1`);
+  const p = await uno(`select costo_hora from comercial.v_parametros_costo`);
+  if (N(p.costo_hora) !== 6000) throw new Error(JSON.stringify(p));
+});
+await prueba('otra cuenta de DT no ve la cotización ajena', async () => {
+  await como('dt2@x');
+  const r = await q(`select id from comercial.cotizaciones where id = $1`, [cotDt]);
+  if (r.length !== 0) throw new Error('la ve');
+});
+
 await invariantes();
 fin();

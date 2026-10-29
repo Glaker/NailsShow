@@ -292,7 +292,7 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiqueta: 'Cotizaciones',
     etiquetaCorta: 'Cotizar',
     icono: IconCalculator,
-    roles: [FINANZAS, 'GERENCIA', 'GERENCIA_PRODUCCION'],
+    roles: [FINANZAS, 'GERENCIA', 'GERENCIA_PRODUCCION', 'DIRECCION_TECNICA'],
   },
   {
     // Vista de gerencia: pocos números, grandes (Fase 5 de costos).

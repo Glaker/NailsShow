@@ -260,7 +260,8 @@
       "roles": [
         "FINANZAS",
         "GERENCIA",
-        "GERENCIA_PRODUCCION"
+        "GERENCIA_PRODUCCION",
+        "DIRECCION_TECNICA"
       ],
       "queEs": "El historial de cotizaciones. Desde acá armás una nueva, abrís una existente o buscás una emitida. La lista está dividida en «Para clientes» y «Uso interno», y cada fila muestra número, fecha, producto, para quién es, precio unitario, margen, estado (Borrador, Emitida o Anulada), vencimiento y quién la emitió. Los datos salen de las cotizaciones que se arman en el editor; una vez emitidas quedan congeladas."
     },

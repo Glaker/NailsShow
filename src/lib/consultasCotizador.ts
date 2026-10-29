@@ -12,7 +12,13 @@ import type { ModoMargen, TipoLinea } from './cotizador';
 
 const c = () => (supabase as unknown as SupabaseClient).schema('comercial');
 
-export const ROLES_COTIZAN: Rol[] = [FINANZAS, 'GERENCIA', 'GERENCIA_PRODUCCION'];
+/* DIRECCION_TECNICA desde 20261029130000 (D-cotiza-dt-1). */
+export const ROLES_COTIZAN: Rol[] = [
+  FINANZAS,
+  'GERENCIA',
+  'GERENCIA_PRODUCCION',
+  'DIRECCION_TECNICA',
+];
 
 export type EstadoCotizacion = 'BORRADOR' | 'EMITIDA' | 'ANULADA';
 export type DestinoCotizacion = 'CLIENTE' | 'POTENCIAL' | 'INTERNO';
