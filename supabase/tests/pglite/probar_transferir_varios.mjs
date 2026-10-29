@@ -3,9 +3,9 @@ import { banco } from './lib.mjs';
 const { q, uno, prueba, rechaza, como, usuario, fin, invariantes } = await banco();
 await usuario('naza@x', 'GERENCIA_PRODUCCION');
 await como('naza@x');
-const [a, b] = (await q(`select id from gmp.productos order by codigo_interno limit 2`)).map(
-  (r) => r.id,
-);
+const [a, b] = (
+  await q(`select id from gmp.productos order by codigo_interno limit 2`)
+).map((r) => r.id);
 const PTF = (await uno(`select id from gmp.depositos where numero='PTF'`)).id;
 for (const p of [a, b])
   await q(
@@ -33,7 +33,8 @@ await rechaza(
   /No alcanza/,
 );
 await prueba('…y el primero sigue en la fábrica', async () => {
-  if ((await en('PTF', a)) !== 10 || (await en('BER', a)) !== 0) throw new Error('se movió');
+  if ((await en('PTF', a)) !== 10 || (await en('BER', a)) !== 0)
+    throw new Error('se movió');
 });
 await rechaza(
   'un producto repetido se rechaza',
@@ -51,7 +52,11 @@ await prueba('los dos llegan a Berna', async () => {
       { producto_id: b, cantidad: 6 },
     ]),
   );
-  if ((await en('BER', a)) !== 4 || (await en('BER', b)) !== 6 || (await en('PTF', b)) !== 4)
+  if (
+    (await en('BER', a)) !== 4 ||
+    (await en('BER', b)) !== 6 ||
+    (await en('PTF', b)) !== 4
+  )
     throw new Error('no llegó');
 });
 await invariantes();

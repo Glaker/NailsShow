@@ -30,15 +30,30 @@ if (!archivo || !salida) {
 const buf = readFileSync(archivo);
 const sha = createHash('sha256').update(buf).digest('hex');
 const wb = XLSX.read(buf);
-const hoja = (n) => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '' }).slice(1);
+const hoja = (n) =>
+  XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '' }).slice(1);
 
-const txt = (v) => String(v ?? '').replace(/\s+/g, ' ').trim();
+const txt = (v) =>
+  String(v ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
 const sql = (v) => (v ? `'${v.replace(/'/g, "''")}'` : 'null');
 const notas = (...partes) => partes.filter(Boolean).join(' · ') || null;
 
 const filas = [];
 for (const f of hoja('Proveedores')) {
-  const [razon, cuitBruto, domicilio, telefono, email, web, enSistema, origen, fuente, obs] = f.map(txt);
+  const [
+    razon,
+    cuitBruto,
+    domicilio,
+    telefono,
+    email,
+    web,
+    enSistema,
+    origen,
+    fuente,
+    obs,
+  ] = f.map(txt);
   if (!razon) continue;
   const digitos = cuitBruto.replace(/\D/g, '');
   const cuit = digitos.length === 11 ? digitos : null;
@@ -50,7 +65,9 @@ for (const f of hoja('Proveedores')) {
     telefono,
     email,
     obs: notas(
-      enSistema && enSistema.toUpperCase() !== razon.toUpperCase() ? `En el sistema anterior: ${enSistema}` : null,
+      enSistema && enSistema.toUpperCase() !== razon.toUpperCase()
+        ? `En el sistema anterior: ${enSistema}`
+        : null,
       origen ? `Listados: ${origen}` : null,
       web ? `Web: ${web}` : null,
       fuente ? `Fuente: ${fuente}` : null,

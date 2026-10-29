@@ -288,7 +288,12 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
         onSuccess: () => {
           // Una venta lleva remito: se abre solo, con todo lo que salió.
           if (tipo === 'SALIDA_VENTA')
-            setRemito({ clave: Date.now(), motivo: 'SALIDA', receptor: '', renglones: listos });
+            setRemito({
+              clave: Date.now(),
+              motivo: 'SALIDA',
+              receptor: '',
+              renglones: listos,
+            });
           setAbierto(false);
           setRenglones([renglonVacio()]);
           setMotivo('');
@@ -698,8 +703,8 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
             conLote
           />
           <Text size="sm" c="dimmed">
-            Cantidades en positivo: el signo lo pone el sistema. El lote es el que figura en
-            el envase y permite alcanzar la mercadería en un retiro.
+            Cantidades en positivo: el signo lo pone el sistema. El lote es el que figura
+            en el envase y permite alcanzar la mercadería en un retiro.
             {tipo === 'SALIDA_VENTA' ? ' Al registrar se abre el remito con todo.' : ''}
           </Text>
 
@@ -812,7 +817,8 @@ function RenglonesPt({
             nothingFoundMessage={sinOpciones}
             // Un producto va una sola vez: los ya elegidos no se ofrecen en otro renglón.
             data={opciones.filter(
-              (o) => o.value === f.productoId || !filas.some((x) => x.productoId === o.value),
+              (o) =>
+                o.value === f.productoId || !filas.some((x) => x.productoId === o.value),
             )}
             value={f.productoId}
             onChange={(v) => cambiar(f.clave, { productoId: v })}
@@ -826,7 +832,9 @@ function RenglonesPt({
             allowDecimal={false}
             hideControls
             value={f.cantidad}
-            onChange={(v) => cambiar(f.clave, { cantidad: typeof v === 'number' ? v : '' })}
+            onChange={(v) =>
+              cambiar(f.clave, { cantidad: typeof v === 'number' ? v : '' })
+            }
           />
           {conLote ? (
             <TextInput

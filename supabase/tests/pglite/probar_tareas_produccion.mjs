@@ -167,10 +167,17 @@ let despues;
 await como('agus@x');
 await prueba('siguen con el mismo grupo', async () => {
   despues = (await uno(`select gmp.reanudar_tarea($1) id`, [t3])).id;
-  const g = await q(`select usuario_id from gmp.tramo_participantes where tramo_id = $1 and hasta is null`, [despues]);
+  const g = await q(
+    `select usuario_id from gmp.tramo_participantes where tramo_id = $1 and hasta is null`,
+    [despues],
+  );
   if (g.length !== 2) throw new Error(JSON.stringify(g));
 });
-await rechaza('no se reanuda dos veces', `select gmp.reanudar_tarea('${t3}')`, /no está en pausa/);
+await rechaza(
+  'no se reanuda dos veces',
+  `select gmp.reanudar_tarea('${t3}')`,
+  /no está en pausa/,
+);
 await atrasar(despues, 30);
 await como('agus@x');
 await prueba('lo del «Listo» cubre antes y después de la pausa', async () => {
@@ -180,10 +187,15 @@ await prueba('lo del «Listo» cubre antes y después de la pausa', async () => 
     `select operaria, sum(cantidad)::float c from gmp.v_trabajo_operarias where tarea_id = $1 group by operaria order by operaria`,
     [t3],
   );
-  if (r.length !== 2 || r.some((x) => Math.abs(x.c - 45) > 0.01)) throw new Error(JSON.stringify(r));
-  const antesDe = await q(`select cantidad::float c from gmp.v_trabajo_operarias where tramo_id = $1`, [antes]);
+  if (r.length !== 2 || r.some((x) => Math.abs(x.c - 45) > 0.01))
+    throw new Error(JSON.stringify(r));
+  const antesDe = await q(
+    `select cantidad::float c from gmp.v_trabajo_operarias where tramo_id = $1`,
+    [antes],
+  );
   // 60 de los 90 minutos de cada una fueron antes de la pausa.
-  if (antesDe.some((x) => Math.abs(x.c - 30) > 0.01)) throw new Error(JSON.stringify(antesDe));
+  if (antesDe.some((x) => Math.abs(x.c - 30) > 0.01))
+    throw new Error(JSON.stringify(antesDe));
 });
 
 await como('gabriel@x');

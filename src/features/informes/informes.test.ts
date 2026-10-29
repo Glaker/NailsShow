@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { filasMensual, limitesMes, matrizAnual, mesesAtras, productividad, viernesDelAnio } from './informes';
+import {
+  filasMensual,
+  limitesMes,
+  matrizAnual,
+  mesesAtras,
+  productividad,
+  viernesDelAnio,
+} from './informes';
 import type { FilaTrabajo } from '@/lib/consultasTareasProduccion';
 
 const fila = (o: Partial<FilaTrabajo>): FilaTrabajo => ({
@@ -75,7 +82,11 @@ describe('informes de producción', () => {
   });
 
   it('meses y límites', () => {
-    expect(mesesAtras(3, new Date(2026, 0, 15))).toEqual(['2026-01', '2025-12', '2025-11']);
+    expect(mesesAtras(3, new Date(2026, 0, 15))).toEqual([
+      '2026-01',
+      '2025-12',
+      '2025-11',
+    ]);
     expect(limitesMes('2026-02')).toEqual(['2026-02-01', '2026-02-28']);
   });
 });

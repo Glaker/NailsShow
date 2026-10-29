@@ -107,9 +107,7 @@ export function CamposReparto({
         <NumberInput
           key={p.id}
           label={`${p.codigo_interno} · ${p.nombre}`}
-          description={
-            actual ? `Hoy hay: ${numero(actual[p.id] ?? 0)}` : undefined
-          }
+          description={actual ? `Hoy hay: ${numero(actual[p.id] ?? 0)}` : undefined}
           allowDecimal={false}
           min={0}
           value={valores[p.id] ?? ''}
@@ -173,9 +171,9 @@ export function CorregirReparto({
       >
         <Stack gap="md">
           <Text size="sm">
-            Hay <b>{numero(total)}</b> {ordenId ? 'de este lote' : 'sin lote'} entre
-            estos productos. Poné cuántas son de
-            cada uno; el total no cambia. Queda registrado como ajuste, con el motivo.
+            Hay <b>{numero(total)}</b> {ordenId ? 'de este lote' : 'sin lote'} entre estos
+            productos. Poné cuántas son de cada uno; el total no cambia. Queda registrado
+            como ajuste, con el motivo.
           </Text>
           <CamposReparto
             productos={familia}

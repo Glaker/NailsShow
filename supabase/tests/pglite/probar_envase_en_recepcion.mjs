@@ -6,8 +6,11 @@ await usuario('silveira@x', 'RECEPCION');
 
 await como('naza@x');
 await db.exec('reset role');
-const prov = (await uno(`insert into gmp.proveedores (razon_social) values ('Prov V') returning id`)).id;
-const dep = async (numero) => (await uno(`select id from gmp.depositos where numero = $1`, [numero])).id;
+const prov = (
+  await uno(`insert into gmp.proveedores (razon_social) values ('Prov V') returning id`)
+).id;
+const dep = async (numero) =>
+  (await uno(`select id from gmp.depositos where numero = $1`, [numero])).id;
 
 await como('naza@x');
 const insumo = async (codigo, tipo, unidad = 'UNIDAD') =>
@@ -41,26 +44,31 @@ const lEtq = await lote(etiqueta);
 const lEtq2 = await lote(etiqueta2);
 const lEtq3 = await lote(etiqueta2);
 const lMp = await lote(mp, 'g');
-const estado = async (l) => uno(`select estado, deposito_actual_id from gmp.lotes_insumo where id = $1`, [l]);
+const estado = async (l) =>
+  uno(`select estado, deposito_actual_id from gmp.lotes_insumo where id = $1`, [l]);
 
 await prueba('el envase recién recibido está en el depósito de cuarentena', async () => {
-  if ((await estado(lFrasco)).deposito_actual_id !== (await dep('01'))) throw new Error('no está en 01');
+  if ((await estado(lFrasco)).deposito_actual_id !== (await dep('01')))
+    throw new Error('no está en 01');
 });
-await prueba('Naza lo controla y aprueba: queda aprobado y en «Envases aprobados»', async () => {
-  const r = await uno(
-    `select * from gmp.control_recepcion_envase($1, true, true, true, true, true)`,
-    [lFrasco],
-  );
-  if (!r.aprobado || r.registro !== 'R.50.5.1') throw new Error(JSON.stringify(r));
-  const e = await estado(lFrasco);
-  if (e.estado !== 'APROBADO' || e.deposito_actual_id !== (await dep('ENV-APR')))
-    throw new Error(JSON.stringify(e));
-  const m = await uno(
-    `select cantidad_tomada::int n from gmp.muestreos where entidad_tipo = 'lote_insumo' and entidad_id = $1`,
-    [lFrasco],
-  );
-  if (m.n !== 10) throw new Error('muestra ' + m.n); // 5 % de 200
-});
+await prueba(
+  'Naza lo controla y aprueba: queda aprobado y en «Envases aprobados»',
+  async () => {
+    const r = await uno(
+      `select * from gmp.control_recepcion_envase($1, true, true, true, true, true)`,
+      [lFrasco],
+    );
+    if (!r.aprobado || r.registro !== 'R.50.5.1') throw new Error(JSON.stringify(r));
+    const e = await estado(lFrasco);
+    if (e.estado !== 'APROBADO' || e.deposito_actual_id !== (await dep('ENV-APR')))
+      throw new Error(JSON.stringify(e));
+    const m = await uno(
+      `select cantidad_tomada::int n from gmp.muestreos where entidad_tipo = 'lote_insumo' and entidad_id = $1`,
+      [lFrasco],
+    );
+    if (m.n !== 10) throw new Error('muestra ' + m.n); // 5 % de 200
+  },
+);
 await rechaza(
   'Naza no controla materia prima',
   `select gmp.control_recepcion_envase('${lMp}', true, true, true, true, true)`,
@@ -68,7 +76,9 @@ await rechaza(
 );
 await como('silveira@x');
 await prueba('Silveira aprueba una etiqueta', async () => {
-  await q(`select gmp.control_recepcion_envase($1, true, true, true, true, true)`, [lEtq]);
+  await q(`select gmp.control_recepcion_envase($1, true, true, true, true, true)`, [
+    lEtq,
+  ]);
   if ((await estado(lEtq)).estado !== 'APROBADO') throw new Error('no quedó aprobada');
 });
 await prueba('y rechaza otra: queda rechazada y en cuarentena', async () => {
@@ -98,14 +108,17 @@ await rechaza(
   /muestreos_rn10|RN-10|check/i,
 );
 await como('naza@x');
-await prueba('la carga a stock pone el envase aprobado directo en «Envases aprobados»', async () => {
-  await q(`select * from comercial.cargar_recepcion_a_stock($1)`, [rec]);
-  const s = await uno(
-    `select d.numero from comercial.v_saldos_stock s join gmp.depositos d on d.id = s.deposito_id
+await prueba(
+  'la carga a stock pone el envase aprobado directo en «Envases aprobados»',
+  async () => {
+    await q(`select * from comercial.cargar_recepcion_a_stock($1)`, [rec]);
+    const s = await uno(
+      `select d.numero from comercial.v_saldos_stock s join gmp.depositos d on d.id = s.deposito_id
       where s.lote_insumo_id = $1 and s.saldo > 0`,
-    [lFrasco],
-  );
-  if (s.numero !== 'ENV-APR') throw new Error(s.numero);
-});
+      [lFrasco],
+    );
+    if (s.numero !== 'ENV-APR') throw new Error(s.numero);
+  },
+);
 await invariantes();
 fin();

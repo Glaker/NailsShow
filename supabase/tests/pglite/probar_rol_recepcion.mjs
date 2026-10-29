@@ -124,7 +124,9 @@ await rechaza(
 // Desde 20261021160000 (D-recepcion-2) Recepción sí controla envases: lo
 // prueba probar_envase_en_recepcion.mjs.
 await prueba('el envase lo controla en la recepción (D-recepcion-2)', async () => {
-  await q(`select gmp.control_recepcion_envase($1, true, true, true, true, true)`, [loteEnv]);
+  await q(`select gmp.control_recepcion_envase($1, true, true, true, true, true)`, [
+    loteEnv,
+  ]);
 });
 await rechaza(
   'ni ve nada que no sea suyo: no puede dictaminar granel',

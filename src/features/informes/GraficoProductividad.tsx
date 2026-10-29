@@ -9,7 +9,13 @@ import { productividad } from './informes';
  * que le tocó en cada grupo. Por defecto, el mes en curso. Lo ven Naza (en su
  * tablero), Gabriel y quien entra a «Informes y estadísticas».
  */
-export function GraficoProductividad({ desde, hasta }: { desde?: string; hasta?: string }) {
+export function GraficoProductividad({
+  desde,
+  hasta,
+}: {
+  desde?: string;
+  hasta?: string;
+}) {
   const hoy = new Date();
   const d = desde ?? fechaISO(new Date(hoy.getFullYear(), hoy.getMonth(), 1))!;
   const h = hasta ?? fechaISO(hoy)!;
@@ -18,13 +24,19 @@ export function GraficoProductividad({ desde, hasta }: { desde?: string; hasta?:
   const max = Math.max(1, ...datos.map((x) => x.porHora));
 
   return (
-    <Paper withBorder p="lg" radius="md" style={{ borderColor: 'var(--superficie-borde)' }}>
+    <Paper
+      withBorder
+      p="lg"
+      radius="md"
+      style={{ borderColor: 'var(--superficie-borde)' }}
+    >
       <Title order={3} mb={4}>
         Productividad por operaria
       </Title>
       <Text size="sm" c="dimmed" mb="md">
-        Unidades por hora, del {d.split('-').reverse().join('/')} al {h.split('-').reverse().join('/')}.
-        Si trabajaron de a varias, a cada una le toca su parte según el tiempo que estuvo.
+        Unidades por hora, del {d.split('-').reverse().join('/')} al{' '}
+        {h.split('-').reverse().join('/')}. Si trabajaron de a varias, a cada una le toca
+        su parte según el tiempo que estuvo.
       </Text>
       {trabajo.isLoading ? (
         <Skeleton h={160} />
@@ -39,7 +51,8 @@ export function GraficoProductividad({ desde, hasta }: { desde?: string; hasta?:
                   {p.operaria}
                 </Text>
                 <Text size="sm" ff="monospace">
-                  {numero(p.porHora, 1)} u/h · {numero(p.unidades)} u en {numero(p.horas, 1)} h
+                  {numero(p.porHora, 1)} u/h · {numero(p.unidades)} u en{' '}
+                  {numero(p.horas, 1)} h
                 </Text>
               </Group>
               <Box

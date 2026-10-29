@@ -1128,14 +1128,23 @@ a.contador:hover {
  * pueden mover).
  */
 @keyframes tiembla {
-  0% { transform: rotate(-1.2deg); }
-  50% { transform: rotate(1.2deg); }
-  100% { transform: rotate(-1.2deg); }
+  0% {
+    transform: rotate(-1.2deg);
+  }
+  50% {
+    transform: rotate(1.2deg);
+  }
+  100% {
+    transform: rotate(-1.2deg);
+  }
 }
 .tiembla {
   animation: tiembla 0.28s ease-in-out infinite;
   transform-origin: 50% 50%;
 }
 @media (prefers-reduced-motion: reduce) {
-  .tiembla { animation: none; outline: 2px dashed currentColor; }
+  .tiembla {
+    animation: none;
+    outline: 2px dashed currentColor;
+  }
 }

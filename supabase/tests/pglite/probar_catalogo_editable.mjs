@@ -14,7 +14,9 @@ await prueba('DT da de alta una materia prima nueva (desde la fórmula)', async 
        values ('MP-C1', 'Alcohol C', 'MATERIA_PRIMA', 'kg', true) returning id`,
     )
   ).id;
-  prov = (await uno(`insert into gmp.proveedores (razon_social) values ('Prov C') returning id`)).id;
+  prov = (
+    await uno(`insert into gmp.proveedores (razon_social) values ('Prov C') returning id`)
+  ).id;
 });
 await como('ventas@x');
 await prueba('Ventas edita el nombre y la unidad del insumo', async () => {
@@ -43,7 +45,10 @@ await prueba('da de alta un insumo', async () => {
 });
 await como('operario@x');
 await prueba('el operario no edita (la política no le deja la fila)', async () => {
-  const r = await q(`update gmp.insumos_catalogo set nombre = 'x' where id = $1 returning id`, [mp]);
+  const r = await q(
+    `update gmp.insumos_catalogo set nombre = 'x' where id = $1 returning id`,
+    [mp],
+  );
   if (r.length !== 0) throw new Error('editó');
 });
 await rechaza(

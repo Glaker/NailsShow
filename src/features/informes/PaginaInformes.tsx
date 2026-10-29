@@ -1,21 +1,49 @@
 import { useState } from 'react';
-import { Badge, Button, Group, Paper, Select, Skeleton, Stack, Table, Tabs, Text } from '@mantine/core';
-import { IconChartBar, IconDownload, IconFileSpreadsheet, IconTable } from '@tabler/icons-react';
+import {
+  Badge,
+  Button,
+  Group,
+  Paper,
+  Select,
+  Skeleton,
+  Stack,
+  Table,
+  Tabs,
+  Text,
+} from '@mantine/core';
+import {
+  IconChartBar,
+  IconDownload,
+  IconFileSpreadsheet,
+  IconTable,
+} from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { useProductos } from '@/lib/consultas';
-import { useProduccionSemanal, useTrabajoOperarias } from '@/lib/consultasTareasProduccion';
+import {
+  useProduccionSemanal,
+  useTrabajoOperarias,
+} from '@/lib/consultasTareasProduccion';
 import { descargarXlsx } from '@/lib/xlsx';
 import { GraficoProductividad } from './GraficoProductividad';
 import { filasMensual, limitesMes, matrizAnual, mesesAtras } from './informes';
 
 const nombreMes = (mes: string) => {
   const [y, m] = mes.split('-').map(Number) as [number, number];
-  const t = new Date(y, m - 1, 1).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+  const t = new Date(y, m - 1, 1).toLocaleDateString('es-AR', {
+    month: 'long',
+    year: 'numeric',
+  });
   return t.charAt(0).toUpperCase() + t.slice(1);
 };
 
 /** Vista previa de una tabla de Excel: las primeras filas. */
-function Previa({ filas, max = 30 }: { filas: (string | number | boolean | null)[][]; max?: number }) {
+function Previa({
+  filas,
+  max = 30,
+}: {
+  filas: (string | number | boolean | null)[][];
+  max?: number;
+}) {
   const [enc, ...resto] = filas;
   return (
     <Table.ScrollContainer minWidth={900}>
@@ -65,7 +93,12 @@ function InformeMensual() {
             allowDeselect={false}
             w={220}
           />
-          <Badge variant="light" color={enCurso ? 'yellow' : 'green'} size="lg" radius="sm">
+          <Badge
+            variant="light"
+            color={enCurso ? 'yellow' : 'green'}
+            size="lg"
+            radius="sm"
+          >
             {enCurso ? 'En curso: se actualiza solo' : 'Cerrado'}
           </Badge>
         </Group>
@@ -80,7 +113,9 @@ function InformeMensual() {
       {trabajo.isLoading ? (
         <Skeleton h={200} />
       ) : filas.length <= 1 ? (
-        <Text c="dimmed">No hay tareas registradas en {nombreMes(mes).toLowerCase()}.</Text>
+        <Text c="dimmed">
+          No hay tareas registradas en {nombreMes(mes).toLowerCase()}.
+        </Text>
       ) : (
         <Previa filas={filas} />
       )}
@@ -109,7 +144,12 @@ function InformeAnual() {
             allowDeselect={false}
             w={140}
           />
-          <Badge variant="light" color={anio === este ? 'yellow' : 'green'} size="lg" radius="sm">
+          <Badge
+            variant="light"
+            color={anio === este ? 'yellow' : 'green'}
+            size="lg"
+            radius="sm"
+          >
             {anio === este ? 'En curso: cierra el 31 de diciembre' : 'Cerrado'}
           </Badge>
         </Group>
@@ -122,10 +162,14 @@ function InformeAnual() {
         </Button>
       </Group>
       <Text size="sm" c="dimmed">
-        Cada columna es la semana que cierra ese viernes; sale de las órdenes de producción
-        terminadas (lo rechazado no cuenta).
+        Cada columna es la semana que cierra ese viernes; sale de las órdenes de
+        producción terminadas (lo rechazado no cuenta).
       </Text>
-      {semanal.isLoading || productos.isLoading ? <Skeleton h={200} /> : <Previa filas={filas} max={60} />}
+      {semanal.isLoading || productos.isLoading ? (
+        <Skeleton h={200} />
+      ) : (
+        <Previa filas={filas} max={60} />
+      )}
     </Stack>
   );
 }
@@ -172,12 +216,22 @@ export function PaginaInformes() {
           </Stack>
         </Tabs.Panel>
         <Tabs.Panel value="mensual">
-          <Paper withBorder p="md" radius="md" style={{ borderColor: 'var(--superficie-borde)' }}>
+          <Paper
+            withBorder
+            p="md"
+            radius="md"
+            style={{ borderColor: 'var(--superficie-borde)' }}
+          >
             <InformeMensual />
           </Paper>
         </Tabs.Panel>
         <Tabs.Panel value="anual">
-          <Paper withBorder p="md" radius="md" style={{ borderColor: 'var(--superficie-borde)' }}>
+          <Paper
+            withBorder
+            p="md"
+            radius="md"
+            style={{ borderColor: 'var(--superficie-borde)' }}
+          >
             <InformeAnual />
           </Paper>
         </Tabs.Panel>
