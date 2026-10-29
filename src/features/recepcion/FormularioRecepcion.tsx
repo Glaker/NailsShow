@@ -82,6 +82,11 @@ const esquemaLote = z.object({
     .nullable()
     // Sin predicado de tipo: el formulario arranca en null y tiene que admitirlo.
     .refine((n): boolean => n !== null, 'Falta la cantidad'),
+  /* Calculadora de la cantidad total (pedido del 2026-10-29): los bultos
+     completos por la cantidad por bulto, más los que vinieron con otra (p. ej.
+     uno por la mitad). No se guardan: se guarda el total. */
+  por_bulto: z.number().positive('Mayor que cero').nullable(),
+  otros_bultos: z.array(z.number().positive('Mayor que cero').nullable()),
   unidad: z.string().trim().min(1, 'Falta la unidad'),
   /* La cantidad se tipeó en kg (o L) con la ficha en g (o ml): se guarda
      convertida, en la unidad de la ficha (pedido del 2026-10-26). */
@@ -129,6 +134,14 @@ const esquemaRecepcion = z
     lotes: z.array(esquemaLote).min(1, 'Cargá al menos un lote'),
   })
   .superRefine((v, ctx) => {
+    v.lotes.forEach((l, i) => {
+      if (l.otros_bultos.length > l.cantidad_bultos)
+        ctx.addIssue({
+          code: 'custom',
+          path: ['lotes', i, 'cantidad_bultos'],
+          message: 'Hay más bultos con otra cantidad que bultos',
+        });
+    });
     if (!v.numero_remito.trim()) {
       v.lotes.forEach((l, i) => {
         if (!l.lote_proveedor.trim())
@@ -162,11 +175,29 @@ const MAYOR: Record<string, string> = { g: 'kg', ml: 'l' };
 export const enUnidadFicha = (n: number | null, enMayor: boolean) =>
   n === null || !enMayor ? n : Math.round(n * 1000 * 1000) / 1000;
 
+/**
+ * Cantidad total de un lote: los bultos completos por la cantidad por bulto,
+ * más los que vinieron con otra. Null si falta algún dato para calcularla.
+ */
+export function totalDeBultos(
+  bultos: number,
+  porBulto: number | null,
+  otros: (number | null)[],
+) {
+  if (otros.some((o) => o === null)) return null;
+  const completos = bultos - otros.length;
+  if (completos < 0 || (completos > 0 && porBulto === null)) return null;
+  const suma = completos * (porBulto ?? 0) + otros.reduce<number>((a, o) => a + (o ?? 0), 0);
+  return suma > 0 ? Math.round(suma * 1000) / 1000 : null;
+}
+
 const LOTE_VACIO = {
   insumo_id: '',
   lote_proveedor: '',
   cantidad_bultos: 1,
   cantidad_unidades: null,
+  por_bulto: null as number | null,
+  otros_bultos: [] as (number | null)[],
   unidad: 'kg',
   en_mayor: false,
   plazo_validez: null,
@@ -536,6 +567,25 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
           {form.values.lotes.map((lote, i) => {
             const insumo = porId.get(lote.insumo_id);
             const esEtiqueta = insumo?.tipo === 'ETIQUETA';
+            const enQue = lote.unidad
+              ? ` (${etiquetaUnidad(lote.en_mayor ? MAYOR[lote.unidad]! : lote.unidad)})`
+              : '';
+            const calculada = lote.por_bulto !== null || lote.otros_bultos.length > 0;
+            /* Cambia bultos, cantidad por bulto o los bultos con otra
+               cantidad, y recalcula el total. */
+            const recalcular = (c: {
+              cantidad_bultos?: number;
+              por_bulto?: number | null;
+              otros_bultos?: (number | null)[];
+            }) => {
+              const l = { ...lote, ...c };
+              for (const [k, v] of Object.entries(c))
+                form.setFieldValue(`lotes.${i}.${k}`, v);
+              form.setFieldValue(
+                `lotes.${i}.cantidad_unidades`,
+                totalDeBultos(l.cantidad_bultos, l.por_bulto, l.otros_bultos),
+              );
+            };
 
             return (
               <Paper
@@ -637,22 +687,45 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
                       min={1}
                       allowDecimal={false}
                       {...form.getInputProps(`lotes.${i}.cantidad_bultos`)}
+                      onChange={(n) =>
+                        calculada
+                          ? recalcular({ cantidad_bultos: typeof n === 'number' ? n : 0 })
+                          : form.setFieldValue(
+                              `lotes.${i}.cantidad_bultos`,
+                              typeof n === 'number' ? n : 0,
+                            )
+                      }
                     />
                   </Grid.Col>
                   <Grid.Col span={{ base: 6, sm: 3 }}>
                     <NumberInput
-                      label={
-                        lote.unidad
-                          ? `Cantidad (${etiquetaUnidad(lote.en_mayor ? MAYOR[lote.unidad]! : lote.unidad)})`
-                          : 'Cantidad'
+                      label={`Cantidad por bulto${enQue}`}
+                      placeholder="Opcional"
+                      description="Calcula el total"
+                      min={0}
+                      decimalScale={3}
+                      {...form.getInputProps(`lotes.${i}.por_bulto`)}
+                      onChange={(n) =>
+                        recalcular({ por_bulto: typeof n === 'number' && n > 0 ? n : null })
                       }
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 6, sm: 3 }}>
+                    {/* Con la calculadora en uso el total es la suma, no se tipea;
+                        sin ella se carga a mano, como antes. */}
+                    <NumberInput
+                      label={`Cantidad total${enQue}`}
                       description={
                         lote.en_mayor && lote.cantidad_unidades !== null
                           ? `Se guarda como ${numero(enUnidadFicha(lote.cantidad_unidades, true), 3)} ${etiquetaUnidad(lote.unidad)}`
-                          : undefined
+                          : calculada
+                            ? 'Suma de los bultos'
+                            : undefined
                       }
                       min={0}
                       decimalScale={3}
+                      readOnly={calculada}
+                      variant={calculada ? 'filled' : 'default'}
                       {...form.getInputProps(`lotes.${i}.cantidad_unidades`)}
                       onChange={(n) =>
                         form.setFieldValue(
@@ -712,6 +785,69 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
                         form.setFieldValue(`lotes.${i}.plazo_validez`, desdeCalendario(v))
                       }
                     />
+                  </Grid.Col>
+
+                  <Grid.Col span={12}>
+                    <Stack gap="xs">
+                      {lote.otros_bultos.map((o, j) => (
+                        <Group key={j} gap="xs" align="flex-end" wrap="nowrap">
+                          <NumberInput
+                            style={{ flex: 1, maxWidth: 320 }}
+                            label={`Bulto con otra cantidad${enQue}`}
+                            placeholder="p. ej. la mitad"
+                            min={0}
+                            decimalScale={3}
+                            value={o ?? ''}
+                            error={form.errors[`lotes.${i}.otros_bultos.${j}`]}
+                            onChange={(n) =>
+                              recalcular({
+                                otros_bultos: lote.otros_bultos.map((x, k) =>
+                                  k === j ? (typeof n === 'number' && n > 0 ? n : null) : x,
+                                ),
+                              })
+                            }
+                          />
+                          <ActionIcon
+                            size="input-sm"
+                            variant="subtle"
+                            color="gray"
+                            aria-label="Quitar bulto con otra cantidad"
+                            onClick={() =>
+                              recalcular({
+                                otros_bultos: lote.otros_bultos.filter((_, k) => k !== j),
+                              })
+                            }
+                          >
+                            <IconTrash size={18} />
+                          </ActionIcon>
+                        </Group>
+                      ))}
+                      <Button
+                        variant="subtle"
+                        size="sm"
+                        leftSection={<IconPlus size={16} />}
+                        style={{ alignSelf: 'flex-start' }}
+                        disabled={lote.otros_bultos.length >= lote.cantidad_bultos}
+                        onClick={() =>
+                          recalcular({ otros_bultos: [...lote.otros_bultos, null] })
+                        }
+                      >
+                        Un bulto vino con otra cantidad
+                      </Button>
+                      {lote.otros_bultos.length > 0 ? (
+                        <Text size="sm" c="dimmed">
+                          {lote.cantidad_bultos - lote.otros_bultos.length} completos de{' '}
+                          {lote.por_bulto === null ? '—' : numero(lote.por_bulto, 3)} +{' '}
+                          {lote.otros_bultos.length} con otra cantidad ={' '}
+                          <b>
+                            {lote.cantidad_unidades === null
+                              ? '—'
+                              : numero(lote.cantidad_unidades, 3)}
+                            {enQue}
+                          </b>
+                        </Text>
+                      ) : null}
+                    </Stack>
                   </Grid.Col>
 
                   <Grid.Col span={{ base: 12, sm: 6 }}>
