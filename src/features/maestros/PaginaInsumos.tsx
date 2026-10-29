@@ -42,7 +42,8 @@ import {
 } from '@/lib/consultas';
 import { etiquetaEnum, etiquetaUnidad } from '@/lib/formato';
 import { UNIDADES_COSTO } from '@/lib/consultasCostos';
-import { useTieneRol } from '@/features/auth/sesion';
+import { FINANZAS, useTieneRol } from '@/features/auth/sesion';
+import { CostoAprox } from '@/features/costos/CostoAprox';
 
 const TIPOS = [
   'MATERIA_PRIMA',
@@ -103,6 +104,7 @@ export function FormularioInsumo({
   const actualizar = useActualizarInsumo();
   const depositos = useDepositos();
   const editando = Boolean(insumo);
+  const cargaCosto = useTieneRol('GERENCIA_PRODUCCION', FINANZAS);
 
   const form = useForm<ValoresInsumo>({
     mode: 'controlled',
@@ -292,6 +294,15 @@ export function FormularioInsumo({
             />
           ) : null}
         </Stack>
+
+        {/* El costo también desde la ficha (pedido del 2026-10-29), con la
+            unidad en que se compra. Se guarda aparte, al tocar su «Guardar». */}
+        {insumo && cargaCosto ? (
+          <Stack gap={4}>
+            <Text fw={600}>Costo</Text>
+            <CostoAprox insumoId={insumo.id} unidad={insumo.unidad_medida ?? null} />
+          </Stack>
+        ) : null}
 
         <Group justify="flex-end">
           <Button variant="subtle" color="gray" onClick={() => onListo()}>

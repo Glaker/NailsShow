@@ -45,7 +45,7 @@ import {
 } from '@/lib/consultas';
 import { numero } from '@/lib/formato';
 import { FINANZAS, useTieneRol } from '@/features/auth/sesion';
-import { CostoAprox } from './TareasCarga';
+import { CostoAprox } from '@/features/costos/CostoAprox';
 import { BadgeEstadoFormula } from './estadoFormula';
 import { PanelProcedimiento } from './PanelProcedimiento';
 import {
