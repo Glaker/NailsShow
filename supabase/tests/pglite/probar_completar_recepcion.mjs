@@ -8,7 +8,9 @@ await db.exec('reset role');
 await q(`update core.usuarios set rol='DIRECCION_TECNICA' where email=$1`, [DT]);
 await como('silveira@x');
 await db.exec('reset role');
-const prov = (await uno(`insert into gmp.proveedores (razon_social) values ('Prov C') returning id`)).id;
+const prov = (
+  await uno(`insert into gmp.proveedores (razon_social) values ('Prov C') returning id`)
+).id;
 await como('silveira@x');
 const ins = (
   await uno(
@@ -40,15 +42,23 @@ await rechaza(
   `update gmp.lotes_insumo set cantidad_unidades = 99 where id = '${lote}'`,
   /no se edita/,
 );
-await prueba('la casilla se completa, queda auditada, y el envase se controla', async () => {
-  await q(`update gmp.lotes_insumo set contenedores_limpiados = true where id = $1`, [lote]);
-  const a = await uno(
-    `select count(*) n from core.auditoria where registro_id = $1 and datos_despues->>'contenedores_limpiados' = 'true' and datos_antes->>'contenedores_limpiados' = 'false'`,
-    [lote],
-  );
-  if (Number(a.n) !== 1) throw new Error('sin auditoría: ' + JSON.stringify(a));
-  await q(`select gmp.control_recepcion_envase($1, true, true, true, true, true, null)`, [lote]);
-});
+await prueba(
+  'la casilla se completa, queda auditada, y el envase se controla',
+  async () => {
+    await q(`update gmp.lotes_insumo set contenedores_limpiados = true where id = $1`, [
+      lote,
+    ]);
+    const a = await uno(
+      `select count(*) n from core.auditoria where registro_id = $1 and datos_despues->>'contenedores_limpiados' = 'true' and datos_antes->>'contenedores_limpiados' = 'false'`,
+      [lote],
+    );
+    if (Number(a.n) !== 1) throw new Error('sin auditoría: ' + JSON.stringify(a));
+    await q(
+      `select gmp.control_recepcion_envase($1, true, true, true, true, true, null)`,
+      [lote],
+    );
+  },
+);
 await rechaza(
   'no se destilda',
   `update gmp.lotes_insumo set contenedores_limpiados = false where id = '${lote}'`,

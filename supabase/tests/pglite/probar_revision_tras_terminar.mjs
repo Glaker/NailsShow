@@ -24,7 +24,10 @@ const o = (
   )
 ).id;
 await como('op@x');
-await q(`insert into gmp.op_etapas (orden_id, etapa, datos) values ($1,'FRACCIONAMIENTO','{}')`, [o]);
+await q(
+  `insert into gmp.op_etapas (orden_id, etapa, datos) values ($1,'FRACCIONAMIENTO','{}')`,
+  [o],
+);
 await como('naza@x');
 await q(`select comercial.terminar_orden($1, 5, 10)`, [o]);
 
@@ -43,12 +46,22 @@ await prueba('controla lo que hizo Producción', async () => {
   if (r.length !== 1) throw new Error('no controló');
 });
 await prueba('analiza el granel con la orden ya terminada', async () => {
-  await q(`select gmp.dictaminar_granel($1, '50 g', 'Aspecto conforme', 'Cumple', true)`, [o]);
+  await q(
+    `select gmp.dictaminar_granel($1, '50 g', 'Aspecto conforme', 'Cumple', true)`,
+    [o],
+  );
 });
 await prueba('completa lo que no se registró y lo controla', async () => {
-  const faltan = await q(`select etapa from gmp.faltantes_liberacion($1) where falta = 'sin registrar'`, [o]);
+  const faltan = await q(
+    `select etapa from gmp.faltantes_liberacion($1) where falta = 'sin registrar'`,
+    [o],
+  );
   for (const { etapa } of faltan)
-    await q(`insert into gmp.op_etapas (orden_id, etapa, datos) values ($1, $2, $3)`, [o, etapa, etapa === 'CC_PT' ? '{"aprobado": true}' : '{"no_aplica": true}']);
+    await q(`insert into gmp.op_etapas (orden_id, etapa, datos) values ($1, $2, $3)`, [
+      o,
+      etapa,
+      etapa === 'CC_PT' ? '{"aprobado": true}' : '{"no_aplica": true}',
+    ]);
   await q(
     `update gmp.op_etapas set controlo_por = core.usuario_actual() where orden_id = $1 and controlo_por is null`,
     [o],

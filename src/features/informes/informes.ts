@@ -8,7 +8,11 @@ import type { FilaTrabajo, ProduccionSemanal } from '@/lib/consultasTareasProduc
 import { TEXTO_TIPO } from '@/lib/consultasTareasProduccion';
 
 const hora = (iso: string) =>
-  new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  new Date(iso).toLocaleTimeString('es-AR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
 const dia = (iso: string) => {
   const [y, m, d] = iso.slice(0, 10).split('-');
   return `${d}/${m}/${y}`;
@@ -77,7 +81,12 @@ export function matrizAnual(
     ['Código', 'Producto', ...viernes.map((v) => `Vie ${dia(v).slice(0, 5)}`), 'Total'],
     ...productos.map((p) => {
       const fila = viernes.map((v) => cant.get(`${p.id}|${v}`) ?? null);
-      return [p.codigo_interno, p.nombre, ...fila, fila.reduce<number>((s, x) => s + (x ?? 0), 0)];
+      return [
+        p.codigo_interno,
+        p.nombre,
+        ...fila,
+        fila.reduce<number>((s, x) => s + (x ?? 0), 0),
+      ];
     }),
   ];
 }

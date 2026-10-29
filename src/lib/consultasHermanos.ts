@@ -93,7 +93,9 @@ export function useStockFamilia(
         .select('producto_id, saldo')
         .eq('deposito_numero', deposito)
         .in('producto_id', familia);
-      const { data, error } = await (ordenId ? base.eq('orden_id', ordenId) : base.is('orden_id', null));
+      const { data, error } = await (ordenId
+        ? base.eq('orden_id', ordenId)
+        : base.is('orden_id', null));
       if (error) throw error;
       const filas: { producto_id: string; saldo: number }[] = data ?? [];
       return filas;

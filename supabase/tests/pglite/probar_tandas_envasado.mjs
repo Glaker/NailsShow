@@ -202,10 +202,20 @@ await rechaza(
   `insert into gmp.orden_tandas (orden_id, numero, fecha, producto_id, unidades) values ('${o}', 9, current_date, '${rem}', 5)`,
   /row-level security/,
 );
-const ped = (await uno(`insert into comercial.pedidos (numero, cliente) values ('P-T', 'Ana') returning id`)).id;
-await q(`insert into comercial.pedido_renglones (pedido_id, producto_id, cantidad, precio_unitario) values ($1,$2,100,1)`, [ped, rem]);
+const ped = (
+  await uno(
+    `insert into comercial.pedidos (numero, cliente) values ('P-T', 'Ana') returning id`,
+  )
+).id;
+await q(
+  `insert into comercial.pedido_renglones (pedido_id, producto_id, cantidad, precio_unitario) values ($1,$2,100,1)`,
+  [ped, rem],
+);
 await q(`update comercial.pedidos set estado='CONFIRMADO' where id=$1`, [ped]);
-await q(`insert into comercial.pedido_ordenes (pedido_id, orden_id) values ($1,$2)`, [ped, o]);
+await q(`insert into comercial.pedido_ordenes (pedido_id, orden_id) values ($1,$2)`, [
+  ped,
+  o,
+]);
 await rechaza(
   'el pedido no se termina mientras su orden se envasa por días',
   `select comercial.terminar_pedido('${ped}', '[]'::jsonb)`,

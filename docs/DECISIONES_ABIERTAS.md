@@ -781,6 +781,7 @@ Gerencia de Producción y abre la hoja directamente. Imprime la hoja de la
 plantilla de la planta («lote 20102026.pptx»): 72 etiquetas de 15 × 8 mm en
 las mismas posiciones, Calibri 8 pt. No se cambia ninguna medida. Los dos
 renglones se editan una vez y valen para las 72.
+
 - Primer renglón por defecto: la fecha de hoy en DDMMAAAA.
 - Segundo renglón por defecto: `v:MM/AA` a tres años, como la plantilla.
 
@@ -954,6 +955,7 @@ ficha muestra la del lote.
 ### D-tareas-1 · Tareas de producción, tiempos y productividad — adoptada 2026-10-23
 
 **Decisión del codirector técnico.**
+
 - **Rol.** Nace el rol PRODUCCION (las operarias) y reemplaza a OPERARIO, que
   queda sin uso; el único usuario que lo tenía pasó a PRODUCCION. Producción
   solo ve sus tareas: no registra etapas GMP de la orden, que pasan a Naza.
@@ -979,9 +981,10 @@ ficha muestra la del lote.
 que lo forma no se edita: los tramos y las órdenes terminadas son inmutables.
 No se guarda una foto aparte del informe.
 **Pendiente.**
+
 - Las 11 cuentas de las operarias se crean más adelante.
 - `@dnd-kit` (arrastre táctil) es dependencia nueva.
-**Dónde está.** `20261023130000_core_rol_produccion.sql`, `20261023130100_gmp_tareas_produccion.sql`.
+  **Dónde está.** `20261023130000_core_rol_produccion.sql`, `20261023130100_gmp_tareas_produccion.sql`.
 
 ### D-tareas-agustina-1 · La encargada de stock también asigna tareas — adoptada 2026-10-26
 
@@ -1257,6 +1260,7 @@ es una transferencia.
 alta y editan fichas de insumo y de proveedor: nombre, tipo, unidad,
 depósitos, protocolo, contacto. DT carga una materia prima nueva sin salir de
 la fórmula. Siguen en pie:
+
 - aprobar o rechazar un proveedor es solo de DT;
 - el código de un insumo con lotes no cambia;
 - nada se borra;

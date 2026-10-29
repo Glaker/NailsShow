@@ -8,7 +8,9 @@ await usuario('op@x', 'PRODUCCION');
 
 await como('diego@x');
 const caja = (
-  await uno(`insert into comercial.cuentas_fondos (nombre, tipo) values ('Caja','CAJA') returning id`)
+  await uno(
+    `insert into comercial.cuentas_fondos (nombre, tipo) values ('Caja','CAJA') returning id`,
+  )
 ).id;
 const cli = (
   await uno(
@@ -22,7 +24,9 @@ const ped = (
     [cli],
   )
 ).id;
-const prod = (await uno(`select id from gmp.productos where activo order by codigo_interno limit 1`)).id;
+const prod = (
+  await uno(`select id from gmp.productos where activo order by codigo_interno limit 1`)
+).id;
 await q(
   `insert into comercial.pedido_renglones (pedido_id, producto_id, cantidad, precio_unitario) values ($1,$2,1,1000)`,
   [ped, prod],
@@ -37,7 +41,10 @@ const fac = (
 
 await como('mati@x');
 await prueba('Mati ve las cajas para elegir dónde entra', async () => {
-  const c = await uno(`select count(*)::int n from comercial.cuentas_fondos where id = $1`, [caja]);
+  const c = await uno(
+    `select count(*)::int n from comercial.cuentas_fondos where id = $1`,
+    [caja],
+  );
   if (c.n !== 1) throw new Error('no la ve');
 });
 let cobro;
@@ -48,17 +55,23 @@ await prueba('Mati registra un cobro imputado a la factura', async () => {
       [cli, caja, JSON.stringify([{ factura_id: fac, importe: 400 }])],
     )
   ).id;
-  const s = await uno(`select saldo from comercial.v_saldos_clientes where cliente_id = $1`, [cli]);
+  const s = await uno(
+    `select saldo from comercial.v_saldos_clientes where cliente_id = $1`,
+    [cli],
+  );
   if (Number(s.saldo) !== 600) throw new Error(`saldo ${s.saldo}`);
 });
-await prueba('el movimiento de caja se asienta aunque Mati no escriba fondos', async () => {
-  await db.exec('reset role');
-  const m = await uno(
-    `select count(*)::int n, sum(importe)::numeric s from comercial.movimientos_fondos where cobro_id = $1`,
-    [cobro],
-  );
-  if (m.n !== 1 || Number(m.s) !== 400) throw new Error(JSON.stringify(m));
-});
+await prueba(
+  'el movimiento de caja se asienta aunque Mati no escriba fondos',
+  async () => {
+    await db.exec('reset role');
+    const m = await uno(
+      `select count(*)::int n, sum(importe)::numeric s from comercial.movimientos_fondos where cobro_id = $1`,
+      [cobro],
+    );
+    if (m.n !== 1 || Number(m.s) !== 400) throw new Error(JSON.stringify(m));
+  },
+);
 await como('mati@x');
 await rechaza(
   'pero no escribe movimientos de fondos sueltos',
@@ -67,7 +80,10 @@ await rechaza(
 );
 await prueba('y lo anula con motivo', async () => {
   await q(`select comercial.anular_cobro_cliente($1,'se cargó dos veces')`, [cobro]);
-  const s = await uno(`select saldo from comercial.v_saldos_clientes where cliente_id = $1`, [cli]);
+  const s = await uno(
+    `select saldo from comercial.v_saldos_clientes where cliente_id = $1`,
+    [cli],
+  );
   if (Number(s.saldo) !== 1000) throw new Error(`saldo ${s.saldo}`);
 });
 await como('op@x');

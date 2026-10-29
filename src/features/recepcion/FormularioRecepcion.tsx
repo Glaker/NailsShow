@@ -187,7 +187,8 @@ export function totalDeBultos(
   if (otros.some((o) => o === null)) return null;
   const completos = bultos - otros.length;
   if (completos < 0 || (completos > 0 && porBulto === null)) return null;
-  const suma = completos * (porBulto ?? 0) + otros.reduce<number>((a, o) => a + (o ?? 0), 0);
+  const suma =
+    completos * (porBulto ?? 0) + otros.reduce<number>((a, o) => a + (o ?? 0), 0);
   return suma > 0 ? Math.round(suma * 1000) / 1000 : null;
 }
 
@@ -706,7 +707,9 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
                       decimalScale={3}
                       {...form.getInputProps(`lotes.${i}.por_bulto`)}
                       onChange={(n) =>
-                        recalcular({ por_bulto: typeof n === 'number' && n > 0 ? n : null })
+                        recalcular({
+                          por_bulto: typeof n === 'number' && n > 0 ? n : null,
+                        })
                       }
                     />
                   </Grid.Col>
@@ -802,7 +805,11 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
                             onChange={(n) =>
                               recalcular({
                                 otros_bultos: lote.otros_bultos.map((x, k) =>
-                                  k === j ? (typeof n === 'number' && n > 0 ? n : null) : x,
+                                  k === j
+                                    ? typeof n === 'number' && n > 0
+                                      ? n
+                                      : null
+                                    : x,
                                 ),
                               })
                             }

@@ -17,27 +17,33 @@ const granel = (
   )
 ).id;
 let formula, orden;
-await prueba('Naza arma la fórmula de envasado: el granel al 100 %, en borrador', async () => {
-  formula = (
-    await uno(
-      `insert into gmp.formulas_fabricacion (producto_id, version, estado) values ($1, 'Envasado', 'BORRADOR') returning id`,
-      [prod],
-    )
-  ).id;
-  await q(
-    `insert into gmp.formula_componentes (formula_id, orden, insumo_id, porcentaje_pp, etapa) values ($1, 1, $2, 100, 'Envasado del granel')`,
-    [formula, granel],
-  );
-});
-await prueba('y abre la orden sin especificación, con vencimiento MM/AA a dos años', async () => {
-  orden = await uno(
-    `insert into gmp.ordenes_produccion (formula_id, producto_id, jornada, cantidad_teorica, vencimiento)
+await prueba(
+  'Naza arma la fórmula de envasado: el granel al 100 %, en borrador',
+  async () => {
+    formula = (
+      await uno(
+        `insert into gmp.formulas_fabricacion (producto_id, version, estado) values ($1, 'Envasado', 'BORRADOR') returning id`,
+        [prod],
+      )
+    ).id;
+    await q(
+      `insert into gmp.formula_componentes (formula_id, orden, insumo_id, porcentaje_pp, etapa) values ($1, 1, $2, 100, 'Envasado del granel')`,
+      [formula, granel],
+    );
+  },
+);
+await prueba(
+  'y abre la orden sin especificación, con vencimiento MM/AA a dos años',
+  async () => {
+    orden = await uno(
+      `insert into gmp.ordenes_produccion (formula_id, producto_id, jornada, cantidad_teorica, vencimiento)
      values ($1, $2, '2026-10-27', 20, '2028-10-31') returning id, especificacion_id, vencimiento_texto`,
-    [formula, prod],
-  );
-  if (orden.especificacion_id !== null || orden.vencimiento_texto !== 'P1 10/28')
-    throw new Error(JSON.stringify(orden));
-});
+      [formula, prod],
+    );
+    if (orden.especificacion_id !== null || orden.vencimiento_texto !== 'P1 10/28')
+      throw new Error(JSON.stringify(orden));
+  },
+);
 await rechaza(
   'Naza no asigna la especificación',
   `select gmp.asignar_especificacion_orden('${orden.id}', gen_random_uuid())`,
@@ -57,7 +63,10 @@ await rechaza(
 );
 await prueba('DT la completa desde su tablero', async () => {
   await q(`select gmp.asignar_especificacion_orden($1, $2)`, [orden.id, esp]);
-  const o = await uno(`select especificacion_id from gmp.ordenes_produccion where id = $1`, [orden.id]);
+  const o = await uno(
+    `select especificacion_id from gmp.ordenes_produccion where id = $1`,
+    [orden.id],
+  );
   if (o.especificacion_id !== esp) throw new Error('no quedó');
 });
 await rechaza(

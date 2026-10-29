@@ -236,7 +236,10 @@ export function useTransferirPt() {
       // Entra en los tipos al regenerarlos con 20261028160000.
       const sinTipos = (supabase as unknown as SupabaseClient).schema('comercial');
       const { error } = await sinTipos.rpc('transferir_pt_varios', {
-        p_renglones: t.renglones.map((r) => ({ producto_id: r.productoId, cantidad: r.cantidad })),
+        p_renglones: t.renglones.map((r) => ({
+          producto_id: r.productoId,
+          cantidad: r.cantidad,
+        })),
         p_origen: t.origen,
         p_destino: t.destino,
       });

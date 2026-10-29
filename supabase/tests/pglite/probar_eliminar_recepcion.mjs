@@ -7,7 +7,9 @@ await usuario('sys@x', 'ADMINISTRADOR_SISTEMA');
 
 await como('silveira@x');
 await db.exec('reset role');
-const prov = (await uno(`insert into gmp.proveedores (razon_social) values ('Prov E') returning id`)).id;
+const prov = (
+  await uno(`insert into gmp.proveedores (razon_social) values ('Prov E') returning id`)
+).id;
 await como('silveira@x');
 const ins = (
   await uno(
@@ -70,16 +72,19 @@ await rechaza(
   /quien las registra/,
 );
 await como('sys@x');
-await prueba('el administrador del sistema la sigue viendo, con quién y cuándo', async () => {
-  const r = await uno(
-    `select e.eliminada_en, u.email from gmp.recepciones r
+await prueba(
+  'el administrador del sistema la sigue viendo, con quién y cuándo',
+  async () => {
+    const r = await uno(
+      `select e.eliminada_en, u.email from gmp.recepciones r
        join gmp.recepciones_eliminadas e on e.recepcion_id = r.id
        join core.usuarios u on u.id = e.eliminada_por
       where r.id = $1`,
-    [mal.r],
-  );
-  if (!r?.eliminada_en || r.email !== 'silveira@x') throw new Error(JSON.stringify(r));
-});
+      [mal.r],
+    );
+    if (!r?.eliminada_en || r.email !== 'silveira@x') throw new Error(JSON.stringify(r));
+  },
+);
 await db.exec('reset role');
 await rechaza(
   'y no se deshace, ni siquiera sin RLS',

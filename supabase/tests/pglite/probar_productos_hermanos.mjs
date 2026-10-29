@@ -122,13 +122,16 @@ await rechaza(
 await prueba(
   '«salieron 300 de 250 ml y el resto de litro»: dos ajustes con el lote',
   async () => {
-    await q(`select comercial.repartir_stock_hermanos('PTF', $1, $2, 'Conteo en planta')`, [
-      o2,
-      JSON.stringify([
-        { producto_id: chico, unidades: 300 },
-        { producto_id: litro, unidades: 471 },
-      ]),
-    ]);
+    await q(
+      `select comercial.repartir_stock_hermanos('PTF', $1, $2, 'Conteo en planta')`,
+      [
+        o2,
+        JSON.stringify([
+          { producto_id: chico, unidades: 300 },
+          { producto_id: litro, unidades: 471 },
+        ]),
+      ],
+    );
     if ((await enPtf(o2, litro)) !== 471 || (await enPtf(o2, chico)) !== 300)
       throw new Error('reparto');
     const m = await q(
@@ -168,16 +171,23 @@ await rechaza(
   `select comercial.repartir_stock_hermanos('BER', null, '[{"producto_id":"${chico}","unidades":700}]', 'conteo')`,
   /sin lote y el reparto suma 700/,
 );
-await prueba('sin lote en Berna: 300 de 250 ml y 471 de litro, sin tocar el lote', async () => {
-  await q(`select comercial.repartir_stock_hermanos('BER', null, $1, 'Conteo en Berna')`, [
-    JSON.stringify([
-      { producto_id: litro, unidades: 471 },
-      { producto_id: chico, unidades: 300 },
-    ]),
-  ]);
-  if ((await enBer(litro)) !== 471 || (await enBer(chico)) !== 300) throw new Error('reparto');
-  if ((await enPtf(o2, litro)) !== 471) throw new Error('tocó el lote');
-});
+await prueba(
+  'sin lote en Berna: 300 de 250 ml y 471 de litro, sin tocar el lote',
+  async () => {
+    await q(
+      `select comercial.repartir_stock_hermanos('BER', null, $1, 'Conteo en Berna')`,
+      [
+        JSON.stringify([
+          { producto_id: litro, unidades: 471 },
+          { producto_id: chico, unidades: 300 },
+        ]),
+      ],
+    );
+    if ((await enBer(litro)) !== 471 || (await enBer(chico)) !== 300)
+      throw new Error('reparto');
+    if ((await enPtf(o2, litro)) !== 471) throw new Error('tocó el lote');
+  },
+);
 await como(DT);
 
 await liberarAtajo(o1);
