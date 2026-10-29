@@ -357,27 +357,34 @@ export const PESTANIAS: { ruta: string; etiqueta: string; de: string; roles?: Ro
       ruta: '/stock?vista=insumos',
       etiqueta: 'Stock › Insumos (materia prima)',
       de: '/stock',
-      roles: [...PRODUCCION, 'CONTROL_CALIDAD', 'RECEPCION'],
+      // ENCARGADA_STOCK: Agustina mira el stock como Naza (pedido del 2026-10-29).
+      roles: [...PRODUCCION, 'CONTROL_CALIDAD', 'RECEPCION', 'ENCARGADA_STOCK'],
     },
     {
       // La DT mira la recepción para aprobar calidad y cantidad.
       ruta: '/stock?vista=recepciones',
       etiqueta: 'Stock › Recepciones',
       de: '/stock',
-      roles: [...PRODUCCION, 'DIRECCION_TECNICA', 'CONTROL_CALIDAD', 'RECEPCION'],
+      roles: [
+        ...PRODUCCION,
+        'DIRECCION_TECNICA',
+        'CONTROL_CALIDAD',
+        'RECEPCION',
+        'ENCARGADA_STOCK',
+      ],
     },
     {
       ruta: '/stock?vista=seguridad',
       etiqueta: 'Stock › Stock de seguridad',
       de: '/stock',
-      roles: PRODUCCION,
+      roles: [...PRODUCCION, 'ENCARGADA_STOCK'],
     },
     {
       // Lo que está por debajo del punto de pedido (pedido del 2026-10-23).
       ruta: '/stock?vista=pedido',
       etiqueta: 'Stock › Punto de pedido',
       de: '/stock',
-      roles: PRODUCCION,
+      roles: [...PRODUCCION, 'ENCARGADA_STOCK'],
     },
     {
       // Fábrica, Calle 5 y Berna (2026-10-22; antes «En fábrica» y «Calle 5»).

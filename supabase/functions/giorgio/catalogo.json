@@ -336,7 +336,8 @@
         "GERENCIA_PRODUCCION",
         "GERENCIA",
         "CONTROL_CALIDAD",
-        "RECEPCION"
+        "RECEPCION",
+        "ENCARGADA_STOCK"
       ],
       "queEs": null
     },
@@ -348,7 +349,8 @@
         "GERENCIA",
         "DIRECCION_TECNICA",
         "CONTROL_CALIDAD",
-        "RECEPCION"
+        "RECEPCION",
+        "ENCARGADA_STOCK"
       ],
       "queEs": null
     },
@@ -357,7 +359,8 @@
       "etiqueta": "Stock › Stock de seguridad",
       "roles": [
         "GERENCIA_PRODUCCION",
-        "GERENCIA"
+        "GERENCIA",
+        "ENCARGADA_STOCK"
       ],
       "queEs": null
     },
@@ -366,7 +369,8 @@
       "etiqueta": "Stock › Punto de pedido",
       "roles": [
         "GERENCIA_PRODUCCION",
-        "GERENCIA"
+        "GERENCIA",
+        "ENCARGADA_STOCK"
       ],
       "queEs": null
     },
