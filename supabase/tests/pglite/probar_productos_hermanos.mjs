@@ -110,11 +110,6 @@ await prueba('sin reparto, como antes: todo del producto de la orden', async () 
   if ((await enPtf(o2, litro)) !== 771) throw new Error('sin reparto');
 });
 await rechaza(
-  'repartir de nuevo exige el mismo total',
-  `select comercial.repartir_stock_hermanos('PTF', '${o2}', '[{"producto_id":"${chico}","unidades":300}]', 'conteo')`,
-  /suma 300/,
-);
-await rechaza(
   'y un motivo',
   `select comercial.repartir_stock_hermanos('PTF', '${o2}', '[{"producto_id":"${chico}","unidades":771}]', '')`,
   /por qué/,
@@ -165,11 +160,6 @@ await q(
   `insert into comercial.movimientos_pt (producto_id, deposito_id, tipo, cantidad, motivo)
    select $1, id, 'ENTRADA_AJUSTE', 771, 'carga inicial' from gmp.depositos where numero='BER'`,
   [litro],
-);
-await rechaza(
-  'sin lote también exige el mismo total',
-  `select comercial.repartir_stock_hermanos('BER', null, '[{"producto_id":"${chico}","unidades":700}]', 'conteo')`,
-  /sin lote y el reparto suma 700/,
 );
 await prueba(
   'sin lote en Berna: 300 de 250 ml y 471 de litro, sin tocar el lote',
@@ -266,6 +256,36 @@ await prueba(
     if (N(r.total) !== 10 || N(r.sin_lote) !== 0) throw new Error(JSON.stringify(r));
   },
 );
+
+// 20261029120000: el total puede cambiar y la diferencia queda en el lote.
+await como('naza@x');
+await prueba('salieron 9 de más: entran al mismo lote, no como sin lote', async () => {
+  const sinLote = async () =>
+    N(
+      (
+        await uno(
+          `select coalesce(sum(cantidad),0) s from comercial.movimientos_pt where orden_id is null and deposito_id=$1 and producto_id = any($2)`,
+          [PTF, [litro, chico]],
+        )
+      ).s,
+    );
+  const antes = await sinLote();
+  await q(`select comercial.repartir_stock_hermanos('PTF', $1, $2, 'conteo')`, [
+    o2,
+    JSON.stringify([
+      { producto_id: litro, unidades: 480 },
+      { producto_id: chico, unidades: 300 },
+    ]),
+  ]);
+  if ((await enPtf(o2, litro)) !== 480 || (await enPtf(o2, chico)) !== 300)
+    throw new Error('no quedó en el lote');
+  if ((await sinLote()) !== antes) throw new Error('quedó sin lote');
+  const m = await uno(
+    `select count(*) n from comercial.movimientos_pt where orden_id=$1 and tipo='ENTRADA_AJUSTE' and motivo like '%(había 771, quedan 780): conteo'`,
+    [o2],
+  );
+  if (N(m.n) !== 1) throw new Error('sin motivo con la diferencia');
+});
 
 await prueba('desvincular deja a los dos sin hermanos', async () => {
   await q(`select gmp.desvincular_hermano($1)`, [chico]);
