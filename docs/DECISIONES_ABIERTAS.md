@@ -1082,8 +1082,10 @@ un ajuste de salida y uno de entrada del mismo lote (RN-54). Desde 2026-10-28
 (pedido del codirector técnico) se corrige también desde «Depósitos», en la
 fábrica, Calle 5 o Berna, por lote o en lo que no tiene lote
 (`comercial.repartir_stock_hermanos`, que reemplaza a `repartir_lote_hermanos`).
-**Límites.** El reparto corrige de cuál hermano son, no cuántas: el total del lote
-(o del sin lote) en ese depósito no cambia, y lo vendido no se toca. En Calle 5 no
+**Límites.** Desde 2026-10-29 el total puede cambiar (pedido del codirector
+técnico: «pueden salir productos de más»): la diferencia entra o sale del mismo
+lote, con el motivo y el «había N, quedan M» anotados, no aparte como sin lote
+(`20261029120000_reparto_hermanos_con_diferencia.sql`). Lo vendido no se toca. En Calle 5 no
 mira las reservas de pedidos: si se baja un hermano reservado, la reserva queda
 corta. Lo corrige Gerencia de
 Producción (es la que tiene el permiso de ajustar stock de producto terminado).

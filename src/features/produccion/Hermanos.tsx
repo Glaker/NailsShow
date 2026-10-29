@@ -120,7 +120,9 @@ export function CamposReparto({
 
 /**
  * Corregir de cuál hermano son las unidades de un lote (o las sin lote) en un
- * depósito: «salieron 300 de 100 ml y el resto de 200 ml». El total no cambia.
+ * depósito: «salieron 300 de 100 ml y el resto de 200 ml». El total puede
+ * cambiar (salieron de más o de menos): la diferencia queda en el mismo lote
+ * (20261029120000).
  */
 export function CorregirReparto({
   ordenId,
@@ -156,7 +158,8 @@ export function CorregirReparto({
   const total = Object.values(actual).reduce((a, b) => a + b, 0);
   const v = valores ?? actual;
   const suma = repartoDe(v).reduce((a, r) => a + r.unidades, 0);
-  const listo = suma === total && motivo.trim().length >= 3;
+  const dif = suma - total;
+  const listo = suma > 0 && motivo.trim().length >= 3;
 
   return (
     <>
@@ -172,8 +175,9 @@ export function CorregirReparto({
         <Stack gap="md">
           <Text size="sm">
             Hay <b>{numero(total)}</b> {ordenId ? 'de este lote' : 'sin lote'} entre estos
-            productos. Poné cuántas son de cada uno; el total no cambia. Queda registrado
-            como ajuste, con el motivo.
+            productos. Poné cuántas hay de cada uno; si salieron de más o de menos, la
+            diferencia queda {ordenId ? 'en este mismo lote' : 'sin lote'}. Queda
+            registrado como ajuste, con el motivo.
           </Text>
           <CamposReparto
             productos={familia}
@@ -181,8 +185,11 @@ export function CorregirReparto({
             onCambio={setValores}
             actual={actual}
           />
-          <Text size="sm" {...(suma === total ? {} : { c: 'red' })}>
-            Suma {numero(suma)} de {numero(total)}
+          <Text size="sm" {...(dif === 0 ? {} : { fw: 600 })}>
+            Total {numero(suma)}
+            {dif === 0
+              ? ', igual que hoy'
+              : ` (${dif > 0 ? '+' : ''}${numero(dif)} respecto de los ${numero(total)} de hoy)`}
           </Text>
           <TextInput
             label="Motivo"
