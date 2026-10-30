@@ -1148,6 +1148,19 @@ colección y no por color; «nst526» repetido se sumó; «pinky» es 88, «show
 **Dónde está.** `20261030120000_comercial_insumos_etiquetados.sql`,
 `20261030120100_carga_stock_insumos_romero.sql`, `PaginaInsumosEtiquetados.tsx`.
 
+### D-importado-1 · Importado: solo lleva etiqueta — adoptada 2026-10-30
+
+**Pedido del 2026-10-30.** En Tareas pendientes de carga, Gerencia de
+Producción puede marcar un producto como importado: llega hecho y en su envase,
+y acá solo se le pone la etiqueta. No se le pide envase ni fórmula, y la tarea
+queda completa con la etiqueta elegida. Es el `origen = 'IMPORTADO'` de §4.7, no
+una columna nueva; «Deshacer» lo deja sin clasificar.
+**Pendiente.** El panel «Envases etiquetados» y `comercial.registrar_etiquetado`
+siguen pidiendo envase + etiqueta: un importado que esté en un pedido aparece
+ahí como «falta envase o etiqueta». Falta decidir si el etiquetado de un
+importado descuenta solo la etiqueta y qué stock etiquetado genera.
+**Dónde está.** `20261030140000_tareas_carga_importado.sql`, `TareasCarga.tsx`.
+
 ### D-cotiza-dt-1 · Dirección Técnica también cotiza — adoptada 2026-10-29
 
 **Decisión del codirector técnico.** Dirección Técnica cotiza como Gerencia de

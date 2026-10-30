@@ -38,6 +38,8 @@ export interface TareaCarga {
   /** «No la sé»: la carga Dirección Técnica (20261021150000). */
   formula_consultada: boolean;
   solo_reventa: boolean;
+  /** D-importado-1 (20261030140000): el IMPORTADO solo pide etiqueta. */
+  origen: 'FABRICADO' | 'FRACCIONADO' | 'IMPORTADO' | null;
 }
 
 export type RolMaterial = 'ENVASE' | 'ETIQUETA' | 'EXTRA';
@@ -267,6 +269,33 @@ export function useMarcarReventa() {
       invalidarCarga(qc);
       avisarExito(
         p.reventa ? 'Marcado como reventa: sale de las tareas.' : 'Ya no es reventa.',
+      );
+    },
+    onError: avisarError,
+  });
+}
+
+/**
+ * Importado (D-importado-1): llega hecho y en su envase, solo se le pone la
+ * etiqueta. Es el `origen` del producto (§4.7); deshacerlo lo deja sin
+ * clasificar, que no es lo mismo que fabricado.
+ */
+export function useMarcarImportado() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (p: { productoId: string; importado: boolean }) => {
+      const { error } = await gmpST()
+        .from('productos')
+        .update({ origen: p.importado ? 'IMPORTADO' : null })
+        .eq('id', p.productoId);
+      if (error) throw error;
+    },
+    onSuccess: (_, p) => {
+      invalidarCarga(qc);
+      avisarExito(
+        p.importado
+          ? 'Marcado como importado: solo lleva etiqueta.'
+          : 'Ya no es importado.',
       );
     },
     onError: avisarError,
