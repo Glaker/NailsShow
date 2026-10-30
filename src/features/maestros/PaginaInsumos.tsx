@@ -172,7 +172,7 @@ export function FormularioInsumo({
               placeholder="MP-0001"
               description={
                 editando
-                  ? 'Se congela en cuanto el insumo tenga lotes o stock.'
+                  ? 'Si tiene lotes o stock, el cambio pasa solo a sus lotes y al stock (D-codigo-editable-1).'
                   : undefined
               }
               {...form.getInputProps('codigo_interno')}

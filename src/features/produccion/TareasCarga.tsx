@@ -30,6 +30,7 @@ import {
   useAsignarMaterial,
   useConsultarFormula,
   useInsumosDeFormula,
+  useMarcarImportado,
   useMarcarReventa,
   useMarcarSinFormula,
   useMaterialesProducto,
@@ -345,10 +346,13 @@ function Seccion({ titulo, children }: { titulo: string; children: React.ReactNo
 export function MaterialesProducto({
   productoId,
   onAgregado,
+  soloEtiqueta = false,
 }: {
   productoId: string;
   /** La tarjeta de tareas lo usa para marcar al toque lo que ya tiene. */
   onAgregado?: (cambio: Partial<TareaCarga>) => void;
+  /** Importado (D-importado-1): solo lleva etiqueta. */
+  soloEtiqueta?: boolean;
 }) {
   const materiales = useMaterialesProducto(productoId);
   const asignar = useAsignarMaterial();
@@ -386,27 +390,31 @@ export function MaterialesProducto({
         <Seccion titulo="Cargado antes">{sinClasificar.map(fila)}</Seccion>
       ) : null}
 
-      <Seccion titulo="Granel por unidad">
-        <GranelPorUnidad productoId={productoId} />
-      </Seccion>
+      {soloEtiqueta ? null : (
+        <>
+          <Seccion titulo="Granel por unidad">
+            <GranelPorUnidad productoId={productoId} />
+          </Seccion>
 
-      <Seccion titulo="Productos hermanos (mismo granel)">
-        <ProductosHermanos productoId={productoId} />
-      </Seccion>
+          <Seccion titulo="Productos hermanos (mismo granel)">
+            <ProductosHermanos productoId={productoId} />
+          </Seccion>
 
-      <Seccion titulo="Envase">
-        {envases.map(fila)}
-        <Agregar
-          texto={envases.length === 0 ? 'Elegir el envase' : 'Agregar otro envase'}
-          fijo={{
-            rol: 'ENVASE',
-            categoria: envases.length === 0 ? null : 'Otro envase',
-            tipos: ['MATERIAL_ENVASE'],
-          }}
-          onElegir={agregar}
-          onNuevo={setAlta}
-        />
-      </Seccion>
+          <Seccion titulo="Envase">
+            {envases.map(fila)}
+            <Agregar
+              texto={envases.length === 0 ? 'Elegir el envase' : 'Agregar otro envase'}
+              fijo={{
+                rol: 'ENVASE',
+                categoria: envases.length === 0 ? null : 'Otro envase',
+                tipos: ['MATERIAL_ENVASE'],
+              }}
+              onElegir={agregar}
+              onNuevo={setAlta}
+            />
+          </Seccion>
+        </>
+      )}
 
       <Seccion titulo="Etiquetas">
         {etiquetas.map(fila)}
@@ -422,10 +430,12 @@ export function MaterialesProducto({
         />
       </Seccion>
 
-      <Seccion titulo="Además lleva">
-        {otros.map(fila)}
-        <Agregar texto="Agregar" onElegir={agregar} onNuevo={setAlta} />
-      </Seccion>
+      {soloEtiqueta ? null : (
+        <Seccion titulo="Además lleva">
+          {otros.map(fila)}
+          <Agregar texto="Agregar" onElegir={agregar} onNuevo={setAlta} />
+        </Seccion>
+      )}
 
       <Modal
         opened={alta !== null}
@@ -466,6 +476,8 @@ function DetalleProducto({
   const sinFormula = useMarcarSinFormula();
   const consultar = useConsultarFormula();
   const reventa = useMarcarReventa();
+  const importado = useMarcarImportado();
+  const esImportado = t.origen === 'IMPORTADO';
   const envasado = useCrearFormulaEnvasado();
   const navegar = useNavigate();
   const [formula, setFormula] = useState(false);
@@ -526,102 +538,156 @@ function DetalleProducto({
               No corresponde: es de reventa
             </Button>
           </Paper>
+          {/* D-importado-1: llega hecho y en su envase; acá solo se etiqueta. */}
+          <Paper
+            withBorder
+            p="sm"
+            radius="md"
+            style={{ borderColor: 'var(--superficie-borde)' }}
+          >
+            {esImportado ? (
+              <Group gap="xs">
+                <Text size="sm">Es importado: solo lleva etiqueta.</Text>
+                <Button
+                  size="compact-sm"
+                  variant="subtle"
+                  loading={importado.isPending}
+                  onClick={() => {
+                    onTocar({ origen: null });
+                    importado.mutate({ productoId: t.producto_id, importado: false });
+                  }}
+                >
+                  Deshacer
+                </Button>
+              </Group>
+            ) : (
+              <>
+                <Text size="sm" mb={6}>
+                  ¿Viene importado? Entonces solo lleva etiqueta: sin envase ni fórmula.
+                </Text>
+                <Button
+                  variant="default"
+                  loading={importado.isPending}
+                  onClick={() => {
+                    onTocar({ origen: 'IMPORTADO' });
+                    importado.mutate({ productoId: t.producto_id, importado: true });
+                  }}
+                >
+                  Es importado: solo etiqueta
+                </Button>
+              </>
+            )}
+          </Paper>
         </Stack>
       </Grid.Col>
 
       <Grid.Col span={{ base: 12, md: 8 }}>
         <Stack gap="lg">
-          <MaterialesProducto productoId={t.producto_id} onAgregado={onTocar} />
+          <MaterialesProducto
+            productoId={t.producto_id}
+            onAgregado={onTocar}
+            soloEtiqueta={esImportado}
+          />
 
-          <Seccion titulo="Fórmula">
-            <Paper
-              withBorder
-              p="sm"
-              radius="md"
-              style={{ borderColor: 'var(--superficie-borde)' }}
-            >
-              {t.tiene_formula ? (
-                <Stack gap="xs">
-                  <Text size="sm">Cargada.</Text>
-                  <CostosFormula productoId={t.producto_id} />
-                </Stack>
-              ) : t.sin_formula ? (
-                <Group gap="xs">
-                  <Text size="sm">No lleva fórmula.</Text>
-                  <Button
-                    size="compact-sm"
-                    variant="subtle"
-                    onClick={() =>
-                      sinFormula.mutate({
-                        productoId: t.producto_id,
-                        sinFormula: false,
-                      })
-                    }
-                  >
-                    Deshacer
-                  </Button>
-                </Group>
-              ) : t.formula_consultada ? (
-                <Text size="sm">La carga Dirección Técnica (Fórmulas › Pendientes).</Text>
-              ) : comprado ? (
-                /* D-orden-producto-1: el granel comprado va como fórmula de
+          {esImportado ? null : (
+            <Seccion titulo="Fórmula">
+              <Paper
+                withBorder
+                p="sm"
+                radius="md"
+                style={{ borderColor: 'var(--superficie-borde)' }}
+              >
+                {t.tiene_formula ? (
+                  <Stack gap="xs">
+                    <Text size="sm">Cargada.</Text>
+                    <CostosFormula productoId={t.producto_id} />
+                  </Stack>
+                ) : t.sin_formula ? (
+                  <Group gap="xs">
+                    <Text size="sm">No lleva fórmula.</Text>
+                    <Button
+                      size="compact-sm"
+                      variant="subtle"
+                      onClick={() =>
+                        sinFormula.mutate({
+                          productoId: t.producto_id,
+                          sinFormula: false,
+                        })
+                      }
+                    >
+                      Deshacer
+                    </Button>
+                  </Group>
+                ) : t.formula_consultada ? (
+                  <Text size="sm">
+                    La carga Dirección Técnica (Fórmulas › Pendientes).
+                  </Text>
+                ) : comprado ? (
+                  /* D-orden-producto-1: el granel comprado va como fórmula de
                    envasado, en borrador, con el granel al 100 %. */
-                <Stack gap="xs">
-                  <ElegirInsumo
-                    tipos={['SEMIELABORADO']}
-                    placeholder="Buscá el granel que se compra"
-                    onElegir={elegirGranel}
-                    onNuevo={setAltaGranel}
-                  />
-                  <Button
-                    variant="subtle"
-                    color="gray"
-                    size="compact-sm"
-                    onClick={() => setComprado(false)}
-                    style={{ alignSelf: 'flex-start' }}
-                  >
-                    Cancelar
-                  </Button>
-                </Stack>
-              ) : (
-                <Group gap="xs">
-                  <Button size="md" variant="light" onClick={() => setFormula(true)}>
-                    Cargar fórmula
-                  </Button>
-                  <Button size="md" variant="default" onClick={() => setComprado(true)}>
-                    Se compra el granel
-                  </Button>
-                  <Button
-                    size="md"
-                    variant="default"
-                    loading={consultar.isPending}
-                    onClick={() => {
-                      onTocar({ formula_consultada: true });
-                      consultar.mutate(t.producto_id);
-                    }}
-                  >
-                    No la sé
-                  </Button>
-                  <Button
-                    size="md"
-                    variant="default"
-                    loading={sinFormula.isPending}
-                    onClick={() => {
-                      onTocar({ sin_formula: true });
-                      sinFormula.mutate({
-                        productoId: t.producto_id,
-                        sinFormula: true,
-                      });
-                    }}
-                  >
-                    No lleva
-                  </Button>
-                </Group>
-              )}
-            </Paper>
-          </Seccion>
+                  <Stack gap="xs">
+                    <ElegirInsumo
+                      tipos={['SEMIELABORADO']}
+                      placeholder="Buscá el granel que se compra"
+                      onElegir={elegirGranel}
+                      onNuevo={setAltaGranel}
+                    />
+                    <Button
+                      variant="subtle"
+                      color="gray"
+                      size="compact-sm"
+                      onClick={() => setComprado(false)}
+                      style={{ alignSelf: 'flex-start' }}
+                    >
+                      Cancelar
+                    </Button>
+                  </Stack>
+                ) : (
+                  <Group gap="xs">
+                    <Button size="md" variant="light" onClick={() => setFormula(true)}>
+                      Cargar fórmula
+                    </Button>
+                    <Button size="md" variant="default" onClick={() => setComprado(true)}>
+                      Se compra el granel
+                    </Button>
+                    <Button
+                      size="md"
+                      variant="default"
+                      loading={consultar.isPending}
+                      onClick={() => {
+                        onTocar({ formula_consultada: true });
+                        consultar.mutate(t.producto_id);
+                      }}
+                    >
+                      No la sé
+                    </Button>
+                    <Button
+                      size="md"
+                      variant="default"
+                      loading={sinFormula.isPending}
+                      onClick={() => {
+                        onTocar({ sin_formula: true });
+                        sinFormula.mutate({
+                          productoId: t.producto_id,
+                          sinFormula: true,
+                        });
+                      }}
+                    >
+                      No lleva
+                    </Button>
+                  </Group>
+                )}
+              </Paper>
+            </Seccion>
+          )}
 
-          <Seccion titulo="Tiempo de envasado y etiquetado (opcional)">
+          <Seccion
+            titulo={
+              esImportado
+                ? 'Tiempo de etiquetado (opcional)'
+                : 'Tiempo de envasado y etiquetado (opcional)'
+            }
+          >
             <TiempoEnvasado productoId={t.producto_id} cantidadSugerida={t.pendientes} />
           </Seccion>
         </Stack>
@@ -769,6 +835,13 @@ export function TareasCarga() {
                           <Badge color="estadoAprobado" radius="sm">
                             Completo
                           </Badge>
+                        ) : t.origen === 'IMPORTADO' ? (
+                          <>
+                            <Badge variant="light" color="grape" radius="sm">
+                              Importado
+                            </Badge>
+                            <Senal ok={Boolean(t.etiqueta_id)} texto="Etiqueta" />
+                          </>
                         ) : (
                           <>
                             <Senal ok={Boolean(t.envase_id)} texto="Envase" />
