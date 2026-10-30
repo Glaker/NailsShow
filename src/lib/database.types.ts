@@ -3031,6 +3031,103 @@ export type Database = {
           },
         ]
       }
+      insumos_etiquetados: {
+        Row: {
+          cantidad: number
+          id: string
+          insumo_id: string
+          observacion: string | null
+          orden: number
+          producto_id: string
+          registrado_en: string
+          registrado_por: string
+        }
+        Insert: {
+          cantidad: number
+          id?: string
+          insumo_id: string
+          observacion?: string | null
+          orden?: never
+          producto_id: string
+          registrado_en?: string
+          registrado_por?: string
+        }
+        Update: {
+          cantidad?: number
+          id?: string
+          insumo_id?: string
+          observacion?: string | null
+          orden?: never
+          producto_id?: string
+          registrado_en?: string
+          registrado_por?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insumos_etiquetados_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_costo_referencia"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "insumos_etiquetados_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_costos_pendientes"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "insumos_etiquetados_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_disponible_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "insumos_etiquetados_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_existencias"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "insumos_etiquetados_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_proveedores_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "insumos_etiquetados_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_stock_por_articulo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "insumos_etiquetados_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "insumos_etiquetados_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "insumos_etiquetados_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
+        ]
+      }
       lista_mayorista: {
         Row: {
           alicuota_iva: number
@@ -6400,6 +6497,86 @@ export type Database = {
           },
         ]
       }
+      v_insumos_etiquetados: {
+        Row: {
+          cantidad: number | null
+          id: string | null
+          insumo_codigo: string | null
+          insumo_id: string | null
+          insumo_nombre: string | null
+          observacion: string | null
+          producto_codigo: string | null
+          producto_id: string | null
+          producto_nombre: string | null
+          registrado_en: string | null
+          registrado_por_nombre: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insumos_etiquetados_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_costo_referencia"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "insumos_etiquetados_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_costos_pendientes"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "insumos_etiquetados_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_disponible_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "insumos_etiquetados_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_existencias"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "insumos_etiquetados_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_proveedores_por_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "insumos_etiquetados_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "v_stock_por_articulo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "insumos_etiquetados_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "insumos_etiquetados_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "insumos_etiquetados_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
+        ]
+      }
       v_iva_mensual: {
         Row: {
           compras_sin_factura: number | null
@@ -7464,6 +7641,7 @@ export type Database = {
           extras: number | null
           formula_consultada: boolean | null
           nombre: string | null
+          origen: Database["gmp"]["Enums"]["origen_producto_enum"] | null
           pendientes: number | null
           producto_id: string | null
           sin_formula: boolean | null
