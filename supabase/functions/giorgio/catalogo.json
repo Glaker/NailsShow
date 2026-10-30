@@ -394,6 +394,18 @@
         "GERENCIA"
       ],
       "queEs": null
+    },
+    {
+      "ruta": "/stock?vista=etiquetados",
+      "etiqueta": "Stock › Etiquetados",
+      "roles": [
+        "GERENCIA_PRODUCCION",
+        "GERENCIA",
+        "DIRECCION_TECNICA",
+        "ADMINISTRACION",
+        "ENCARGADA_STOCK"
+      ],
+      "queEs": null
     }
   ],
   "subrutas": [

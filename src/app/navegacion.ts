@@ -399,6 +399,13 @@ export const PESTANIAS: { ruta: string; etiqueta: string; de: string; roles?: Ro
       de: '/stock',
       roles: ['GERENCIA_PRODUCCION', 'GERENCIA'],
     },
+    {
+      // Envases, tapas, cajas y bolsas ya etiquetados (D-insumos-etiquetados-1).
+      ruta: '/stock?vista=etiquetados',
+      etiqueta: 'Stock › Etiquetados',
+      de: '/stock',
+      roles: [...PRODUCCION, 'DIRECCION_TECNICA', 'ADMINISTRACION', 'ENCARGADA_STOCK'],
+    },
   ];
 
 /** Roles que se configuran (el Administrador del sistema ve todo). */
