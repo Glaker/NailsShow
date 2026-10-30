@@ -1155,11 +1155,11 @@ Producción puede marcar un producto como importado: llega hecho y en su envase,
 y acá solo se le pone la etiqueta. No se le pide envase ni fórmula, y la tarea
 queda completa con la etiqueta elegida. Es el `origen = 'IMPORTADO'` de §4.7, no
 una columna nueva; «Deshacer» lo deja sin clasificar.
-**Pendiente.** El panel «Envases etiquetados» y `comercial.registrar_etiquetado`
-siguen pidiendo envase + etiqueta: un importado que esté en un pedido aparece
-ahí como «falta envase o etiqueta». Falta decidir si el etiquetado de un
-importado descuenta solo la etiqueta y qué stock etiquetado genera.
-**Dónde está.** `20261030140000_tareas_carga_importado.sql`, `TareasCarga.tsx`.
+**Etiquetado.** Etiquetar un importado descuenta solo la etiqueta, aunque
+haya quedado un envase cargado de antes (confirmado el 2026-10-30). En
+«Envases etiquetados» queda definido con la etiqueta sola.
+**Dónde está.** `20261030140000_tareas_carga_importado.sql`,
+`20261030150000_etiquetado_importado.sql`, `TareasCarga.tsx`, `PanelEtiquetado.tsx`.
 
 ### D-cotiza-dt-1 · Dirección Técnica también cotiza — adoptada 2026-10-29
 
