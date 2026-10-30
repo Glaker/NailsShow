@@ -100,7 +100,7 @@ function Fila({ f }: { f: FaltaEtiquetar }) {
       <Table.Td>
         {!f.definido ? (
           <Badge color="estadoCuarentena" variant="light" radius="sm">
-            falta envase o etiqueta
+            {f.origen === 'IMPORTADO' ? 'falta etiqueta' : 'falta envase o etiqueta'}
           </Badge>
         ) : f.faltan > 0 ? (
           <Badge color="estadoRechazado" variant="light" radius="sm" size="lg">

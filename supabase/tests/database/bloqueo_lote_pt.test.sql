@@ -54,6 +54,14 @@ with x as (
 insert into t select 'orden', id from x;
 insert into comercial.pedido_ordenes (pedido_id, orden_id)
 values ((select valor from t where clave = 'p1'), (select valor from t where clave = 'orden'));
+-- Terminar el pedido descuenta los materiales de DUO01 (la bolsita 105BOL), y
+-- en una base vacía no hay stock: 20261020120000 lo dejó en cero. Se cuenta
+-- stock de cada material, como en planta, antes de terminar.
+select pg_temp.como('dt@pgtap');
+select comercial.registrar_conteo(ma.insumo_id, 100, 'stock para la prueba', false)
+  from gmp.materiales_acondicionamiento ma
+ where ma.producto_id = (select valor from t where clave = 'duo') and ma.activo;
+select pg_temp.como('gp@pgtap');
 select comercial.terminar_pedido((select valor from t where clave = 'p1'));
 -- Liberación de atajo, como liberarAtajo de pglite/lib.mjs: los triggers de
 -- ordenes_produccion exigen etapas y control de calidad (20261016120000), que

@@ -23,6 +23,8 @@ export interface FaltaEtiquetar {
   faltan: number;
   etiquetados_hoy: number;
   definido: boolean;
+  /** D-importado-1 (20261030150000): al importado le alcanza con la etiqueta. */
+  origen: TareaCarga['origen'];
 }
 
 export interface TareaCarga {
