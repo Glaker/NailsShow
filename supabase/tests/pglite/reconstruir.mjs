@@ -68,6 +68,14 @@ export async function reconstruir({ silencioso = false } = {}) {
       await db.exec(`insert into core.usuarios (nombre_completo, email, rol, sector)
         values ('Suplente DT','salta.agustin@gmail.com','OPERARIO','PRODUCCION');`);
     }
+    // La carga de Romero cita productos que en la base real se dieron de alta
+    // desde la pantalla, sin migración.
+    if (f.startsWith('20261030120100_')) {
+      await db.exec(`insert into gmp.productos (codigo_interno, nombre, vida_util_meses)
+        values ('NS-399','Sanitizante PAZ 1L',36), ('NST - 512','NAIL TIPS NATURAL CURVA C X100',36),
+               ('195','REMOVEDOR DE LITRO',36), ('79','VIA LACTEA 45GR',36)
+        on conflict (codigo_interno) do nothing;`);
+    }
     // psql abre una sesión por archivo; PGlite es una sola. Se reinicia el
     // claim para que ningún archivo herede el de otro.
     // Igual que supabase db push: una sola sesión, sin reiniciar el claim entre

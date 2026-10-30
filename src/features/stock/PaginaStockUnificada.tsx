@@ -8,6 +8,7 @@ import {
   IconScale,
   IconShieldCheck,
   IconTag,
+  IconTags,
   IconTruckDelivery,
 } from '@tabler/icons-react';
 import { usePuedeVerPestania } from '@/app/navegacion';
@@ -19,6 +20,7 @@ import { PaginaDepositos } from '@/features/comercial/PaginaPuntoVenta';
 import { PaginaStock } from './PaginaStock';
 import { PaginaStockSeguridad } from './PaginaStockSeguridad';
 import { PaginaConteo } from './PaginaConteo';
+import { PaginaInsumosEtiquetados } from './PaginaInsumosEtiquetados';
 
 const VISTAS = [
   'insumos',
@@ -27,6 +29,7 @@ const VISTAS = [
   'pedido',
   'depositos',
   'conteo',
+  'etiquetados',
 ] as const;
 type VistaStock = (typeof VISTAS)[number];
 
@@ -59,6 +62,7 @@ export function PaginaStockUnificada() {
     pedido: usePuedeVerPestania('/stock?vista=pedido'),
     depositos: usePuedeVerPestania('/stock?vista=depositos'),
     conteo: usePuedeVerPestania('/stock?vista=conteo'),
+    etiquetados: usePuedeVerPestania('/stock?vista=etiquetados'),
   };
   /* Rótulos de producto terminado (D-rotulos-3): también los imprime stock. */
   const imprimeRotulos = useTieneRol(
@@ -132,6 +136,11 @@ export function PaginaStockUnificada() {
               Conteo
             </Tabs.Tab>
           ) : null}
+          {puede.etiquetados ? (
+            <Tabs.Tab value="etiquetados" leftSection={<IconTags size={18} />}>
+              Etiquetados
+            </Tabs.Tab>
+          ) : null}
         </Tabs.List>
 
         <Tabs.Panel value="insumos">{puede.insumos ? <PaginaStock /> : null}</Tabs.Panel>
@@ -146,6 +155,9 @@ export function PaginaStockUnificada() {
           {puede.depositos ? <PaginaDepositos /> : null}
         </Tabs.Panel>
         <Tabs.Panel value="conteo">{puede.conteo ? <PaginaConteo /> : null}</Tabs.Panel>
+        <Tabs.Panel value="etiquetados">
+          {puede.etiquetados ? <PaginaInsumosEtiquetados /> : null}
+        </Tabs.Panel>
       </Tabs>
     </>
   );

@@ -1130,6 +1130,24 @@ cotizador y los avisos. El costo real de cada lote comprado (costos_lote) no
 cambia. Cada precio queda registrado con quién y cuándo (RN-50).
 **Dónde está.** `20261029140000_costo_naza_manda.sql`, `CostoAprox.tsx`.
 
+### D-insumos-etiquetados-1 · Insumos que ya llegan etiquetados — adoptada 2026-10-30
+
+**Pedido del codirector técnico**, con la planilla «stock insumos romero». Se
+lleva aparte cuántos envases, tapas, cajas o bolsas de un insumo ya tienen la
+etiqueta de un producto (Stock › Etiquetados). Es un desglose del stock del
+insumo: la cantidad contada los incluye y cargar o corregir lo etiquetado no
+mueve el saldo. Se corrige siempre con un conteo nuevo (cambiar la cantidad,
+pasarlo a otro producto o sacarlo), y lo anterior queda como historial.
+**Pendiente.** Nada lo descuenta solo: una tanda o un pedido siguen bajando
+envase y etiqueta como siempre. Si se quiere que usen primero lo ya etiquetado
+(y no gasten etiqueta), hay que decidir cómo se cruza con
+`comercial.etiquetados`, que es por producto y no por insumo.
+**Supuestos de la carga**, todos editables: candy y smoothie de 111ENV van a la
+colección y no por color; «nst526» repetido se sumó; «pinky» es 88, «show» y
+«soft» de 45 g son 98 y 99, «chocolat» es 114 COLECCION CHOCOLAR.
+**Dónde está.** `20261030120000_comercial_insumos_etiquetados.sql`,
+`20261030120100_carga_stock_insumos_romero.sql`, `PaginaInsumosEtiquetados.tsx`.
+
 ### D-cotiza-dt-1 · Dirección Técnica también cotiza — adoptada 2026-10-29
 
 **Decisión del codirector técnico.** Dirección Técnica cotiza como Gerencia de

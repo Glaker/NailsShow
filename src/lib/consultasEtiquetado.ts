@@ -377,3 +377,60 @@ export function useGuardarTiempoEnvasado() {
     onError: avisarError,
   });
 }
+
+/** Insumo ya etiquetado para un producto: el último conteo vigente (D-insumos-etiquetados-1). */
+export interface InsumoEtiquetado {
+  id: string;
+  insumo_id: string;
+  insumo_codigo: string;
+  insumo_nombre: string;
+  producto_id: string;
+  producto_codigo: string;
+  producto_nombre: string;
+  cantidad: number;
+  observacion: string | null;
+  registrado_en: string;
+  registrado_por_nombre: string | null;
+}
+
+export function useInsumosEtiquetados() {
+  return useQuery({
+    queryKey: ['etiquetado', 'insumos'],
+    queryFn: async () => {
+      const { data, error } = await comercialST()
+        .from('v_insumos_etiquetados')
+        .select('*')
+        .order('insumo_codigo')
+        .order('producto_nombre');
+      if (error) throw error;
+      return (data ?? []) as InsumoEtiquetado[];
+    },
+  });
+}
+
+/**
+ * Corregir es contar de nuevo: cada renglón es un conteo y el vigente es el
+ * último (la tabla no admite UPDATE). Pasar a otro producto deja el viejo en 0
+ * y el nuevo en la cantidad, en un solo INSERT.
+ */
+export function useContarInsumosEtiquetados() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      conteos: {
+        insumo_id: string;
+        producto_id: string;
+        cantidad: number;
+        observacion: string | null;
+      }[],
+    ) => {
+      const { error } = await comercialST().from('insumos_etiquetados').insert(conteos);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['etiquetado', 'insumos'] });
+      avisarExito('Etiquetados actualizados.');
+    },
+    onError: avisarError,
+  });
+}
