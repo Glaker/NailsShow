@@ -12,10 +12,12 @@ import {
   TextInput,
 } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
+import { useDebouncedValue } from '@mantine/hooks';
 import { useProductos } from '@/lib/consultas';
 import { hermanosDe, repartoDe, type ConFamilia } from '@/lib/consultasHermanos';
 import {
   totalesTandas,
+  useFaltantesTanda,
   useRegistrarTanda,
   useTandasOrden,
   type OrdenProduccion,
@@ -55,6 +57,72 @@ export function TablaTandas({
         ))}
       </Table.Tbody>
     </Table>
+  );
+}
+
+/**
+ * Lo que falta de cada insumo para cargar las unidades escritas: la misma
+ * cuenta que la carga, que si no alcanza no carga nada (pedido del 2026-11-02).
+ */
+function TablaFaltantes({
+  filas,
+}: {
+  filas: NonNullable<ReturnType<typeof useFaltantesTanda>['data']>;
+}) {
+  const u = (x: string | null) => (x === 'UNIDAD' ? 'u' : (x ?? ''));
+  return (
+    <Alert
+      color="estadoRechazado"
+      variant="light"
+      title="No alcanzan los insumos para cargar esto"
+    >
+      <Table fz="sm" verticalSpacing={4} mt="xs">
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Insumo</Table.Th>
+            <Table.Th ta="right">Necesita</Table.Th>
+            <Table.Th ta="right">Hay</Table.Th>
+            <Table.Th ta="right">Falta</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {filas.map((f) => (
+            <Table.Tr key={f.insumo_id}>
+              <Table.Td>
+                <Text size="sm" fw={600}>
+                  {f.insumo}
+                </Text>
+                <Text size="xs" c="dimmed" ff="monospace">
+                  {f.codigo}
+                  {f.sin_aprobar > 0
+                    ? ` · ${numero(f.sin_aprobar)} ${u(f.unidad)} más sin aprobar por Calidad`
+                    : ''}
+                </Text>
+                {f.nota ? (
+                  <Text size="xs" c="estadoRechazado">
+                    {f.nota}
+                  </Text>
+                ) : null}
+              </Table.Td>
+              <Table.Td ta="right" ff="monospace">
+                {f.necesita === null ? '—' : `${numero(f.necesita)} ${u(f.unidad)}`}
+              </Table.Td>
+              <Table.Td ta="right" ff="monospace">
+                {numero(f.disponible)}
+              </Table.Td>
+              <Table.Td ta="right" ff="monospace" fw={700} c="estadoRechazado">
+                {numero(f.falta)} {u(f.unidad)}
+              </Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
+      <Text size="xs" mt="xs">
+        Si está en planta, falta registrarlo: recepción o conteo en Stock. Lo que dice
+        «sin aprobar» lo libera Calidad. Si un insumo no corresponde, se saca de la lista
+        de materiales del producto.
+      </Text>
+    </Alert>
   );
 }
 
@@ -117,12 +185,19 @@ export function ModalEnvasado({
   const lista = tandas.data ?? [];
   const { hechas, pendientes } = totalesTandas(lista, previstas);
   const reparto = repartoDe(valores);
+  /* Qué falta para cargar esto, con todos los insumos (pedido del 2026-11-02). */
+  const [repartoQuieto] = useDebouncedValue(reparto, 400);
+  const faltantes = useFaltantesTanda(orden.id, granelAprobado ? repartoQuieto : []);
+  const lista_falta = (faltantes.data ?? []).filter(
+    (f) => f.falta > 0 || f.necesita === null,
+  );
   const hoy = reparto.reduce((a, r) => a + r.unidades, 0);
   const nombre = (id: string) => familia.find((p) => p.id === id)?.nombre ?? 'Producto';
   const listo =
     granelAprobado &&
     dia !== null &&
     (hoy > 0 || finaliza) &&
+    lista_falta.length === 0 &&
     (!finaliza || (obtenida !== '' && Number(obtenida) >= 0));
 
   return (
@@ -158,6 +233,9 @@ export function ModalEnvasado({
             Unidades que salieron ese día
           </Text>
           <CamposReparto productos={familia} valores={valores} onCambio={setValores} />
+          {hoy > 0 && lista_falta.length > 0 ? (
+            <TablaFaltantes filas={lista_falta} />
+          ) : null}
         </Stack>
         <TextInput
           label="Observaciones (opcional)"
