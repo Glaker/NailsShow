@@ -213,6 +213,9 @@ export interface MaterialProducto {
   insumo_id: string;
   rol: RolMaterial | null;
   categoria: string | null;
+  /** Grupo «o» y opción (20261102150000, D-materiales-o-1); null = no es alternativa. */
+  alternativa_grupo: string | null;
+  alternativa_opcion: number | null;
   insumo: { nombre: string; codigo_interno: string; unidad_medida: string | null } | null;
 }
 
@@ -225,7 +228,7 @@ export function useMaterialesProducto(productoId: string, habilitado = true) {
       const { data, error } = await gmpST()
         .from('materiales_acondicionamiento')
         .select(
-          'insumo_id, rol, categoria, insumo:insumos_catalogo(nombre, codigo_interno, unidad_medida)',
+          'insumo_id, rol, categoria, alternativa_grupo, alternativa_opcion, insumo:insumos_catalogo(nombre, codigo_interno, unidad_medida)',
         )
         .eq('producto_id', productoId)
         .eq('activo', true);
@@ -461,6 +464,44 @@ export function useContarInsumosEtiquetados() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['etiquetado', 'insumos'] });
       avisarExito('Etiquetados actualizados.');
+    },
+    onError: avisarError,
+  });
+}
+
+/**
+ * Pone un material en un grupo «o» con su opción, o lo saca (grupo null). Los
+ * insumos de la misma opción van juntos; al cargar se usa la primera opción
+ * con stock y se completa con la siguiente (D-materiales-o-1).
+ */
+export function useAlternativaMaterial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (m: {
+      productoId: string;
+      insumoId: string;
+      grupo: string | null;
+      opcion: number | null;
+    }) => {
+      const grupo = m.grupo?.trim() || null;
+      const { data, error } = await gmpST()
+        .from('materiales_acondicionamiento')
+        .update({
+          alternativa_grupo: grupo,
+          alternativa_opcion: grupo ? (m.opcion ?? 1) : null,
+        })
+        .eq('producto_id', m.productoId)
+        .eq('insumo_id', m.insumoId)
+        .eq('activo', true)
+        .select('insumo_id');
+      if (error) throw error;
+      // Un UPDATE que RLS filtra no falla: afecta cero filas.
+      if (!data?.length)
+        throw new Error('No se pudo cambiar: tu rol no edita la lista de materiales.');
+    },
+    onSuccess: (_, m) => {
+      invalidarCarga(qc);
+      avisarExito(m.grupo ? 'Listo: quedó como alternativa.' : 'Ya no es alternativa.');
     },
     onError: avisarError,
   });
