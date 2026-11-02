@@ -28,6 +28,7 @@ import {
   IconClipboardCheck,
   IconFileText,
   IconInfoCircle,
+  IconSearch,
   IconPackage,
   IconPlus,
   IconTrash,
@@ -229,6 +230,9 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
   const [verRemitos, setVerRemitos] = useState(false);
 
   const deposito = (depositos.data ?? []).find((d) => d.numero === config.numero) ?? null;
+  /* v_stock_pt no trae el código: sale del catálogo, que la pantalla ya carga. */
+  const codigoDe = new Map((productos.data ?? []).map((x) => [x.id, x.codigo_interno]));
+  const [busqueda, setBusqueda] = useState('');
   // La vista trae todos los depósitos comerciales: acá solo el de la pantalla.
   const stock = {
     isLoading: stockTodos.isLoading,
@@ -443,6 +447,20 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
           corrige con otro movimiento.
         </Alert>
 
+        <BuscadorStock
+          busqueda={busqueda}
+          onBusqueda={setBusqueda}
+          productos={productos.data ?? []}
+          stock={stockTodos.data ?? []}
+          depositoId={deposito.id}
+          nombreDeposito={(id) => {
+            const n = (depositos.data ?? []).find((d) => d.id === id)?.numero;
+            return (
+              DEPOSITOS_PT.find((d) => d.config.numero === n)?.nombre ?? 'otro depósito'
+            );
+          }}
+        />
+
         {stock.isLoading ? (
           <Skeleton h={200} />
         ) : conStock.length === 0 ? (
@@ -463,62 +481,72 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
               <Table verticalSpacing="md" highlightOnHover>
                 <Table.Thead>
                   <Table.Tr>
+                    <Table.Th>Código</Table.Th>
                     <Table.Th>Producto</Table.Th>
                     <Table.Th ta="right">Unidades</Table.Th>
                     <Table.Th>Último movimiento</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
-                  {conStock.map((f) => (
-                    <Table.Tr key={f.producto_id}>
-                      <Table.Td>
-                        <Text size="sm" fw={600}>
-                          {f.producto}
-                        </Text>
-                        {lotesDe(f.producto_id).map((l) => (
-                          <Group key={l.orden_id ?? 'sin-lote'} gap="xs" wrap="nowrap">
-                            <Text size="xs" c="dimmed">
-                              {l.numero_lote ? `Lote ${l.numero_lote}` : 'Sin lote'}
-                              {l.vencimiento_texto
-                                ? ` · vence ${l.vencimiento_texto}`
-                                : l.vencimiento
-                                  ? ` · vence ${fecha(l.vencimiento)}`
-                                  : ''}
-                              {' · '}
-                              {numero(Number(l.saldo), 0)} u
-                            </Text>
-                            {/* D-hermanos-1: «se cargaron como N ml y eran algunas
-                                de M» (pedido del 2026-10-28). Solo si tiene hermanos. */}
-                            {esGP ? (
-                              <CorregirReparto
-                                ordenId={l.orden_id}
-                                productoId={f.producto_id}
-                                deposito={config.numero as DepositoHermanos}
-                                etiqueta="Corregir presentación"
-                              />
-                            ) : null}
-                          </Group>
-                        ))}
-                      </Table.Td>
-                      <Table.Td ta="right">
-                        <Text size="lg" ff="monospace" fw={700}>
-                          {numero(Number(f.saldo), 0)}
-                        </Text>
-                        {Number(f.retenido) > 0 ? (
-                          <Text size="xs" c="estadoEnAnalisis">
-                            {numero(Number(f.retenido), 0)} retenidas: lote sin liberar
+                  {conStock
+                    .filter((f) =>
+                      coincide(busqueda, codigoDe.get(f.producto_id), f.producto),
+                    )
+                    .map((f) => (
+                      <Table.Tr key={f.producto_id}>
+                        <Table.Td>
+                          <Text size="sm" ff="monospace">
+                            {codigoDe.get(f.producto_id) ?? '—'}
                           </Text>
-                        ) : null}
-                      </Table.Td>
-                      <Table.Td>
-                        <Text size="sm" c="dimmed">
-                          {f.ultimo_movimiento
-                            ? new Date(f.ultimo_movimiento).toLocaleDateString('es-AR')
-                            : '—'}
-                        </Text>
-                      </Table.Td>
-                    </Table.Tr>
-                  ))}
+                        </Table.Td>
+                        <Table.Td>
+                          <Text size="sm" fw={600}>
+                            {f.producto}
+                          </Text>
+                          {lotesDe(f.producto_id).map((l) => (
+                            <Group key={l.orden_id ?? 'sin-lote'} gap="xs" wrap="nowrap">
+                              <Text size="xs" c="dimmed">
+                                {l.numero_lote ? `Lote ${l.numero_lote}` : 'Sin lote'}
+                                {l.vencimiento_texto
+                                  ? ` · vence ${l.vencimiento_texto}`
+                                  : l.vencimiento
+                                    ? ` · vence ${fecha(l.vencimiento)}`
+                                    : ''}
+                                {' · '}
+                                {numero(Number(l.saldo), 0)} u
+                              </Text>
+                              {/* D-hermanos-1: «se cargaron como N ml y eran algunas
+                                de M» (pedido del 2026-10-28). Solo si tiene hermanos. */}
+                              {esGP ? (
+                                <CorregirReparto
+                                  ordenId={l.orden_id}
+                                  productoId={f.producto_id}
+                                  deposito={config.numero as DepositoHermanos}
+                                  etiqueta="Corregir presentación"
+                                />
+                              ) : null}
+                            </Group>
+                          ))}
+                        </Table.Td>
+                        <Table.Td ta="right">
+                          <Text size="lg" ff="monospace" fw={700}>
+                            {numero(Number(f.saldo), 0)}
+                          </Text>
+                          {Number(f.retenido) > 0 ? (
+                            <Text size="xs" c="estadoEnAnalisis">
+                              {numero(Number(f.retenido), 0)} retenidas: lote sin liberar
+                            </Text>
+                          ) : null}
+                        </Table.Td>
+                        <Table.Td>
+                          <Text size="sm" c="dimmed">
+                            {f.ultimo_movimiento
+                              ? new Date(f.ultimo_movimiento).toLocaleDateString('es-AR')
+                              : '—'}
+                          </Text>
+                        </Table.Td>
+                      </Table.Tr>
+                    ))}
                 </Table.Tbody>
               </Table>
             </Table.ScrollContainer>
@@ -639,7 +667,7 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
             opciones={conStock.map((f) => ({
               value: f.producto_id,
               // Fuera de la fábrica va solo lo liberado o sin lote (R-09).
-              label: `${f.producto} · ${numero(Number(f.saldo) - Number(f.retenido), 0)} para enviar`,
+              label: `${codigoDe.get(f.producto_id) ?? ''} · ${f.producto} · ${numero(Number(f.saldo) - Number(f.retenido), 0)} para enviar`,
             }))}
             maximo={(id) => saldoDe(id) - retenidoDe(id)}
           />
@@ -910,7 +938,11 @@ function UltimosMovimientos({
                       </Text>
                     </Table.Td>
                     <Table.Td>
-                      <Text size="sm">{m.producto?.nombre ?? '—'}</Text>
+                      <Text size="sm">
+                        {m.producto
+                          ? `${m.producto.codigo_interno} · ${m.producto.nombre}`
+                          : '—'}
+                      </Text>
                     </Table.Td>
                     <Table.Td>
                       <Badge
@@ -944,6 +976,91 @@ function UltimosMovimientos({
           </Table>
         </Table.ScrollContainer>
       </Paper>
+    </Stack>
+  );
+}
+
+/** Código o nombre, sin distinguir mayúsculas. Vacío coincide con todo. */
+function coincide(busqueda: string, codigo: string | undefined, nombre: string | null) {
+  const q = busqueda.trim().toLowerCase();
+  return (
+    !q ||
+    (codigo ?? '').toLowerCase().includes(q) ||
+    (nombre ?? '').toLowerCase().includes(q)
+  );
+}
+
+/**
+ * Buscador de stock (pedido del 2026-11-02): filtra la tabla del depósito y,
+ * para lo que acá no hay, dice cuánto hay en los otros depósitos.
+ */
+function BuscadorStock({
+  busqueda,
+  onBusqueda,
+  productos,
+  stock,
+  depositoId,
+  nombreDeposito,
+}: {
+  busqueda: string;
+  onBusqueda: (v: string) => void;
+  productos: { id: string; codigo_interno: string; nombre: string; activo: boolean }[];
+  stock: { producto_id: string; deposito_id: string; saldo: number }[];
+  depositoId: string;
+  nombreDeposito: (id: string) => string;
+}) {
+  const hay = busqueda.trim().length >= 2;
+  const encontrados = hay
+    ? productos.filter((p) => p.activo && coincide(busqueda, p.codigo_interno, p.nombre))
+    : [];
+  const saldo = (productoId: string, deposito: string) =>
+    stock
+      .filter((f) => f.producto_id === productoId && f.deposito_id === deposito)
+      .reduce((a, f) => a + Number(f.saldo), 0);
+  const sinStockAca = encontrados.filter((p) => saldo(p.id, depositoId) <= 0);
+
+  return (
+    <Stack gap="xs">
+      <TextInput
+        size="md"
+        leftSection={<IconSearch size={18} />}
+        placeholder="Buscar producto por código o nombre"
+        value={busqueda}
+        onChange={(e) => onBusqueda(e.currentTarget.value)}
+      />
+      {hay && encontrados.length === 0 ? (
+        <Text size="sm" c="dimmed">
+          Ningún producto con ese código o nombre.
+        </Text>
+      ) : null}
+      {sinStockAca.slice(0, 15).map((p) => {
+        const otros = [...new Set(stock.map((f) => f.deposito_id))]
+          .filter((d) => d !== depositoId)
+          .map((d) => ({ d, n: saldo(p.id, d) }))
+          .filter((x) => x.n > 0);
+        return (
+          <Alert
+            key={p.id}
+            radius="md"
+            variant="light"
+            color={otros.length > 0 ? 'estadoEnAnalisis' : 'gray'}
+            icon={<IconInfoCircle size={18} />}
+          >
+            <b>
+              {p.codigo_interno} · {p.nombre}
+            </b>
+            : no hay en este depósito.{' '}
+            {otros.length > 0
+              ? `Hay ${otros.map((x) => `${numero(x.n, 0)} en ${nombreDeposito(x.d)}`).join(', ')}.`
+              : 'Tampoco hay en otro depósito.'}
+          </Alert>
+        );
+      })}
+      {sinStockAca.length > 15 ? (
+        <Text size="sm" c="dimmed">
+          Y {sinStockAca.length - 15} más sin stock acá: afiná la búsqueda.
+        </Text>
+      ) : null}
     </Stack>
   );
 }
