@@ -48,6 +48,8 @@ import {
   FORMAS_PAGO,
   TEXTO_PAGO,
   calcularVenta,
+  precioFinalUnidad,
+  useDescuentosCaja,
   proximoEscalon,
   saleDeFabrica,
   useDisponiblePt,
@@ -137,6 +139,51 @@ function PrecioManual({
 }
 
 /**
+ * Descuento por caja cerrada de un renglón (D-descuento-caja-1): se marca y
+ * arranca con el % de la lista de cajas; Ventas lo puede cambiar. Va encima
+ * del descuento del pedido.
+ */
+function MarcadorCaja({
+  def,
+  valor,
+  deshabilitado,
+  onCambiar,
+}: {
+  def: { unidades_caja: number; porcentaje: number };
+  valor: number | null;
+  deshabilitado: boolean;
+  onCambiar: (x: number | null) => void;
+}) {
+  return (
+    <Group gap={6} wrap="nowrap">
+      <Checkbox
+        size="sm"
+        checked={valor !== null}
+        disabled={deshabilitado}
+        onChange={(e) => onCambiar(e.currentTarget.checked ? def.porcentaje : null)}
+        aria-label={`Descuento por caja de ${def.unidades_caja}`}
+        label={<Text size="xs">caja ×{def.unidades_caja}</Text>}
+      />
+      {valor !== null ? (
+        <NumberInput
+          size="xs"
+          w={70}
+          min={0}
+          max={100}
+          decimalScale={2}
+          suffix=" %"
+          hideControls
+          value={valor}
+          disabled={deshabilitado}
+          onChange={(x) => onCambiar(typeof x === 'number' ? x : 0)}
+          aria-label="Porcentaje de descuento por caja"
+        />
+      ) : null}
+    </Group>
+  );
+}
+
+/**
  * Un pedido mayorista (pedido del 2026-10-01): la lista de precios 46.14 con
  * una columna de cantidad, como la planilla. El total de abajo se va sumando,
  * y al pasar cada escalón el descuento se aplica al pedido entero. Cada
@@ -170,6 +217,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
   const navigate = useNavigate();
   const lista = useListaMayorista();
   const escala = useEscalaDescuento();
+  const cajas = useDescuentosCaja();
   const clientes = useClientes();
   const venta = useVenta(id ?? undefined);
   const depositos = useDepositos();
@@ -227,6 +275,18 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
         ),
       ),
   );
+  /* Descuento por caja marcado por renglón (D-descuento-caja-1): el % de la
+     lista de cajas por defecto, y Ventas lo cambia. */
+  const [caja, setCaja] = useState(
+    () =>
+      new Map(
+        (datos?.renglones ?? []).flatMap((r) =>
+          r.descuento_caja_pct !== null
+            ? [[r.producto_id, r.descuento_caja_pct] as const]
+            : [],
+        ),
+      ),
+  );
   const [buscar, setBuscar] = useState('');
   const [soloPedido, setSoloPedido] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
@@ -259,17 +319,19 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
           precio_promo: f?.precio_promo ?? 0,
           unidades_pack: f?.unidades_pack ?? 1,
           manual: manual.get(pid) ?? null,
+          caja: caja.get(pid) ?? null,
         })),
         escala.data ?? [],
         modoDesc === 'fijo' ? Number(descFijo) || 0 : null,
       ),
-    [pedidos, manual, escala.data, modoDesc, descFijo],
+    [pedidos, manual, caja, escala.data, modoDesc, descFijo],
   );
   const sig =
     modoDesc === 'escala' ? proximoEscalon(cuenta.lista, escala.data ?? []) : null;
   const finalDe = (f: FilaLista) =>
     manual.get(f.producto_id) ??
-    Math.round(f.precio_promo * (1 - cuenta.descuento / 100)) * f.unidades_pack;
+    precioFinalUnidad(f.precio_promo, cuenta.descuento, caja.get(f.producto_id) ?? null) *
+      f.unidades_pack;
 
   const t = buscar.trim().toLowerCase();
   const visibles = filas.filter(
@@ -304,6 +366,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
       producto_id: pid,
       cantidad: cant.get(pid) ?? 0,
       manual: manual.get(pid) ?? null,
+      caja: caja.get(pid) ?? null,
     }));
   const guardarBorrador = async () => {
     const nuevoId = await guardar.mutateAsync({
@@ -633,7 +696,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
         style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}
         mb={110}
       >
-        <Table.ScrollContainer minWidth={1100}>
+        <Table.ScrollContainer minWidth={1240}>
           <Table verticalSpacing={4} horizontalSpacing="xs" stickyHeader fz="sm">
             <Table.Thead>
               <Table.Tr>
@@ -641,6 +704,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                 <Table.Th ta="center">Pack / mín.</Table.Th>
                 <Table.Th>Código</Table.Th>
                 <Table.Th>Producto</Table.Th>
+                <Table.Th>Desc. por caja</Table.Th>
                 <Table.Th ta="right">Precio de lista</Table.Th>
                 <Table.Th ta="right">% desc.</Table.Th>
                 <Table.Th ta="right">Con promoción</Table.Th>
@@ -657,14 +721,17 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                 const bajoMinimo = c > 0 && f.minimo !== null && c < f.minimo;
                 const titulo =
                   i === 0 || visibles[i - 1]!.rubro !== f.rubro ? f.rubro : null;
-                const finalUnidad = Math.round(
-                  f.precio_promo * (1 - cuenta.descuento / 100),
+                const finalUnidad = precioFinalUnidad(
+                  f.precio_promo,
+                  cuenta.descuento,
+                  caja.get(f.producto_id) ?? null,
                 );
+                const defCaja = cajas.data?.get(f.producto_id);
                 return (
                   <Fragment key={f.producto_id}>
                     {titulo ? (
                       <Table.Tr>
-                        <Table.Td colSpan={10} bg="var(--superficie-tenue)">
+                        <Table.Td colSpan={11} bg="var(--superficie-tenue)">
                           <Text
                             size="xs"
                             fw={800}
@@ -722,6 +789,23 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                         <Text size="sm" lineClamp={1}>
                           {f.producto}
                         </Text>
+                      </Table.Td>
+                      <Table.Td>
+                        {defCaja ? (
+                          <MarcadorCaja
+                            def={defCaja}
+                            valor={caja.get(f.producto_id) ?? null}
+                            deshabilitado={!editable}
+                            onCambiar={(x) =>
+                              setCaja((m) => {
+                                const n = new Map(m);
+                                if (x === null) n.delete(f.producto_id);
+                                else n.set(f.producto_id, x);
+                                return n;
+                              })
+                            }
+                          />
+                        ) : null}
                       </Table.Td>
                       <Table.Td ta="right" ff="monospace" c="dimmed">
                         {pesos(f.precio_lista)}
