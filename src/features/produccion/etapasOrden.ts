@@ -123,16 +123,10 @@ export const CONFIG_ETAPAS: Record<EtapaOrden, ConfigEtapa> = {
   CC_GRANEL: { dictamen: { registro: 'R.50.10.1' } },
   FRACCIONAMIENTO: {
     area: 'Área de envasado',
+    /* Sin insumos ni cajas a mano (pedido del 2026-11-02): las unidades las
+       carga Gerencia de Producción por día en «Cargar lo que salió», y envases
+       y etiquetas se descuentan solos según el producto (D-tandas-1). */
     tablas: [
-      {
-        clave: 'insumos',
-        titulo: 'Tipo de insumo a utilizar',
-        columnas: [
-          { clave: 'insumo', titulo: 'Envases / tapas', tipo: 'texto' },
-          { clave: 'codigo', titulo: 'Código interno', tipo: 'texto' },
-          { clave: 'cantidad', titulo: 'Cantidad', tipo: 'numero' },
-        ],
-      },
       {
         clave: 'proceso',
         titulo: 'Proceso de fraccionamiento',
@@ -161,17 +155,6 @@ export const CONFIG_ETAPAS: Record<EtapaOrden, ConfigEtapa> = {
       'Envase etiquetado correctamente',
       VESTIMENTA,
       'Balanza portátil en perfecto estado de funcionamiento',
-    ],
-    campos: [
-      // Las claves siguen siendo «canastas» para no romper lo ya registrado.
-      { clave: 'canastas', titulo: 'N° de cajas completas', tipo: 'numero' },
-      { clave: 'por_canasta', titulo: 'Unidades por caja completa', tipo: 'numero' },
-      // Casi siempre la última caja queda con menos: va aparte, sin contarla arriba.
-      {
-        clave: 'ultima_caja',
-        titulo: 'Unidades en la última caja, si quedó incompleta (0 si no)',
-        tipo: 'numero',
-      },
     ],
   },
   MUESTREO_PT: {
@@ -208,7 +191,50 @@ export const CONFIG_ETAPAS: Record<EtapaOrden, ConfigEtapa> = {
   },
 };
 
-/** Unidades totales del recuento de fraccionamiento. */
+/**
+ * Lo que el fraccionamiento pedía hasta el 2026-11-02: insumos y cajas a mano.
+ * Ya no se pide, pero un registro que lo tiene lo sigue mostrando entero.
+ */
+const FRACCIONAMIENTO_ANTERIOR: Required<Pick<ConfigEtapa, 'tablas' | 'campos'>> = {
+  tablas: [
+    {
+      clave: 'insumos',
+      titulo: 'Tipo de insumo a utilizar',
+      columnas: [
+        { clave: 'insumo', titulo: 'Envases / tapas', tipo: 'texto' },
+        { clave: 'codigo', titulo: 'Código interno', tipo: 'texto' },
+        { clave: 'cantidad', titulo: 'Cantidad', tipo: 'numero' },
+      ],
+    },
+  ],
+  campos: [
+    { clave: 'canastas', titulo: 'N° de cajas completas', tipo: 'numero' },
+    { clave: 'por_canasta', titulo: 'Unidades por caja completa', tipo: 'numero' },
+    {
+      clave: 'ultima_caja',
+      titulo: 'Unidades en la última caja, si quedó incompleta (0 si no)',
+      tipo: 'numero',
+    },
+  ],
+};
+
+/** El fraccionamiento registrado con insumos o cajas a mano (anterior al 2026-11-02). */
+export const fraccionamientoAnterior = (d: Record<string, unknown>) =>
+  (Array.isArray(d.insumos) && d.insumos.length > 0) ||
+  ['canastas', 'por_canasta', 'ultima_caja'].some((k) => d[k] != null && d[k] !== '');
+
+/** La configuración de la etapa, con lo anterior si el registro lo tiene. */
+export function configDe(etapa: EtapaOrden, d: Record<string, unknown>): ConfigEtapa {
+  const c = CONFIG_ETAPAS[etapa];
+  if (etapa !== 'FRACCIONAMIENTO' || !fraccionamientoAnterior(d)) return c;
+  return {
+    ...c,
+    tablas: [...FRACCIONAMIENTO_ANTERIOR.tablas, ...(c.tablas ?? [])],
+    campos: FRACCIONAMIENTO_ANTERIOR.campos,
+  };
+}
+
+/** Unidades del recuento por cajas de los registros anteriores al 2026-11-02. */
 export const unidadesRecuento = (datos: Record<string, unknown>) =>
   Number(datos.canastas ?? 0) * Number(datos.por_canasta ?? 0) +
   Number(datos.ultima_caja ?? 0);

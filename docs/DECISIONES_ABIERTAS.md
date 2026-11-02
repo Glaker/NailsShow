@@ -1177,6 +1177,17 @@ Dirección Técnica.
 **Dónde está.** `supabase/functions/giorgio/index.ts` (`consultarDatos`),
 `supabase/functions/_shared/giorgio.ts` (`HERRAMIENTAS_DATOS`, `textoBusqueda`).
 
+### D-codigo-editable-1 · El código de un insumo con lotes se puede cambiar — adoptada 2026-10-30
+
+**Decisión del codirector técnico.** Gerencia de Producción (y cualquier rol que
+edite el catálogo) puede cambiar código y nombre de un insumo aunque tenga lotes
+o stock. Lotes, rótulos, recepciones y movimientos apuntan al insumo y muestran
+lo vigente; el artículo de stock (SKU y descripción) lo copia solo. Deja sin
+efecto el congelamiento de 20260911200000. Remitos y cotizaciones emitidos
+guardan el código del día; el rótulo impreso dice el viejo hasta reimprimirlo.
+El valor anterior queda en la auditoría (RN-50).
+**Dónde está.** `20261030130000_comercial_codigo_insumo_editable.sql`.
+
 ### D-cotiza-dt-1 · Dirección Técnica también cotiza — adoptada 2026-10-29
 
 **Decisión del codirector técnico.** Dirección Técnica cotiza como Gerencia de
