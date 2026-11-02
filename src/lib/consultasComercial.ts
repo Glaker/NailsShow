@@ -180,7 +180,7 @@ export interface MovimientoPtRow {
   lote_texto: string | null;
   motivo: string | null;
   ocurrido_en: string;
-  producto: { nombre: string } | null;
+  producto: { nombre: string; codigo_interno: string } | null;
 }
 
 /** Tipos de movimiento que el punto de venta puede registrar. */
@@ -1065,7 +1065,7 @@ export function useMovimientosPuntoVenta(depositoId: string | undefined) {
     enabled: Boolean(depositoId),
     queryFn: async () => {
       const { data, error } = await tablaComercial<MovimientoPtRow[]>('movimientos_pt')
-        .select('*, producto:productos(nombre)')
+        .select('*, producto:productos(nombre, codigo_interno)')
         .eq('deposito_id', depositoId!)
         .order('ocurrido_en', { ascending: false });
       if (error) throw error;

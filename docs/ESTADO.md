@@ -560,6 +560,10 @@ sin filtro hacía inservible la edición por fila; `/productos` ya lo tenía.
 
 ### El código interno se congela cuando hay existencia
 
+> **Sin efecto desde 2026-10-30 (D-codigo-editable-1):** el código se puede
+> cambiar con lotes o stock; `comercial.fn_articulo_sigue_insumo` lleva el
+> cambio al SKU y la descripción del artículo.
+
 `20260911200000_maestros_identidad_del_codigo.sql`. Es el único campo que la
 edición no puede dejar suelto.
 
