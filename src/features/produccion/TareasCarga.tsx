@@ -9,7 +9,9 @@ import {
   Grid,
   Group,
   Modal,
+  NumberInput,
   Paper,
+  Popover,
   Select,
   Skeleton,
   Stack,
@@ -27,6 +29,7 @@ import {
 import { useInsumos, type Insumo } from '@/lib/consultas';
 import { CostoAprox } from '@/features/costos/CostoAprox';
 import {
+  useAlternativaMaterial,
   useAsignarMaterial,
   useConsultarFormula,
   useInsumosDeFormula,
@@ -142,13 +145,100 @@ interface Alta {
 }
 
 /** Un material que lleva el producto: qué es, cuál, su costo y quitar. */
+/**
+ * «o»: este material es una alternativa de otro (D-materiales-o-1). Los del
+ * mismo grupo y la misma opción van juntos; al cargar lo que salió se usa la
+ * primera opción con stock y se completa con la siguiente.
+ */
+function Alternativa({
+  m,
+  productoId,
+  grupos,
+}: {
+  m: MaterialProducto;
+  productoId: string;
+  grupos: string[];
+}) {
+  const cambiar = useAlternativaMaterial();
+  const [abierto, setAbierto] = useState(false);
+  const [grupo, setGrupo] = useState(m.alternativa_grupo ?? grupos[0] ?? '');
+  const [opcion, setOpcion] = useState<number | string>(m.alternativa_opcion ?? 1);
+  const guardar = (g: string | null) =>
+    cambiar.mutate(
+      { productoId, insumoId: m.insumo_id, grupo: g, opcion: Number(opcion) || 1 },
+      { onSuccess: () => setAbierto(false) },
+    );
+  return (
+    <Popover
+      opened={abierto}
+      onChange={setAbierto}
+      width={300}
+      position="bottom-end"
+      withArrow
+    >
+      <Popover.Target>
+        <Button size="compact-sm" variant="subtle" onClick={() => setAbierto((x) => !x)}>
+          o…
+        </Button>
+      </Popover.Target>
+      <Popover.Dropdown>
+        <Stack gap="sm">
+          <Text size="sm">
+            Para que este material sea uno u otro: ponelo en el mismo grupo que su
+            alternativa, con otra opción. Lo que tiene la misma opción va junto.
+          </Text>
+          <Autocomplete
+            label="Grupo"
+            placeholder="Por ejemplo: Envase y pico"
+            data={grupos}
+            value={grupo}
+            onChange={setGrupo}
+          />
+          <NumberInput
+            label="Opción"
+            description="La 1 es la que se usa primero."
+            min={1}
+            max={9}
+            allowDecimal={false}
+            value={opcion}
+            onChange={setOpcion}
+          />
+          <Group justify="space-between">
+            {m.alternativa_grupo ? (
+              <Button
+                variant="subtle"
+                color="gray"
+                loading={cambiar.isPending}
+                onClick={() => guardar(null)}
+              >
+                Sacar del grupo
+              </Button>
+            ) : (
+              <span />
+            )}
+            <Button
+              disabled={!grupo.trim()}
+              loading={cambiar.isPending}
+              onClick={() => guardar(grupo)}
+            >
+              Guardar
+            </Button>
+          </Group>
+        </Stack>
+      </Popover.Dropdown>
+    </Popover>
+  );
+}
+
 function FilaMaterial({
   m,
   productoId,
+  grupos,
   onClasificar,
 }: {
   m: MaterialProducto;
   productoId: string;
+  grupos: string[];
   onClasificar: (rol: RolMaterial) => void;
 }) {
   const quitar = useQuitarMaterial();
@@ -192,6 +282,11 @@ function FilaMaterial({
             <Text size="xs" c="dimmed" ff="monospace">
               {m.insumo?.codigo_interno}
             </Text>
+            {m.alternativa_grupo ? (
+              <Badge variant="outline" color="azul" radius="sm">
+                o · {m.alternativa_grupo} · opción {m.alternativa_opcion}
+              </Badge>
+            ) : null}
           </Group>
           {m.rol ? (
             <CostoAprox insumoId={m.insumo_id} unidad={m.insumo?.unidad_medida ?? null} />
@@ -224,15 +319,18 @@ function FilaMaterial({
             </Group>
           )}
         </Stack>
-        <ActionIcon
-          variant="subtle"
-          color="gray"
-          size="lg"
-          aria-label={`Quitar ${m.insumo?.nombre ?? ''}`}
-          onClick={() => quitar.mutate({ productoId, insumoId: m.insumo_id })}
-        >
-          <IconX size={18} />
-        </ActionIcon>
+        <Group gap={4} wrap="nowrap">
+          <Alternativa m={m} productoId={productoId} grupos={grupos} />
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            size="lg"
+            aria-label={`Quitar ${m.insumo?.nombre ?? ''}`}
+            onClick={() => quitar.mutate({ productoId, insumoId: m.insumo_id })}
+          >
+            <IconX size={18} />
+          </ActionIcon>
+        </Group>
       </Group>
     </Paper>
   );
@@ -364,6 +462,9 @@ export function MaterialesProducto({
   const etiquetas = filas.filter((m) => m.rol === 'ETIQUETA');
   const otros = filas.filter((m) => m.rol === 'EXTRA');
   const sinClasificar = filas.filter((m) => !m.rol);
+  const grupos = [
+    ...new Set(filas.flatMap((m) => (m.alternativa_grupo ? [m.alternativa_grupo] : []))),
+  ];
 
   const agregar = (insumoId: string, rol: RolMaterial, categoria: string | null) => {
     onAgregado?.(
@@ -380,6 +481,7 @@ export function MaterialesProducto({
       key={m.insumo_id}
       m={m}
       productoId={productoId}
+      grupos={grupos}
       onClasificar={(rol) => agregar(m.insumo_id, rol, null)}
     />
   );

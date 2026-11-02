@@ -1217,6 +1217,19 @@ sigue LIBERADA. Dirección Técnica no termina órdenes ni carga lo que salió.
 **Dónde está.** `20261102120000_gmp_liberar_antes_de_envasar.sql`,
 `PaginaLiberacion.tsx`, `PaginaOrden.tsx`, `Tandas.tsx`.
 
+### D-materiales-o-1 · Materiales alternativos («o») en la lista de un producto — adoptada 2026-11-02
+
+**Pedido del codirector técnico.** Un producto puede llevar una cosa u otra: en
+la lista de materiales, los insumos de un mismo grupo son alternativas y cada
+uno tiene su opción (los de la misma opción van juntos). Al cargar lo que salió
+se usa la primera opción con stock y se completa con la siguiente; lo que
+ninguna cubre se le pide a la primera, y el aviso nombra la alternativa. Lo que
+planifica sin mirar stock (necesidad de pedidos, costos, etiquetado) usa la
+primera opción. Gerencia de Producción lo arma en «Tareas de carga» con el
+botón «o…» de cada material. Se cargó el removedor de 120 ml: «envase con pico»
+(opción 1) o «envase con tetón + pico» (opción 2).
+**Dónde está.** `20261102150000_gmp_materiales_alternativos.sql`, `TareasCarga.tsx`.
+
 ### D-cotiza-dt-1 · Dirección Técnica también cotiza — adoptada 2026-10-29
 
 **Decisión del codirector técnico.** Dirección Técnica cotiza como Gerencia de
