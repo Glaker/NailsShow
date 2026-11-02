@@ -1161,6 +1161,22 @@ haya quedado un envase cargado de antes (confirmado el 2026-10-30). En
 **Dónde está.** `20261030140000_tareas_carga_importado.sql`,
 `20261030150000_etiquetado_importado.sql`, `TareasCarga.tsx`, `PanelEtiquetado.tsx`.
 
+### D-giorgio-datos-1 · Giorgio lee datos del sistema — adoptada 2026-11-02
+
+**Pedido del codirector técnico** (Giorgio contestaba que no podía leer el
+estado de una orden). Amplía el uso previsto de D-57 más allá de `ir_a`, dentro
+de los mismos límites: cuatro consultas de solo lectura, fijas y sin SQL libre
+(`consultar_orden`, `consultar_stock`, `consultar_lote_insumo`,
+`consultar_pedido`), a lo sumo 10 filas y columnas elegidas. Corren con el
+token del usuario (RLS decide qué ve) y cada una se ofrece solo si el usuario
+tiene alguna de sus pantallas. El texto de búsqueda se limpia de comodines y de
+la sintaxis de filtros; lo que devuelven llega al modelo marcado como datos.
+Sigue sin escribir, aprobar ni liberar nada. Las respuestas siguen siendo de una
+IA y no son registro oficial. D-57 sigue pendiente de aprobación formal de la
+Dirección Técnica.
+**Dónde está.** `supabase/functions/giorgio/index.ts` (`consultarDatos`),
+`supabase/functions/_shared/giorgio.ts` (`HERRAMIENTAS_DATOS`, `textoBusqueda`).
+
 ### D-cotiza-dt-1 · Dirección Técnica también cotiza — adoptada 2026-10-29
 
 **Decisión del codirector técnico.** Dirección Técnica cotiza como Gerencia de
