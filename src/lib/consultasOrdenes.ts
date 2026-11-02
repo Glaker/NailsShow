@@ -719,3 +719,46 @@ export function totalesTandas(tandas: TandaFila[], previstas: number | null) {
     pendientes: previstas === null ? null : Math.max(previstas - hechas, 0),
   };
 }
+
+/** Lo que necesita, hay y falta de un insumo para cargar una tanda (20261102140000). */
+export interface FaltanteTanda {
+  insumo_id: string;
+  codigo: string;
+  insumo: string;
+  unidad: string | null;
+  necesita: number | null;
+  disponible: number;
+  sin_aprobar: number;
+  falta: number;
+  nota: string | null;
+}
+
+/**
+ * Antes de cargar lo que salió: todo lo que falta, no solo el primero
+ * (comercial.faltantes_tanda hace la cuenta de registrar_tanda sin escribir).
+ * Sin tipos hasta regenerar database.types.ts con la migración aplicada.
+ */
+export function useFaltantesTanda(
+  ordenId: string,
+  reparto: { producto_id: string; unidades: number }[],
+) {
+  return useQuery({
+    queryKey: ['orden', ordenId, 'faltantes-tanda', reparto],
+    enabled: reparto.length > 0,
+    placeholderData: (previo) => previo,
+    queryFn: async () => {
+      const r = (await (comercial() as unknown as SupabaseClient).rpc('faltantes_tanda', {
+        p_orden_id: ordenId,
+        p_reparto: reparto,
+      })) as { data: FaltanteTanda[] | null; error: Error | null };
+      if (r.error) throw r.error;
+      return (r.data ?? []).map((f) => ({
+        ...f,
+        necesita: f.necesita === null ? null : Number(f.necesita),
+        disponible: Number(f.disponible),
+        sin_aprobar: Number(f.sin_aprobar),
+        falta: Number(f.falta),
+      }));
+    },
+  });
+}
