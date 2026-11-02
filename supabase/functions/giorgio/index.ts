@@ -41,6 +41,7 @@ import {
   armarSistema,
   comoDatos,
   contextoPantalla,
+  herramientasDatos,
   irA,
   limpiarClaveApi,
   pantallasPermitidas,
@@ -48,7 +49,9 @@ import {
   responder,
   sanearHistorial,
   sanearIds,
+  textoBusqueda,
   type Catalogo,
+  type NombreHerramientaDatos,
   type Evento,
   type Excepcion,
   type ResultadoBucle,
@@ -62,6 +65,137 @@ const CORS = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+const MAX_FILAS = 10;
+
+/**
+ * Las consultas de las herramientas de lectura (D-giorgio-datos-1). Columnas
+ * fijas y a lo sumo MAX_FILAS por búsqueda; corren con el cliente del usuario,
+ * así que RLS filtra igual que en la app.
+ */
+async function consultarDatos(
+  db: ReturnType<typeof createClient>,
+  nombre: NombreHerramientaDatos,
+  texto: string,
+): Promise<unknown> {
+  const gmp = db.schema('gmp');
+  const comercial = db.schema('comercial');
+  const como = `%${texto}%`;
+  const falla = (e: { message: string } | null) => {
+    if (e) throw new Error(e.message);
+  };
+
+  if (nombre === 'consultar_orden') {
+    const { data, error } = await gmp
+      .from('ordenes_produccion')
+      .select(
+        'id, numero, estado, numero_lote, cantidad_teorica, unidad, cantidad_obtenida, unidades_obtenidas, abierta_en, terminada_en, liberada_en, producto:productos(codigo_interno, nombre)',
+      )
+      .or(`numero.ilike.${como},numero_lote.ilike.${como}`)
+      .order('abierta_en', { ascending: false })
+      .limit(MAX_FILAS);
+    falla(error);
+    const ordenes = (data ?? []) as { id: string }[];
+    const etapas = ordenes.length
+      ? await gmp
+          .from('op_etapas')
+          .select('orden_id, etapa, realizo_en, controlo_en')
+          .in(
+            'orden_id',
+            ordenes.map((o) => o.id),
+          )
+      : { data: [], error: null };
+    falla(etapas.error);
+    return ordenes.map((o) => ({
+      ...o,
+      etapas: (etapas.data ?? [])
+        .filter((x: { orden_id: string }) => x.orden_id === o.id)
+        .map((x: { etapa: string; controlo_en: string | null }) => ({
+          etapa: x.etapa,
+          controlada: x.controlo_en !== null,
+        })),
+    }));
+  }
+
+  if (nombre === 'consultar_stock') {
+    const insumos = await comercial
+      .from('v_stock_por_articulo')
+      .select(
+        'codigo_interno, insumo_nombre, unidad_medida, saldo_total, saldo_despachable, depositos',
+      )
+      .or(`codigo_interno.ilike.${como},insumo_nombre.ilike.${como}`)
+      .limit(MAX_FILAS);
+    falla(insumos.error);
+    const productos = await gmp
+      .from('productos')
+      .select('id, codigo_interno, nombre')
+      .or(`codigo_interno.ilike.${como},nombre.ilike.${como}`)
+      .eq('activo', true)
+      .limit(MAX_FILAS);
+    falla(productos.error);
+    const prods = (productos.data ?? []) as {
+      id: string;
+      codigo_interno: string;
+      nombre: string;
+    }[];
+    const pt = prods.length
+      ? await comercial
+          .from('v_stock_pt')
+          .select('producto_id, deposito, saldo, retenido')
+          .in(
+            'producto_id',
+            prods.map((p) => p.id),
+          )
+      : { data: [], error: null };
+    falla(pt.error);
+    const filasPt = (pt.data ?? []) as {
+      producto_id: string;
+      deposito: string;
+      saldo: number;
+      retenido: number;
+    }[];
+    return {
+      insumos: insumos.data ?? [],
+      producto_terminado: prods.map((p) => ({
+        codigo: p.codigo_interno,
+        nombre: p.nombre,
+        por_deposito: filasPt
+          .filter((f) => f.producto_id === p.id && Number(f.saldo) !== 0)
+          .map((f) => ({
+            deposito: f.deposito,
+            unidades: f.saldo,
+            retenidas: f.retenido,
+          })),
+      })),
+    };
+  }
+
+  if (nombre === 'consultar_lote_insumo') {
+    const { data, error } = await gmp
+      .from('v_lotes_insumo')
+      .select(
+        'id, numero_registro_interno, lote_proveedor, estado, codigo_interno, insumo_nombre, plazo_validez, proveedor, deposito_nombre, recepcion_fecha',
+      )
+      .or(
+        `numero_registro_interno.ilike.${como},lote_proveedor.ilike.${como},codigo_interno.ilike.${como}`,
+      )
+      .order('creado_en', { ascending: false })
+      .limit(MAX_FILAS);
+    falla(error);
+    return data ?? [];
+  }
+
+  // consultar_pedido
+  const { data, error } = await comercial
+    .from('pedidos')
+    .select('id, numero, cliente, fecha, fecha_entrega, estado, estado_pago')
+    .or(`numero.ilike.${como},cliente.ilike.${como}`)
+    .is('eliminado_en', null)
+    .order('fecha', { ascending: false })
+    .limit(MAX_FILAS);
+  falla(error);
+  return data ?? [];
+}
 
 function json(cuerpo: unknown, status = 200) {
   return new Response(JSON.stringify(cuerpo), {
@@ -170,6 +304,8 @@ Deno.serve(async (req) => {
     modelos.experto !== null,
   );
   const sistemaExperto = armarSistema(permitidas, catalogo.subrutas);
+  // Las de lectura que corresponden a sus pantallas (D-giorgio-datos-1).
+  const datos = herramientasDatos(permitidas);
   const mensajes = armarMensajes(historial, contextoPantalla(ruta, ids));
 
   const { readable, writable } = new TransformStream<Uint8Array>();
@@ -205,8 +341,8 @@ Deno.serve(async (req) => {
             ],
             tools:
               esBase && modelos.experto
-                ? [HERRAMIENTA_IR_A, HERRAMIENTA_EXPERTO]
-                : [HERRAMIENTA_IR_A],
+                ? [HERRAMIENTA_IR_A, ...datos, HERRAMIENTA_EXPERTO]
+                : [HERRAMIENTA_IR_A, ...datos],
             tool_choice: { type: conHerramientas ? 'auto' : 'none' },
             messages: conversacion,
             ...parametrosModelo(modelo),
@@ -215,7 +351,36 @@ Deno.serve(async (req) => {
           s.on('text', (delta) => void emitir({ t: 'texto', v: delta }));
           return (await s.finalMessage()) as unknown as RespuestaModelo;
         },
-        (nombre, entradaHerramienta) => {
+        async (nombre, entradaHerramienta) => {
+          if (datos.some((d) => d.name === nombre)) {
+            const texto = textoBusqueda(entradaHerramienta);
+            if (!texto)
+              return {
+                contenido: comoDatos({
+                  error: 'Falta qué buscar (al menos 2 letras o números).',
+                }),
+                error: true,
+              };
+            try {
+              const filas = await consultarDatos(
+                db,
+                nombre as NombreHerramientaDatos,
+                texto,
+              );
+              return {
+                contenido: comoDatos({ buscado: texto, resultado: filas }),
+                error: false,
+              };
+            } catch (err) {
+              console.error(`${nombre}:`, err instanceof Error ? err.message : err);
+              return {
+                contenido: comoDatos({
+                  error: 'No se pudo consultar. Ofrecé ir a la pantalla.',
+                }),
+                error: true,
+              };
+            }
+          }
           if (nombre !== 'ir_a')
             return {
               contenido: comoDatos({ error: 'Herramienta desconocida.' }),

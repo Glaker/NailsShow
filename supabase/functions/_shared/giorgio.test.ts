@@ -16,6 +16,8 @@ import {
   type RespuestaModelo,
   responder,
   limpiarClaveApi,
+  herramientasDatos,
+  textoBusqueda,
 } from './giorgio';
 
 describe('clave de API', () => {
@@ -402,5 +404,26 @@ describe('escalado al modelo experto (D-61)', () => {
       thinking: { type: 'between_tools' },
       output_config: { effort: 'medium' },
     });
+  });
+});
+
+describe('herramientas de lectura (D-giorgio-datos-1)', () => {
+  const pantalla = (ruta: string) => ({ ruta, etiqueta: ruta, roles: [], queEs: null });
+
+  it('se ofrecen solo las de las pantallas del usuario', () => {
+    const nombres = herramientasDatos([pantalla('/liberacion'), pantalla('/stock')]).map(
+      (h) => h.name,
+    );
+    expect(nombres).toEqual(['consultar_orden', 'consultar_stock']);
+    expect(herramientasDatos([pantalla('/costos')])).toEqual([]);
+  });
+
+  it('el texto de búsqueda no deja comodines ni sintaxis de or', () => {
+    expect(textoBusqueda({ texto: ' OP-2026-0005 ' })).toBe('OP-2026-0005');
+    expect(textoBusqueda({ texto: 'a%,estado.eq.(x)*' })).toBe('a estado.eq. x');
+    expect(textoBusqueda({ texto: 'Ñandú 14gr' })).toBe('Ñandú 14gr');
+    expect(textoBusqueda({ texto: '%' })).toBeNull();
+    expect(textoBusqueda({})).toBeNull();
+    expect(textoBusqueda({ texto: 'x'.repeat(100) })).toHaveLength(60);
   });
 });
