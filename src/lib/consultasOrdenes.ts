@@ -339,6 +339,30 @@ export function useOrdenesAbiertasConEtapas() {
 }
 
 /**
+ * Órdenes abiertas con todas las etapas registradas y controladas: la DT ya
+ * las puede liberar mientras se sigue envasando (D-liberar-antes-1). Que el
+ * granel y el producto terminado estén aprobados lo valida la base al liberar.
+ */
+export function useOrdenesAbiertasParaLiberar() {
+  return useQuery({
+    queryKey: ['ordenes', 'abiertas-para-liberar'],
+    queryFn: async () => {
+      const { data, error } = await gmp()
+        .from('ordenes_produccion')
+        .select('*, op_etapas(etapa, controlo_por)')
+        .eq('estado', 'ABIERTA')
+        .order('jornada');
+      if (error) throw error;
+      return (data ?? []).filter(
+        (o) =>
+          new Set(o.op_etapas.filter((e) => e.controlo_por).map((e) => e.etapa)).size ===
+          ETAPAS.length,
+      );
+    },
+  });
+}
+
+/**
  * Vencimiento como lo escribe planta: «MM/AA» (D-orden-producto-1). Por
  * defecto, la fecha de elaboración más dos años.
  */

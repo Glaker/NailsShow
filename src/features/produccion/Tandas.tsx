@@ -166,8 +166,13 @@ export function ModalEnvasado({
         />
         <Checkbox
           size="md"
-          label="Con esto termina la orden"
-          description="Si no, queda abierta para cargar los días siguientes."
+          /* D-liberar-antes-1: liberada, cerrar no cambia el estado: deja lo obtenido. */
+          label={
+            orden.estado === 'LIBERADA'
+              ? 'Con esto se cierra el envasado'
+              : 'Con esto termina la orden'
+          }
+          description="Si no, queda pendiente para cargar los días siguientes."
           checked={finaliza}
           onChange={(e) => setFinaliza(e.currentTarget.checked)}
         />
@@ -204,7 +209,11 @@ export function ModalEnvasado({
               )
             }
           >
-            {finaliza ? 'Cargar y terminar la orden' : 'Cargar'}
+            {finaliza
+              ? orden.estado === 'LIBERADA'
+                ? 'Cargar y cerrar el envasado'
+                : 'Cargar y terminar la orden'
+              : 'Cargar'}
           </Button>
         </Group>
       </Stack>

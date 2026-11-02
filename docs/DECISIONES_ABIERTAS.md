@@ -1172,6 +1172,18 @@ guardan el código del día; el rótulo impreso dice el viejo hasta reimprimirlo
 El valor anterior queda en la auditoría (RN-50).
 **Dónde está.** `20261030130000_comercial_codigo_insumo_editable.sql`.
 
+### D-liberar-antes-1 · Se libera el lote antes de terminar el envasado — adoptada 2026-11-02
+
+**Decisión del codirector técnico.** Dirección Técnica libera una orden ABIERTA
+en cuanto tiene todas sus etapas registradas y controladas, con el granel
+(R.50.10.1) y el producto terminado aprobados: los mismos requisitos que antes
+pedía a una orden TERMINADA. Gerencia de Producción sigue cargando por día lo
+que sale («Cargar lo que salió»), y eso entra al stock de fábrica ya liberado,
+con el lote de la orden. Al cerrar el envasado se deja lo obtenido y el estado
+sigue LIBERADA. Dirección Técnica no termina órdenes ni carga lo que salió.
+**Dónde está.** `20261102120000_gmp_liberar_antes_de_envasar.sql`,
+`PaginaLiberacion.tsx`, `PaginaOrden.tsx`, `Tandas.tsx`.
+
 ### D-cotiza-dt-1 · Dirección Técnica también cotiza — adoptada 2026-10-29
 
 **Decisión del codirector técnico.** Dirección Técnica cotiza como Gerencia de
