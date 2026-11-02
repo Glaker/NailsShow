@@ -24,7 +24,7 @@ import {
   type RegistroAnalisis,
 } from '@/lib/consultasAnalisis';
 import { useTrazabilidadOrden } from '@/lib/consultasOrdenes';
-import { CONFIG_ETAPAS, unidadesRecuento } from './etapasOrden';
+import { configDe, unidadesRecuento } from './etapasOrden';
 import { TrazabilidadOrden } from './TrazabilidadOrden';
 
 /*
@@ -178,8 +178,8 @@ function Seccion({
   espec: Espec;
   quien: Quien;
 }) {
-  const c = CONFIG_ETAPAS[etapa];
   const d = e?.datos ?? {};
+  const c = configDe(etapa, d);
   const verif = (d.verificaciones ?? {}) as Record<string, boolean>;
 
   if (d.no_aplica) {

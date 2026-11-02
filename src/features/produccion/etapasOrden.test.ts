@@ -1,5 +1,10 @@
 import { expect, test } from 'vitest';
-import { agregarRenglon, completarAutomaticos, CONFIG_ETAPAS } from './etapasOrden';
+import {
+  agregarRenglon,
+  completarAutomaticos,
+  CONFIG_ETAPAS,
+  configDe,
+} from './etapasOrden';
 
 const inicio = new Date(2026, 9, 14, 9, 5);
 const ahora = new Date(2026, 9, 14, 11, 40);
@@ -42,4 +47,18 @@ test('agregar renglón cierra el anterior y abre el nuevo', () => {
   const filas = agregarRenglon(cols, [{ hora_inicio: '09:05', hora_fin: null }], ahora);
   expect(filas[0]!.hora_fin).toBe('11:40');
   expect(filas[1]!.hora_inicio).toBe('11:40');
+});
+
+test('fraccionamiento: sin insumos ni cajas a mano; el registro anterior se sigue viendo', () => {
+  const nuevo = configDe('FRACCIONAMIENTO', {});
+  expect(nuevo.campos).toBeUndefined();
+  expect(nuevo.tablas?.map((t) => t.clave)).toEqual(['proceso']);
+  const viejo = configDe('FRACCIONAMIENTO', { canastas: 11, por_canasta: 30 });
+  expect(viejo.tablas?.map((t) => t.clave)).toEqual(['insumos', 'proceso']);
+  expect(viejo.campos?.map((c) => c.clave)).toEqual([
+    'canastas',
+    'por_canasta',
+    'ultima_caja',
+  ]);
+  expect(configDe('PESADA', { canastas: 1 })).toBe(CONFIG_ETAPAS.PESADA);
 });

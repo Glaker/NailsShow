@@ -59,6 +59,31 @@ export function TablaTandas({
 }
 
 /**
+ * Lo que va del envasado, dentro de la etapa de fraccionamiento (pedido del
+ * 2026-11-02): las unidades no se cargan acá sino en «Cargar lo que salió»,
+ * que es de Gerencia de Producción y descuenta envases y etiquetas solo.
+ */
+export function ResumenTandas({ orden }: { orden: OrdenProduccion }) {
+  const tandas = useTandasOrden(orden.id);
+  const previstas =
+    (orden as { unidades_previstas?: number | null }).unidades_previstas ?? null;
+  const { hechas, pendientes } = totalesTandas(tandas.data ?? [], previstas);
+  return (
+    <Alert color="gray" variant="light">
+      <Text size="sm">
+        Envasadas: <b>{numero(hechas)}</b>
+        {previstas !== null ? ` de ${numero(previstas)}` : ''}
+        {pendientes ? ` · pendientes ${numero(pendientes)}` : ''}.
+      </Text>
+      <Text size="sm" c="dimmed">
+        Las unidades las carga Gerencia de Producción por día en «Cargar lo que salió»;
+        los envases y etiquetas se descuentan solos según lo asignado a cada producto.
+      </Text>
+    </Alert>
+  );
+}
+
+/**
  * Cargar lo que salió en el día (D-tandas-1): con el granel aprobado, Naza
  * carga las unidades de cada hermano; entran a la fábrica con el lote de la
  * orden y se descuentan los insumos del día. «Con esto termina» la cierra.

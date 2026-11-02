@@ -56,7 +56,7 @@ import {
 } from '@/lib/consultasOrdenes';
 import { TrazabilidadOrden } from './TrazabilidadOrden';
 import { CorregirReparto } from './Hermanos';
-import { ModalEnvasado } from './Tandas';
+import { ModalEnvasado, ResumenTandas } from './Tandas';
 import { useDictaminarGranel, useRegistrosAnalisis } from '@/lib/consultasAnalisis';
 import { FichaAnalisis, FormularioAnalisis } from '@/features/calidad/RegistroAnalisis';
 import { MasInformacion } from './PanelProcedimiento';
@@ -64,8 +64,9 @@ import {
   agregarRenglon,
   COLOR_ESTADO_ORDEN,
   completarAutomaticos,
-  CONFIG_ETAPAS,
   unidadesRecuento,
+  configDe,
+  fraccionamientoAnterior,
   type Columna,
 } from './etapasOrden';
 
@@ -398,7 +399,7 @@ export function EditorEtapa({
   inicio?: string | null;
   etiquetaRegistrar?: string;
 }) {
-  const config = CONFIG_ETAPAS[etapa];
+  const config = configDe(etapa, registrada?.datos ?? {});
   const { claims } = useSesion();
   const [abiertoEn] = useState(() => new Date());
   const empezo = inicio ? new Date(inicio) : abiertoEn;
@@ -560,10 +561,12 @@ export function EditorEtapa({
               ))}
             </SimpleGrid>
           ) : null}
-          {etapa === 'FRACCIONAMIENTO' ? (
+          {etapa === 'FRACCIONAMIENTO' && fraccionamientoAnterior(d) ? (
             <Text size="sm">
               Unidades totales: <b>{numero(unidadesRecuento(d), 0)}</b>
             </Text>
+          ) : etapa === 'FRACCIONAMIENTO' ? (
+            <ResumenTandas orden={orden} />
           ) : null}
 
           {config.contraEspecificacion ? (
