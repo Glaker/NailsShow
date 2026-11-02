@@ -16,7 +16,11 @@ import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { Vacio } from '@/components/Vacio';
 import { useProductos } from '@/lib/consultas';
 import { fecha, numero } from '@/lib/formato';
-import { useOrdenes, type OrdenProduccion } from '@/lib/consultasOrdenes';
+import {
+  useOrdenes,
+  useOrdenesAbiertasParaLiberar,
+  type OrdenProduccion,
+} from '@/lib/consultasOrdenes';
 import { COLOR_ESTADO_ORDEN } from './etapasOrden';
 
 /**
@@ -26,11 +30,17 @@ import { COLOR_ESTADO_ORDEN } from './etapasOrden';
  */
 export function PaginaLiberacion() {
   const ordenes = useOrdenes();
+  const abiertas = useOrdenesAbiertasParaLiberar();
   const productos = useProductos();
   const nombre = (id: string) =>
     (productos.data ?? []).find((p) => p.id === id)?.nombre ?? '';
   const filas = ordenes.data ?? [];
-  const pendientes = filas.filter((o) => o.estado === 'TERMINADA');
+  /* D-liberar-antes-1: también las abiertas con todo controlado, que se
+     liberan mientras Gerencia de Producción sigue cargando lo que sale. */
+  const pendientes = [
+    ...filas.filter((o) => o.estado === 'TERMINADA'),
+    ...((abiertas.data ?? []) as OrdenProduccion[]),
+  ];
   const resueltas = filas
     .filter((o) => o.estado === 'LIBERADA' || o.estado === 'RECHAZADA')
     .slice(0, 30);
@@ -76,7 +86,9 @@ export function PaginaLiberacion() {
                   <Badge color={COLOR_ESTADO_ORDEN[o.estado]} variant="light">
                     {o.estado === 'TERMINADA'
                       ? 'espera liberación'
-                      : o.estado.toLowerCase()}
+                      : o.estado === 'ABIERTA'
+                        ? 'envasando · lista para liberar'
+                        : o.estado.toLowerCase()}
                   </Badge>
                 </Table.Td>
                 <Table.Td>

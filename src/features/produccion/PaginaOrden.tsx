@@ -148,7 +148,8 @@ export function PaginaOrden() {
               }}
             />
             {/* D-tandas-1: lo que salió lo carga Gerencia de Producción, por día. */}
-            {esGP && abierta ? (
+            {/* D-liberar-antes-1: también liberada, mientras no cerró el envasado. */}
+            {esGP && (abierta || (o.estado === 'LIBERADA' && !o.terminada_en)) ? (
               <Button color="estadoAprobado" onClick={() => setEnvasando(true)}>
                 Cargar lo que salió
               </Button>
@@ -156,7 +157,7 @@ export function PaginaOrden() {
             {esGP && (o.estado === 'TERMINADA' || o.estado === 'LIBERADA') ? (
               <CorregirReparto ordenId={o.id} productoId={o.producto_id} />
             ) : null}
-            {esDT && o.estado === 'TERMINADA' ? (
+            {esDT && (o.estado === 'TERMINADA' || abierta) ? (
               <Button
                 leftSection={<IconShieldCheck size={18} />}
                 onClick={() => setCierre('liberar')}
