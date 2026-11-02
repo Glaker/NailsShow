@@ -213,7 +213,10 @@ export type RenglonVenta = Pick<
   | 'de_calle5'
   | 'a_producir'
   | 'anulado'
->;
+> & {
+  /** % de descuento por caja marcado en el renglón; null = no lleva (D-descuento-caja-1). */
+  descuento_caja_pct: number | null;
+};
 
 /** Formas de pago que usa la planilla PEDIDOS MAYORISTAS. Se puede escribir otra. */
 export const FORMAS_PAGO = [
@@ -262,6 +265,8 @@ export interface LineaCuenta {
   unidades_pack: number;
   /** Precio por unidad del código escrito a mano (con IVA), o null. */
   manual: number | null;
+  /** % de descuento por caja, o null (D-descuento-caja-1). */
+  caja?: number | null;
 }
 
 /**
@@ -269,6 +274,16 @@ export interface LineaCuenta {
  * promo (H341); descuento según la escala, o el fijado (H342); precio final
  * por unidad redondeado a pesos (columna I); total con descuento.
  */
+/**
+ * Precio final de una unidad, como comercial.recalcular_venta: el descuento del
+ * pedido y, encima, el de caja, cada uno redondeado a pesos (D-descuento-caja-1).
+ */
+export const precioFinalUnidad = (
+  promo: number,
+  descuento: number,
+  caja: number | null,
+) => Math.round(Math.round(promo * (1 - descuento / 100)) * (1 - (caja ?? 0) / 100));
+
 export function calcularVenta(
   lineas: LineaCuenta[],
   escala: Escalon[],
@@ -282,7 +297,7 @@ export function calcularVenta(
   const finales = lineas.map((l) =>
     l.manual !== null
       ? l.manual
-      : Math.round(l.precio_promo * (1 - descuento / 100)) * l.unidades_pack,
+      : precioFinalUnidad(l.precio_promo, descuento, l.caja ?? null) * l.unidades_pack,
   );
   const total = lineas.reduce((a, l, i) => a + l.cantidad * finales[i]!, 0);
   return { lista, descuento, finales, total };
@@ -402,10 +417,11 @@ export function useVenta(id: string | undefined) {
         .eq('id', id!)
         .single();
       if (error) throw error;
-      const { data: rs, error: e2 } = await comercial()
+      // Sin tipos hasta regenerar database.types.ts con 20261102130000.
+      const { data: rs, error: e2 } = await comercialST()
         .from('pedido_renglones')
         .select(
-          'id, producto_id, cantidad, precio_base, precio_final, precio_manual, de_calle5, a_producir, anulado',
+          'id, producto_id, cantidad, precio_base, precio_final, precio_manual, de_calle5, a_producir, anulado, descuento_caja_pct',
         )
         .eq('pedido_id', id!)
         .eq('anulado', false);
@@ -420,8 +436,14 @@ export function useVenta(id: string | undefined) {
       return {
         venta: aFilaVenta(data),
         depositoOrigenId: o.deposito_origen_id,
-        renglones: (rs ?? []).map((r) => ({
+        renglones: (
+          (rs ?? []) as (Omit<RenglonVenta, 'descuento_caja_pct'> & {
+            descuento_caja_pct: number | string | null;
+          })[]
+        ).map((r) => ({
           ...r,
+          descuento_caja_pct:
+            r.descuento_caja_pct === null ? null : n(r.descuento_caja_pct),
           cantidad: n(r.cantidad),
           precio_base: r.precio_base === null ? null : n(r.precio_base),
           precio_final: r.precio_final === null ? null : n(r.precio_final),
@@ -469,6 +491,8 @@ export interface LineaGuardar {
   cantidad: number;
   /** Precio por unidad del código con IVA, escrito a mano; null = el de la lista. */
   manual: number | null;
+  /** % de descuento por caja; null = no lleva (D-descuento-caja-1). */
+  caja: number | null;
 }
 
 /**
@@ -512,12 +536,14 @@ export function useGuardarVenta() {
       const porProducto = new Map(d.previos.map((r) => [r.producto_id, r]));
       for (const l of d.lineas) {
         const previo = porProducto.get(l.producto_id);
-        const precio =
-          l.manual === null
+        const precio = {
+          ...(l.manual === null
             ? { precio_manual: false }
-            : { precio_manual: true, precio_final: l.manual };
+            : { precio_manual: true, precio_final: l.manual }),
+          descuento_caja_pct: l.caja,
+        };
         if (!previo && l.cantidad > 0) {
-          const { error } = await comercial()
+          const { error } = await comercialST()
             .from('pedido_renglones')
             .insert({
               pedido_id: id,
@@ -536,9 +562,10 @@ export function useGuardarVenta() {
           previo &&
           (previo.cantidad !== l.cantidad ||
             previo.precio_manual !== (l.manual !== null) ||
-            (l.manual !== null && previo.precio_final !== l.manual))
+            (l.manual !== null && previo.precio_final !== l.manual) ||
+            previo.descuento_caja_pct !== l.caja)
         ) {
-          const { error } = await comercial()
+          const { error } = await comercialST()
             .from('pedido_renglones')
             .update({ cantidad: l.cantidad, ...precio })
             .eq('id', previo.id);
@@ -760,5 +787,36 @@ export function useCargarEscala() {
       avisarExito('Escala nueva cargada. La anterior queda en el historial.');
     },
     onError: avisarError,
+  });
+}
+
+/** Descuento por caja vigente por producto (20261102130000, D-descuento-caja-1). */
+export interface DescuentoCaja {
+  unidades_caja: number;
+  porcentaje: number;
+}
+
+export function useDescuentosCaja() {
+  return useQuery({
+    queryKey: ['descuentos-caja'],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await comercialST()
+        .from('v_descuentos_caja')
+        .select('producto_id, unidades_caja, porcentaje');
+      if (error) throw error;
+      return new Map(
+        (
+          (data ?? []) as {
+            producto_id: string;
+            unidades_caja: number;
+            porcentaje: number | string;
+          }[]
+        ).map((d) => [
+          d.producto_id,
+          { unidades_caja: n(d.unidades_caja), porcentaje: n(d.porcentaje) },
+        ]),
+      );
+    },
   });
 }

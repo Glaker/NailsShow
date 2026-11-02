@@ -57,3 +57,31 @@ describe('cuenta del pedido mayorista', () => {
     expect(c.finales).toEqual([11520, 6000]);
   });
 });
+
+describe('descuento por caja (D-descuento-caja-1)', () => {
+  it('caja de 98 monómeros al 5 %, sin descuento del pedido: 791.350', () => {
+    const c = calcularVenta(
+      [{ cantidad: 98, precio_promo: 8500, unidades_pack: 1, manual: null, caja: 5 }],
+      [],
+      0,
+    );
+    expect(c.finales).toEqual([8075]);
+    expect(c.total).toBe(791350);
+  });
+  it('se suma al del pedido: 8.500 × 0,80 = 6.800, × 0,95 = 6.460', () => {
+    const c = calcularVenta(
+      [{ cantidad: 1, precio_promo: 8500, unidades_pack: 1, manual: null, caja: 5 }],
+      [],
+      20,
+    );
+    expect(c.finales).toEqual([6460]);
+  });
+  it('el escalón del pedido se calcula sin el descuento por caja', () => {
+    const c = calcularVenta(
+      [{ cantidad: 98, precio_promo: 8500, unidades_pack: 1, manual: null, caja: 5 }],
+      [],
+      null,
+    );
+    expect(c.lista).toBe(833000);
+  });
+});

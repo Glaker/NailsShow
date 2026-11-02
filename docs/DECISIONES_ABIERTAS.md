@@ -1188,6 +1188,23 @@ guardan el código del día; el rótulo impreso dice el viejo hasta reimprimirlo
 El valor anterior queda en la auditoría (RN-50).
 **Dónde está.** `20261030130000_comercial_codigo_insumo_editable.sql`.
 
+### D-descuento-caja-1 · Descuento por caja cerrada en las ventas — adoptada 2026-11-02
+
+**Pedido de Ventas (Mati), confirmado por el codirector técnico.** Cada producto
+que se vende en caja cerrada tiene su descuento por defecto (5, 8 o 10 %) y las
+unidades de la caja. En el pedido de venta, Ventas marca «Desc. por caja» en el
+renglón y puede cambiar el porcentaje. Se aplica sobre el precio promocional y
+**se suma** al descuento del pedido (escala o fijo), en cascada: primero el del
+pedido y después el de caja, cada uno redondeado a pesos. El escalón del pedido
+se calcula sin el descuento de caja.
+**Por qué no 16 %.** La lista mostraba la caja de monómero con 16 % sobre el
+precio de lista: es el 11 % del precio promocional más el 5 % de la caja. El
+sistema guarda solo el de la caja; el otro ya está en el precio promocional.
+**Pendiente.** El removedor de litro (195) y los sanitizantes de 1 L (NS-397 a
+NS-399) tienen descuento de caja cargado pero no están en la lista mayorista:
+hasta que se carguen con precio no se venden por la planilla.
+**Dónde está.** `20261102130000_comercial_descuento_por_caja.sql`, `PaginaVenta.tsx`.
+
 ### D-liberar-antes-1 · Se libera el lote antes de terminar el envasado — adoptada 2026-11-02
 
 **Decisión del codirector técnico.** Dirección Técnica libera una orden ABIERTA
