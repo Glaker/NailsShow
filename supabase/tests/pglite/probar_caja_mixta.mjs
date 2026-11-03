@@ -19,22 +19,38 @@ const r = await uno(
   [p, mono],
 );
 const fila = () =>
-  uno(`select precio_final, precio_unitario, alicuota_iva from comercial.pedido_renglones where id=$1`, [r.id]);
+  uno(
+    `select precio_final, precio_unitario, alicuota_iva from comercial.pedido_renglones where id=$1`,
+    [r.id],
+  );
 
-await prueba('1 caja de 98 a 8.075 + 10 sueltas a 8.500: 876.350 / 108 = 8.114,35', async () => {
-  const f = await fila();
-  if (N(f.precio_final) !== 8114.35) throw new Error(JSON.stringify(f));
-  const exacto = 876350 / 108 / (1 + N(f.alicuota_iva) / 100);
-  if (Math.abs(N(f.precio_unitario) - exacto) > 0.00005) throw new Error(JSON.stringify(f));
-});
-await prueba('todo en caja (NULL o = cantidad) da 8.075; ninguna en caja da 8.500', async () => {
-  await q(`update comercial.pedido_renglones set cantidad_caja = 108 where id=$1`, [r.id]);
-  if (N((await fila()).precio_final) !== 8075) throw new Error('108');
-  await q(`update comercial.pedido_renglones set cantidad_caja = null where id=$1`, [r.id]);
-  if (N((await fila()).precio_final) !== 8075) throw new Error('null');
-  await q(`update comercial.pedido_renglones set cantidad_caja = 0 where id=$1`, [r.id]);
-  if (N((await fila()).precio_final) !== 8500) throw new Error('0');
-});
+await prueba(
+  '1 caja de 98 a 8.075 + 10 sueltas a 8.500: 876.350 / 108 = 8.114,35',
+  async () => {
+    const f = await fila();
+    if (N(f.precio_final) !== 8114.35) throw new Error(JSON.stringify(f));
+    const exacto = 876350 / 108 / (1 + N(f.alicuota_iva) / 100);
+    if (Math.abs(N(f.precio_unitario) - exacto) > 0.00005)
+      throw new Error(JSON.stringify(f));
+  },
+);
+await prueba(
+  'todo en caja (NULL o = cantidad) da 8.075; ninguna en caja da 8.500',
+  async () => {
+    await q(`update comercial.pedido_renglones set cantidad_caja = 108 where id=$1`, [
+      r.id,
+    ]);
+    if (N((await fila()).precio_final) !== 8075) throw new Error('108');
+    await q(`update comercial.pedido_renglones set cantidad_caja = null where id=$1`, [
+      r.id,
+    ]);
+    if (N((await fila()).precio_final) !== 8075) throw new Error('null');
+    await q(`update comercial.pedido_renglones set cantidad_caja = 0 where id=$1`, [
+      r.id,
+    ]);
+    if (N((await fila()).precio_final) !== 8500) throw new Error('0');
+  },
+);
 await rechaza(
   'no van en caja más unidades que las del renglón',
   `update comercial.pedido_renglones set cantidad_caja = 109 where id='${r.id}'`,
