@@ -28,6 +28,7 @@ import {
 import { DateInput } from '@mantine/dates';
 import {
   IconArrowLeft,
+  IconBookmark,
   IconCalendarEvent,
   IconCircleCheck,
   IconFileInvoice,
@@ -41,6 +42,9 @@ import { useDepositos } from '@/lib/consultas';
 import { useTieneRol } from '@/features/auth/sesion';
 import { BadgeEstadoPedido } from '@/features/comercial/estadoPedido';
 import { TablaEscala } from './TablaEscala';
+import { ModalReserva } from '@/features/comercial/Calle5';
+import { usePendientesDespacho } from '@/lib/consultasCalle5';
+import { ROLES_STOCK_PT } from '@/lib/consultasStockSeguridad';
 import { fecha, fechaHora, fechaISO, numero, desdeCalendario } from '@/lib/formato';
 import {
   DEPOSITOS_VENTA,
@@ -499,6 +503,12 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
   const [buscar, setBuscar] = useState('');
   const [soloPedido, setSoloPedido] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
+  /* Ya aprobado: reservar lo que el pedido tiene pendiente, en el depósito
+     donde está (pedido del 2026-11-03). */
+  const [reservando, setReservando] = useState(false);
+  const puedeReservar = useTieneRol(...ROLES_STOCK_PT);
+  const pendientes = usePendientesDespacho(id ?? undefined);
+  const hayPendiente = (pendientes.data ?? []).some((p) => Number(p.pendiente) > 0);
   // Cuánto se arma del depósito por producto: lo decide Ventas (sugerido: lo disponible).
   const [deC5, setDeC5] = useState<Record<string, number | string>>({});
 
@@ -662,6 +672,15 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
           </div>
         </Group>
         <Group gap="sm">
+          {!nuevo && !editable && puedeReservar && hayPendiente ? (
+            <Button
+              variant="default"
+              leftSection={<IconBookmark size={18} />}
+              onClick={() => setReservando(true)}
+            >
+              Reservar stock
+            </Button>
+          ) : null}
           {!nuevo && !editable ? (
             <Button
               component={Link}
@@ -1237,6 +1256,12 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
           </Group>
         </Group>
       </Paper>
+
+      <ModalReserva
+        inicial={reservando && id ? { productoId: null, pedidoId: id } : null}
+        onCerrar={() => setReservando(false)}
+        pedidos={pendientes.data ?? []}
+      />
 
       <Modal
         opened={confirmando}

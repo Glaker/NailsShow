@@ -675,7 +675,7 @@ function FilaProducto({
  * donde está: fábrica, Calle 5 o Berna (pedido del 2026-11-03). El despacho
  * desde ese depósito consume la reserva (comercial.despachar_pedido).
  */
-function ModalReserva({
+export function ModalReserva({
   inicial,
   onCerrar,
   pedidos,
