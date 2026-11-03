@@ -48,6 +48,7 @@ import {
   FORMAS_PAGO,
   TEXTO_PAGO,
   calcularVenta,
+  precioFinalRenglon,
   precioFinalUnidad,
   useDescuentosCaja,
   proximoEscalon,
@@ -141,43 +142,85 @@ function PrecioManual({
 /**
  * Descuento por caja cerrada de un renglón (D-descuento-caja-1): se marca y
  * arranca con el % de la lista de cajas; Ventas lo puede cambiar. Va encima
- * del descuento del pedido.
+ * del descuento del pedido. Mixto (D-caja-mixta-1): Ventas dice cuántas cajas
+ * cerradas van; el resto de la cantidad sale suelto, sin descuento de caja.
  */
+type CajaRenglon = { pct: number; uds: number | null };
+
 function MarcadorCaja({
   def,
   valor,
+  cantidad,
   deshabilitado,
   onCambiar,
 }: {
   def: { unidades_caja: number; porcentaje: number };
-  valor: number | null;
+  valor: CajaRenglon | null;
+  cantidad: number;
   deshabilitado: boolean;
-  onCambiar: (x: number | null) => void;
+  onCambiar: (x: CajaRenglon | null) => void;
 }) {
+  // uds null = todo el renglón en caja (renglones de antes de D-caja-mixta-1).
+  const enCaja = valor ? Math.min(valor.uds ?? cantidad, cantidad) : 0;
+  const sueltas = cantidad - enCaja;
   return (
     <Group gap={6} wrap="nowrap">
       <Checkbox
         size="sm"
         checked={valor !== null}
         disabled={deshabilitado}
-        onChange={(e) => onCambiar(e.currentTarget.checked ? def.porcentaje : null)}
+        onChange={(e) =>
+          onCambiar(
+            e.currentTarget.checked
+              ? {
+                  pct: def.porcentaje,
+                  uds: Math.floor(cantidad / def.unidades_caja) * def.unidades_caja,
+                }
+              : null,
+          )
+        }
         aria-label={`Descuento por caja de ${def.unidades_caja}`}
         label={<Text size="xs">caja ×{def.unidades_caja}</Text>}
       />
       {valor !== null ? (
-        <NumberInput
-          size="xs"
-          w={70}
-          min={0}
-          max={100}
-          decimalScale={2}
-          suffix=" %"
-          hideControls
-          value={valor}
-          disabled={deshabilitado}
-          onChange={(x) => onCambiar(typeof x === 'number' ? x : 0)}
-          aria-label="Porcentaje de descuento por caja"
-        />
+        <>
+          <NumberInput
+            size="xs"
+            w={64}
+            min={0}
+            allowDecimal={false}
+            suffix=" cj"
+            value={(valor.uds ?? cantidad) / def.unidades_caja}
+            disabled={deshabilitado}
+            onChange={(x) =>
+              onCambiar({ ...valor, uds: (Number(x) || 0) * def.unidades_caja })
+            }
+            aria-label="Cajas cerradas"
+          />
+          <NumberInput
+            size="xs"
+            w={70}
+            min={0}
+            max={100}
+            decimalScale={2}
+            suffix=" %"
+            hideControls
+            value={valor.pct}
+            disabled={deshabilitado}
+            onChange={(x) => onCambiar({ ...valor, pct: typeof x === 'number' ? x : 0 })}
+            aria-label="Porcentaje de descuento por caja"
+          />
+          {sueltas > 0 ? (
+            <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
+              + {numero(sueltas)} sueltas
+            </Text>
+          ) : null}
+          {(valor.uds ?? 0) > cantidad ? (
+            <Text size="xs" c="red" style={{ whiteSpace: 'nowrap' }}>
+              más que la cantidad
+            </Text>
+          ) : null}
+        </>
       ) : null}
     </Group>
   );
@@ -276,13 +319,19 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
       ),
   );
   /* Descuento por caja marcado por renglón (D-descuento-caja-1): el % de la
-     lista de cajas por defecto, y Ventas lo cambia. */
+     lista de cajas por defecto, y Ventas lo cambia. Con cuántas unidades van
+     en caja (D-caja-mixta-1). */
   const [caja, setCaja] = useState(
     () =>
-      new Map(
+      new Map<string, CajaRenglon>(
         (datos?.renglones ?? []).flatMap((r) =>
           r.descuento_caja_pct !== null
-            ? [[r.producto_id, r.descuento_caja_pct] as const]
+            ? [
+                [
+                  r.producto_id,
+                  { pct: r.descuento_caja_pct, uds: r.cantidad_caja },
+                ] as const,
+              ]
             : [],
         ),
       ),
@@ -319,7 +368,8 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
           precio_promo: f?.precio_promo ?? 0,
           unidades_pack: f?.unidades_pack ?? 1,
           manual: manual.get(pid) ?? null,
-          caja: caja.get(pid) ?? null,
+          caja: caja.get(pid)?.pct ?? null,
+          cantidad_caja: caja.get(pid)?.uds ?? null,
         })),
         escala.data ?? [],
         modoDesc === 'fijo' ? Number(descFijo) || 0 : null,
@@ -329,9 +379,17 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
   const sig =
     modoDesc === 'escala' ? proximoEscalon(cuenta.lista, escala.data ?? []) : null;
   const finalDe = (f: FilaLista) =>
-    manual.get(f.producto_id) ??
-    precioFinalUnidad(f.precio_promo, cuenta.descuento, caja.get(f.producto_id) ?? null) *
-      f.unidades_pack;
+    precioFinalRenglon(
+      {
+        cantidad: cant.get(f.producto_id) ?? 0,
+        precio_promo: f.precio_promo,
+        unidades_pack: f.unidades_pack,
+        manual: manual.get(f.producto_id) ?? null,
+        caja: caja.get(f.producto_id)?.pct ?? null,
+        cantidad_caja: caja.get(f.producto_id)?.uds ?? null,
+      },
+      cuenta.descuento,
+    );
 
   const t = buscar.trim().toLowerCase();
   const visibles = filas.filter(
@@ -366,7 +424,8 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
       producto_id: pid,
       cantidad: cant.get(pid) ?? 0,
       manual: manual.get(pid) ?? null,
-      caja: caja.get(pid) ?? null,
+      caja: caja.get(pid)?.pct ?? null,
+      cantidad_caja: caja.get(pid)?.uds ?? null,
     }));
   const guardarBorrador = async () => {
     const nuevoId = await guardar.mutateAsync({
@@ -721,10 +780,19 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                 const bajoMinimo = c > 0 && f.minimo !== null && c < f.minimo;
                 const titulo =
                   i === 0 || visibles[i - 1]!.rubro !== f.rubro ? f.rubro : null;
+                const cajaR = caja.get(f.producto_id);
                 const finalUnidad = precioFinalUnidad(
                   f.precio_promo,
                   cuenta.descuento,
-                  caja.get(f.producto_id) ?? null,
+                  cajaR?.pct ?? null,
+                );
+                // Mixto (D-caja-mixta-1): se muestran los dos precios.
+                const mixto =
+                  cajaR !== undefined && cajaR.uds !== null && c > 0 && cajaR.uds < c;
+                const finalSuelta = precioFinalUnidad(
+                  f.precio_promo,
+                  cuenta.descuento,
+                  null,
                 );
                 const defCaja = cajas.data?.get(f.producto_id);
                 return (
@@ -794,7 +862,8 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                         {defCaja ? (
                           <MarcadorCaja
                             def={defCaja}
-                            valor={caja.get(f.producto_id) ?? null}
+                            valor={cajaR ?? null}
+                            cantidad={c}
                             deshabilitado={!editable}
                             onCambiar={(x) =>
                               setCaja((m) => {
@@ -831,7 +900,9 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                           >
                             {manual.has(f.producto_id)
                               ? `${pesos(manual.get(f.producto_id)! / f.unidades_pack)} a mano`
-                              : pesos(finalUnidad)}
+                              : mixto
+                                ? `caja ${pesos(finalUnidad)} · suelta ${pesos(finalSuelta)}`
+                                : pesos(finalUnidad)}
                           </Text>
                           {c > 0 ? (
                             <PrecioManual

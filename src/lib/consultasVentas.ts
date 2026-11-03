@@ -216,6 +216,8 @@ export type RenglonVenta = Pick<
 > & {
   /** % de descuento por caja marcado en el renglón; null = no lleva (D-descuento-caja-1). */
   descuento_caja_pct: number | null;
+  /** Unidades que van en caja cerrada; el resto, sueltas. null = todas (D-caja-mixta-1). */
+  cantidad_caja: number | null;
 };
 
 /** Formas de pago que usa la planilla PEDIDOS MAYORISTAS. Se puede escribir otra. */
@@ -267,6 +269,8 @@ export interface LineaCuenta {
   manual: number | null;
   /** % de descuento por caja, o null (D-descuento-caja-1). */
   caja?: number | null;
+  /** Unidades en caja cerrada; el resto va suelto. null = todas (D-caja-mixta-1). */
+  cantidad_caja?: number | null;
 }
 
 /**
@@ -284,6 +288,21 @@ export const precioFinalUnidad = (
   caja: number | null,
 ) => Math.round(Math.round(promo * (1 - descuento / 100)) * (1 - (caja ?? 0) / 100));
 
+/**
+ * Precio final del renglón (por pack), como comercial.recalcular_venta: las
+ * unidades en caja con su descuento y las sueltas sin él, promediadas a
+ * centavos (D-caja-mixta-1).
+ */
+export function precioFinalRenglon(l: LineaCuenta, descuento: number) {
+  if (l.manual !== null) return l.manual;
+  const suelta = precioFinalUnidad(l.precio_promo, descuento, null);
+  const enCaja = precioFinalUnidad(l.precio_promo, descuento, l.caja ?? null);
+  const cc = Math.min(l.cantidad_caja ?? l.cantidad, l.cantidad);
+  if (!l.cantidad || cc === l.cantidad) return enCaja * l.unidades_pack;
+  const exacto = (cc * enCaja + (l.cantidad - cc) * suelta) / l.cantidad;
+  return Math.round(exacto * l.unidades_pack * 100) / 100;
+}
+
 export function calcularVenta(
   lineas: LineaCuenta[],
   escala: Escalon[],
@@ -294,12 +313,12 @@ export function calcularVenta(
     0,
   );
   const descuento = descuentoFijo ?? descuentoPorMonto(lista, escala);
-  const finales = lineas.map((l) =>
-    l.manual !== null
-      ? l.manual
-      : precioFinalUnidad(l.precio_promo, descuento, l.caja ?? null) * l.unidades_pack,
+  const finales = lineas.map((l) => precioFinalRenglon(l, descuento));
+  // Como el importe de la base: cantidad × precio final, a centavos.
+  const total = lineas.reduce(
+    (a, l, i) => a + Math.round(l.cantidad * finales[i]! * 100) / 100,
+    0,
   );
-  const total = lineas.reduce((a, l, i) => a + l.cantidad * finales[i]!, 0);
   return { lista, descuento, finales, total };
 }
 
@@ -421,7 +440,7 @@ export function useVenta(id: string | undefined) {
       const { data: rs, error: e2 } = await comercialST()
         .from('pedido_renglones')
         .select(
-          'id, producto_id, cantidad, precio_base, precio_final, precio_manual, de_calle5, a_producir, anulado, descuento_caja_pct',
+          'id, producto_id, cantidad, precio_base, precio_final, precio_manual, de_calle5, a_producir, anulado, descuento_caja_pct, cantidad_caja',
         )
         .eq('pedido_id', id!)
         .eq('anulado', false);
@@ -437,13 +456,15 @@ export function useVenta(id: string | undefined) {
         venta: aFilaVenta(data),
         depositoOrigenId: o.deposito_origen_id,
         renglones: (
-          (rs ?? []) as (Omit<RenglonVenta, 'descuento_caja_pct'> & {
+          (rs ?? []) as (Omit<RenglonVenta, 'descuento_caja_pct' | 'cantidad_caja'> & {
             descuento_caja_pct: number | string | null;
+            cantidad_caja: number | string | null;
           })[]
         ).map((r) => ({
           ...r,
           descuento_caja_pct:
             r.descuento_caja_pct === null ? null : n(r.descuento_caja_pct),
+          cantidad_caja: r.cantidad_caja === null ? null : n(r.cantidad_caja),
           cantidad: n(r.cantidad),
           precio_base: r.precio_base === null ? null : n(r.precio_base),
           precio_final: r.precio_final === null ? null : n(r.precio_final),
@@ -493,6 +514,8 @@ export interface LineaGuardar {
   manual: number | null;
   /** % de descuento por caja; null = no lleva (D-descuento-caja-1). */
   caja: number | null;
+  /** Unidades en caja cerrada; null = todas (D-caja-mixta-1). */
+  cantidad_caja: number | null;
 }
 
 /**
@@ -541,6 +564,10 @@ export function useGuardarVenta() {
             ? { precio_manual: false }
             : { precio_manual: true, precio_final: l.manual }),
           descuento_caja_pct: l.caja,
+          cantidad_caja:
+            l.caja === null || l.cantidad_caja === null
+              ? null
+              : Math.min(l.cantidad_caja, l.cantidad),
         };
         if (!previo && l.cantidad > 0) {
           const { error } = await comercialST()
@@ -563,7 +590,8 @@ export function useGuardarVenta() {
           (previo.cantidad !== l.cantidad ||
             previo.precio_manual !== (l.manual !== null) ||
             (l.manual !== null && previo.precio_final !== l.manual) ||
-            previo.descuento_caja_pct !== l.caja)
+            previo.descuento_caja_pct !== l.caja ||
+            previo.cantidad_caja !== precio.cantidad_caja)
         ) {
           const { error } = await comercialST()
             .from('pedido_renglones')
