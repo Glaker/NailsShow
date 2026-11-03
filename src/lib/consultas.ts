@@ -1091,6 +1091,86 @@ export function useEliminarRecepcion() {
   });
 }
 
+/** Los lotes completos de una recepción, para editarla (D-recepcion-5). */
+export function useLotesDeRecepcion(recepcionId: string | null) {
+  return useQuery({
+    queryKey: ['recepciones', 'lotes', recepcionId],
+    enabled: Boolean(recepcionId),
+    queryFn: async () => {
+      const { data, error } = await gmp()
+        .from('lotes_insumo')
+        .select('*')
+        .eq('recepcion_id', recepcionId!)
+        .order('numero_registro_interno');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+/**
+ * Editar una recepción antes de cargarla a stock (20261103130000,
+ * D-recepcion-5): agrega los lotes nuevos, corrige el remito y los lotes que
+ * quedan, y quita los que sobran. Los nuevos primero: la base no deja quitar
+ * el último lote.
+ */
+export function useEditarRecepcion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (d: {
+      recepcionId: string;
+      cabecera: Pick<
+        RecepcionNueva,
+        | 'proveedor_id'
+        | 'proveedor_nuevo'
+        | 'numero_remito'
+        | 'coincide_con_pedido'
+        | 'observaciones'
+      >;
+      lotes: (LoteNuevo & { id: string })[];
+      nuevos: LoteNuevo[];
+      quitados: string[];
+    }) => {
+      // ponytail: tres pasos sin transacción común, como el alta; si uno
+      // falla, lo anterior queda y se vuelve a editar.
+      let nuevos: LoteInsumo[] = [];
+      if (d.nuevos.length > 0) {
+        const { data, error } = await gmp()
+          .from('lotes_insumo')
+          .insert(d.nuevos.map((l) => ({ ...l, recepcion_id: d.recepcionId })))
+          .select();
+        if (error) throw error;
+        nuevos = data ?? [];
+        for (const lote of nuevos.filter((l) => l.contenedores_limpiados)) {
+          const { error: e } = await gmp().rpc('emitir_rotulo_lote_insumo', {
+            p_lote_id: lote.id,
+            p_estado: 'CUARENTENA',
+          });
+          if (e) throw e;
+        }
+      }
+      const { error } = await (comercial() as unknown as SupabaseClient).rpc(
+        'editar_recepcion',
+        { p_recepcion_id: d.recepcionId, p_cabecera: d.cabecera, p_lotes: d.lotes },
+      );
+      if (error) throw error;
+      for (const id of d.quitados) {
+        const { error: e } = await (gmp() as unknown as SupabaseClient)
+          .from('lotes_quitados')
+          .insert({ lote_insumo_id: id });
+        if (e) throw e;
+      }
+      return nuevos;
+    },
+    onSuccess: () => {
+      for (const k of ['recepciones', 'lotes', 'tablero', 'lotes-por-estado', 'rotulos'])
+        void qc.invalidateQueries({ queryKey: [k] });
+      avisarExito('Recepción corregida.');
+    },
+    onError: avisarError,
+  });
+}
+
 /**
  * Carga a stock. `depositos` completa antes el depósito de los lotes que no
  * lo tienen (gmp.asignar_deposito_lote): sin destino la base rechaza la carga.
