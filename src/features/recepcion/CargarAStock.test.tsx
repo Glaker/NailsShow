@@ -74,6 +74,26 @@ describe('estiba en «Cargar a stock»', () => {
     expect(confirmar).toHaveBeenCalledWith({}, ['frasco'], {}, { frasco: 'e2' });
   });
 
+  it('es optativa: vacía (o escrita y borrada) carga igual, sin estiba', async () => {
+    const confirmar = armar([
+      lote('crema', 'MATERIA_PRIMA'),
+      lote('alcohol', 'MATERIA_PRIMA'),
+    ]);
+    const [primera] = screen.getAllByPlaceholderText('A-1');
+    await userEvent.type(primera!, 'x');
+    await userEvent.clear(primera!);
+    const boton = screen.getByRole('button', { name: 'Cargar a stock' });
+    expect(boton).toBeEnabled();
+    await userEvent.click(boton);
+    expect(confirmar).toHaveBeenCalledWith({}, [], {}, {});
+  });
+
+  it('mal escrita no deja cargar hasta corregirla o borrarla', async () => {
+    armar([lote('crema', 'MATERIA_PRIMA')]);
+    await userEvent.type(screen.getByPlaceholderText('A-1'), '12');
+    expect(screen.getByRole('button', { name: 'Cargar a stock' })).toBeDisabled();
+  });
+
   it('un envase ya aprobado al recibirlo también pide estiba (salvo en el depósito 2)', async () => {
     const aprobado = (id: string, dep: string) => ({
       ...lote(id, 'MATERIAL_ENVASE'),
