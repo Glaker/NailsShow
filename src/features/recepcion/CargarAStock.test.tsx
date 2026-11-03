@@ -73,4 +73,18 @@ describe('estiba en «Cargar a stock»', () => {
     // En el 2 no hay estibas: la que se había escrito no viaja.
     expect(confirmar).toHaveBeenCalledWith({}, ['frasco'], {}, { frasco: 'e2' });
   });
+
+  it('un envase ya aprobado al recibirlo también pide estiba (salvo en el depósito 2)', async () => {
+    const aprobado = (id: string, dep: string) => ({
+      ...lote(id, 'MATERIAL_ENVASE'),
+      estado: 'APROBADO',
+      deposito_actual_id: dep,
+    });
+    const confirmar = armar([aprobado('bomba', 'e1'), aprobado('tapa', 'e2')]);
+    const campos = screen.getAllByPlaceholderText('A-1');
+    expect(campos).toHaveLength(1);
+    await userEvent.type(campos[0]!, 'd-4');
+    await userEvent.click(screen.getByRole('button', { name: 'Cargar a stock' }));
+    expect(confirmar).toHaveBeenCalledWith({}, [], { bomba: 'D-4' }, {});
+  });
 });

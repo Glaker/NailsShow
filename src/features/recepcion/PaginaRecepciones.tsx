@@ -630,9 +630,14 @@ export function CargarAStock({
   const [depEnvase, setDepEnvase] = useState<Record<string, string>>({});
   const depDe = (l: (typeof lotes)[number]) => depEnvase[l.id] ?? deposito1;
   /* Optativa; no va en el rótulo (pedido del 2026-10-26). De los envases,
-     solo en el depósito 1: es el único con estibas. */
+     no en el depósito 2: es el único sin estibas. Un envase ya aprobado al
+     recibirlo (D-recepcion-2 ter) no está entre los pendientes y también la
+     lleva (2026-11-03: en la tablet había desaparecido). */
+  const enDeposito2 = (id: string | null) =>
+    id !== null && id !== deposito1 && depEnvases.some((d) => d.id === id);
   const llevaEstiba = (l: (typeof lotes)[number]) =>
-    !esEnvase(l) || (aprobados.has(l.id) && depDe(l) === deposito1);
+    !esEnvase(l) ||
+    (aprobados.has(l.id) ? depDe(l) === deposito1 : !enDeposito2(l.deposito_actual_id));
   const [estibas, setEstibas] = useState<Record<string, string>>({});
   const escritas = Object.fromEntries(
     Object.entries(estibas).filter(
