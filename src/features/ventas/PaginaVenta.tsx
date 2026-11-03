@@ -280,7 +280,8 @@ function ArmarCaja({
       </Title>
       <Text size="sm" c="dimmed" mb="sm">
         Mismo producto y presentación; solo cambia el aroma. Repartí las unidades de la
-        caja entre los aromas y agregala: lleva el descuento de caja.
+        caja entre los aromas y agregala: lleva el descuento de caja. Lo normal es la caja
+        completa; con menos avisa, pero se puede.
       </Text>
       <Group align="flex-end" gap="sm" wrap="wrap">
         <Select
@@ -329,7 +330,7 @@ function ArmarCaja({
               {numero(puestas)} de {numero(elegido.unidades_caja)} unidades
             </Text>
             <Button
-              disabled={deshabilitado || puestas !== elegido.unidades_caja}
+              disabled={deshabilitado || puestas <= 0}
               onClick={() => {
                 onAgregar(elegido, reparto);
                 setReparto(new Map());
@@ -338,22 +339,33 @@ function ArmarCaja({
               Agregar caja al pedido
             </Button>
           </Group>
+          {/* Caja incompleta (D-armar-caja-1, 2026-11-03): avisa pero deja
+              agregarla con el descuento; es un trato preferencial. */}
+          {puestas > 0 && puestas !== elegido.unidades_caja ? (
+            <Alert color="orange" variant="light" mt="sm" title="No es una caja completa">
+              La caja es de {numero(elegido.unidades_caja)} y llevás {numero(puestas)}. Si
+              la agregás, igual lleva el descuento de caja: hacelo solo si es un trato
+              preferencial con este cliente.
+            </Alert>
+          ) : null}
         </>
       ) : null}
       {armadas.length ? (
         <Stack gap={4} mt="md">
           {armadas.map((s) => {
             const u = enCaja(s);
-            const completas = Math.floor(u / s.unidades_caja);
             return (
               <Group key={s.clave} gap="sm">
                 <Text size="sm">
-                  <b>{s.nombre}</b>: {numero(completas)}{' '}
-                  {completas === 1 ? 'caja' : 'cajas'} ({numero(u)} u)
+                  <b>{s.nombre}</b>: {numero(u)} u con descuento de caja
+                  {u % s.unidades_caja
+                    ? ''
+                    : ` (${numero(u / s.unidades_caja)} ${u === s.unidades_caja ? 'caja' : 'cajas'})`}
                 </Text>
                 {u % s.unidades_caja ? (
-                  <Badge color="red" variant="light">
-                    {numero(u % s.unidades_caja)} u no completan una caja
+                  <Badge color="orange" variant="light">
+                    no son cajas completas de {numero(s.unidades_caja)}: trato
+                    preferencial
                   </Badge>
                 ) : null}
                 <Button
