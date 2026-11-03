@@ -795,6 +795,28 @@ con las que salían de PowerPoint. Si PowerPoint las escalaba al papel, salían
 un poco más grandes.
 **Dónde está.** `src/features/produccion/Loteo.tsx`, `posicionesLoteo.ts`, `global.css`.
 
+### D-recepcion-5 · Editar una recepción antes de cargarla a stock — adoptada 2026-11-03
+
+**Decisión del codirector técnico.** Mientras una recepción no se cargó a
+stock, quien registra recepciones (RECEPCION, GP, DT) la edita entera con
+«Editar» en Recepciones, en el mismo formulario del alta: proveedor, remito,
+«coincide con lo pedido», observaciones y todo lo constatado en cada lote;
+puede agregar un lote que faltó y quitar uno que sobró. Así no hace falta
+eliminarla y cargarla de nuevo.
+**Qué queda fijo.** El número y la fecha de la recepción, quién la registró y
+el n° interno de cada lote. Un lote que ya pasó por calidad (un envase dado
+por controlado al recibir, una materia prima con control rápido) no cambia de
+insumo ni de casillas (contenedores, protocolo) y no se quita.
+**Rastro.** No hay motivo obligatorio. Cada cambio queda en `core.auditoria`
+con el valor anterior, quién y cuándo (RN-50). Si cambia lo que dice un
+rótulo, se emite uno nuevo con el mismo estado y el anterior queda
+reemplazado (RN-05): hay que reimprimirlo. Un lote quitado no se borra: queda
+en `gmp.lotes_quitados` y RLS lo oculta, como una recepción eliminada.
+**Después de cargada a stock** sigue como antes: «Corregir cantidad» y
+«Corregir datos» con motivo (D-ajustes-1, D-corregir-datos-lote-1).
+**Dónde está.** `20261103130000_gmp_editar_recepcion.sql`,
+`FormularioRecepcion.tsx` (modo edición), `PaginaRecepciones.tsx`.
+
 ### D-recepcion-3 · Eliminar una recepción sin motivo — adoptada 2026-10-22
 
 **Decisión del codirector técnico.** Quien registra recepciones (RECEPCION,

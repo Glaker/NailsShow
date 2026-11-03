@@ -22,6 +22,7 @@ import {
   IconCheck,
   IconFlask,
   IconPackageImport,
+  IconPencil,
   IconPlus,
   IconTrash,
   IconTruckDelivery,
@@ -39,6 +40,7 @@ import {
   useDepositoPorDefecto,
   useDepositos,
   useEliminarRecepcion,
+  useLotesDeRecepcion,
   useRecepciones,
 } from '@/lib/consultas';
 import { fechaHora, numero } from '@/lib/formato';
@@ -91,6 +93,8 @@ export function PaginaRecepciones() {
     ]);
   }
   const [abierto, modal] = useDisclosure(false);
+  /* Editar antes de cargar a stock (D-recepcion-5): mismos roles que eliminar. */
+  const [aEditar, setAEditar] = useState<Recepcion | null>(null);
   /* §3.3 no tiene fila para la entrada por compra. Toma el conjunto de
      «Ajustar stock por diferencia de inventario», que es el mismo que ya puede
      completar la carga administrativa de la recepción (decisión abierta D-14). */
@@ -279,6 +283,20 @@ export function PaginaRecepciones() {
                       </Table.Td>
                       {puedeCargarStock || haceControlRapido || puedeEliminar ? (
                         <Table.Td>
+                          {puedeEliminar && !r.cargado_a_stock ? (
+                            <Tooltip label="Editar recepción">
+                              <ActionIcon
+                                size="lg"
+                                variant="subtle"
+                                color="azul"
+                                aria-label={`Editar la recepción ${r.numero}`}
+                                onClick={() => setAEditar(r)}
+                                style={{ float: 'right' }}
+                              >
+                                <IconPencil size={18} />
+                              </ActionIcon>
+                            </Tooltip>
+                          ) : null}
                           {puedeEliminar && eliminable(r) ? (
                             <Tooltip label="Eliminar recepción">
                               <ActionIcon
@@ -365,6 +383,17 @@ export function PaginaRecepciones() {
         size="xl"
       >
         <FormularioRecepcion onListo={modal.close} />
+      </Modal>
+
+      <Modal
+        opened={aEditar !== null}
+        onClose={() => setAEditar(null)}
+        title={<Text fw={700}>Editar la recepción {aEditar?.numero}</Text>}
+        size="xl"
+      >
+        {aEditar ? (
+          <EditarRecepcion recepcion={aEditar} onListo={() => setAEditar(null)} />
+        ) : null}
       </Modal>
 
       <Modal
@@ -501,6 +530,27 @@ const envasesPendientes = (r: Recepcion): LoteDeRecepcion[] =>
         l.insumo?.tipo === 'ETIQUETA') &&
       (l.estado === 'RECIBIDO' || l.estado === 'CUARENTENA'),
   );
+
+/**
+ * El formulario de la recepción con lo guardado (D-recepcion-5). Espera los
+ * lotes completos: el formulario se inicializa una sola vez.
+ */
+function EditarRecepcion({
+  recepcion,
+  onListo,
+}: {
+  recepcion: Recepcion;
+  onListo: () => void;
+}) {
+  const lotes = useLotesDeRecepcion(recepcion.id);
+  if (!lotes.data) return <Skeleton h={320} />;
+  return (
+    <FormularioRecepcion
+      onListo={onListo}
+      editar={{ recepcion: recepcion, lotes: lotes.data }}
+    />
+  );
+}
 
 /** Lo que admite gmp.eliminar_recepcion: sin cargar a stock y todo en cuarentena. */
 const eliminable = (r: Recepcion) =>

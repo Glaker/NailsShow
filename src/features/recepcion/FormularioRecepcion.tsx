@@ -35,9 +35,13 @@ import {
 } from '@tabler/icons-react';
 import {
   useCrearRecepcion,
+  useEditarRecepcion,
   useInsumos,
   useProveedores,
   type Insumo,
+  type LoteInsumo,
+  type LoteNuevo,
+  type Recepcion,
 } from '@/lib/consultas';
 import { desdeCalendario, etiquetaUnidad, fechaISO, numero } from '@/lib/formato';
 import {
@@ -69,6 +73,9 @@ import { FormularioInsumo } from '@/features/maestros/PaginaInsumos';
  * (CLAUDE.md §6): cada regla de acá tiene su CHECK o su trigger del otro lado.
  */
 const esquemaLote = z.object({
+  /* Al editar (D-recepcion-5): el lote ya guardado y su estado. */
+  id: z.string().optional(),
+  estado: z.string().optional(),
   insumo_id: z.string().min(1, 'Elegí el insumo'),
   /* Optativo si la recepción tiene remito (superRefine de abajo y
      gmp.fn_validar_lote_insumo, D-unidad-solo-materia-prima-2). */
@@ -220,12 +227,62 @@ interface Props {
    * para vincularse al lote.
    */
   desdeCompra?: AvisoCompraRow;
+  /**
+   * Editar una recepción todavía no cargada a stock (D-recepcion-5): arranca
+   * con lo guardado. Sin comprobante, costo ni compras: eso tiene su pantalla.
+   */
+  editar?: { recepcion: Recepcion; lotes: LoteInsumo[] };
 }
 
-export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
+/** Un lote que ya pasó por calidad no cambia de insumo ni se quita (D-recepcion-5). */
+const pasoPorCalidad = (estado?: string) =>
+  estado !== undefined && estado !== 'RECIBIDO' && estado !== 'CUARENTENA';
+
+/** El lote del formulario tal como lo guarda la base. */
+const aGuardar = (l: ValoresRecepcion['lotes'][number]): LoteNuevo => ({
+  insumo_id: l.insumo_id,
+  lote_proveedor: l.lote_proveedor.trim() || null,
+  cantidad_bultos: l.cantidad_bultos,
+  cantidad_unidades: enUnidadFicha(l.cantidad_unidades, l.en_mayor),
+  unidad: l.unidad.trim(),
+  plazo_validez: fechaISO(l.plazo_validez),
+  bultos_peso_similar: l.peso_bultos === 'na' ? null : l.peso_bultos === 'si',
+  unidades_contadas: l.unidades_contadas,
+  planchas_etiquetas: l.planchas_etiquetas,
+  etiquetas_por_plancha: l.etiquetas_por_plancha,
+  protocolo_recibido: l.protocolo_recibido,
+  peso_pigmento_kg: l.peso_pigmento_kg,
+  contenedores_limpiados: l.contenedores_limpiados,
+});
+
+/** Un lote guardado, como lo carga el formulario. */
+const desdeGuardado = (l: LoteInsumo): ValoresRecepcion['lotes'][number] => ({
+  ...LOTE_VACIO,
+  id: l.id,
+  estado: l.estado,
+  insumo_id: l.insumo_id,
+  lote_proveedor: l.lote_proveedor ?? '',
+  cantidad_bultos: l.cantidad_bultos,
+  cantidad_unidades: l.cantidad_unidades === null ? null : Number(l.cantidad_unidades),
+  unidad: l.unidad,
+  plazo_validez: l.plazo_validez ? new Date(`${l.plazo_validez}T12:00:00`) : null,
+  peso_bultos:
+    l.bultos_peso_similar === null ? 'na' : l.bultos_peso_similar ? 'si' : 'no',
+  unidades_contadas: l.unidades_contadas === null ? null : Number(l.unidades_contadas),
+  planchas_etiquetas: l.planchas_etiquetas,
+  etiquetas_por_plancha: l.etiquetas_por_plancha,
+  protocolo_recibido: l.protocolo_recibido ?? false,
+  peso_pigmento_kg: l.peso_pigmento_kg === null ? null : Number(l.peso_pigmento_kg),
+  contenedores_limpiados: l.contenedores_limpiados,
+});
+
+export function FormularioRecepcion({ onListo, desdeCompra, editar }: Props) {
   const proveedores = useProveedores();
   const insumos = useInsumos();
   const crear = useCrearRecepcion();
+  const editarMut = useEditarRecepcion();
+  /** Lotes guardados que se quitan al editar (D-recepcion-5). */
+  const [quitados, setQuitados] = useState<string[]>([]);
   /* Los envases se dan por controlados al recibirlos: lo que se constata en
      la recepción es el control (pedido del 2026-10-22, D-recepcion-2 bis). */
   const aprobarEnvases = useAprobarEnvases();
@@ -240,11 +297,11 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
   const registrarComprobante = useRegistrarComprobanteProveedor();
   /* El costo lo cargan Gerencia de Producción, Administración y Finanzas
      (D-38). Un operario que recibe no lo ve: se completa después. */
-  const cargaCosto = useTieneRol(...ROLES_CARGAN_COSTO_LOTE);
+  const cargaCosto = useTieneRol(...ROLES_CARGAN_COSTO_LOTE) && !editar;
   /* Dirección Técnica recibe material pero no ve la parte fiscal: el
      comprobante lo carga Administración (pedido del 2026-10-14). */
   /* Recepción tampoco: recibe y carga a stock, la factura es de Administración. */
-  const veComprobante = !useTieneRol('DIRECCION_TECNICA', 'RECEPCION');
+  const veComprobante = !useTieneRol('DIRECCION_TECNICA', 'RECEPCION') && !editar;
   /* Alta de insumo sin salir de la recepción. Mismos roles que la política
      insumos_catalogo_insert_tecnicos. Guarda el índice del lote que lo pidió. */
   const creaInsumo = useTieneRol(
@@ -270,8 +327,8 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
   const form = useForm<ValoresRecepcion>({
     mode: 'controlled',
     initialValues: {
-      proveedor_id: desdeCompra?.proveedor_id ?? '',
-      proveedor_nuevo: false,
+      proveedor_id: editar?.recepcion.proveedor_id ?? desdeCompra?.proveedor_id ?? '',
+      proveedor_nuevo: editar?.recepcion.proveedor_nuevo ?? false,
       con_comprobante: false,
       comprobante: {
         tipo: 'FACTURA_A',
@@ -283,26 +340,28 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
         otros: null,
         total: null,
       },
-      numero_remito: '',
-      coincide_con_pedido: true,
-      observaciones: '',
+      numero_remito: editar?.recepcion.numero_remito ?? '',
+      coincide_con_pedido: editar?.recepcion.coincide_con_pedido ?? true,
+      observaciones: editar?.recepcion.observaciones ?? '',
       rotularEnCuarentena: true,
-      lotes: [
-        desdeCompra
-          ? {
-              ...LOTE_VACIO,
-              insumo_id: desdeCompra.insumo_id,
-              cantidad_unidades: Number(desdeCompra.cantidad),
-              unidad: unidadCompra,
-              costo: {
-                ...LOTE_VACIO.costo,
-                ...(UNIDADES_COSTO.includes(unidadCompra)
-                  ? { unidad: unidadCompra }
-                  : {}),
-              },
-            }
-          : { ...LOTE_VACIO },
-      ],
+      lotes: editar
+        ? editar.lotes.map(desdeGuardado)
+        : [
+            desdeCompra
+              ? {
+                  ...LOTE_VACIO,
+                  insumo_id: desdeCompra.insumo_id,
+                  cantidad_unidades: Number(desdeCompra.cantidad),
+                  unidad: unidadCompra,
+                  costo: {
+                    ...LOTE_VACIO.costo,
+                    ...(UNIDADES_COSTO.includes(unidadCompra)
+                      ? { unidad: unidadCompra }
+                      : {}),
+                  },
+                }
+              : { ...LOTE_VACIO },
+          ],
     },
     validate: zod4Resolver(esquemaRecepcion),
   });
@@ -374,7 +433,11 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
         );
         hayError = true;
       }
-      if (valores.rotularEnCuarentena && !lote.contenedores_limpiados) {
+      // Al editar, solo los lotes nuevos entran a cuarentena con rótulo.
+      if (
+        (editar ? !lote.id : valores.rotularEnCuarentena) &&
+        !lote.contenedores_limpiados
+      ) {
         form.setFieldError(
           `lotes.${i}.contenedores_limpiados`,
           'I.20.1: los contenedores se limpian antes de ingresar a cuarentena.',
@@ -384,28 +447,38 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
     });
     if (hayError) return;
 
-    const { recepcion, lotes } = await crear.mutateAsync({
+    const cabecera = {
       proveedor_id: valores.proveedor_id,
       proveedor_nuevo: valores.proveedor_nuevo,
       numero_remito: valores.numero_remito.trim() || null,
       coincide_con_pedido: valores.coincide_con_pedido,
       observaciones: valores.observaciones.trim() || null,
+    };
+    const esEnvase = (insumoId: string) =>
+      ['MATERIAL_ENVASE', 'MATERIAL_EMPAQUE', 'ETIQUETA'].includes(
+        porId.get(insumoId)?.tipo ?? '',
+      );
+
+    if (editar) {
+      const nuevos = await editarMut.mutateAsync({
+        recepcionId: editar.recepcion.id,
+        cabecera,
+        lotes: valores.lotes.flatMap((l) => (l.id ? [{ id: l.id, ...aGuardar(l) }] : [])),
+        nuevos: valores.lotes.filter((l) => !l.id).map(aGuardar),
+        quitados,
+      });
+      // Los envases nuevos se dan por controlados, como en el alta.
+      const envases = nuevos.filter((l) => esEnvase(l.insumo_id)).map((l) => l.id);
+      if (controlaEnvases && envases.length > 0)
+        await aprobarEnvases.mutateAsync(envases).catch(() => {});
+      onListo();
+      return;
+    }
+
+    const { recepcion, lotes } = await crear.mutateAsync({
+      ...cabecera,
       rotularEnCuarentena: valores.rotularEnCuarentena,
-      lotes: valores.lotes.map((l) => ({
-        insumo_id: l.insumo_id,
-        lote_proveedor: l.lote_proveedor.trim() || null,
-        cantidad_bultos: l.cantidad_bultos,
-        cantidad_unidades: enUnidadFicha(l.cantidad_unidades, l.en_mayor),
-        unidad: l.unidad.trim(),
-        plazo_validez: fechaISO(l.plazo_validez),
-        bultos_peso_similar: l.peso_bultos === 'na' ? null : l.peso_bultos === 'si',
-        unidades_contadas: l.unidades_contadas,
-        planchas_etiquetas: l.planchas_etiquetas,
-        etiquetas_por_plancha: l.etiquetas_por_plancha,
-        protocolo_recibido: l.protocolo_recibido,
-        peso_pigmento_kg: l.peso_pigmento_kg,
-        contenedores_limpiados: l.contenedores_limpiados,
-      })),
+      lotes: valores.lotes.map(aGuardar),
     });
 
     if (controlaEnvases) {
@@ -568,6 +641,7 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
           {form.values.lotes.map((lote, i) => {
             const insumo = porId.get(lote.insumo_id);
             const esEtiqueta = insumo?.tipo === 'ETIQUETA';
+            const bloqueado = pasoPorCalidad(lote.estado);
             const enQue = lote.unidad
               ? ` (${etiquetaUnidad(lote.en_mayor ? MAYOR[lote.unidad]! : lote.unidad)})`
               : '';
@@ -602,6 +676,25 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
                     <Text fw={600} size="sm">
                       Lote {i + 1}
                     </Text>
+                    {lote.id ? (
+                      <Text size="xs" c="dimmed" ff="monospace">
+                        {
+                          editar?.lotes.find((x) => x.id === lote.id)
+                            ?.numero_registro_interno
+                        }
+                      </Text>
+                    ) : editar ? (
+                      <Text size="xs" c="azul" fw={600}>
+                        nuevo
+                      </Text>
+                    ) : null}
+                    {bloqueado ? (
+                      <Tooltip label="Ya pasó por calidad: no cambia de insumo ni de casillas, y no se quita">
+                        <Text size="xs" c="dimmed">
+                          controlado
+                        </Text>
+                      </Tooltip>
+                    ) : null}
                     {insumo?.es_inflamable ? (
                       <Tooltip label="RN-48: va al depósito exterior de inflamables">
                         <IconFlame
@@ -621,13 +714,16 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
                       </Tooltip>
                     ) : null}
                   </Group>
-                  {form.values.lotes.length > 1 ? (
+                  {form.values.lotes.length > 1 && !bloqueado ? (
                     <ActionIcon
                       variant="subtle"
                       color="gray"
                       size="md"
                       aria-label="Quitar lote"
-                      onClick={() => form.removeListItem('lotes', i)}
+                      onClick={() => {
+                        if (lote.id) setQuitados((q) => [...q, lote.id!]);
+                        form.removeListItem('lotes', i);
+                      }}
                     >
                       <IconTrash size={17} />
                     </ActionIcon>
@@ -638,6 +734,7 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
                   <Grid.Col span={{ base: 12, sm: 7 }}>
                     <Select
                       label="Insumo"
+                      disabled={bloqueado}
                       placeholder="Buscar en el catálogo"
                       data={opcionesInsumo}
                       searchable
@@ -938,6 +1035,7 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
                         <Checkbox
                           label="Protocolo de análisis del fabricante recibido"
                           description="RN-01, I.20.1 paso 5. Sin esto no se recepciona."
+                          disabled={bloqueado}
                           {...form.getInputProps(`lotes.${i}.protocolo_recibido`, {
                             type: 'checkbox',
                           })}
@@ -946,6 +1044,7 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
                       <Checkbox
                         label="Contenedores limpiados"
                         description="I.20.1: se limpian antes de ingresar a depósito"
+                        disabled={bloqueado}
                         {...form.getInputProps(`lotes.${i}.contenedores_limpiados`, {
                           type: 'checkbox',
                         })}
@@ -997,7 +1096,7 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
       <Divider my="md" />
 
       <ComprasDeLaRecepcion
-        avisos={(avisos.data ?? []).filter(
+        avisos={(editar ? [] : (avisos.data ?? [])).filter(
           (a) =>
             (a.estado === 'PENDIENTE' || a.estado === 'EN_COMPRA') &&
             form.values.lotes.some((l) => l.insumo_id === a.insumo_id),
@@ -1009,27 +1108,37 @@ export function FormularioRecepcion({ onListo, desdeCompra }: Props) {
       />
 
       <Stack gap="md">
-        <Switch
-          label="Emitir rótulo de cuarentena al guardar"
-          description="I.20.2: el material entra a cuarentena rotulado en amarillo. Se puede hacer después desde el lote."
-          {...form.getInputProps('rotularEnCuarentena', { type: 'checkbox' })}
-        />
+        {editar ? (
+          <Text size="sm" c="dimmed">
+            Cada cambio queda auditado con el valor anterior. Si cambia lo que dice un
+            rótulo, se emite uno nuevo: reimprimilo y reemplazá el pegado.
+          </Text>
+        ) : (
+          <Switch
+            label="Emitir rótulo de cuarentena al guardar"
+            description="I.20.2: el material entra a cuarentena rotulado en amarillo. Se puede hacer después desde el lote."
+            {...form.getInputProps('rotularEnCuarentena', { type: 'checkbox' })}
+          />
+        )}
         <Group justify="flex-end">
           <Button
             variant="subtle"
             color="gray"
             onClick={onListo}
-            disabled={crear.isPending}
+            disabled={crear.isPending || editarMut.isPending}
           >
             Cancelar
           </Button>
           <Button
             type="submit"
             loading={
-              crear.isPending || vincular.isPending || registrarComprobante.isPending
+              crear.isPending ||
+              editarMut.isPending ||
+              vincular.isPending ||
+              registrarComprobante.isPending
             }
           >
-            Registrar recepción
+            {editar ? 'Guardar cambios' : 'Registrar recepción'}
           </Button>
         </Group>
       </Stack>
