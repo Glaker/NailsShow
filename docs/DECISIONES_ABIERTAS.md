@@ -1188,6 +1188,37 @@ guardan el código del día; el rótulo impreso dice el viejo hasta reimprimirlo
 El valor anterior queda en la auditoría (RN-50).
 **Dónde está.** `20261030130000_comercial_codigo_insumo_editable.sql`.
 
+### D-armar-caja-1 · Armar cajas de aromas en el pedido — adoptada 2026-11-03
+
+**Pedido del codirector técnico para Ventas (Mati).** Abajo de la planilla,
+«Armar caja»: Ventas elige un producto que viene en aromas (misma presentación y
+misma caja), reparte las unidades de la caja entre los aromas y la agrega. Solo
+se agrega con la caja completa. Cada aroma suma esas unidades a su cantidad y a
+lo que va en caja (`cantidad_caja`, D-caja-mixta-1), con el % de la caja; se
+pueden agregar varias. Las unidades de aroma que no entran en una caja armada
+van sueltas, sin descuento.
+**Qué es «la misma caja».** Los productos de `comercial.descuentos_caja` con la
+misma descripción, unidades y porcentaje (así se cargaron los aromas en
+20261102130000). Si Ventas carga un aroma nuevo con otra descripción, queda fuera
+del grupo. La base no verifica que lo armado complete cajas: lo controla la
+planilla, que avisa si quedan unidades que no completan una.
+**Dónde está.** `PaginaVenta.tsx` (solo pantalla; sin migración).
+
+### D-caja-mixta-1 · Cajas cerradas y unidades sueltas en el mismo renglón — adoptada 2026-11-03
+
+**Pedido del codirector técnico para Ventas (Mati).** El descuento por caja ya
+no es todo o nada: en el renglón Ventas marca la caja, dice cuántas cajas
+cerradas van (por defecto, las que entran enteras en la cantidad) y el resto de
+la cantidad sale en unidades sueltas, **sin** descuento de caja.
+**Cómo se guarda.** El pedido sigue con un renglón por producto (de eso dependen
+reservas, faltantes y despacho); el renglón guarda cuántas unidades van en caja
+(`cantidad_caja`). El precio final del renglón es el promedio entre caja y
+sueltas, a centavos: puede apartarse del importe exacto en menos de medio
+centavo por unidad. La factura sale con ese promedio por renglón.
+**Renglones de antes.** `cantidad_caja` vacío con el descuento marcado = todo en
+caja, como se cargaron.
+**Dónde está.** `20261103120000_comercial_caja_mixta.sql`, `PaginaVenta.tsx`.
+
 ### D-descuento-caja-1 · Descuento por caja cerrada en las ventas — adoptada 2026-11-02
 
 **Pedido de Ventas (Mati), confirmado por el codirector técnico.** Cada producto

@@ -48,6 +48,7 @@ import {
   FORMAS_PAGO,
   TEXTO_PAGO,
   calcularVenta,
+  precioFinalRenglon,
   precioFinalUnidad,
   useDescuentosCaja,
   proximoEscalon,
@@ -141,45 +142,235 @@ function PrecioManual({
 /**
  * Descuento por caja cerrada de un renglón (D-descuento-caja-1): se marca y
  * arranca con el % de la lista de cajas; Ventas lo puede cambiar. Va encima
- * del descuento del pedido.
+ * del descuento del pedido. Mixto (D-caja-mixta-1): Ventas dice cuántas cajas
+ * cerradas van; el resto de la cantidad sale suelto, sin descuento de caja.
  */
+type CajaRenglon = { pct: number; uds: number | null };
+
 function MarcadorCaja({
   def,
   valor,
+  cantidad,
   deshabilitado,
   onCambiar,
 }: {
   def: { unidades_caja: number; porcentaje: number };
-  valor: number | null;
+  valor: CajaRenglon | null;
+  cantidad: number;
   deshabilitado: boolean;
-  onCambiar: (x: number | null) => void;
+  onCambiar: (x: CajaRenglon | null) => void;
 }) {
+  // uds null = todo el renglón en caja (renglones de antes de D-caja-mixta-1).
+  const enCaja = valor ? Math.min(valor.uds ?? cantidad, cantidad) : 0;
+  const sueltas = cantidad - enCaja;
   return (
     <Group gap={6} wrap="nowrap">
       <Checkbox
         size="sm"
         checked={valor !== null}
         disabled={deshabilitado}
-        onChange={(e) => onCambiar(e.currentTarget.checked ? def.porcentaje : null)}
+        onChange={(e) =>
+          onCambiar(
+            e.currentTarget.checked
+              ? {
+                  pct: def.porcentaje,
+                  uds: Math.floor(cantidad / def.unidades_caja) * def.unidades_caja,
+                }
+              : null,
+          )
+        }
         aria-label={`Descuento por caja de ${def.unidades_caja}`}
         label={<Text size="xs">caja ×{def.unidades_caja}</Text>}
       />
       {valor !== null ? (
-        <NumberInput
-          size="xs"
-          w={70}
-          min={0}
-          max={100}
-          decimalScale={2}
-          suffix=" %"
-          hideControls
-          value={valor}
-          disabled={deshabilitado}
-          onChange={(x) => onCambiar(typeof x === 'number' ? x : 0)}
-          aria-label="Porcentaje de descuento por caja"
-        />
+        <>
+          <NumberInput
+            size="xs"
+            w={64}
+            min={0}
+            allowDecimal={false}
+            suffix=" cj"
+            value={(valor.uds ?? cantidad) / def.unidades_caja}
+            disabled={deshabilitado}
+            onChange={(x) =>
+              onCambiar({ ...valor, uds: (Number(x) || 0) * def.unidades_caja })
+            }
+            aria-label="Cajas cerradas"
+          />
+          <NumberInput
+            size="xs"
+            w={70}
+            min={0}
+            max={100}
+            decimalScale={2}
+            suffix=" %"
+            hideControls
+            value={valor.pct}
+            disabled={deshabilitado}
+            onChange={(x) => onCambiar({ ...valor, pct: typeof x === 'number' ? x : 0 })}
+            aria-label="Porcentaje de descuento por caja"
+          />
+          {sueltas > 0 ? (
+            <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
+              + {numero(sueltas)} sueltas
+            </Text>
+          ) : null}
+          {(valor.uds ?? 0) > cantidad ? (
+            <Text size="xs" c="red" style={{ whiteSpace: 'nowrap' }}>
+              más que la cantidad
+            </Text>
+          ) : null}
+        </>
       ) : null}
     </Group>
+  );
+}
+
+/** Una caja que se arma con aromas del mismo producto (D-armar-caja-1). */
+type Surtido = {
+  clave: string;
+  nombre: string;
+  unidades_caja: number;
+  porcentaje: number;
+  productos: { producto_id: string; producto: string; codigo: string }[];
+};
+
+/**
+ * Armar caja (D-armar-caja-1): Ventas elige un producto que viene en aromas,
+ * reparte las unidades de la caja entre los aromas y la agrega al pedido. Cada
+ * aroma suma esas unidades a su cantidad y a lo que va en caja, con el % de la
+ * caja.
+ */
+function ArmarCaja({
+  surtidos,
+  caja,
+  cantidad,
+  deshabilitado,
+  onAgregar,
+  onQuitar,
+}: {
+  surtidos: Surtido[];
+  caja: Map<string, CajaRenglon>;
+  cantidad: (pid: string) => number;
+  deshabilitado: boolean;
+  onAgregar: (s: Surtido, reparto: Map<string, number>) => void;
+  onQuitar: (s: Surtido) => void;
+}) {
+  const [clave, setClave] = useState<string | null>(null);
+  const [reparto, setReparto] = useState(new Map<string, number>());
+  const elegido = surtidos.find((s) => s.clave === clave);
+  const puestas = [...reparto.values()].reduce((a, x) => a + x, 0);
+  const enCaja = (s: Surtido) =>
+    s.productos.reduce((a, p) => {
+      const r = caja.get(p.producto_id);
+      const c = cantidad(p.producto_id);
+      return a + (r ? Math.min(r.uds ?? c, c) : 0);
+    }, 0);
+  const armadas = surtidos.filter((s) => enCaja(s) > 0);
+  return (
+    <Paper
+      withBorder
+      radius="lg"
+      p="md"
+      mb={110}
+      style={{ borderColor: 'var(--superficie-borde)' }}
+    >
+      <Title order={4} mb={4}>
+        Armar caja
+      </Title>
+      <Text size="sm" c="dimmed" mb="sm">
+        Mismo producto y presentación; solo cambia el aroma. Repartí las unidades de la
+        caja entre los aromas y agregala: lleva el descuento de caja.
+      </Text>
+      <Group align="flex-end" gap="sm" wrap="wrap">
+        <Select
+          label="Producto"
+          placeholder="Elegí qué caja armar"
+          data={surtidos.map((s) => ({
+            value: s.clave,
+            label: `${s.nombre} · caja de ${s.unidades_caja} · ${numero(s.porcentaje)} %`,
+          }))}
+          value={clave}
+          onChange={(x) => {
+            setClave(x);
+            setReparto(new Map());
+          }}
+          disabled={deshabilitado}
+          w={420}
+          maw="100%"
+        />
+      </Group>
+      {elegido ? (
+        <>
+          <Group gap="sm" mt="sm" wrap="wrap" align="flex-end">
+            {elegido.productos.map((p) => (
+              <NumberInput
+                key={p.producto_id}
+                label={`${p.codigo} · ${p.producto}`}
+                min={0}
+                max={elegido.unidades_caja}
+                allowDecimal={false}
+                w={220}
+                value={reparto.get(p.producto_id) ?? ''}
+                placeholder="0"
+                disabled={deshabilitado}
+                onChange={(x) =>
+                  setReparto((m) => new Map(m).set(p.producto_id, Number(x) || 0))
+                }
+              />
+            ))}
+          </Group>
+          <Group mt="sm" gap="md">
+            <Text
+              size="sm"
+              fw={700}
+              c={puestas === elegido.unidades_caja ? 'estadoAprobado' : 'orange'}
+            >
+              {numero(puestas)} de {numero(elegido.unidades_caja)} unidades
+            </Text>
+            <Button
+              disabled={deshabilitado || puestas !== elegido.unidades_caja}
+              onClick={() => {
+                onAgregar(elegido, reparto);
+                setReparto(new Map());
+              }}
+            >
+              Agregar caja al pedido
+            </Button>
+          </Group>
+        </>
+      ) : null}
+      {armadas.length ? (
+        <Stack gap={4} mt="md">
+          {armadas.map((s) => {
+            const u = enCaja(s);
+            const completas = Math.floor(u / s.unidades_caja);
+            return (
+              <Group key={s.clave} gap="sm">
+                <Text size="sm">
+                  <b>{s.nombre}</b>: {numero(completas)}{' '}
+                  {completas === 1 ? 'caja' : 'cajas'} ({numero(u)} u)
+                </Text>
+                {u % s.unidades_caja ? (
+                  <Badge color="red" variant="light">
+                    {numero(u % s.unidades_caja)} u no completan una caja
+                  </Badge>
+                ) : null}
+                <Button
+                  size="compact-sm"
+                  variant="subtle"
+                  color="red"
+                  disabled={deshabilitado}
+                  onClick={() => onQuitar(s)}
+                >
+                  Quitar cajas (quedan sueltas)
+                </Button>
+              </Group>
+            );
+          })}
+        </Stack>
+      ) : null}
+    </Paper>
   );
 }
 
@@ -276,13 +467,19 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
       ),
   );
   /* Descuento por caja marcado por renglón (D-descuento-caja-1): el % de la
-     lista de cajas por defecto, y Ventas lo cambia. */
+     lista de cajas por defecto, y Ventas lo cambia. Con cuántas unidades van
+     en caja (D-caja-mixta-1). */
   const [caja, setCaja] = useState(
     () =>
-      new Map(
+      new Map<string, CajaRenglon>(
         (datos?.renglones ?? []).flatMap((r) =>
           r.descuento_caja_pct !== null
-            ? [[r.producto_id, r.descuento_caja_pct] as const]
+            ? [
+                [
+                  r.producto_id,
+                  { pct: r.descuento_caja_pct, uds: r.cantidad_caja },
+                ] as const,
+              ]
             : [],
         ),
       ),
@@ -303,6 +500,34 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
   const prop = etapa === 'FECHA_PROPUESTA' ? propuesta.data : null;
   const filas = useMemo(() => lista.data ?? [], [lista.data]);
   const porId = useMemo(() => new Map(filas.map((f) => [f.producto_id, f])), [filas]);
+  /* Cajas de aromas (D-armar-caja-1): los productos de la lista con la misma
+     caja (descripción, unidades y %); solo las que juntan más de uno. */
+  const surtidos = useMemo(() => {
+    const grupos = new Map<string, Surtido>();
+    for (const [pid, d] of cajas.data ?? []) {
+      const f = porId.get(pid);
+      if (!f || !d.descripcion) continue;
+      const clave = `${d.descripcion}|${d.unidades_caja}|${d.porcentaje}`;
+      const g = grupos.get(clave) ?? {
+        clave,
+        nombre: d.descripcion.replace(/\s*\(aromas\)\s*$/i, ''),
+        unidades_caja: d.unidades_caja,
+        porcentaje: d.porcentaje,
+        productos: [],
+      };
+      g.productos.push({
+        producto_id: pid,
+        producto: f.producto,
+        codigo: f.codigo_interno,
+      });
+      grupos.set(clave, g);
+    }
+    return [...grupos.values()].filter((g) => g.productos.length > 1);
+  }, [cajas.data, porId]);
+  const deSurtido = useMemo(
+    () => new Set(surtidos.flatMap((s) => s.productos.map((p) => p.producto_id))),
+    [surtidos],
+  );
 
   const pedidos = useMemo(
     () =>
@@ -319,7 +544,8 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
           precio_promo: f?.precio_promo ?? 0,
           unidades_pack: f?.unidades_pack ?? 1,
           manual: manual.get(pid) ?? null,
-          caja: caja.get(pid) ?? null,
+          caja: caja.get(pid)?.pct ?? null,
+          cantidad_caja: caja.get(pid)?.uds ?? null,
         })),
         escala.data ?? [],
         modoDesc === 'fijo' ? Number(descFijo) || 0 : null,
@@ -329,9 +555,17 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
   const sig =
     modoDesc === 'escala' ? proximoEscalon(cuenta.lista, escala.data ?? []) : null;
   const finalDe = (f: FilaLista) =>
-    manual.get(f.producto_id) ??
-    precioFinalUnidad(f.precio_promo, cuenta.descuento, caja.get(f.producto_id) ?? null) *
-      f.unidades_pack;
+    precioFinalRenglon(
+      {
+        cantidad: cant.get(f.producto_id) ?? 0,
+        precio_promo: f.precio_promo,
+        unidades_pack: f.unidades_pack,
+        manual: manual.get(f.producto_id) ?? null,
+        caja: caja.get(f.producto_id)?.pct ?? null,
+        cantidad_caja: caja.get(f.producto_id)?.uds ?? null,
+      },
+      cuenta.descuento,
+    );
 
   const t = buscar.trim().toLowerCase();
   const visibles = filas.filter(
@@ -366,7 +600,8 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
       producto_id: pid,
       cantidad: cant.get(pid) ?? 0,
       manual: manual.get(pid) ?? null,
-      caja: caja.get(pid) ?? null,
+      caja: caja.get(pid)?.pct ?? null,
+      cantidad_caja: caja.get(pid)?.uds ?? null,
     }));
   const guardarBorrador = async () => {
     const nuevoId = await guardar.mutateAsync({
@@ -694,7 +929,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
         radius="lg"
         className="entrada"
         style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}
-        mb={110}
+        mb={surtidos.length ? 'md' : 110}
       >
         <Table.ScrollContainer minWidth={1240}>
           <Table verticalSpacing={4} horizontalSpacing="xs" stickyHeader fz="sm">
@@ -721,10 +956,19 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                 const bajoMinimo = c > 0 && f.minimo !== null && c < f.minimo;
                 const titulo =
                   i === 0 || visibles[i - 1]!.rubro !== f.rubro ? f.rubro : null;
+                const cajaR = caja.get(f.producto_id);
                 const finalUnidad = precioFinalUnidad(
                   f.precio_promo,
                   cuenta.descuento,
-                  caja.get(f.producto_id) ?? null,
+                  cajaR?.pct ?? null,
+                );
+                // Mixto (D-caja-mixta-1): se muestran los dos precios.
+                const mixto =
+                  cajaR !== undefined && cajaR.uds !== null && c > 0 && cajaR.uds < c;
+                const finalSuelta = precioFinalUnidad(
+                  f.precio_promo,
+                  cuenta.descuento,
+                  null,
                 );
                 const defCaja = cajas.data?.get(f.producto_id);
                 return (
@@ -791,10 +1035,18 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                         </Text>
                       </Table.Td>
                       <Table.Td>
-                        {defCaja ? (
+                        {defCaja && deSurtido.has(f.producto_id) ? (
+                          // Los aromas van en cajas armadas abajo (D-armar-caja-1).
+                          <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
+                            {cajaR && c > 0
+                              ? `${numero(Math.min(cajaR.uds ?? c, c))} en caja armada`
+                              : 'caja de aromas: armala abajo'}
+                          </Text>
+                        ) : defCaja ? (
                           <MarcadorCaja
                             def={defCaja}
-                            valor={caja.get(f.producto_id) ?? null}
+                            valor={cajaR ?? null}
+                            cantidad={c}
                             deshabilitado={!editable}
                             onCambiar={(x) =>
                               setCaja((m) => {
@@ -831,7 +1083,9 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                           >
                             {manual.has(f.producto_id)
                               ? `${pesos(manual.get(f.producto_id)! / f.unidades_pack)} a mano`
-                              : pesos(finalUnidad)}
+                              : mixto
+                                ? `caja ${pesos(finalUnidad)} · suelta ${pesos(finalSuelta)}`
+                                : pesos(finalUnidad)}
                           </Text>
                           {c > 0 ? (
                             <PrecioManual
@@ -883,6 +1137,38 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
           </Table>
         </Table.ScrollContainer>
       </Paper>
+
+      {surtidos.length ? (
+        <ArmarCaja
+          surtidos={surtidos}
+          caja={caja}
+          cantidad={(pid) => cant.get(pid) ?? 0}
+          deshabilitado={!editable}
+          onAgregar={(s, reparto) => {
+            const conCaja = new Map(caja);
+            const cantNueva = new Map(cant);
+            for (const [pid, u] of reparto) {
+              if (!u) continue;
+              const c = cant.get(pid) ?? 0;
+              const r = caja.get(pid);
+              conCaja.set(pid, {
+                pct: r?.pct ?? s.porcentaje,
+                uds: (r ? Math.min(r.uds ?? c, c) : 0) + u,
+              });
+              cantNueva.set(pid, c + u);
+            }
+            setCaja(conCaja);
+            setCant(cantNueva);
+          }}
+          onQuitar={(s) =>
+            setCaja((m) => {
+              const n = new Map(m);
+              for (const p of s.productos) n.delete(p.producto_id);
+              return n;
+            })
+          }
+        />
+      ) : null}
 
       {/* Pie fijo con la cuenta de la planilla: total, % y total con descuento. */}
       <Paper

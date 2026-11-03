@@ -85,3 +85,41 @@ describe('descuento por caja (D-descuento-caja-1)', () => {
     expect(c.lista).toBe(833000);
   });
 });
+
+describe('caja mixta (D-caja-mixta-1)', () => {
+  it('1 caja de 98 a 8.075 + 10 sueltas a 8.500: promedio 8.114,35', () => {
+    const c = calcularVenta(
+      [
+        {
+          cantidad: 108,
+          precio_promo: 8500,
+          unidades_pack: 1,
+          manual: null,
+          caja: 5,
+          cantidad_caja: 98,
+        },
+      ],
+      [],
+      0,
+    );
+    expect(c.finales).toEqual([8114.35]);
+    expect(c.total).toBe(876349.8);
+  });
+  it('sin unidades en caja no hay descuento de caja', () => {
+    const c = calcularVenta(
+      [
+        {
+          cantidad: 10,
+          precio_promo: 8500,
+          unidades_pack: 1,
+          manual: null,
+          caja: 5,
+          cantidad_caja: 0,
+        },
+      ],
+      [],
+      0,
+    );
+    expect(c.finales).toEqual([8500]);
+  });
+});
