@@ -1192,11 +1192,14 @@ El valor anterior queda en la auditoría (RN-50).
 
 **Pedido del codirector técnico para Ventas (Mati).** Abajo de la planilla,
 «Armar caja»: Ventas elige un producto que viene en aromas (misma presentación y
-misma caja), reparte las unidades de la caja entre los aromas y la agrega. Solo
-se agrega con la caja completa. Cada aroma suma esas unidades a su cantidad y a
+misma caja), reparte las unidades de la caja entre los aromas y la agrega. La caja
+va preferentemente completa (ver «Caja incompleta»). Cada aroma suma esas unidades a su cantidad y a
 lo que va en caja (`cantidad_caja`, D-caja-mixta-1), con el % de la caja; se
 pueden agregar varias. Las unidades de aroma que no entran en una caja armada
 van sueltas, sin descuento.
+**Caja incompleta (2026-11-03).** Lo normal es la caja completa, pero no es
+obligatorio: a clientes grandes se les da el descuento de caja con menos
+unidades (trato preferencial). La planilla avisa y deja agregarla igual.
 **Qué es «la misma caja».** Los productos de `comercial.descuentos_caja` con la
 misma descripción, unidades y porcentaje (así se cargaron los aromas en
 20261102130000). Si Ventas carga un aroma nuevo con otra descripción, queda fuera
