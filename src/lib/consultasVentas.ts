@@ -822,6 +822,8 @@ export function useCargarEscala() {
 export interface DescuentoCaja {
   unidades_caja: number;
   porcentaje: number;
+  /** Los aromas de una misma caja comparten la descripción (D-armar-caja-1). */
+  descripcion: string | null;
 }
 
 export function useDescuentosCaja() {
@@ -831,18 +833,23 @@ export function useDescuentosCaja() {
     queryFn: async () => {
       const { data, error } = await comercialST()
         .from('v_descuentos_caja')
-        .select('producto_id, unidades_caja, porcentaje');
+        .select('producto_id, unidades_caja, porcentaje, descripcion');
       if (error) throw error;
-      return new Map(
+      return new Map<string, DescuentoCaja>(
         (
           (data ?? []) as {
             producto_id: string;
             unidades_caja: number;
             porcentaje: number | string;
+            descripcion: string | null;
           }[]
         ).map((d) => [
           d.producto_id,
-          { unidades_caja: n(d.unidades_caja), porcentaje: n(d.porcentaje) },
+          {
+            unidades_caja: n(d.unidades_caja),
+            porcentaje: n(d.porcentaje),
+            descripcion: d.descripcion,
+          },
         ]),
       );
     },

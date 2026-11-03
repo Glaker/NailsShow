@@ -1188,6 +1188,22 @@ guardan el código del día; el rótulo impreso dice el viejo hasta reimprimirlo
 El valor anterior queda en la auditoría (RN-50).
 **Dónde está.** `20261030130000_comercial_codigo_insumo_editable.sql`.
 
+### D-armar-caja-1 · Armar cajas de aromas en el pedido — adoptada 2026-11-03
+
+**Pedido del codirector técnico para Ventas (Mati).** Abajo de la planilla,
+«Armar caja»: Ventas elige un producto que viene en aromas (misma presentación y
+misma caja), reparte las unidades de la caja entre los aromas y la agrega. Solo
+se agrega con la caja completa. Cada aroma suma esas unidades a su cantidad y a
+lo que va en caja (`cantidad_caja`, D-caja-mixta-1), con el % de la caja; se
+pueden agregar varias. Las unidades de aroma que no entran en una caja armada
+van sueltas, sin descuento.
+**Qué es «la misma caja».** Los productos de `comercial.descuentos_caja` con la
+misma descripción, unidades y porcentaje (así se cargaron los aromas en
+20261102130000). Si Ventas carga un aroma nuevo con otra descripción, queda fuera
+del grupo. La base no verifica que lo armado complete cajas: lo controla la
+planilla, que avisa si quedan unidades que no completan una.
+**Dónde está.** `PaginaVenta.tsx` (solo pantalla; sin migración).
+
 ### D-caja-mixta-1 · Cajas cerradas y unidades sueltas en el mismo renglón — adoptada 2026-11-03
 
 **Pedido del codirector técnico para Ventas (Mati).** El descuento por caja ya
