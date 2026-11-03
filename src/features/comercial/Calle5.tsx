@@ -31,6 +31,7 @@ import { fecha, numero } from '@/lib/formato';
 import { useClientes } from '@/lib/consultasFacturacion';
 import { ROLES_STOCK_PT } from '@/lib/consultasStockSeguridad';
 import {
+  DEPOSITOS_VENTA,
   useDisponiblePt,
   useOrigenPedido,
   useReservadoPedido,
@@ -90,6 +91,7 @@ function PedidosADespachar() {
   const pendientes = usePendientesDespacho();
   const puede = useTieneRol(...ROLES_STOCK_PT);
   const [despachando, setDespachando] = useState<PedidoADespachar | null>(null);
+  const [reservando, setReservando] = useState<string | null>(null);
 
   if (pendientes.isLoading) return <Skeleton h={200} />;
   const pedidos = agruparPorPedido(pendientes.data ?? []);
@@ -159,13 +161,23 @@ function PedidosADespachar() {
                     </Table.Td>
                     {puede ? (
                       <Table.Td>
-                        <Button
-                          size="compact-md"
-                          leftSection={<IconTruckDelivery size={16} />}
-                          onClick={() => setDespachando(p)}
-                        >
-                          Despachar
-                        </Button>
+                        <Group gap={6} wrap="nowrap" justify="flex-end">
+                          <Button
+                            size="compact-md"
+                            variant="light"
+                            leftSection={<IconBookmark size={16} />}
+                            onClick={() => setReservando(p.pedido_id)}
+                          >
+                            Reservar
+                          </Button>
+                          <Button
+                            size="compact-md"
+                            leftSection={<IconTruckDelivery size={16} />}
+                            onClick={() => setDespachando(p)}
+                          >
+                            Despachar
+                          </Button>
+                        </Group>
                       </Table.Td>
                     ) : null}
                   </Table.Tr>
@@ -176,6 +188,11 @@ function PedidosADespachar() {
         </Table.ScrollContainer>
       </Paper>
       <ModalDespacho pedido={despachando} onCerrar={() => setDespachando(null)} />
+      <ModalReserva
+        inicial={reservando ? { productoId: null, pedidoId: reservando } : null}
+        onCerrar={() => setReservando(null)}
+        pedidos={pendientes.data ?? []}
+      />
     </>
   );
 }
@@ -653,12 +670,17 @@ function FilaProducto({
   );
 }
 
-function ModalReserva({
+/**
+ * Reservar producto terminado para un pedido (o un cliente), en el depósito
+ * donde está: fábrica, Calle 5 o Berna (pedido del 2026-11-03). El despacho
+ * desde ese depósito consume la reserva (comercial.despachar_pedido).
+ */
+export function ModalReserva({
   inicial,
   onCerrar,
   pedidos,
 }: {
-  inicial: { productoId: string; pedidoId: string | null } | null;
+  inicial: { productoId: string | null; pedidoId: string | null } | null;
   onCerrar: () => void;
   pedidos: NonNullable<ReturnType<typeof usePendientesDespacho>['data']>;
 }) {
@@ -666,19 +688,33 @@ function ModalReserva({
   const clientes = useClientes();
   const calle5 = useCalle5();
   const reservar = useReservarPt();
+  const [productoElegido, setProductoElegido] = useState<string | null>(null);
+  const [elegido, setElegido] = useState<DepositoPt | null>(null);
   const [cantidad, setCantidad] = useState<number | string>('');
   const [clienteId, setClienteId] = useState<string | null>(null);
   const [observacion, setObservacion] = useState('');
-  const c5 = (depositos.data ?? []).find((d) => d.numero === 'C5');
-  const fila = (calle5.data ?? []).find((f) => f.producto_id === inicial?.productoId);
-  const pedido = pedidos.find(
-    (p) => p.pedido_id === inicial?.pedidoId && p.producto_id === inicial?.productoId,
+  const origen = useOrigenPedido(inicial?.pedidoId ?? null);
+  /* Arranca en el depósito del que sale el pedido (D-venta-deposito-1). */
+  const deposito: DepositoPt = elegido ?? origen.data ?? 'C5';
+  const dep = (depositos.data ?? []).find((d) => d.numero === deposito);
+  const disponible = useDisponiblePt(dep?.id);
+  const productoId = inicial?.productoId ?? productoElegido;
+  const delPedido = pedidos.filter(
+    (p) => p.pedido_id === inicial?.pedidoId && Number(p.pendiente) > 0,
   );
-  const libre = Math.max(Number(fila?.libre ?? 0), 0);
+  const pedido = delPedido.find((p) => p.producto_id === productoId);
+  const nombre =
+    pedido?.producto ??
+    (calle5.data ?? []).find((f) => f.producto_id === productoId)?.producto ??
+    '';
+  const libre = productoId ? (disponible.data?.get(productoId) ?? 0) : 0;
   const tope = pedido ? Math.min(libre, Number(pedido.pendiente)) : libre;
   const n = typeof cantidad === 'number' ? cantidad : Number(cantidad || 0);
+  const etiqueta = DEPOSITOS_VENTA.find((d) => d.numero === deposito)?.etiqueta ?? '';
 
   function cerrar() {
+    setProductoElegido(null);
+    setElegido(null);
     setCantidad('');
     setClienteId(null);
     setObservacion('');
@@ -689,18 +725,55 @@ function ModalReserva({
     <Modal
       opened={inicial !== null}
       onClose={cerrar}
-      title={`Reservar ${fila?.producto ?? ''} en Calle 5`}
+      title={
+        delPedido[0] && !inicial?.productoId
+          ? `Reservar para el pedido ${delPedido[0].numero} · ${delPedido[0].cliente}`
+          : `Reservar ${nombre}`
+      }
       centered
       radius="md"
     >
       <Stack gap="md">
-        <Text size="sm">
-          Hay <b>{numero(libre, 0)}</b> libres.{' '}
-          {pedido
-            ? `Para el pedido ${pedido.numero} (${pedido.cliente}), que tiene ${numero(Number(pedido.pendiente), 0)} pendientes.`
-            : 'Para un cliente: la toma cualquiera de sus pedidos al despachar.'}
-        </Text>
-        {pedido ? null : (
+        {inicial?.productoId ? null : (
+          <Select
+            label="Producto"
+            placeholder="Elegí el producto del pedido"
+            data={delPedido.map((p) => ({
+              value: p.producto_id ?? '',
+              label: `${p.producto} · pendiente ${numero(Number(p.pendiente), 0)}`,
+            }))}
+            value={productoElegido}
+            onChange={(v) => {
+              setProductoElegido(v);
+              setCantidad('');
+            }}
+            allowDeselect={false}
+          />
+        )}
+        <Stack gap={4}>
+          <Text size="sm" fw={500}>
+            ¿Dónde está el stock?
+          </Text>
+          <SegmentedControl
+            fullWidth
+            value={deposito}
+            onChange={(v) => {
+              setElegido(v as DepositoPt);
+              setCantidad('');
+            }}
+            data={DEPOSITOS_VENTA.map((d) => ({ value: d.numero, label: d.etiqueta }))}
+          />
+        </Stack>
+        {productoId ? (
+          <Text size="sm">
+            En {etiqueta} hay <b>{numero(libre, 0)}</b> libres.{' '}
+            {pedido
+              ? `El pedido ${pedido.numero} (${pedido.cliente}) tiene ${numero(Number(pedido.pendiente), 0)} pendientes.`
+              : 'Para un cliente: la toma cualquiera de sus pedidos al despachar.'}{' '}
+            Se consume al despachar desde {etiqueta}.
+          </Text>
+        ) : null}
+        {pedido || inicial?.pedidoId ? null : (
           <Select
             label="Cliente"
             searchable
@@ -718,7 +791,11 @@ function ModalReserva({
           allowDecimal={false}
           value={cantidad}
           onChange={setCantidad}
-          error={n > tope ? `No hay más de ${numero(tope, 0)} para reservar` : null}
+          error={
+            productoId && n > tope
+              ? `No hay más de ${numero(tope, 0)} para reservar`
+              : null
+          }
         />
         <TextInput
           label="Observación"
@@ -731,14 +808,16 @@ function ModalReserva({
           </Button>
           <Button
             loading={reservar.isPending}
-            disabled={!c5 || !inicial || n <= 0 || n > tope || (!pedido && !clienteId)}
+            disabled={
+              !dep || !productoId || n <= 0 || n > tope || (!pedido && !clienteId)
+            }
             onClick={() =>
-              inicial &&
-              c5 &&
+              dep &&
+              productoId &&
               reservar.mutate(
                 {
-                  productoId: inicial.productoId,
-                  depositoId: c5.id,
+                  productoId,
+                  depositoId: dep.id,
                   cantidad: n,
                   pedidoId: pedido?.pedido_id ?? null,
                   clienteId: pedido ? null : clienteId,
@@ -748,7 +827,7 @@ function ModalReserva({
               )
             }
           >
-            Reservar
+            Reservar en {etiqueta}
           </Button>
         </Group>
       </Stack>

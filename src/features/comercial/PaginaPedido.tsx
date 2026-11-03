@@ -23,6 +23,7 @@ import { modals } from '@mantine/modals';
 import {
   IconAlertTriangle,
   IconArrowBackUp,
+  IconBookmark,
   IconCheck,
   IconChecks,
   IconHelpCircle,
@@ -68,7 +69,7 @@ import { PasarAProduccion } from '@/features/tercerizados/PasarAProduccion';
 import { colorTercero, useTerceros } from '@/lib/consultasTercerizados';
 import { ROLES_STOCK_PT } from '@/lib/consultasStockSeguridad';
 import { agruparPorPedido, usePendientesDespacho } from '@/lib/consultasCalle5';
-import { CoberturaCalle5, ModalDespacho } from './Calle5';
+import { CoberturaCalle5, ModalDespacho, ModalReserva } from './Calle5';
 import { useAplicarPreciosPedido } from '@/lib/consultasPrecios';
 import { OrdenesDelPedido } from '@/features/produccion/OrdenesDelPedido';
 import {
@@ -221,6 +222,8 @@ export function PaginaPedido() {
   const puedeEntregar = useTieneRol(...ROLES_STOCK_PT);
   const pendientesDespacho = usePendientesDespacho(id);
   const [despachando, setDespachando] = useState(false);
+  /* Reservar desde el pedido, en el depósito donde está (pedido del 2026-11-03). */
+  const [reservando, setReservando] = useState(false);
   const aplicarPrecios = useAplicarPreciosPedido();
   const navigate = useNavigate();
   const terceros = useTerceros();
@@ -328,6 +331,16 @@ export function PaginaPedido() {
               <Badge color="estadoCuarentena" variant="light" size="lg" radius="sm">
                 Despachado con faltantes
               </Badge>
+            ) : null}
+            {sePuedeEntregar ? (
+              <Button
+                size="md"
+                variant="default"
+                leftSection={<IconBookmark size={18} />}
+                onClick={() => setReservando(true)}
+              >
+                Reservar stock
+              </Button>
             ) : null}
             {sePuedeEntregar ? (
               <Button
@@ -643,6 +656,11 @@ export function PaginaPedido() {
       <ModalDespacho
         pedido={despachando ? aDespachar : null}
         onCerrar={() => setDespachando(false)}
+      />
+      <ModalReserva
+        inicial={reservando && id ? { productoId: null, pedidoId: id } : null}
+        onCerrar={() => setReservando(false)}
+        pedidos={pendientesDespacho.data ?? []}
       />
 
       <Modal
