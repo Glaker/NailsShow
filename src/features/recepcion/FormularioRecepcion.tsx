@@ -35,6 +35,7 @@ import {
 } from '@tabler/icons-react';
 import {
   useCrearRecepcion,
+  useActualizarInsumo,
   useEditarRecepcion,
   useInsumos,
   useProveedores,
@@ -94,10 +95,9 @@ const esquemaLote = z.object({
      uno por la mitad). No se guardan: se guarda el total. */
   por_bulto: z.number().positive('Mayor que cero').nullable(),
   otros_bultos: z.array(z.number().positive('Mayor que cero').nullable()),
-  unidad: z.string().trim().min(1, 'Falta la unidad'),
-  /* La cantidad se tipeó en kg (o L) con la ficha en g (o ml): se guarda
-     convertida, en la unidad de la ficha (pedido del 2026-10-26). */
-  en_mayor: z.boolean(),
+  /* La que eligió quien recibe (pedido del 2026-11-03): kg, g, unidades, ml
+     o L. Al guardar se lleva a la de la ficha (aUnidadFicha). */
+  unidad: z.string().trim().min(1, 'Elegí la unidad'),
   plazo_validez: z.date().nullable(),
   /* 'si' | 'no' | 'na' — I.20.1 paso 3 admite que no aplique. */
   peso_bultos: z.enum(['si', 'no', 'na']),
@@ -175,12 +175,53 @@ const esquemaRecepcion = z
 
 type ValoresRecepcion = z.infer<typeof esquemaRecepcion>;
 
-/** Unidad de la ficha → la que se puede tipear en su lugar, ×1000. */
-const MAYOR: Record<string, string> = { g: 'kg', ml: 'l' };
+/** Las unidades que se eligen al recibir (pedido del 2026-11-03). */
+export const UNIDADES_RECEPCION = [
+  { value: 'kg', label: 'kg' },
+  { value: 'g', label: 'g' },
+  { value: 'UNIDAD', label: 'unidades' },
+  { value: 'ml', label: 'ml' },
+  { value: 'l', label: 'L' },
+];
 
-/** La cantidad en la unidad de la ficha, la haya tipeado en kg o en g. */
-export const enUnidadFicha = (n: number | null, enMayor: boolean) =>
-  n === null || !enMayor ? n : Math.round(n * 1000 * 1000) / 1000;
+/** Una unidad escrita de cualquier forma («Kg», «unidad», «L»), como la del desplegable. */
+export const unidadCanonica = (u: string | null | undefined) => {
+  const x = (u ?? '').trim().toLowerCase();
+  if (['unidad', 'unidades', 'u', 'un'].includes(x)) return 'UNIDAD';
+  if (['lt', 'litro', 'litros'].includes(x)) return 'l';
+  return x;
+};
+
+/** Cada unidad en su base: masa en g, volumen en ml, unidades en unidades. */
+const BASE: Record<string, [string, number]> = {
+  kg: ['g', 1000],
+  g: ['g', 1],
+  l: ['ml', 1000],
+  ml: ['ml', 1],
+  UNIDAD: ['UNIDAD', 1],
+};
+
+/**
+ * La cantidad que se tipeó en `tipeada`, llevada a la unidad de la ficha: el
+ * stock y los consumos comparan la unidad del lote con la de la ficha. kg y g
+ * (o L y ml) se convierten. Si es otra cosa (unidades contra kg), la ficha
+ * estaba mal: el lote va en lo elegido y la ficha se corrige (`cambiaFicha`).
+ */
+export function aUnidadFicha(n: number | null, tipeada: string, ficha: string | null) {
+  const t = unidadCanonica(tipeada);
+  const f = unidadCanonica(ficha);
+  if (!f) return { cantidad: n, unidad: t, cambiaFicha: true };
+  if (t === f) return { cantidad: n, unidad: ficha!, cambiaFicha: false };
+  const bt = BASE[t];
+  const bf = BASE[f];
+  if (bt && bf && bt[0] === bf[0])
+    return {
+      cantidad: n === null ? null : Math.round(((n * bt[1]) / bf[1]) * 1000) / 1000,
+      unidad: ficha!,
+      cambiaFicha: false,
+    };
+  return { cantidad: n, unidad: t, cambiaFicha: true };
+}
 
 /**
  * Cantidad total de un lote: los bultos completos por la cantidad por bulto,
@@ -206,8 +247,7 @@ const LOTE_VACIO = {
   cantidad_unidades: null,
   por_bulto: null as number | null,
   otros_bultos: [] as (number | null)[],
-  unidad: 'kg',
-  en_mayor: false,
+  unidad: '',
   plazo_validez: null,
   peso_bultos: 'na' as const,
   unidades_contadas: null,
@@ -238,13 +278,16 @@ interface Props {
 const pasoPorCalidad = (estado?: string) =>
   estado !== undefined && estado !== 'RECIBIDO' && estado !== 'CUARENTENA';
 
-/** El lote del formulario tal como lo guarda la base. */
-const aGuardar = (l: ValoresRecepcion['lotes'][number]): LoteNuevo => ({
+/** El lote del formulario tal como lo guarda la base, en la unidad de la ficha. */
+const aGuardar = (
+  l: ValoresRecepcion['lotes'][number],
+  ficha: string | null,
+): LoteNuevo => ({
   insumo_id: l.insumo_id,
   lote_proveedor: l.lote_proveedor.trim() || null,
   cantidad_bultos: l.cantidad_bultos,
-  cantidad_unidades: enUnidadFicha(l.cantidad_unidades, l.en_mayor),
-  unidad: l.unidad.trim(),
+  cantidad_unidades: aUnidadFicha(l.cantidad_unidades, l.unidad, ficha).cantidad,
+  unidad: aUnidadFicha(l.cantidad_unidades, l.unidad, ficha).unidad,
   plazo_validez: fechaISO(l.plazo_validez),
   bultos_peso_similar: l.peso_bultos === 'na' ? null : l.peso_bultos === 'si',
   unidades_contadas: l.unidades_contadas,
@@ -264,7 +307,7 @@ const desdeGuardado = (l: LoteInsumo): ValoresRecepcion['lotes'][number] => ({
   lote_proveedor: l.lote_proveedor ?? '',
   cantidad_bultos: l.cantidad_bultos,
   cantidad_unidades: l.cantidad_unidades === null ? null : Number(l.cantidad_unidades),
-  unidad: l.unidad,
+  unidad: unidadCanonica(l.unidad),
   plazo_validez: l.plazo_validez ? new Date(`${l.plazo_validez}T12:00:00`) : null,
   peso_bultos:
     l.bultos_peso_similar === null ? 'na' : l.bultos_peso_similar ? 'si' : 'no',
@@ -280,6 +323,7 @@ export function FormularioRecepcion({ onListo, desdeCompra, editar }: Props) {
   const proveedores = useProveedores();
   const insumos = useInsumos();
   const crear = useCrearRecepcion();
+  const actualizarInsumo = useActualizarInsumo();
   const editarMut = useEditarRecepcion();
   /** Lotes guardados que se quitan al editar (D-recepcion-5). */
   const [quitados, setQuitados] = useState<string[]>([]);
@@ -352,7 +396,7 @@ export function FormularioRecepcion({ onListo, desdeCompra, editar }: Props) {
                   ...LOTE_VACIO,
                   insumo_id: desdeCompra.insumo_id,
                   cantidad_unidades: Number(desdeCompra.cantidad),
-                  unidad: unidadCompra,
+                  unidad: unidadCanonica(unidadCompra),
                   costo: {
                     ...LOTE_VACIO.costo,
                     ...(UNIDADES_COSTO.includes(unidadCompra)
@@ -392,16 +436,14 @@ export function FormularioRecepcion({ onListo, desdeCompra, editar }: Props) {
       value: i.id,
       label: i.unidad_medida
         ? `${i.codigo_interno} — ${i.nombre}`
-        : `${i.codigo_interno} — ${i.nombre} · sin unidad de medida definida`,
-      disabled: !i.unidad_medida,
+        : `${i.codigo_interno} — ${i.nombre} · sin unidad: elegila al recibir`,
     }));
 
   /** Elegido en la lista o recién dado de alta: el lote toma su unidad. */
   const elegirInsumo = (i: number, insumo: Insumo) => {
     form.setFieldValue(`lotes.${i}.insumo_id`, insumo.id);
     const u = insumo.unidad_medida ?? '';
-    form.setFieldValue(`lotes.${i}.unidad`, u);
-    form.setFieldValue(`lotes.${i}.en_mayor`, false);
+    form.setFieldValue(`lotes.${i}.unidad`, unidadCanonica(u));
     if (UNIDADES_COSTO.includes(u)) form.setFieldValue(`lotes.${i}.costo.unidad`, u);
   };
 
@@ -454,6 +496,17 @@ export function FormularioRecepcion({ onListo, desdeCompra, editar }: Props) {
       coincide_con_pedido: valores.coincide_con_pedido,
       observaciones: valores.observaciones.trim() || null,
     };
+    const fichaDe = (insumoId: string) => porId.get(insumoId)?.unidad_medida ?? null;
+    const guardar = (l: ValoresRecepcion['lotes'][number]) =>
+      aGuardar(l, fichaDe(l.insumo_id));
+    // Unidades contra kg: la ficha estaba mal y pasa a la elegida (D-catalogo-1).
+    const fichas = new Map(
+      valores.lotes
+        .filter((l) => aUnidadFicha(null, l.unidad, fichaDe(l.insumo_id)).cambiaFicha)
+        .map((l) => [l.insumo_id, unidadCanonica(l.unidad)]),
+    );
+    for (const [id, unidad_medida] of fichas)
+      await actualizarInsumo.mutateAsync({ id, cambios: { unidad_medida } });
     const esEnvase = (insumoId: string) =>
       ['MATERIAL_ENVASE', 'MATERIAL_EMPAQUE', 'ETIQUETA'].includes(
         porId.get(insumoId)?.tipo ?? '',
@@ -463,8 +516,8 @@ export function FormularioRecepcion({ onListo, desdeCompra, editar }: Props) {
       const nuevos = await editarMut.mutateAsync({
         recepcionId: editar.recepcion.id,
         cabecera,
-        lotes: valores.lotes.flatMap((l) => (l.id ? [{ id: l.id, ...aGuardar(l) }] : [])),
-        nuevos: valores.lotes.filter((l) => !l.id).map(aGuardar),
+        lotes: valores.lotes.flatMap((l) => (l.id ? [{ id: l.id, ...guardar(l) }] : [])),
+        nuevos: valores.lotes.filter((l) => !l.id).map(guardar),
         quitados,
       });
       // Los envases nuevos se dan por controlados, como en el alta.
@@ -478,7 +531,7 @@ export function FormularioRecepcion({ onListo, desdeCompra, editar }: Props) {
     const { recepcion, lotes } = await crear.mutateAsync({
       ...cabecera,
       rotularEnCuarentena: valores.rotularEnCuarentena,
-      lotes: valores.lotes.map(aGuardar),
+      lotes: valores.lotes.map(guardar),
     });
 
     if (controlaEnvases) {
@@ -642,9 +695,9 @@ export function FormularioRecepcion({ onListo, desdeCompra, editar }: Props) {
             const insumo = porId.get(lote.insumo_id);
             const esEtiqueta = insumo?.tipo === 'ETIQUETA';
             const bloqueado = pasoPorCalidad(lote.estado);
-            const enQue = lote.unidad
-              ? ` (${etiquetaUnidad(lote.en_mayor ? MAYOR[lote.unidad]! : lote.unidad)})`
-              : '';
+            const enQue = lote.unidad ? ` (${etiquetaUnidad(lote.unidad)})` : '';
+            const fichaUnidad = insumo?.unidad_medida ?? null;
+            const conv = aUnidadFicha(lote.cantidad_unidades, lote.unidad, fichaUnidad);
             const calculada = lote.por_bulto !== null || lote.otros_bultos.length > 0;
             /* Cambia bultos, cantidad por bulto o los bultos con otra
                cantidad, y recalcula el total. */
@@ -816,8 +869,10 @@ export function FormularioRecepcion({ onListo, desdeCompra, editar }: Props) {
                     <NumberInput
                       label={`Cantidad total${enQue}`}
                       description={
-                        lote.en_mayor && lote.cantidad_unidades !== null
-                          ? `Se guarda como ${numero(enUnidadFicha(lote.cantidad_unidades, true), 3)} ${etiquetaUnidad(lote.unidad)}`
+                        !conv.cambiaFicha &&
+                        conv.cantidad !== null &&
+                        unidadCanonica(fichaUnidad) !== lote.unidad
+                          ? `Se guarda como ${numero(conv.cantidad, 3)} ${etiquetaUnidad(conv.unidad)}`
                           : calculada
                             ? 'Suma de los bultos'
                             : undefined
@@ -836,43 +891,25 @@ export function FormularioRecepcion({ onListo, desdeCompra, editar }: Props) {
                     />
                   </Grid.Col>
                   <Grid.Col span={{ base: 6, sm: 3 }}>
-                    {/* La del catálogo, no se tipea: el stock y los consumos
-                        comparan la unidad del lote con la de la ficha, y «Kg»
-                        no es «kg». Si llegó en otra, se convierte la cantidad. */}
-                    {MAYOR[lote.unidad] ? (
-                      /* Se tipea en la que vino; se guarda en la de la ficha. */
-                      <Stack gap={4}>
-                        <Text size="sm" fw={500}>
-                          Cargar en
-                        </Text>
-                        <SegmentedControl
-                          fullWidth
-                          value={lote.en_mayor ? 'mayor' : 'ficha'}
-                          onChange={(v) =>
-                            form.setFieldValue(`lotes.${i}.en_mayor`, v === 'mayor')
-                          }
-                          data={[
-                            { value: 'ficha', label: etiquetaUnidad(lote.unidad) },
-                            {
-                              value: 'mayor',
-                              label: etiquetaUnidad(MAYOR[lote.unidad]!),
-                            },
-                          ]}
-                        />
-                        <Text size="xs" c="dimmed">
-                          Se guarda en {etiquetaUnidad(lote.unidad)}, la de la ficha
-                        </Text>
-                      </Stack>
-                    ) : (
-                      <TextInput
-                        label="Unidad"
-                        value={lote.unidad ? etiquetaUnidad(lote.unidad) : ''}
-                        placeholder="Elegí el insumo"
-                        description="La de la ficha del insumo"
-                        readOnly
-                        error={form.errors[`lotes.${i}.unidad`]}
-                      />
-                    )}
+                    {/* La elige quien recibe (pedido del 2026-11-03). Se guarda
+                        en la de la ficha: kg y g, o L y ml, se convierten. */}
+                    <Select
+                      label="Unidad"
+                      placeholder="Elegí"
+                      data={UNIDADES_RECEPCION}
+                      allowDeselect={false}
+                      {...form.getInputProps(`lotes.${i}.unidad`)}
+                      inputWrapperOrder={['label', 'input', 'description', 'error']}
+                      description={
+                        lote.unidad && insumo && conv.cambiaFicha ? (
+                          <Text span size="xs" c={fichaUnidad ? 'orange.8' : 'dimmed'}>
+                            {fichaUnidad
+                              ? `La ficha dice ${etiquetaUnidad(fichaUnidad)}: al guardar pasa a ${etiquetaUnidad(lote.unidad)}`
+                              : `La ficha no tenía unidad: queda en ${etiquetaUnidad(lote.unidad)}`}
+                          </Text>
+                        ) : null
+                      }
+                    />
                   </Grid.Col>
                   <Grid.Col span={{ base: 6, sm: 3 }}>
                     <DateInput
