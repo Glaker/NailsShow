@@ -334,6 +334,7 @@ function FormularioComponente({
       >
         <FormularioInsumo
           nombreInicial={buscado.trim()}
+          tipoInicial="MATERIA_PRIMA"
           onListo={(creado) => {
             if (creado) {
               form.setFieldValue('insumo_id', creado.id);

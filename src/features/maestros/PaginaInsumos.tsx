@@ -56,7 +56,7 @@ const TIPOS = [
 const esquema = z.object({
   codigo_interno: z.string().trim().min(1, 'Falta el código interno'),
   nombre: z.string().trim().min(2, 'Falta el nombre'),
-  tipo: z.enum(TIPOS),
+  tipo: z.enum(TIPOS, { error: 'Elegí el tipo: materia prima, envase, etiqueta…' }),
   /* Puede quedar vacía: significa «pendiente de confirmación en planta», y
      mientras lo esté la base rechaza recepcionar este insumo. Un valor
      inventado sería peor que el hueco. */
@@ -79,6 +79,14 @@ type ValoresInsumo = z.infer<typeof esquema>;
     cuenta por unidad, como el resto del catálogo. */
 const CON_UNIDAD: readonly string[] = ['MATERIA_PRIMA', 'SEMIELABORADO'];
 
+/* Pedido del 2026-11-04: el alta proponía «Materia prima» en kg y unas tapas
+   cargadas desde la recepción quedaron así. En el alta no se propone nada:
+   el tipo se elige y, si se pesa o mide, la unidad también. */
+const esquemaAlta = esquema.refine(
+  (v) => !CON_UNIDAD.includes(v.tipo) || v.unidad_medida !== '',
+  { message: 'Elegí la unidad', path: ['unidad_medida'] },
+);
+
 /**
  * Alta y edición de la ficha, en el mismo formulario.
  *
@@ -89,7 +97,7 @@ const CON_UNIDAD: readonly string[] = ['MATERIA_PRIMA', 'SEMIELABORADO'];
 export function FormularioInsumo({
   insumo,
   nombreInicial = '',
-  tipoInicial = 'MATERIA_PRIMA',
+  tipoInicial,
   onListo,
 }: {
   insumo?: Insumo | undefined;
@@ -111,8 +119,9 @@ export function FormularioInsumo({
     initialValues: {
       codigo_interno: insumo?.codigo_interno ?? '',
       nombre: insumo?.nombre ?? nombreInicial,
-      tipo: insumo?.tipo ?? tipoInicial,
-      unidad_medida: insumo?.unidad_medida ?? (insumo ? '' : 'kg'),
+      // Vacío a propósito en el alta: lo valida esquemaAlta.
+      tipo: insumo?.tipo ?? tipoInicial ?? ('' as ValoresInsumo['tipo']),
+      unidad_medida: insumo?.unidad_medida ?? '',
       capacidad: insumo?.capacidad ?? null,
       unidad_capacidad: insumo?.unidad_capacidad === 'g' ? 'g' : 'mL',
       es_inflamable: insumo?.es_inflamable ?? false,
@@ -124,7 +133,7 @@ export function FormularioInsumo({
       deposito_aprobado_id: insumo?.deposito_aprobado_id ?? null,
       activo: insumo?.activo ?? true,
     },
-    validate: zod4Resolver(esquema),
+    validate: zod4Resolver(insumo ? esquema : esquemaAlta),
   });
 
   const conUnidad = CON_UNIDAD.includes(form.values.tipo);
@@ -190,7 +199,14 @@ export function FormularioInsumo({
               label="Tipo"
               data={TIPOS.map((t) => ({ value: t, label: etiquetaEnum(t) }))}
               allowDeselect={false}
+              placeholder="Elegí el tipo"
               {...form.getInputProps('tipo')}
+              onChange={(t) => {
+                form.setFieldValue('tipo', t as ValoresInsumo['tipo']);
+                // I.20.1 paso 5: en el alta, materia prima propone protocolo.
+                if (!insumo)
+                  form.setFieldValue('requiere_protocolo', t === 'MATERIA_PRIMA');
+              }}
             />
           </Grid.Col>
           {conUnidad ? (

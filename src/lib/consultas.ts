@@ -231,6 +231,8 @@ export function useCorregirLote() {
       loteId: string;
       bultos: number;
       unidades: number;
+      /** D-estado-orden-envasado-1: solo antes de cargar a stock. */
+      unidad: string;
       motivo: string;
     }) => {
       /* Tabla de 20261022200000, todavía no en database.types.ts. */
@@ -240,6 +242,7 @@ export function useCorregirLote() {
           lote_insumo_id: c.loteId,
           bultos_despues: c.bultos,
           unidades_despues: c.unidades,
+          unidad_despues: c.unidad,
           motivo: c.motivo,
         });
       if (error) throw error;
