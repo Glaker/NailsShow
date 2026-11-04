@@ -53,7 +53,15 @@ import {
   useRotulosDeLote,
   type EstadoCalidad,
 } from '@/lib/consultas';
-import { desdeCalendario, fecha, fechaHora, fechaISO, numero } from '@/lib/formato';
+import {
+  desdeCalendario,
+  etiquetaUnidad,
+  fecha,
+  fechaHora,
+  fechaISO,
+  numero,
+} from '@/lib/formato';
+import { UNIDADES_COSTO } from '@/lib/consultasCostos';
 import { useSesion, type Rol } from '@/features/auth/sesion';
 import { imprimirRotulo } from '@/features/rotulos/imprimir';
 import { PlanillaRotulos } from '@/features/rotulos/PlanillaRotulos';
@@ -310,13 +318,22 @@ function CorregirCantidad({
   const corregir = useCorregirLote();
   const [bultos, setBultos] = useState<number | string>(lote.cantidad_bultos ?? 1);
   const [unidades, setUnidades] = useState<number | string>(lote.cantidad_unidades ?? '');
+  const [unidad, setUnidad] = useState(lote.unidad ?? '');
   const [motivo, setMotivo] = useState<MotivoCorreccion | null>(null);
   const [detalle, setDetalle] = useState('');
   const b = Number(bultos);
   const u = unidades === '' ? NaN : Number(unidades);
-  const cambia = b !== lote.cantidad_bultos || u !== Number(lote.cantidad_unidades);
+  const cambia =
+    b !== lote.cantidad_bultos ||
+    u !== Number(lote.cantidad_unidades) ||
+    unidad !== (lote.unidad ?? '');
   const valido =
-    Number.isInteger(b) && b > 0 && u >= 0 && motivoCompleto(motivo, detalle) && cambia;
+    Number.isInteger(b) &&
+    b > 0 &&
+    u >= 0 &&
+    unidad !== '' &&
+    motivoCompleto(motivo, detalle) &&
+    cambia;
   /* comercial.correcciones_lote guarda el motivo como texto. */
   const textoMotivo =
     motivo === 'OTRO'
@@ -338,13 +355,30 @@ function CorregirCantidad({
           onChange={setBultos}
         />
         <NumberInput
-          label={`Cantidad (${lote.unidad ?? ''})`}
+          label="Cantidad"
           min={0}
           decimalScale={3}
           value={unidades}
           onChange={setUnidades}
         />
+        {/* D-estado-orden-envasado-1: la base la rechaza si el lote ya entró a stock. */}
+        <Select
+          label="Unidad"
+          allowDeselect={false}
+          data={[
+            ...UNIDADES_COSTO.map((x) => ({ value: x, label: etiquetaUnidad(x) })),
+            ...(lote.unidad && !UNIDADES_COSTO.includes(lote.unidad)
+              ? [{ value: lote.unidad, label: `${lote.unidad} (corregir)` }]
+              : []),
+          ]}
+          value={unidad}
+          onChange={(x) => x && setUnidad(x)}
+        />
       </Group>
+      <Text size="xs" c="dimmed">
+        La unidad se cambia solo si el lote todavía no se cargó a stock. Si la de la ficha
+        del insumo también está mal, corregila en Catálogos.
+      </Text>
       <CampoMotivo
         motivo={motivo}
         detalle={detalle}
@@ -360,7 +394,7 @@ function CorregirCantidad({
           loading={corregir.isPending}
           onClick={() =>
             corregir.mutate(
-              { loteId: lote.id, bultos: b, unidades: u, motivo: textoMotivo },
+              { loteId: lote.id, bultos: b, unidades: u, unidad, motivo: textoMotivo },
               { onSuccess: onCerrar },
             )
           }

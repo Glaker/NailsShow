@@ -506,3 +506,34 @@ export function useAlternativaMaterial() {
     onError: avisarError,
   });
 }
+
+/**
+ * Código de la etiqueta de cada producto, de su lista de materiales (rol
+ * ETIQUETA). Con él, un insumo etiquetado se nombra «envase + etiqueta» en
+ * Lotes de insumo (pedido del 2026-11-04).
+ */
+export function useEtiquetaPorProducto() {
+  return useQuery({
+    queryKey: ['etiquetado', 'etiqueta-por-producto'],
+    queryFn: async () => {
+      const { data, error } = await gmpST()
+        .from('materiales_acondicionamiento')
+        .select('producto_id, insumo:insumos_catalogo(codigo_interno)')
+        .eq('rol', 'ETIQUETA')
+        .eq('activo', true);
+      if (error) throw error;
+      const m = new Map<string, string>();
+      for (const r of (data ?? []) as unknown as {
+        producto_id: string;
+        insumo: { codigo_interno: string } | null;
+      }[]) {
+        if (r.insumo)
+          m.set(
+            r.producto_id,
+            [m.get(r.producto_id), r.insumo.codigo_interno].filter(Boolean).join(' / '),
+          );
+      }
+      return m;
+    },
+  });
+}

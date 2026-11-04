@@ -795,6 +795,24 @@ con las que salían de PowerPoint. Si PowerPoint las escalaba al papel, salían
 un poco más grandes.
 **Dónde está.** `src/features/produccion/Loteo.tsx`, `posicionesLoteo.ts`, `global.css`.
 
+### D-estado-orden-envasado-1 · Corregir la unidad de un lote — adoptada 2026-11-04
+
+**Decisión del codirector técnico.** «Corregir cantidad» en la ficha del lote
+también cambia la unidad (g, kg, ml, L, UNIDAD), con motivo, mientras el lote
+no entró a stock. Después no: su saldo está asentado en la unidad vieja y se
+corrige con un ajuste de inventario. La fila de `comercial.correcciones_lote`
+guarda la unidad anterior y la nueva. Origen: tapas y bombas dadas de alta
+desde la recepción en kg porque el alta de insumo proponía «Materia prima» en
+kg; el alta ya no propone ni tipo ni unidad.
+
+### D-estado-orden-envasado-2 · DT elimina recepciones con lotes dictaminados — adoptada 2026-11-04
+
+**Decisión del codirector técnico.** Extiende D-recepcion-3: Dirección Técnica
+elimina una recepción no cargada a stock aunque sus lotes ya estén muestreados
+o dictaminados. Es la misma baja lógica (`gmp.recepciones_eliminadas`): no se
+borra nada y los registros de análisis quedan. Sin carga a stock no hubo
+consumo. Los demás roles siguen limitados a lotes RECIBIDO o CUARENTENA.
+
 ### D-recepcion-5 · Editar una recepción antes de cargarla a stock — adoptada 2026-11-03
 
 **Decisión del codirector técnico.** Mientras una recepción no se cargó a

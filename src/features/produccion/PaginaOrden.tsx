@@ -62,7 +62,7 @@ import { FichaAnalisis, FormularioAnalisis } from '@/features/calidad/RegistroAn
 import { MasInformacion } from './PanelProcedimiento';
 import {
   agregarRenglon,
-  COLOR_ESTADO_ORDEN,
+  estadoOrdenVisible,
   completarAutomaticos,
   unidadesRecuento,
   configDe,
@@ -127,8 +127,8 @@ export function PaginaOrden() {
         descripcion={`${producto?.nombre ?? ''} · lote ${o.numero_lote} · vence ${o.vencimiento_texto}`}
         acciones={
           <Group gap="sm">
-            <Badge size="lg" color={COLOR_ESTADO_ORDEN[o.estado]} variant="light">
-              {o.estado.toLowerCase()}
+            <Badge size="lg" color={estadoOrdenVisible(o).color} variant="light">
+              {estadoOrdenVisible(o).texto}
             </Badge>
             <Button
               component={Link}

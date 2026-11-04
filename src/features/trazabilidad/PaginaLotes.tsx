@@ -18,6 +18,7 @@ import { InsigniaEstado, TEXTO_ESTADO } from '@/components/InsigniaEstado';
 import { Vacio } from '@/components/Vacio';
 import { useLotes, type EstadoCalidad } from '@/lib/consultas';
 import { diasHasta, fecha, numero } from '@/lib/formato';
+import { useEtiquetaPorProducto, useInsumosEtiquetados } from '@/lib/consultasEtiquetado';
 
 const ESTADOS: EstadoCalidad[] = [
   'RECIBIDO',
@@ -227,6 +228,106 @@ export function PaginaLotes() {
           </>
         )}
       </Paper>
+
+      {estado === null || estado === 'APROBADO' ? (
+        <InsumosEtiquetados texto={texto} />
+      ) : null}
     </>
+  );
+}
+
+/**
+ * Insumos etiquetados (D-insumos-etiquetados-1) en la misma consulta que los
+ * lotes, para que se vean donde se busca un insumo (pedido del 2026-11-04).
+ * El código es «envase + etiqueta». Se editan en Stock → Etiquetados.
+ */
+function InsumosEtiquetados({ texto }: { texto: string }) {
+  const navegar = useNavigate();
+  const datos = useInsumosEtiquetados();
+  const etiquetas = useEtiquetaPorProducto();
+  const q = texto.trim().toLowerCase();
+  const filas = (datos.data ?? [])
+    .filter((f) => Number(f.cantidad) > 0)
+    .map((f) => ({
+      ...f,
+      codigo: `${f.insumo_codigo} + ${etiquetas.data?.get(f.producto_id) ?? `etiqueta de ${f.producto_codigo}`}`,
+    }))
+    .filter(
+      (f) =>
+        !q ||
+        [f.codigo, f.insumo_nombre, f.producto_codigo, f.producto_nombre].some((s) =>
+          s.toLowerCase().includes(q),
+        ),
+    );
+  if (datos.isLoading) return <Skeleton h={120} mt="md" />;
+  if (filas.length === 0) return null;
+  const ir = () => void navegar('/stock?vista=etiquetados');
+
+  return (
+    <Paper
+      withBorder
+      mt="md"
+      style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}
+    >
+      <Group justify="space-between" px="md" py="sm">
+        <Text fw={600}>Insumos etiquetados</Text>
+        <Text size="sm" c="dimmed">
+          {numero(filas.length)} · se editan en Stock → Etiquetados
+        </Text>
+      </Group>
+      <Table.ScrollContainer minWidth={700}>
+        <Table verticalSpacing="sm" highlightOnHover>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Código</Table.Th>
+              <Table.Th>Insumo</Table.Th>
+              <Table.Th>Etiqueta de</Table.Th>
+              <Table.Th ta="right">Cantidad</Table.Th>
+              <Table.Th>Contado</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {filas.map((f) => (
+              <Table.Tr
+                key={f.id}
+                className="fila-tocable"
+                tabIndex={0}
+                role="link"
+                onClick={ir}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') ir();
+                }}
+              >
+                <Table.Td>
+                  <Text size="sm" ff="monospace" fw={600}>
+                    {f.codigo}
+                  </Text>
+                </Table.Td>
+                <Table.Td>
+                  <Text size="sm">{f.insumo_nombre}</Text>
+                </Table.Td>
+                <Table.Td>
+                  <Text size="sm">{f.producto_nombre}</Text>
+                  <Text size="xs" c="dimmed">
+                    {f.producto_codigo}
+                  </Text>
+                </Table.Td>
+                <Table.Td ta="right">
+                  <Text size="sm" ff="monospace" fw={600}>
+                    {numero(f.cantidad)}
+                  </Text>
+                </Table.Td>
+                <Table.Td>
+                  <Text size="xs" c="dimmed">
+                    {fecha(f.registrado_en)}
+                    {f.registrado_por_nombre ? ` · ${f.registrado_por_nombre}` : ''}
+                  </Text>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
+      </Table.ScrollContainer>
+    </Paper>
   );
 }

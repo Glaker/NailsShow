@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest';
 import {
   agregarRenglon,
+  estadoOrdenVisible,
   completarAutomaticos,
   CONFIG_ETAPAS,
   configDe,
@@ -61,4 +62,17 @@ test('fraccionamiento: sin insumos ni cajas a mano; el registro anterior se sigu
     'ultima_caja',
   ]);
   expect(configDe('PESADA', { canastas: 1 })).toBe(CONFIG_ETAPAS.PESADA);
+});
+
+test('liberada antes de cerrar el envasado: falta cargar unidades; cerrada: finalizada', () => {
+  expect(estadoOrdenVisible({ estado: 'LIBERADA', terminada_en: null }).texto).toBe(
+    'falta cargar unidades',
+  );
+  expect(
+    estadoOrdenVisible({ estado: 'LIBERADA', terminada_en: '2026-11-04T12:00:00Z' })
+      .texto,
+  ).toBe('finalizada');
+  expect(estadoOrdenVisible({ estado: 'ABIERTA', terminada_en: null }).texto).toBe(
+    'abierta',
+  );
 });

@@ -231,6 +231,8 @@ export function useCorregirLote() {
       loteId: string;
       bultos: number;
       unidades: number;
+      /** D-estado-orden-envasado-1: solo antes de cargar a stock. */
+      unidad: string;
       motivo: string;
     }) => {
       /* Tabla de 20261022200000, todavía no en database.types.ts. */
@@ -240,6 +242,7 @@ export function useCorregirLote() {
           lote_insumo_id: c.loteId,
           bultos_despues: c.bultos,
           unidades_despues: c.unidades,
+          unidad_despues: c.unidad,
           motivo: c.motivo,
         });
       if (error) throw error;
@@ -1872,6 +1875,140 @@ export function useGuardarProcedimiento() {
     onSuccess: (_d, v) => {
       void qc.invalidateQueries({ queryKey: ['procedimientos', v.formulaId] });
       avisarExito('Procedimiento guardado como versión nueva.');
+    },
+    onError: avisarError,
+  });
+}
+
+export type DensidadPropia =
+  | {
+      tipo: 'VALOR';
+      nombre: string;
+      densidad: number;
+      tempC: number;
+      fuente: 'MEDICION_PROPIA' | 'CERTIFICADO_PROVEEDOR' | 'LITERATURA';
+      documento: string | null;
+      usuarioId: string | null;
+    }
+  | {
+      tipo: 'MEZCLA';
+      nombre: string;
+      partes: { densidadId: string; nombre: string; pct: number }[];
+    };
+
+/** Fracciones a 6 decimales (la escala de la columna) que suman exactamente 1. */
+export function fraccionesMasicas(pcts: number[]): number[] {
+  const total = pcts.reduce((a, b) => a + b, 0);
+  const f = pcts.map((p) => Math.round((p / total) * 1e6) / 1e6);
+  f[f.length - 1] =
+    Math.round((1 - f.slice(0, -1).reduce((a, b) => a + b, 0)) * 1e6) / 1e6;
+  return f;
+}
+
+/**
+ * Densidad que carga DT o Calidad desde el componente de una fórmula (pedido
+ * del 2026-11-04): un valor propio, o una mezcla de densidades ya cargadas
+ * por fracción másica, para un granel que se comporta como la mezcla de dos
+ * componentes. La mezcla la calcula gmp.densidad_mezcla —la misma autoridad
+ * de la calculadora— a 20 °C, y la pendiente entre 20 y 30 °C queda como
+ * beta. RLS: densidades_escribe_calidad, densidad_composicion_insert_calidad.
+ */
+export function useCrearDensidadPropia() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (d: DensidadPropia): Promise<string> => {
+      const nombre = d.nombre.trim();
+      if (d.tipo === 'VALOR') {
+        const { data, error } = await gmp()
+          .from('densidades_referencia')
+          .insert({
+            nombre,
+            densidad_ref: d.densidad,
+            temp_ref_c: d.tempC,
+            fuente: d.fuente,
+            documento_ref: d.documento?.trim() || null,
+            // fn_sellar_autores lo confirma con el usuario de la sesión.
+            verificada_por: d.fuente === 'MEDICION_PROPIA' ? d.usuarioId : null,
+            verificada_en:
+              d.fuente === 'MEDICION_PROPIA'
+                ? new Date().toISOString().slice(0, 10)
+                : null,
+            metodo: 'Valor cargado desde la fórmula',
+          })
+          .select('id')
+          .single();
+        if (error) throw error;
+        return data.id;
+      }
+
+      const fr = fraccionesMasicas(d.partes.map((p) => p.pct));
+      const comp = d.partes.map((p, i) => ({ densidad_id: p.densidadId, masa: fr[i]! }));
+      const a = async (t: number) => {
+        const { data, error } = await gmp().rpc('densidad_mezcla', {
+          p_componentes: comp,
+          p_temp_c: t,
+        });
+        if (error) throw error;
+        const r = data?.[0];
+        return r ? (r.densidad_real ?? r.densidad_ideal) : null;
+      };
+      const rho20 = await a(20);
+      if (!rho20) throw new Error('No se pudo calcular la densidad de la mezcla.');
+      // Fuera del rango de algún constituyente no se extrapola: sin beta.
+      const rho30 = await a(30).catch(() => null);
+      const beta =
+        rho30 && rho30 < rho20
+          ? Math.round(((rho20 - rho30) / (rho20 * 10)) * 1e9) / 1e9
+          : null;
+
+      const { data: rangos, error: e1 } = await gmp()
+        .from('densidades_referencia')
+        .select('valido_desde_c, valido_hasta_c')
+        .in(
+          'id',
+          d.partes.map((p) => p.densidadId),
+        );
+      if (e1) throw e1;
+      const desde = Math.max(...(rangos ?? []).map((r) => Number(r.valido_desde_c)));
+      const hasta = Math.min(...(rangos ?? []).map((r) => Number(r.valido_hasta_c)));
+
+      const { data, error } = await gmp()
+        .from('densidades_referencia')
+        .insert({
+          nombre,
+          densidad_ref: Math.round(rho20 * 1e5) / 1e5,
+          temp_ref_c: 20,
+          beta_k: beta,
+          // ponytail: el enum no tiene «calculada»; los datos de base son de
+          // literatura y el método dice que es una mezcla.
+          fuente: 'LITERATURA',
+          metodo: 'Mezcla calculada con gmp.densidad_mezcla',
+          notas: d.partes
+            .map((p, i) => `${(fr[i]! * 100).toFixed(4)} % ${p.nombre}`)
+            .join(' + '),
+          valido_desde_c: desde,
+          valido_hasta_c: hasta,
+        })
+        .select('id')
+        .single();
+      if (error) throw error;
+      // Un solo INSERT: densidad_mezcla exige que cada composición sume 100 %.
+      const { error: e2 } = await gmp()
+        .from('densidad_composicion')
+        .insert(
+          d.partes.map((p, i) => ({
+            densidad_id: data.id,
+            constituyente_id: p.densidadId,
+            fraccion_masica: fr[i]!,
+            fuente: 'Composición declarada en la fórmula',
+          })),
+        );
+      if (e2) throw e2;
+      return data.id;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['densidades-referencia'] });
+      avisarExito('Densidad cargada y elegida.');
     },
     onError: avisarError,
   });

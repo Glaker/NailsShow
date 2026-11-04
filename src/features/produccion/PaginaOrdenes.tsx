@@ -46,7 +46,7 @@ import {
   useEspecificaciones,
   useOrdenes,
 } from '@/lib/consultasOrdenes';
-import { COLOR_ESTADO_ORDEN } from './etapasOrden';
+import { estadoOrdenVisible } from './etapasOrden';
 import { CabeceraEspecificacion } from './PaginaEspecificaciones';
 import { PlanillaRotulosProduccion } from '@/features/rotulos/RotulosProduccion';
 
@@ -137,8 +137,8 @@ export function ListaOrdenes() {
                       {numero(Number(o.cantidad_teorica), 2)} {o.unidad}
                     </Table.Td>
                     <Table.Td>
-                      <Badge color={COLOR_ESTADO_ORDEN[o.estado]} variant="light">
-                        {o.estado.toLowerCase()}
+                      <Badge color={estadoOrdenVisible(o).color} variant="light">
+                        {estadoOrdenVisible(o).texto}
                       </Badge>
                     </Table.Td>
                     {puede ? (

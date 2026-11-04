@@ -4,7 +4,7 @@ import { Anchor, Badge, Button, Group, Paper, Stack, Text } from '@mantine/core'
 import { IconClipboardText } from '@tabler/icons-react';
 import { useTieneRol } from '@/features/auth/sesion';
 import { useOrdenes, useOrdenesDePedido } from '@/lib/consultasOrdenes';
-import { COLOR_ESTADO_ORDEN } from './etapasOrden';
+import { estadoOrdenVisible } from './etapasOrden';
 import { ModalAbrirOrden } from './PaginaOrdenes';
 
 /** Las órdenes de producción abiertas para un pedido, y abrir otra. */
@@ -45,8 +45,8 @@ export function OrdenesDelPedido({
             <Text size="sm" ff="monospace">
               lote {o.numero_lote} · {o.vencimiento_texto}
             </Text>
-            <Badge color={COLOR_ESTADO_ORDEN[o.estado]} variant="light">
-              {o.estado.toLowerCase()}
+            <Badge color={estadoOrdenVisible(o).color} variant="light">
+              {estadoOrdenVisible(o).texto}
             </Badge>
           </Group>
         ))}

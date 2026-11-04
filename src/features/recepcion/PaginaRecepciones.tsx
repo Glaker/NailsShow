@@ -63,6 +63,7 @@ export function PaginaRecepciones() {
   const cargar = useCargarRecepcionAStock();
   const eliminar = useEliminarRecepcion();
   // gmp.eliminar_recepcion (D-recepcion-3).
+  const esDT = useTieneRol('DIRECCION_TECNICA');
   const puedeEliminar = useTieneRol(
     'RECEPCION',
     'GERENCIA_PRODUCCION',
@@ -297,7 +298,7 @@ export function PaginaRecepciones() {
                               </ActionIcon>
                             </Tooltip>
                           ) : null}
-                          {puedeEliminar && eliminable(r) ? (
+                          {puedeEliminar && eliminable(r, esDT) ? (
                             <Tooltip label="Eliminar recepción">
                               <ActionIcon
                                 size="lg"
@@ -552,10 +553,11 @@ function EditarRecepcion({
   );
 }
 
-/** Lo que admite gmp.eliminar_recepcion: sin cargar a stock y todo en cuarentena. */
-const eliminable = (r: Recepcion) =>
+/** Lo que admite gmp.eliminar_recepcion: sin cargar a stock y todo en cuarentena;
+    DT también con lotes dictaminados (D-estado-orden-envasado-2). */
+const eliminable = (r: Recepcion, esDT: boolean) =>
   !r.cargado_a_stock &&
-  r.lotes.every((l) => l.estado === 'RECIBIDO' || l.estado === 'CUARENTENA');
+  (esDT || r.lotes.every((l) => l.estado === 'RECIBIDO' || l.estado === 'CUARENTENA'));
 
 /** Estiba del depósito: una letra y un número (D-rotulos-y-estiba-1). */
 const ESTIBA = /^[A-Z]-\d+$/;
