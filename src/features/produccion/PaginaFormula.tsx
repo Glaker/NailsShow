@@ -49,6 +49,7 @@ import { CostoAprox } from '@/features/costos/CostoAprox';
 import { BadgeEstadoFormula } from './estadoFormula';
 import { PanelProcedimiento } from './PanelProcedimiento';
 import { DensidadPropia } from './DensidadPropia';
+import { GranelPorUnidad } from './GranelPorUnidad';
 import {
   useCopiarComponentes,
   useNuevaVersionFormula,
@@ -773,6 +774,17 @@ export function PaginaFormula({ formulaId: embebida }: { formulaId?: string } = 
           esDT ? f.estado === 'BORRADOR' || f.estado === 'VIGENTE' : editableBorrador
         }
       />
+
+      {/* Contenido de cada unidad (1 L, 120 ml…): es del producto, no de la
+          versión de la fórmula; con él la orden pasa de unidades a granel. */}
+      {esDT || esGP ? (
+        <Stack gap={4} mt="md">
+          <Text size="sm" fw={600}>
+            Contenido de cada unidad del producto terminado
+          </Text>
+          <GranelPorUnidad productoId={f.producto_id} />
+        </Stack>
+      ) : null}
 
       <ResumenPorcentajes componentes={componentes} />
 

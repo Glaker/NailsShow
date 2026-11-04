@@ -18,6 +18,7 @@ import {
 import {
   UNIDADES_GRANEL,
   aContenido,
+  deContenido,
   useCargarContenidoNeto,
   type UnidadGranel,
 } from '@/lib/consultasCostos';
@@ -68,12 +69,10 @@ function Formulario({
     formula && !enVV && formula.densidad_producto == null ? formula.id : undefined,
   );
 
-  const [cantidad, setCantidad] = useState<number | string>(
-    producto?.contenido_neto ?? '',
-  );
-  const [unidad, setUnidad] = useState<UnidadGranel>(
-    producto?.unidad_contenido === 'mL' ? 'ml' : 'g',
-  );
+  // 1000 mL se muestra como 1 L, y 1000 g como 1 kg.
+  const inicial = deContenido(producto?.contenido_neto ?? null, producto?.unidad_contenido ?? null);
+  const [cantidad, setCantidad] = useState<number | string>(inicial.cantidad);
+  const [unidad, setUnidad] = useState<UnidadGranel>(inicial.unidad);
   const [densidad, setDensidad] = useState<number | string>('');
 
   const enVolumen = unidad === 'L' || unidad === 'ml';
@@ -108,7 +107,7 @@ function Formulario({
           <Text size="sm">
             Lleva{' '}
             <b>
-              {numero(producto.contenido_neto, 3)} {producto.unidad_contenido}
+              {numero(Number(inicial.cantidad), 3)} {inicial.unidad}
             </b>{' '}
             de granel por unidad.
           </Text>

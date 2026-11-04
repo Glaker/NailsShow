@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aContenido, totalOrden } from './consultasCostos';
+import { aContenido, deContenido, totalOrden } from './consultasCostos';
 
 describe('aContenido', () => {
   it('pasa kg y L a g y mL, que es lo que guarda la base', () => {
@@ -24,4 +24,11 @@ describe('aContenido', () => {
     expect(totalOrden(14, 'g', 7)).toEqual({ cantidad: 0.098, unidad: 'kg' });
     expect(totalOrden(100, 'ml', 0)).toBeNull();
   });
+});
+
+it('deContenido muestra 1000 mL como 1 L y 120 mL como 120 ml', () => {
+  expect(deContenido(1000, 'mL')).toEqual({ cantidad: 1, unidad: 'L' });
+  expect(deContenido(120, 'mL')).toEqual({ cantidad: 120, unidad: 'ml' });
+  expect(deContenido(2500, 'g')).toEqual({ cantidad: 2.5, unidad: 'kg' });
+  expect(deContenido(null, null)).toEqual({ cantidad: '', unidad: 'g' });
 });

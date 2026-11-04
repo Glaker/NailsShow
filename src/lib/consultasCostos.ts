@@ -849,6 +849,20 @@ export function aContenido(cantidad: number, unidad: UnidadGranel) {
   return { contenido_neto: cantidad * u.factor, unidad_contenido: u.base };
 }
 
+/** Lo que guarda la base → la unidad más legible (1000 mL → 1 L). */
+export function deContenido(
+  contenido: number | null,
+  unidad: string | null,
+): { cantidad: number | ''; unidad: UnidadGranel } {
+  const vol = unidad === 'mL';
+  if (contenido == null) return { cantidad: '', unidad: vol ? 'ml' : 'g' };
+  const grande = contenido >= 1000;
+  return {
+    cantidad: grande ? contenido / 1000 : contenido,
+    unidad: vol ? (grande ? 'L' : 'ml') : grande ? 'kg' : 'g',
+  };
+}
+
 /**
  * Cantidad teórica de una orden por frasco × unidades (pedido del
  * 2026-10-28): en kg si va en masa, en L si va en volumen, a 3 decimales
