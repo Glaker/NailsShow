@@ -14,6 +14,25 @@ export const COLOR_ESTADO_ORDEN: Record<EstadoOrden, string> = {
   ANULADA: 'gray',
 };
 
+/**
+ * Cómo se muestra el estado. D-liberar-antes-1: DT puede liberar antes de que
+ * se cierre el envasado, y lo envasado recién entra a stock con las tandas.
+ * Una orden LIBERADA sin `terminada_en` todavía no cargó lo producido, así que
+ * mostrar «liberada» hace creer que ya está en stock (pedido del 2026-11-04).
+ * El estado en la base no cambia; solo el rótulo.
+ */
+export function estadoOrdenVisible(o: { estado: EstadoOrden; terminada_en: string | null }): {
+  texto: string;
+  color: string;
+} {
+  if (o.estado === 'LIBERADA') {
+    return o.terminada_en
+      ? { texto: 'finalizada', color: COLOR_ESTADO_ORDEN.LIBERADA }
+      : { texto: 'falta cargar unidades', color: COLOR_ESTADO_ORDEN.TERMINADA };
+  }
+  return { texto: o.estado.toLowerCase(), color: COLOR_ESTADO_ORDEN[o.estado] };
+}
+
 export type TipoCampo = 'texto' | 'numero' | 'hora' | 'fecha' | 'equipo' | 'si_no';
 
 /**

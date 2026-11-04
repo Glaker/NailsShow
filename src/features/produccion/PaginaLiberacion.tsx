@@ -21,7 +21,7 @@ import {
   useOrdenesAbiertasParaLiberar,
   type OrdenProduccion,
 } from '@/lib/consultasOrdenes';
-import { COLOR_ESTADO_ORDEN } from './etapasOrden';
+import { estadoOrdenVisible } from './etapasOrden';
 
 /**
  * Liberación de lotes de producto terminado (pedido del 2026-10-01): lo que la
@@ -83,12 +83,12 @@ export function PaginaLiberacion() {
                   {numero(Number(o.cantidad_teorica), 2)} {o.unidad}
                 </Table.Td>
                 <Table.Td>
-                  <Badge color={COLOR_ESTADO_ORDEN[o.estado]} variant="light">
+                  <Badge color={estadoOrdenVisible(o).color} variant="light">
                     {o.estado === 'TERMINADA'
                       ? 'espera liberación'
                       : o.estado === 'ABIERTA'
                         ? 'envasando · lista para liberar'
-                        : o.estado.toLowerCase()}
+                        : estadoOrdenVisible(o).texto}
                   </Badge>
                 </Table.Td>
                 <Table.Td>
