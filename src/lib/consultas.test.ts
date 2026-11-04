@@ -1,6 +1,11 @@
 import { expect, test, vi } from 'vitest';
 
-vi.mock('./supabase', () => ({ supabase: {}, gmp: () => ({}), comercial: () => ({}), core: () => ({}) }));
+vi.mock('./supabase', () => ({
+  supabase: {},
+  gmp: () => ({}),
+  comercial: () => ({}),
+  core: () => ({}),
+}));
 const { fraccionesMasicas } = await import('./consultas');
 
 test('fracciones a 6 decimales que suman exactamente 1', () => {

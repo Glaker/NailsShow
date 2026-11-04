@@ -1887,13 +1887,18 @@ export type DensidadPropia =
       documento: string | null;
       usuarioId: string | null;
     }
-  | { tipo: 'MEZCLA'; nombre: string; partes: { densidadId: string; nombre: string; pct: number }[] };
+  | {
+      tipo: 'MEZCLA';
+      nombre: string;
+      partes: { densidadId: string; nombre: string; pct: number }[];
+    };
 
 /** Fracciones a 6 decimales (la escala de la columna) que suman exactamente 1. */
 export function fraccionesMasicas(pcts: number[]): number[] {
   const total = pcts.reduce((a, b) => a + b, 0);
   const f = pcts.map((p) => Math.round((p / total) * 1e6) / 1e6);
-  f[f.length - 1] = Math.round((1 - f.slice(0, -1).reduce((a, b) => a + b, 0)) * 1e6) / 1e6;
+  f[f.length - 1] =
+    Math.round((1 - f.slice(0, -1).reduce((a, b) => a + b, 0)) * 1e6) / 1e6;
   return f;
 }
 
@@ -1921,7 +1926,10 @@ export function useCrearDensidadPropia() {
             documento_ref: d.documento?.trim() || null,
             // fn_sellar_autores lo confirma con el usuario de la sesión.
             verificada_por: d.fuente === 'MEDICION_PROPIA' ? d.usuarioId : null,
-            verificada_en: d.fuente === 'MEDICION_PROPIA' ? new Date().toISOString().slice(0, 10) : null,
+            verificada_en:
+              d.fuente === 'MEDICION_PROPIA'
+                ? new Date().toISOString().slice(0, 10)
+                : null,
             metodo: 'Valor cargado desde la fórmula',
           })
           .select('id')
@@ -1933,7 +1941,10 @@ export function useCrearDensidadPropia() {
       const fr = fraccionesMasicas(d.partes.map((p) => p.pct));
       const comp = d.partes.map((p, i) => ({ densidad_id: p.densidadId, masa: fr[i]! }));
       const a = async (t: number) => {
-        const { data, error } = await gmp().rpc('densidad_mezcla', { p_componentes: comp, p_temp_c: t });
+        const { data, error } = await gmp().rpc('densidad_mezcla', {
+          p_componentes: comp,
+          p_temp_c: t,
+        });
         if (error) throw error;
         const r = data?.[0];
         return r ? (r.densidad_real ?? r.densidad_ideal) : null;
@@ -1942,12 +1953,18 @@ export function useCrearDensidadPropia() {
       if (!rho20) throw new Error('No se pudo calcular la densidad de la mezcla.');
       // Fuera del rango de algún constituyente no se extrapola: sin beta.
       const rho30 = await a(30).catch(() => null);
-      const beta = rho30 && rho30 < rho20 ? Math.round(((rho20 - rho30) / (rho20 * 10)) * 1e9) / 1e9 : null;
+      const beta =
+        rho30 && rho30 < rho20
+          ? Math.round(((rho20 - rho30) / (rho20 * 10)) * 1e9) / 1e9
+          : null;
 
       const { data: rangos, error: e1 } = await gmp()
         .from('densidades_referencia')
         .select('valido_desde_c, valido_hasta_c')
-        .in('id', d.partes.map((p) => p.densidadId));
+        .in(
+          'id',
+          d.partes.map((p) => p.densidadId),
+        );
       if (e1) throw e1;
       const desde = Math.max(...(rangos ?? []).map((r) => Number(r.valido_desde_c)));
       const hasta = Math.min(...(rangos ?? []).map((r) => Number(r.valido_hasta_c)));
@@ -1963,7 +1980,9 @@ export function useCrearDensidadPropia() {
           // literatura y el método dice que es una mezcla.
           fuente: 'LITERATURA',
           metodo: 'Mezcla calculada con gmp.densidad_mezcla',
-          notas: d.partes.map((p, i) => `${(fr[i]! * 100).toFixed(4)} % ${p.nombre}`).join(' + '),
+          notas: d.partes
+            .map((p, i) => `${(fr[i]! * 100).toFixed(4)} % ${p.nombre}`)
+            .join(' + '),
           valido_desde_c: desde,
           valido_hasta_c: hasta,
         })

@@ -283,9 +283,14 @@ function FormularioComponente({
             {...form.getInputProps('densidad_id')}
           />
         ) : null}
-        {(form.values.origen === 'CATALOGO' || form.values.se_mide_a_volumen) && cargaDensidades ? (
+        {(form.values.origen === 'CATALOGO' || form.values.se_mide_a_volumen) &&
+        cargaDensidades ? (
           <Group justify="flex-end" mt={-8}>
-            <Button variant="subtle" leftSection={<IconPlus size={16} />} onClick={() => setDensidadPropia(true)}>
+            <Button
+              variant="subtle"
+              leftSection={<IconPlus size={16} />}
+              onClick={() => setDensidadPropia(true)}
+            >
               Otra densidad: un valor propio o una mezcla
             </Button>
           </Group>

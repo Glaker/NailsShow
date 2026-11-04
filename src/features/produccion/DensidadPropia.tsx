@@ -30,9 +30,9 @@ export function DensidadPropia({ onListo }: { onListo: (id: string) => void }) {
   const [nombre, setNombre] = useState('');
   const [densidad, setDensidad] = useState<number | string>('');
   const [tempC, setTempC] = useState<number | string>(20);
-  const [fuente, setFuente] = useState<'MEDICION_PROPIA' | 'CERTIFICADO_PROVEEDOR' | 'LITERATURA'>(
-    'MEDICION_PROPIA',
-  );
+  const [fuente, setFuente] = useState<
+    'MEDICION_PROPIA' | 'CERTIFICADO_PROVEEDOR' | 'LITERATURA'
+  >('MEDICION_PROPIA');
   const [documento, setDocumento] = useState('');
   const [partes, setPartes] = useState<Parte[]>([
     { densidadId: null, pct: '' },
@@ -43,31 +43,39 @@ export function DensidadPropia({ onListo }: { onListo: (id: string) => void }) {
     value: d.id,
     label: `${d.nombre} — ${numero(d.densidad_ref, 5)} g/mL`,
   }));
-  const nombreDe = (id: string) => densidades.data?.find((d) => d.id === id)?.nombre ?? '';
+  const nombreDe = (id: string) =>
+    densidades.data?.find((d) => d.id === id)?.nombre ?? '';
   const suma = partes.reduce((a, p) => a + (Number(p.pct) || 0), 0);
   const ids = partes.map((p) => p.densidadId).filter(Boolean);
 
-  const error =
-    !nombre.trim()
-      ? 'Poné un nombre.'
-      : tipo === 'VALOR'
-        ? !(Number(densidad) > 0)
-          ? 'La densidad tiene que ser mayor que cero.'
-          : fuente === 'CERTIFICADO_PROVEEDOR' && !documento.trim()
-            ? 'Con certificado, indicá cuál.'
-            : null
-        : ids.length !== partes.length || partes.some((p) => !(Number(p.pct) > 0))
-          ? 'Cada parte lleva su densidad y un % mayor que cero.'
-          : new Set(ids).size !== ids.length
-            ? 'Hay una densidad repetida.'
-            : Math.abs(suma - 100) > 1e-6
-              ? `Los % suman ${numero(suma, 4)}: tienen que sumar 100.`
-              : null;
+  const error = !nombre.trim()
+    ? 'Poné un nombre.'
+    : tipo === 'VALOR'
+      ? !(Number(densidad) > 0)
+        ? 'La densidad tiene que ser mayor que cero.'
+        : fuente === 'CERTIFICADO_PROVEEDOR' && !documento.trim()
+          ? 'Con certificado, indicá cuál.'
+          : null
+      : ids.length !== partes.length || partes.some((p) => !(Number(p.pct) > 0))
+        ? 'Cada parte lleva su densidad y un % mayor que cero.'
+        : new Set(ids).size !== ids.length
+          ? 'Hay una densidad repetida.'
+          : Math.abs(suma - 100) > 1e-6
+            ? `Los % suman ${numero(suma, 4)}: tienen que sumar 100.`
+            : null;
 
   const guardar = () =>
     crear.mutate(
       tipo === 'VALOR'
-        ? { tipo, nombre, densidad: Number(densidad), tempC: Number(tempC), fuente, documento, usuarioId: claims?.usuario_id ?? null }
+        ? {
+            tipo,
+            nombre,
+            densidad: Number(densidad),
+            tempC: Number(tempC),
+            fuente,
+            documento,
+            usuarioId: claims?.usuario_id ?? null,
+          }
         : {
             tipo,
             nombre,
@@ -93,7 +101,9 @@ export function DensidadPropia({ onListo }: { onListo: (id: string) => void }) {
       />
       <TextInput
         label="Nombre"
-        placeholder={tipo === 'MEZCLA' ? 'Ej.: Removedor (acetona + agua)' : 'Ej.: Removedor medido'}
+        placeholder={
+          tipo === 'MEZCLA' ? 'Ej.: Removedor (acetona + agua)' : 'Ej.: Removedor medido'
+        }
         value={nombre}
         onChange={(e) => setNombre(e.currentTarget.value)}
       />
@@ -109,7 +119,13 @@ export function DensidadPropia({ onListo }: { onListo: (id: string) => void }) {
               value={densidad}
               onChange={setDensidad}
             />
-            <NumberInput label="A (°C)" decimalScale={2} hideControls value={tempC} onChange={setTempC} />
+            <NumberInput
+              label="A (°C)"
+              decimalScale={2}
+              hideControls
+              value={tempC}
+              onChange={setTempC}
+            />
           </Group>
           <Select
             label="De dónde sale"
@@ -117,7 +133,10 @@ export function DensidadPropia({ onListo }: { onListo: (id: string) => void }) {
             value={fuente}
             onChange={(v) => v && setFuente(v as typeof fuente)}
             data={[
-              { value: 'MEDICION_PROPIA', label: 'Medición propia (queda a tu nombre, con fecha de hoy)' },
+              {
+                value: 'MEDICION_PROPIA',
+                label: 'Medición propia (queda a tu nombre, con fecha de hoy)',
+              },
               { value: 'CERTIFICADO_PROVEEDOR', label: 'Certificado del proveedor' },
               { value: 'LITERATURA', label: 'Literatura' },
             ]}
@@ -131,7 +150,8 @@ export function DensidadPropia({ onListo }: { onListo: (id: string) => void }) {
             />
           ) : null}
           <Text size="sm" c="dimmed">
-            Sin coeficiente de dilatación: la calculadora usa este valor a cualquier temperatura.
+            Sin coeficiente de dilatación: la calculadora usa este valor a cualquier
+            temperatura.
           </Text>
         </>
       ) : (
@@ -144,7 +164,9 @@ export function DensidadPropia({ onListo }: { onListo: (id: string) => void }) {
                 searchable
                 data={opciones}
                 value={p.densidadId}
-                onChange={(v) => setPartes(partes.map((x, j) => (j === i ? { ...x, densidadId: v } : x)))}
+                onChange={(v) =>
+                  setPartes(partes.map((x, j) => (j === i ? { ...x, densidadId: v } : x)))
+                }
               />
               <NumberInput
                 w={110}
@@ -154,7 +176,9 @@ export function DensidadPropia({ onListo }: { onListo: (id: string) => void }) {
                 max={100}
                 hideControls
                 value={p.pct}
-                onChange={(v) => setPartes(partes.map((x, j) => (j === i ? { ...x, pct: v } : x)))}
+                onChange={(v) =>
+                  setPartes(partes.map((x, j) => (j === i ? { ...x, pct: v } : x)))
+                }
               />
               <ActionIcon
                 size="input-sm"
@@ -181,8 +205,8 @@ export function DensidadPropia({ onListo }: { onListo: (id: string) => void }) {
             </Text>
           </Group>
           <Text size="sm" c="dimmed">
-            Se calcula como la calculadora calcula una mezcla (con volumen de exceso donde hay datos), a
-            20 °C, y la variación entre 20 y 30 °C queda como dilatación.
+            Se calcula como la calculadora calcula una mezcla (con volumen de exceso donde
+            hay datos), a 20 °C, y la variación entre 20 y 30 °C queda como dilatación.
           </Text>
         </>
       )}

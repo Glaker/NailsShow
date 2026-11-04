@@ -21,7 +21,10 @@ export const COLOR_ESTADO_ORDEN: Record<EstadoOrden, string> = {
  * mostrar «liberada» hace creer que ya está en stock (pedido del 2026-11-04).
  * El estado en la base no cambia; solo el rótulo.
  */
-export function estadoOrdenVisible(o: { estado: EstadoOrden; terminada_en: string | null }): {
+export function estadoOrdenVisible(o: {
+  estado: EstadoOrden;
+  terminada_en: string | null;
+}): {
   texto: string;
   color: string;
 } {

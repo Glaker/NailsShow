@@ -70,7 +70,10 @@ function Formulario({
   );
 
   // 1000 mL se muestra como 1 L, y 1000 g como 1 kg.
-  const inicial = deContenido(producto?.contenido_neto ?? null, producto?.unidad_contenido ?? null);
+  const inicial = deContenido(
+    producto?.contenido_neto ?? null,
+    producto?.unidad_contenido ?? null,
+  );
   const [cantidad, setCantidad] = useState<number | string>(inicial.cantidad);
   const [unidad, setUnidad] = useState<UnidadGranel>(inicial.unidad);
   const [densidad, setDensidad] = useState<number | string>('');
