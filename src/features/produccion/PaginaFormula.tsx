@@ -48,6 +48,7 @@ import { FINANZAS, useTieneRol } from '@/features/auth/sesion';
 import { CostoAprox } from '@/features/costos/CostoAprox';
 import { BadgeEstadoFormula } from './estadoFormula';
 import { PanelProcedimiento } from './PanelProcedimiento';
+import { DensidadPropia } from './DensidadPropia';
 import {
   useCopiarComponentes,
   useNuevaVersionFormula,
@@ -111,6 +112,8 @@ function FormularioComponente({
      (pedido del 2026-10-21). */
   const [buscado, setBuscado] = useState('');
   const [alta, setAlta] = useState(false);
+  const [densidadPropia, setDensidadPropia] = useState(false);
+  const cargaDensidades = useTieneRol('DIRECCION_TECNICA', 'CONTROL_CALIDAD');
 
   const form = useForm<ValoresComponente>({
     initialValues: {
@@ -279,6 +282,13 @@ function FormularioComponente({
             {...form.getInputProps('densidad_id')}
           />
         ) : null}
+        {(form.values.origen === 'CATALOGO' || form.values.se_mide_a_volumen) && cargaDensidades ? (
+          <Group justify="flex-end" mt={-8}>
+            <Button variant="subtle" leftSection={<IconPlus size={16} />} onClick={() => setDensidadPropia(true)}>
+              Otra densidad: un valor propio o una mezcla
+            </Button>
+          </Group>
+        ) : null}
 
         <TextInput
           label="Etapa"
@@ -297,6 +307,19 @@ function FormularioComponente({
           </Button>
         </Group>
       </Stack>
+      <Modal
+        opened={densidadPropia}
+        onClose={() => setDensidadPropia(false)}
+        title={<Text fw={700}>Densidad del componente</Text>}
+        size="lg"
+      >
+        <DensidadPropia
+          onListo={(id) => {
+            form.setFieldValue('densidad_id', id);
+            setDensidadPropia(false);
+          }}
+        />
+      </Modal>
       <Modal
         opened={alta}
         onClose={() => setAlta(false)}
