@@ -49,6 +49,10 @@ import { PaginaOrden } from '@/features/produccion/PaginaOrden';
 import { BatchRecord } from '@/features/produccion/BatchRecord';
 import { BatchRecordEjemplo } from '@/features/produccion/BatchRecordEjemplo';
 import { PaginaEspecificaciones } from '@/features/produccion/PaginaEspecificaciones';
+import {
+  PaginaEstabilidad,
+  PaginaEstudioEstabilidad,
+} from '@/features/calidad/PaginaEstabilidad';
 
 /**
  * Rutas de la aplicación.
@@ -77,6 +81,8 @@ export function AppRoutes() {
       <Route path="/ordenes/:id" element={<PaginaOrden />} />
       <Route path="/ordenes/:id/batch-record" element={<BatchRecord />} />
       <Route path="/especificaciones" element={<PaginaEspecificaciones />} />
+      <Route path="/estabilidad" element={<PaginaEstabilidad />} />
+      <Route path="/estabilidad/:id" element={<PaginaEstudioEstabilidad />} />
       <Route path="/nuevo-producto" element={<RedirigirACatalogo vista="nuevo" />} />
       <Route path="/formulas" element={<PaginaFormulasUnificada />} />
       <Route path="/formulas/:id" element={<PaginaFormula />} />

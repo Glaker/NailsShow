@@ -31,6 +31,7 @@ import {
   IconPresentation,
   IconChartBar,
   IconChecklist,
+  IconTemperature,
   type Icon,
 } from '@tabler/icons-react';
 import { FINANZAS, useSesion, type Rol } from '@/features/auth/sesion';
@@ -186,6 +187,14 @@ export const NAVEGACION: ItemNavegacion[] = [
     icono: IconFileCertificate,
     // Gerencia de Producción ya no la ve (D-ventas-pedidos-2). La escritura en
     // la base se le quita con la migración del bloque 2.
+    roles: ['DIRECCION_TECNICA', 'CONTROL_CALIDAD', 'GERENCIA'],
+  },
+  {
+    // D-estabilidad-1: escribe la DT; Calidad y Gerencia consultan.
+    ruta: '/estabilidad',
+    etiqueta: 'Estabilidad acelerada',
+    etiquetaCorta: 'Estabilidad',
+    icono: IconTemperature,
     roles: ['DIRECCION_TECNICA', 'CONTROL_CALIDAD', 'GERENCIA'],
   },
   {

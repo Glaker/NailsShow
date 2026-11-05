@@ -805,6 +805,19 @@ guarda la unidad anterior y la nueva. Origen: tapas y bombas dadas de alta
 desde la recepción en kg porque el alta de insumo proponía «Materia prima» en
 kg; el alta ya no propone ni tipo ni unidad.
 
+### D-estabilidad-1 · Estudios de estabilidad acelerada — adoptada 2026-11-05
+
+**Decisión del codirector técnico.** Sección «Estabilidad acelerada» de la
+DT: abre un estudio (producto, lote, condición, por defecto 40 °C ± 2 °C, y
+fecha de inicio), elige los parámetros (se precargan aspecto, color, olor, pH
+y función) con su especificación, y anota el resultado inicial y a los 30, 60
+y 90 días. Al cerrarlo escribe la conclusión, firma a su nombre con la hora de
+la base y desde ahí nada cambia (invariante 1). La hoja se imprime o guarda
+como PDF. Lo consultan DT, Control de Calidad y Gerencia; escribe solo la DT.
+El alcance no tiene RN de estabilidad. Producto y lote son texto libre: un
+estudio puede ser de una fórmula en desarrollo, sin producto en el catálogo.
+Cada cambio queda en `core.auditoria` con el valor anterior (RN-50).
+
 ### D-estado-orden-envasado-2 · DT elimina recepciones con lotes dictaminados — adoptada 2026-11-04
 
 **Decisión del codirector técnico.** Extiende D-recepcion-3: Dirección Técnica

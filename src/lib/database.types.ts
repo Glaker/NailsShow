@@ -9863,6 +9863,98 @@ export type Database = {
           },
         ]
       }
+      estabilidad_parametros: {
+        Row: {
+          creado_en: string
+          creado_por: string
+          dia_30: string | null
+          dia_60: string | null
+          dia_90: string | null
+          especificacion: string | null
+          estudio_id: string
+          id: string
+          inicial: string | null
+          orden: number
+          parametro: string
+          quitado: boolean
+        }
+        Insert: {
+          creado_en?: string
+          creado_por?: string
+          dia_30?: string | null
+          dia_60?: string | null
+          dia_90?: string | null
+          especificacion?: string | null
+          estudio_id: string
+          id?: string
+          inicial?: string | null
+          orden?: number
+          parametro: string
+          quitado?: boolean
+        }
+        Update: {
+          creado_en?: string
+          creado_por?: string
+          dia_30?: string | null
+          dia_60?: string | null
+          dia_90?: string | null
+          especificacion?: string | null
+          estudio_id?: string
+          id?: string
+          inicial?: string | null
+          orden?: number
+          parametro?: string
+          quitado?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estabilidad_parametros_estudio_id_fkey"
+            columns: ["estudio_id"]
+            isOneToOne: false
+            referencedRelation: "estudios_estabilidad"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estudios_estabilidad: {
+        Row: {
+          cerrado_en: string | null
+          cerrado_por: string | null
+          conclusion: string | null
+          condicion: string
+          creado_en: string
+          creado_por: string
+          fecha_inicio: string
+          id: string
+          lote: string | null
+          producto: string
+        }
+        Insert: {
+          cerrado_en?: string | null
+          cerrado_por?: string | null
+          conclusion?: string | null
+          condicion?: string
+          creado_en?: string
+          creado_por?: string
+          fecha_inicio: string
+          id?: string
+          lote?: string | null
+          producto: string
+        }
+        Update: {
+          cerrado_en?: string | null
+          cerrado_por?: string | null
+          conclusion?: string | null
+          condicion?: string
+          creado_en?: string
+          creado_por?: string
+          fecha_inicio?: string
+          id?: string
+          lote?: string | null
+          producto?: string
+        }
+        Relationships: []
+      }
       etanol_agua_crc: {
         Row: {
           contraccion_20_pct: number
