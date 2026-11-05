@@ -38,6 +38,7 @@ import { useEspecificaciones } from '@/lib/consultasOrdenes';
 import { tiempoDe } from '@/lib/envasado';
 import { fecha } from '@/lib/formato';
 import { FormularioNuevaFormula } from './PaginaFormulas';
+import { NoLlevaFormula } from './FormulasPendientes';
 import { PaginaFormula } from './PaginaFormula';
 import { PanelProcedimiento } from './PanelProcedimiento';
 import { CabeceraEspecificacion, FichaEspecificacion } from './PaginaEspecificaciones';
@@ -191,7 +192,12 @@ function SeccionPendiente({
       <CabeceraEspecificacion productoId={productoId} onListo={() => {}} />
     );
   if (!formula)
-    return <FormularioNuevaFormula productoInicial={productoId} onListo={() => {}} />;
+    return (
+      <Stack gap="sm">
+        <NoLlevaFormula productoId={productoId} />
+        <FormularioNuevaFormula productoInicial={productoId} onListo={() => {}} />
+      </Stack>
+    );
   return seccion === 'PROCEDIMIENTO' ? (
     <PanelProcedimiento formulaId={formula.id} />
   ) : (
