@@ -1,15 +1,33 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Modal, Paper, Skeleton, Table, Text } from '@mantine/core';
+import { Button, Group, Modal, Paper, Skeleton, Table, Text } from '@mantine/core';
 import { IconClipboardCheck } from '@tabler/icons-react';
 import { Vacio } from '@/components/Vacio';
 import {
   useFormulasConsultadas,
+  useMarcarSinFormula,
   type FormulaConsultada,
 } from '@/lib/consultasEtiquetado';
 import { fechaHora } from '@/lib/formato';
 import { useTieneRol } from '@/features/auth/sesion';
 import { FormularioNuevaFormula } from './PaginaFormulas';
+
+/**
+ * El producto no lleva fórmula (gmp.productos.sin_formula): sale de los
+ * pendientes. Se deshace desde las tareas de carga.
+ */
+export function NoLlevaFormula({ productoId }: { productoId: string }) {
+  const marcar = useMarcarSinFormula();
+  return (
+    <Button
+      variant="default"
+      loading={marcar.isPending}
+      onClick={() => marcar.mutate({ productoId, sinFormula: true })}
+    >
+      No lleva fórmula
+    </Button>
+  );
+}
 
 /**
  * Fórmulas que Gerencia de Producción no sabe y derivó con «No la sé»
@@ -63,9 +81,12 @@ export function FormulasPendientes() {
                 </Table.Td>
                 <Table.Td ta="right">
                   {puedeCargar ? (
-                    <Button variant="light" onClick={() => setCargando(f)}>
-                      Cargar fórmula
-                    </Button>
+                    <Group gap="xs" justify="flex-end">
+                      <NoLlevaFormula productoId={f.producto_id} />
+                      <Button variant="light" onClick={() => setCargando(f)}>
+                        Cargar fórmula
+                      </Button>
+                    </Group>
                   ) : null}
                 </Table.Td>
               </Table.Tr>
