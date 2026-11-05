@@ -805,6 +805,16 @@ guarda la unidad anterior y la nueva. Origen: tapas y bombas dadas de alta
 desde la recepción en kg porque el alta de insumo proponía «Materia prima» en
 kg; el alta ya no propone ni tipo ni unidad.
 
+### D-densidad-supuesta-1 · Densidad supuesta de fragancias y pigmentos — adoptada 2026-11-05
+
+**Decisión del codirector técnico.** Una fragancia o esencia sin densidad
+cargada se toma como 0,98 g/mL (cercana al agua) y un pigmento como 2,0 g/mL,
+para que la fórmula estime la densidad del producto (D-33). Son dos filas de
+`gmp.densidades_referencia` de literatura, marcadas como supuestas, que se
+asignan a las materias primas sin densidad por nombre o código, también al
+dar de alta una nueva. Si hay certificado o medición, se carga la propia y se
+cambia en la ficha del insumo.
+
 ### D-eliminar-lote-1 · La DT elimina un lote de insumo no usado — adoptada 2026-11-05
 
 **Decisión del codirector técnico.** La Dirección Técnica, y solo ella,
