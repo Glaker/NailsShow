@@ -22,7 +22,7 @@ import {
 import { DateInput } from '@mantine/dates';
 import { modals } from '@mantine/modals';
 import { useDisclosure } from '@mantine/hooks';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   IconArrowLeft,
   IconCircleCheck,
@@ -32,6 +32,7 @@ import {
   IconPrinter,
   IconTag,
   IconTestPipe,
+  IconTrash,
 } from '@tabler/icons-react';
 import { InsigniaEstado, TEXTO_ESTADO } from '@/components/InsigniaEstado';
 import { RotuloLote } from '@/features/rotulos/RotuloLote';
@@ -44,6 +45,7 @@ import {
   useBloqueosDeLote,
   useCorregirDatoLote,
   useCorregirLote,
+  useEliminarLote,
   useProveedores,
   useRemitoRecepcion,
   type MotivoCorreccion,
@@ -406,6 +408,47 @@ function CorregirCantidad({
   );
 }
 
+function EliminarLote({ loteId, onCerrar }: { loteId: string; onCerrar: () => void }) {
+  const eliminar = useEliminarLote();
+  const navegar = useNavigate();
+  const [motivo, setMotivo] = useState('');
+  return (
+    <Stack gap="sm">
+      <Text size="sm">
+        El lote deja de aparecer en todas las pantallas y, si tenía stock, sale con un
+        ajuste por error de registro. No se borra: queda registrado con tu nombre y el
+        motivo. Si ya se usó en producción, venta o muestra, no se puede eliminar.
+      </Text>
+      <Textarea
+        label="Motivo"
+        placeholder="Ej.: cargado dos veces"
+        autosize
+        minRows={2}
+        value={motivo}
+        onChange={(e) => setMotivo(e.currentTarget.value)}
+      />
+      <Group justify="flex-end">
+        <Button variant="subtle" color="gray" onClick={onCerrar}>
+          Cancelar
+        </Button>
+        <Button
+          color="red"
+          disabled={motivo.trim().length < 3}
+          loading={eliminar.isPending}
+          onClick={() =>
+            eliminar.mutate(
+              { loteId, motivo: motivo.trim() },
+              { onSuccess: () => void navegar('/lotes') },
+            )
+          }
+        >
+          Eliminar
+        </Button>
+      </Group>
+    </Stack>
+  );
+}
+
 function Dato({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {
   return (
     <Box>
@@ -435,6 +478,7 @@ export function PaginaLote() {
   const [dictamen, setDictamen] = useState<boolean | null>(null);
   const [corrigiendo, setCorrigiendo] = useState(false);
   const [corrigiendoDatos, setCorrigiendoDatos] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
 
   if (lote.isLoading) {
     return <Skeleton h={420} radius="lg" />;
@@ -595,9 +639,28 @@ export function PaginaLote() {
                     >
                       Corregir datos
                     </Button>
+                    {/* D-eliminar-lote-1: solo DT; la base rechaza un lote usado. */}
+                    {roles.includes('DIRECCION_TECNICA') ? (
+                      <Button
+                        variant="light"
+                        color="red"
+                        leftSection={<IconTrash size={18} />}
+                        onClick={() => setEliminando(true)}
+                      >
+                        Eliminar lote
+                      </Button>
+                    ) : null}
                   </Group>
                 ) : null}
               </Group>
+              <Modal
+                opened={eliminando}
+                onClose={() => setEliminando(false)}
+                title={<Text fw={700}>Eliminar lote {l.numero_registro_interno}</Text>}
+                centered
+              >
+                <EliminarLote loteId={loteId} onCerrar={() => setEliminando(false)} />
+              </Modal>
               <Modal
                 opened={corrigiendoDatos}
                 onClose={() => setCorrigiendoDatos(false)}

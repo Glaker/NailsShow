@@ -805,6 +805,17 @@ guarda la unidad anterior y la nueva. Origen: tapas y bombas dadas de alta
 desde la recepción en kg porque el alta de insumo proponía «Materia prima» en
 kg; el alta ya no propone ni tipo ni unidad.
 
+### D-eliminar-lote-1 · La DT elimina un lote de insumo no usado — adoptada 2026-11-05
+
+**Decisión del codirector técnico.** La Dirección Técnica, y solo ella,
+elimina un lote de insumo en cualquier momento, con motivo, desde su ficha.
+No se borra: queda en `comercial.lotes_eliminados` a su nombre, el saldo que
+tenía sale con un ajuste ERROR_DE_REGISTRO que apunta a esa fila y
+`gmp.lotes_quitados` lo oculta de toda consulta (como D-recepcion-5). Un lote
+del que ya salió material (consumo de producción, venta, muestra, descarte o
+retiro) no se elimina, porque perdería su trazabilidad, y tampoco un lote de
+saldo de apertura: esos se corrigen con un ajuste o un conteo.
+
 ### D-estabilidad-1 · Estudios de estabilidad acelerada — adoptada 2026-11-05
 
 **Decisión del codirector técnico.** Sección «Estabilidad acelerada» de la

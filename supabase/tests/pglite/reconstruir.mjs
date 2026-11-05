@@ -14,6 +14,10 @@ const MIG = `${RAIZ}/supabase/migrations`;
 // se saltean, y lo que prueban las suites no depende de ellas.
 const SOLO_PRODUCCION = new Set([
   '20261020130000_comercial_restituye_recepcion_00003.sql', // la recepción 00003/2026 real
+  // Cargas de stock e insumos con códigos que solo existen en la base real.
+  '20261104150000_carga_inventario_etiquetas.sql',
+  '20261105130000_ingreso_etiquetas_polimeros.sql',
+  '20261105140000_removedor_120_sin_granel_duplicado.sql',
 ]);
 
 export async function reconstruir({ silencioso = false } = {}) {
