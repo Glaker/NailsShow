@@ -1014,6 +1014,8 @@ export type Database = {
           id: string
           lote_insumo_id: string
           motivo: string
+          unidad_antes: string | null
+          unidad_despues: string | null
           unidades_antes: number | null
           unidades_despues: number
         }
@@ -1025,6 +1027,8 @@ export type Database = {
           id?: string
           lote_insumo_id: string
           motivo: string
+          unidad_antes?: string | null
+          unidad_despues?: string | null
           unidades_antes?: number | null
           unidades_despues: number
         }
@@ -1036,6 +1040,8 @@ export type Database = {
           id?: string
           lote_insumo_id?: string
           motivo?: string
+          unidad_antes?: string | null
+          unidad_despues?: string | null
           unidades_antes?: number | null
           unidades_despues?: number
         }
@@ -1879,6 +1885,61 @@ export type Database = {
           titular?: string | null
         }
         Relationships: []
+      }
+      descuentos_caja: {
+        Row: {
+          cargado_en: string
+          cargado_por: string
+          descripcion: string | null
+          id: string
+          orden: number
+          porcentaje: number
+          producto_id: string
+          unidades_caja: number
+        }
+        Insert: {
+          cargado_en?: string
+          cargado_por?: string
+          descripcion?: string | null
+          id?: string
+          orden?: never
+          porcentaje: number
+          producto_id: string
+          unidades_caja: number
+        }
+        Update: {
+          cargado_en?: string
+          cargado_por?: string
+          descripcion?: string | null
+          id?: string
+          orden?: never
+          porcentaje?: number
+          producto_id?: string
+          unidades_caja?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "descuentos_caja_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "descuentos_caja_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "descuentos_caja_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
+        ]
       }
       descuentos_cliente: {
         Row: {
@@ -4213,7 +4274,9 @@ export type Database = {
           anulado_en: string | null
           anulado_por: string | null
           cantidad: number
+          cantidad_caja: number | null
           de_calle5: number | null
+          descuento_caja_pct: number | null
           id: string
           pedido_id: string
           precio_base: number | null
@@ -4229,7 +4292,9 @@ export type Database = {
           anulado_en?: string | null
           anulado_por?: string | null
           cantidad: number
+          cantidad_caja?: number | null
           de_calle5?: number | null
+          descuento_caja_pct?: number | null
           id?: string
           pedido_id: string
           precio_base?: number | null
@@ -4245,7 +4310,9 @@ export type Database = {
           anulado_en?: string | null
           anulado_por?: string | null
           cantidad?: number
+          cantidad_caja?: number | null
           de_calle5?: number | null
+          descuento_caja_pct?: number | null
           id?: string
           pedido_id?: string
           precio_base?: number | null
@@ -6117,6 +6184,38 @@ export type Database = {
         }
         Relationships: []
       }
+      v_descuentos_caja: {
+        Row: {
+          cargado_en: string | null
+          descripcion: string | null
+          porcentaje: number | null
+          producto_id: string | null
+          unidades_caja: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "descuentos_caja_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "descuentos_caja_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "descuentos_caja_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
+        ]
+      }
       v_descuentos_vigentes: {
         Row: {
           cargado_por: string | null
@@ -6435,6 +6534,7 @@ export type Database = {
           etiquetados_hoy: number | null
           faltan: number | null
           nombre: string | null
+          origen: Database["gmp"]["Enums"]["origen_producto_enum"] | null
           pendientes: number | null
           producto_id: string | null
         }
@@ -8191,6 +8291,10 @@ export type Database = {
         Returns: number
       }
       duplicar_cotizacion: { Args: { p_id: string }; Returns: string }
+      editar_recepcion: {
+        Args: { p_cabecera: Json; p_lotes: Json; p_recepcion_id: string }
+        Returns: undefined
+      }
       eliminar_pedido: {
         Args: { p_motivo?: string; p_pedido_id: string }
         Returns: undefined
@@ -8283,6 +8387,20 @@ export type Database = {
           unidad: string
         }[]
       }
+      faltantes_tanda: {
+        Args: { p_orden_id: string; p_reparto: Json }
+        Returns: {
+          codigo: string
+          disponible: number
+          falta: number
+          insumo: string
+          insumo_id: string
+          necesita: number
+          nota: string
+          sin_aprobar: number
+          unidad: string
+        }[]
+      }
       fijar_numero_factura: {
         Args: { p_clave: string; p_factura_id: string; p_numero: number }
         Returns: undefined
@@ -8364,6 +8482,14 @@ export type Database = {
       lineas_desde_producto: {
         Args: { p_cotizacion_id: string; p_producto_id: string }
         Returns: number
+      }
+      materiales_por_unidades: {
+        Args: { p_cubierto?: number; p_producto_id: string; p_unidades: number }
+        Returns: {
+          alternativa: string
+          cantidad: number
+          insumo_id: string
+        }[]
       }
       necesidad_pedido: {
         Args: { p_pedido_id: string }
@@ -10458,9 +10584,44 @@ export type Database = {
           },
         ]
       }
+      lotes_quitados: {
+        Row: {
+          lote_insumo_id: string
+          quitado_en: string
+          quitado_por: string
+        }
+        Insert: {
+          lote_insumo_id: string
+          quitado_en?: string
+          quitado_por?: string
+        }
+        Update: {
+          lote_insumo_id?: string
+          quitado_en?: string
+          quitado_por?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lotes_quitados_lote_insumo_id_fkey"
+            columns: ["lote_insumo_id"]
+            isOneToOne: true
+            referencedRelation: "lotes_insumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lotes_quitados_lote_insumo_id_fkey"
+            columns: ["lote_insumo_id"]
+            isOneToOne: true
+            referencedRelation: "v_lotes_insumo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       materiales_acondicionamiento: {
         Row: {
           activo: boolean
+          alternativa_grupo: string | null
+          alternativa_opcion: number | null
           cantidad_por_unidad: number
           categoria: string | null
           creado_en: string
@@ -10473,6 +10634,8 @@ export type Database = {
         }
         Insert: {
           activo?: boolean
+          alternativa_grupo?: string | null
+          alternativa_opcion?: number | null
           cantidad_por_unidad: number
           categoria?: string | null
           creado_en?: string
@@ -10485,6 +10648,8 @@ export type Database = {
         }
         Update: {
           activo?: boolean
+          alternativa_grupo?: string | null
+          alternativa_opcion?: number | null
           cantidad_por_unidad?: number
           categoria?: string | null
           creado_en?: string
@@ -12338,6 +12503,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      editando_recepcion: { Args: { p_recepcion_id: string }; Returns: boolean }
       elegir_deposito_envase: {
         Args: { p_deposito_id: string; p_lote_id: string }
         Returns: undefined
@@ -12448,6 +12614,11 @@ export type Database = {
       proveedor_de_tercero: { Args: { p_tercero_id: string }; Returns: string }
       puede_trabajar_tarea: { Args: { p_tarea_id: string }; Returns: boolean }
       reanudar_tarea: { Args: { p_tarea_id: string }; Returns: string }
+      recepcion_editable: { Args: { p_recepcion_id: string }; Returns: boolean }
+      reemitir_rotulo_lote_insumo: {
+        Args: { p_lote_id: string }
+        Returns: undefined
+      }
       registrar_muestreo: {
         Args: {
           p_area_muestreo: string
