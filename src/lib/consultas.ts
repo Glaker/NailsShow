@@ -179,6 +179,29 @@ export function useRemitoRecepcion(recepcionId: string | null | undefined) {
 }
 
 /**
+ * Elimina un lote de insumo que no se usó (D-eliminar-lote-1, solo DT). La base
+ * lleva su saldo a cero con un ajuste y lo oculta; no se borra nada.
+ */
+export function useEliminarLote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (c: { loteId: string; motivo: string }) => {
+      /* Tabla de 20261105150000, todavía no en database.types.ts. */
+      const { error } = await (comercial() as unknown as SupabaseClient)
+        .from('lotes_eliminados')
+        .insert({ lote_insumo_id: c.loteId, motivo: c.motivo });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      for (const k of [['lotes'], ['kardex'], ['stock-existencias'], ['stock-articulos']])
+        void qc.invalidateQueries({ queryKey: k });
+      avisarExito('Lote eliminado. Quedó registrado con tu nombre y el motivo.');
+    },
+    onError: avisarError,
+  });
+}
+
+/**
  * Corrige remito, proveedor, lote del proveedor o plazo de validez
  * (D-corregir-datos-lote-1). Registro nuevo con motivo: la base completa el
  * valor anterior y aplica el cambio. Remito y proveedor son de la recepción.
