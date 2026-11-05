@@ -3265,6 +3265,30 @@ export type Database = {
           },
         ]
       }
+      lotes_eliminados: {
+        Row: {
+          eliminado_en: string
+          eliminado_por: string
+          id: string
+          lote_insumo_id: string
+          motivo: string
+        }
+        Insert: {
+          eliminado_en?: string
+          eliminado_por?: string
+          id?: string
+          lote_insumo_id: string
+          motivo: string
+        }
+        Update: {
+          eliminado_en?: string
+          eliminado_por?: string
+          id?: string
+          lote_insumo_id?: string
+          motivo?: string
+        }
+        Relationships: []
+      }
       metas_stock_seguridad: {
         Row: {
           creado_en: string
@@ -11120,6 +11144,7 @@ export type Database = {
           codigo_interno: string
           contenido_neto: number | null
           creado_en: string
+          familia: string | null
           familia_granel: string | null
           forma_cosmetica: string | null
           formula_consultada_en: string | null
@@ -11137,6 +11162,7 @@ export type Database = {
           tercero_id: string | null
           tipo: string | null
           unidad_contenido: string | null
+          variante: string | null
           variedad: string | null
           vida_util_meses: number | null
         }
@@ -11145,6 +11171,7 @@ export type Database = {
           codigo_interno: string
           contenido_neto?: number | null
           creado_en?: string
+          familia?: string | null
           familia_granel?: string | null
           forma_cosmetica?: string | null
           formula_consultada_en?: string | null
@@ -11162,6 +11189,7 @@ export type Database = {
           tercero_id?: string | null
           tipo?: string | null
           unidad_contenido?: string | null
+          variante?: string | null
           variedad?: string | null
           vida_util_meses?: number | null
         }
@@ -11170,6 +11198,7 @@ export type Database = {
           codigo_interno?: string
           contenido_neto?: number | null
           creado_en?: string
+          familia?: string | null
           familia_granel?: string | null
           forma_cosmetica?: string | null
           formula_consultada_en?: string | null
@@ -11187,6 +11216,7 @@ export type Database = {
           tercero_id?: string | null
           tipo?: string | null
           unidad_contenido?: string | null
+          variante?: string | null
           variedad?: string | null
           vida_util_meses?: number | null
         }
@@ -12220,6 +12250,7 @@ export type Database = {
           codigo_interno: string
           contenido_neto: number | null
           creado_en: string
+          familia: string | null
           familia_granel: string | null
           forma_cosmetica: string | null
           formula_consultada_en: string | null
@@ -12237,6 +12268,7 @@ export type Database = {
           tercero_id: string | null
           tipo: string | null
           unidad_contenido: string | null
+          variante: string | null
           variedad: string | null
           vida_util_meses: number | null
         }
@@ -12428,6 +12460,10 @@ export type Database = {
           volumen_exceso_molar: number
         }[]
       }
+      densidad_supuesta: {
+        Args: { p_codigo: string; p_nombre: string; p_tipo: string }
+        Returns: string
+      }
       deposito_por_defecto: { Args: { p_insumo_id: string }; Returns: string }
       destino_sobrante_sugerido: {
         Args: {
@@ -12577,6 +12613,7 @@ export type Database = {
       }
       formula_en_borrador: { Args: { p_formula_id: string }; Returns: boolean }
       grado_alcoholico_a_pp: { Args: { p_pct_vv: number }; Returns: number }
+      huella_formula: { Args: { p_formula_id: string }; Returns: Json }
       impedimento_consumo: { Args: { p_lote_id: string }; Returns: string }
       impedimento_despacho: { Args: { p_lote_id: string }; Returns: string }
       impedimento_despacho_orden: {
