@@ -31,6 +31,7 @@ import { CostoAprox } from '@/features/costos/CostoAprox';
 import {
   useAlternativaMaterial,
   useAsignarMaterial,
+  useCantidadMaterial,
   useConsultarFormula,
   useInsumosDeFormula,
   useMarcarImportado,
@@ -242,6 +243,8 @@ function FilaMaterial({
   onClasificar: (rol: RolMaterial) => void;
 }) {
   const quitar = useQuitarMaterial();
+  const cantidad = useCantidadMaterial();
+  const [cant, setCant] = useState<number | string>(m.cantidad_por_unidad);
   const etiqueta =
     m.categoria ??
     (m.rol === 'ENVASE'
@@ -320,6 +323,27 @@ function FilaMaterial({
           )}
         </Stack>
         <Group gap={4} wrap="nowrap">
+          <NumberInput
+            aria-label={`Cantidad por unidad de ${m.insumo?.nombre ?? ''}`}
+            value={cant}
+            onChange={setCant}
+            rightSection={
+              <Text size="xs" c="dimmed">
+                {m.insumo?.unidad_medida ?? ''}
+              </Text>
+            }
+            rightSectionWidth={52}
+            min={0}
+            decimalScale={4}
+            decimalSeparator=","
+            hideControls
+            w={130}
+            onBlur={() => {
+              if (typeof cant === 'number' && cant > 0 && cant !== m.cantidad_por_unidad)
+                cantidad.mutate({ productoId, insumoId: m.insumo_id, cantidad: cant });
+              else setCant(m.cantidad_por_unidad);
+            }}
+          />
           <Alternativa m={m} productoId={productoId} grupos={grupos} />
           <ActionIcon
             variant="subtle"

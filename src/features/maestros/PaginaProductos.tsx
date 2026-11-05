@@ -23,6 +23,7 @@ import { zod4Resolver } from 'mantine-form-zod-resolver';
 import { z } from 'zod';
 import { IconPackage, IconPlus, IconSearch } from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
+import { MaterialesProducto } from '@/features/produccion/TareasCarga';
 import { Vacio } from '@/components/Vacio';
 import {
   useActualizarProducto,
@@ -384,7 +385,7 @@ export function PaginaProductos() {
               : 'Nuevo producto'}
           </Text>
         }
-        size="lg"
+        size={enEdicion ? 'xl' : 'lg'}
       >
         {/* `key` fuerza a remontar al cambiar de ficha: sin eso Mantine
             conserva los valores iniciales de la anterior. */}
@@ -393,6 +394,14 @@ export function PaginaProductos() {
           producto={enEdicion}
           onListo={modal.close}
         />
+        {enEdicion ? (
+          <Stack gap="sm" mt="xl">
+            <Text fw={700} size="lg">
+              Qué lleva cada unidad
+            </Text>
+            <MaterialesProducto productoId={enEdicion.id} />
+          </Stack>
+        ) : null}
       </Modal>
     </>
   );
