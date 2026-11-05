@@ -5,15 +5,17 @@ import {
   IconCalculator,
   IconClipboardList,
   IconHourglass,
+  IconLayoutGrid,
   IconPackages,
 } from '@tabler/icons-react';
 import { PaginaFormulas } from './PaginaFormulas';
+import { FamiliasFormulas } from './FamiliasFormulas';
 import { PaginaCalculadoraLote } from './PaginaCalculadoraLote';
 import { FormulasPendientes } from './FormulasPendientes';
 import { PaginaListaMateriales } from '@/features/comercial/PaginaListaMateriales';
 import { useFormulasConsultadas } from '@/lib/consultasEtiquetado';
 
-const VISTAS = ['formulas', 'pendientes', 'calculadora'] as const;
+const VISTAS = ['familias', 'formulas', 'pendientes', 'calculadora'] as const;
 type VistaFormulas = (typeof VISTAS)[number];
 
 /** `/calculadora-lote` y `/lista-materiales` llevan a la calculadora. */
@@ -29,7 +31,7 @@ export function RedirigirACalculadora() {
 export function PaginaFormulasUnificada() {
   const [params, setParams] = useSearchParams();
   const pedida = params.get('vista') as VistaFormulas | null;
-  const vista = pedida && VISTAS.includes(pedida) ? pedida : 'formulas';
+  const vista = pedida && VISTAS.includes(pedida) ? pedida : 'familias';
   const [materiales, panel] = useDisclosure(false);
   const pendientes = useFormulasConsultadas();
   const nPendientes = pendientes.data?.length ?? 0;
@@ -44,8 +46,12 @@ export function PaginaFormulasUnificada() {
       >
         <Group justify="space-between" mb="lg" wrap="wrap" gap="sm">
           <Tabs.List>
+            {/* D-familias-sku-1: familia › fragancia › presentación. */}
+            <Tabs.Tab value="familias" leftSection={<IconLayoutGrid size={18} />}>
+              Familias
+            </Tabs.Tab>
             <Tabs.Tab value="formulas" leftSection={<IconClipboardList size={18} />}>
-              Fórmulas
+              Todas las fórmulas
             </Tabs.Tab>
             {/* Lo que Gerencia de Producción derivó con «No la sé» (D-etiquetado-2). */}
             <Tabs.Tab
@@ -75,6 +81,9 @@ export function PaginaFormulasUnificada() {
             </Button>
           ) : null}
         </Group>
+        <Tabs.Panel value="familias">
+          <FamiliasFormulas />
+        </Tabs.Panel>
         <Tabs.Panel value="formulas">
           <PaginaFormulas />
         </Tabs.Panel>

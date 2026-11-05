@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
+  Autocomplete,
   Badge,
   Button,
   Grid,
@@ -42,6 +43,8 @@ const esquema = z.object({
   codigo_interno: z.string().trim().min(1, 'Falta el código interno'),
   nombre: z.string().trim().min(2, 'Falta el nombre'),
   variedad: z.string().trim(),
+  familia: z.string().trim(),
+  variante: z.string().trim(),
   tipo: z.string().trim(),
   forma_cosmetica: z.string().trim(),
   /* Nullable: la lista cargada no traía el origen, y un 'FABRICADO' supuesto
@@ -72,12 +75,18 @@ export function FormularioProducto({
   const actualizar = useActualizarProducto();
   const editando = Boolean(producto);
   const cargaHermanos = useTieneRol('GERENCIA_PRODUCCION', 'DIRECCION_TECNICA');
+  const productos = useProductos();
+  const familias = [
+    ...new Set((productos.data ?? []).map((p) => p.familia).filter((f) => f !== null)),
+  ].sort();
   const form = useForm<Valores>({
     mode: 'controlled',
     initialValues: {
       codigo_interno: producto?.codigo_interno ?? '',
       nombre: producto?.nombre ?? '',
       variedad: producto?.variedad ?? '',
+      familia: producto?.familia ?? '',
+      variante: producto?.variante ?? '',
       tipo: producto?.tipo ?? '',
       forma_cosmetica: producto?.forma_cosmetica ?? '',
       origen: (producto?.origen as Valores['origen']) ?? (producto ? null : 'FABRICADO'),
@@ -96,6 +105,9 @@ export function FormularioProducto({
           codigo_interno: v.codigo_interno,
           nombre: v.nombre,
           variedad: v.variedad || null,
+          familia: v.familia || null,
+          /* La base no admite variante sin familia. */
+          variante: (v.familia && v.variante.toUpperCase()) || null,
           tipo: v.tipo || null,
           forma_cosmetica: v.forma_cosmetica || null,
           origen: v.origen,
@@ -131,6 +143,24 @@ export function FormularioProducto({
               label="Variedad"
               placeholder="Color, terminación, línea"
               {...form.getInputProps('variedad')}
+            />
+          </Grid.Col>
+          {/* D-familias-sku-1: misma familia y variante = presentaciones de una fórmula. */}
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            <Autocomplete
+              label="Familia"
+              placeholder="Exfoliante, Sanitizante…"
+              data={familias}
+              {...form.getInputProps('familia')}
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            <TextInput
+              label="Fragancia o color"
+              placeholder="AMOR, PAZ, CLEAR…"
+              description="Las presentaciones de la misma familia y fragancia comparten fórmula."
+              disabled={!form.getValues().familia.trim()}
+              {...form.getInputProps('variante')}
             />
           </Grid.Col>
           <Grid.Col span={{ base: 12, sm: 6 }}>
