@@ -211,6 +211,8 @@ export function useQuitarMaterial() {
 
 export interface MaterialProducto {
   insumo_id: string;
+  /** Cuánto lleva cada unidad de producto, en la unidad del insumo. */
+  cantidad_por_unidad: number;
   rol: RolMaterial | null;
   categoria: string | null;
   /** Grupo «o» y opción (20261102150000, D-materiales-o-1); null = no es alternativa. */
@@ -228,7 +230,7 @@ export function useMaterialesProducto(productoId: string, habilitado = true) {
       const { data, error } = await gmpST()
         .from('materiales_acondicionamiento')
         .select(
-          'insumo_id, rol, categoria, alternativa_grupo, alternativa_opcion, insumo:insumos_catalogo(nombre, codigo_interno, unidad_medida)',
+          'insumo_id, cantidad_por_unidad, rol, categoria, alternativa_grupo, alternativa_opcion, insumo:insumos_catalogo(nombre, codigo_interno, unidad_medida)',
         )
         .eq('producto_id', productoId)
         .eq('activo', true);
@@ -238,6 +240,24 @@ export function useMaterialesProducto(productoId: string, habilitado = true) {
         (a, b) => (orden[a.rol ?? ''] ?? 3) - (orden[b.rol ?? ''] ?? 3),
       );
     },
+  });
+}
+
+/** Cuánto lleva cada unidad (catálogo de productos). RLS: DT y GP. */
+export function useCantidadMaterial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (m: { productoId: string; insumoId: string; cantidad: number }) => {
+      const { error } = await gmpST()
+        .from('materiales_acondicionamiento')
+        .update({ cantidad_por_unidad: m.cantidad })
+        .eq('producto_id', m.productoId)
+        .eq('insumo_id', m.insumoId)
+        .eq('activo', true);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidarCarga(qc),
+    onError: avisarError,
   });
 }
 
