@@ -41,6 +41,7 @@ reconstrucción la aplica en su lugar por orden de nombre.
 | `probar_giorgio.mjs`          | Giorgio: límite diario por rol, tope global con corte al 80 %, interruptor, registro append-only y a nombre propio, costo de un modelo sin precio, tokens inventados recortados (D-58 a D-60)                                  |
 | `probar_comentarios_pago.mjs` | Gerencia de Producción ve todas las solicitudes de pago sin poder aprobarlas; comentarios append-only, a nombre propio, con la hora de la base, solo sobre solicitudes visibles; el Administrador del sistema lee y no comenta |
 | `probar_fecha_y_foto.mjs`     | pedido de venta: Ventas pide fecha, Gerencia de Producción la propone (pedido entero y productos demorados), Ventas aprueba con foto del importe; vuelta a reconfirmar, factura bloqueada sin aprobar, es_venta inmutable      |
+| `probar_estabilidad.mjs`      | estabilidad acelerada: la DT carga y cierra con conclusión; cerrado no cambia; Calidad y Gerencia solo leen (D-estabilidad-1)                                                                                                  |
 
 `probar_facturas` (sesiones anteriores) necesita el token de Afip SDK y red, y
 no está acá.
