@@ -805,6 +805,19 @@ guarda la unidad anterior y la nueva. Origen: tapas y bombas dadas de alta
 desde la recepción en kg porque el alta de insumo proponía «Materia prima» en
 kg; el alta ya no propone ni tipo ni unidad.
 
+### D-familias-sku-1 · Familias de SKU y una fórmula por fragancia — adoptada 2026-11-05
+
+**Decisión del codirector técnico.** Cada producto lleva una familia
+(Exfoliante, Sanitizante, Polvo acrílico…) y una variante (la fragancia o el
+color). Los productos de la misma familia y variante son presentaciones de la
+misma fórmula: solo cambian las cantidades del lote. Cuando la DT deja vigente
+la fórmula de una presentación, la base emite la misma versión en las demás,
+aprobada por esa DT en la misma transacción, y da de baja la que regía en cada
+una. No se replica a una presentación que ya la tiene ni a una que envasa un
+granel (versión «Envasado»). En Fórmulas se navega por familia, variante y
+presentación. La agrupación inicial la hizo Claude por nombre y se corrige en
+la ficha del producto.
+
 ### D-densidad-supuesta-1 · Densidad supuesta de fragancias y pigmentos — adoptada 2026-11-05
 
 **Decisión del codirector técnico.** Una fragancia o esencia sin densidad
