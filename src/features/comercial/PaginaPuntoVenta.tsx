@@ -210,7 +210,7 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
   const contar = useRegistrarConteoPt();
   const [contando, setContando] = useState(false);
   const [conteoProducto, setConteoProducto] = useState<string | null>(null);
-  const [conteoCantidad, setConteoCantidad] = useState<number | ''>('');
+  const [conteoCantidad, setConteoCantidad] = useState<number | string>('');
   const [conteoObs, setConteoObs] = useState('');
   const esCalle5 = config.numero === 'C5';
   const esGP = useTieneRol('GERENCIA_PRODUCCION');
@@ -595,7 +595,7 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
             allowDecimal={false}
             hideControls
             value={conteoCantidad}
-            onChange={(v) => setConteoCantidad(typeof v === 'number' ? v : '')}
+            onChange={(v) => setConteoCantidad(v)}
           />
           {/* Con diferencia, el ajuste lleva su porqué (pedido del 2026-10-22). */}
           <TextInput
@@ -796,7 +796,7 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
 interface RenglonPt {
   clave: string;
   productoId: string | null;
-  cantidad: number | '';
+  cantidad: number | string;
   lote: string;
 }
 
@@ -861,7 +861,7 @@ function RenglonesPt({
             hideControls
             value={f.cantidad}
             onChange={(v) =>
-              cambiar(f.clave, { cantidad: typeof v === 'number' ? v : '' })
+              cambiar(f.clave, { cantidad: v })
             }
           />
           {conLote ? (

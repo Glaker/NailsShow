@@ -791,7 +791,7 @@ function AgregarRenglon({
   const productos = useProductos();
   const agregar = useAgregarRenglonPedido();
   const [productoId, setProductoId] = useState<string | null>(null);
-  const [cantidad, setCantidad] = useState<number | ''>('');
+  const [cantidad, setCantidad] = useState<number | string>('');
 
   const opciones = (productos.data ?? [])
     .filter((x) => x.activo && !yaCargados.has(x.id))
@@ -817,7 +817,7 @@ function AgregarRenglon({
         hideControls
         w={120}
         value={cantidad}
-        onChange={(v) => setCantidad(typeof v === 'number' ? v : '')}
+        onChange={(v) => setCantidad(v)}
       />
       <Button
         size="md"
