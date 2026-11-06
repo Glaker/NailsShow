@@ -3,7 +3,7 @@
  * tal cual, 2026-11-06). Solo las props que usa Wandel o que documenta React
  * Bits; el código no se tipa ni se lintea, como el resto de vendor.
  */
-import type { CSSProperties, ReactElement, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, CSSProperties, ReactElement, ReactNode } from 'react';
 
 export interface ItemRama {
   value?: string;
@@ -173,6 +173,40 @@ export interface PropsShapeBlur {
   spin?: number;
   idle?: boolean;
   children?: ReactNode;
+  className?: string;
+  style?: CSSProperties;
+}
+
+export interface PropsStep {
+  title?: ReactNode;
+  description?: ReactNode;
+  icon?: ReactNode;
+  children?: ReactNode;
+}
+
+export interface PropsStepper {
+  children?: ReactNode;
+  step?: number;
+  initialStep?: number;
+  onStepChange?: (step: number) => void;
+  onFinalStepCompleted?: () => void;
+  indicator?: 'numbers' | 'dots' | 'bars';
+  orientation?: 'horizontal' | 'vertical';
+  transition?: 'slide' | 'fade' | 'none';
+  linear?: boolean;
+  disableStepIndicators?: boolean;
+  showFooter?: boolean;
+  backButtonText?: string;
+  nextButtonText?: string;
+  completeButtonText?: string;
+  backButtonProps?: ButtonHTMLAttributes<HTMLButtonElement>;
+  nextButtonProps?: ButtonHTMLAttributes<HTMLButtonElement>;
+  completedContent?: ReactNode;
+  theme?: 'dark' | 'light';
+  accentColor?: string;
+  frame?: boolean;
+  radius?: number;
+  width?: number | string;
   className?: string;
   style?: CSSProperties;
 }

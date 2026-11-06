@@ -13,6 +13,8 @@ import {
   Stack,
   Text,
   TextInput,
+  Title,
+  useComputedColorScheme,
 } from '@mantine/core';
 import { IconCopy, IconHelpCircle } from '@tabler/icons-react';
 import { useTieneRol } from '@/features/auth/sesion';
@@ -38,6 +40,7 @@ import { useEspecificaciones } from '@/lib/consultasOrdenes';
 import { tiempoDe } from '@/lib/envasado';
 import { fecha } from '@/lib/formato';
 import { FormularioNuevaFormula } from './PaginaFormulas';
+import Stepper, { Step } from '@/vendor/reactbits/Stepper';
 import { NoLlevaFormula } from './FormulasPendientes';
 import { PaginaFormula } from './PaginaFormula';
 import { PanelProcedimiento } from './PanelProcedimiento';
@@ -278,6 +281,8 @@ function PendientesDT() {
  * (D-nuevo-producto-1). Cada sección es la pantalla de siempre: acá solo se
  * juntan. El producto va en la URL, así que se puede dejar a medias.
  */
+const PASOS = 7;
+
 export function PaginaNuevoProducto() {
   const [params, setParams] = useSearchParams();
   const productoId = params.get('producto');
@@ -286,10 +291,17 @@ export function PaginaNuevoProducto() {
     setParams((p) => {
       if (id) p.set('producto', id);
       else p.delete('producto');
+      p.set('paso', id ? '2' : '1');
       return p;
     });
+  const paso = Math.min(PASOS + 1, Math.max(1, Number(params.get('paso')) || 1));
+  const setPaso = (n: number) =>
+    setParams((p) => {
+      p.set('paso', String(n));
+      return p;
+    });
+  const esquema = useComputedColorScheme('light');
   const esDT = useTieneRol('DIRECCION_TECNICA');
-  const [abiertas, setAbiertas] = useState<string[]>(['producto']);
 
   const productos = useProductos();
   const formulas = useFormulasFabricacion();
@@ -366,18 +378,42 @@ export function PaginaNuevoProducto() {
     <>
       {esDT ? <PendientesDT /> : null}
 
-      <Accordion
-        multiple
-        value={abiertas}
-        onChange={setAbiertas}
-        variant="separated"
-        radius="md"
+      {/* Paso a paso (Stepper de React Bits, 2026-11-06). El paso va en la URL,
+          así se puede dejar a medias y volver. Sin producto elegido no se avanza. */}
+      <Stepper
+        step={paso}
+        onStepChange={setPaso}
+        onFinalStepCompleted={() => setPaso(PASOS + 1)}
+        disableStepIndicators={!productoId}
+        nextButtonProps={{ disabled: !productoId }}
+        backButtonText="Atrás"
+        nextButtonText="Siguiente"
+        completeButtonText="Terminar"
+        theme={esquema === 'dark' ? 'dark' : 'light'}
+        accentColor="#0071e3"
+        width="100%"
+        radius={18}
+        completedContent={
+          <Stack gap="sm" align="flex-start">
+            <Title order={3}>Recorriste todos los pasos</Title>
+            <Text size="sm" c="dimmed">
+              Lo que falta sigue marcado en cada paso, y lo que cargó Gerencia de
+              Producción espera la aprobación de Dirección Técnica.
+            </Text>
+            <Group gap="sm">
+              <Button variant="light" onClick={() => setPaso(1)}>
+                Volver al primer paso
+              </Button>
+              <Button variant="default" onClick={() => elegir(null)}>
+                Empezar otro producto
+              </Button>
+            </Group>
+          </Stack>
+        }
       >
-        <Accordion.Item value="producto">
-          <Accordion.Control>
+        <Step key="Producto" title="Producto">
+          <Stack gap="md">
             <Titulo n={1} texto="Producto" estado={hay ? 'listo' : 'falta'} />
-          </Accordion.Control>
-          <Accordion.Panel>
             {producto ? (
               <Stack gap="sm">
                 <Text>
@@ -410,23 +446,20 @@ export function PaginaNuevoProducto() {
                 </Paper>
               </Stack>
             )}
-          </Accordion.Panel>
-        </Accordion.Item>
-
-        {productoId ? (
-          <>
-            <Accordion.Item value="formula">
-              <Accordion.Control>
-                <Titulo
-                  n={2}
-                  texto="Fórmula"
-                  estado={estado(formula?.estado === 'VIGENTE', {
-                    aprobar: formula?.estado === 'BORRADOR',
-                    pedido: Boolean(producto?.formula_consultada_en),
-                  })}
-                />
-              </Accordion.Control>
-              <Accordion.Panel>
+          </Stack>
+        </Step>
+        <Step key="Fórmula" title="Fórmula">
+          <Stack gap="md">
+            <Titulo
+              n={2}
+              texto="Fórmula"
+              estado={estado(formula?.estado === 'VIGENTE', {
+                aprobar: formula?.estado === 'BORRADOR',
+                pedido: Boolean(producto?.formula_consultada_en),
+              })}
+            />
+            {productoId ? (
+              <>
                 {formula ? (
                   <PaginaFormula formulaId={formula.id} />
                 ) : (
@@ -449,37 +482,39 @@ export function PaginaNuevoProducto() {
                     />
                   </Stack>
                 )}
-              </Accordion.Panel>
-            </Accordion.Item>
-
-            <Accordion.Item value="insumos">
-              <Accordion.Control>
-                <Titulo
-                  n={3}
-                  texto="Insumos: envases, etiquetas y lo demás"
-                  estado={estado(
-                    mats.some((m) => m.rol === 'ENVASE') &&
-                      mats.some((m) => m.rol === 'ETIQUETA'),
-                  )}
-                />
-              </Accordion.Control>
-              <Accordion.Panel>
+              </>
+            ) : null}
+          </Stack>
+        </Step>
+        <Step key="Insumos" title="Insumos">
+          <Stack gap="md">
+            <Titulo
+              n={3}
+              texto="Insumos: envases, etiquetas y lo demás"
+              estado={estado(
+                mats.some((m) => m.rol === 'ENVASE') &&
+                  mats.some((m) => m.rol === 'ETIQUETA'),
+              )}
+            />
+            {productoId ? (
+              <>
                 <MaterialesProducto productoId={productoId} />
-              </Accordion.Panel>
-            </Accordion.Item>
-
-            <Accordion.Item value="procedimiento">
-              <Accordion.Control>
-                <Titulo
-                  n={4}
-                  texto="Procedimiento"
-                  estado={estado(versiones.some(rige), {
-                    aprobar: procPendiente,
-                    pedido: pedidas.has('PROCEDIMIENTO'),
-                  })}
-                />
-              </Accordion.Control>
-              <Accordion.Panel>
+              </>
+            ) : null}
+          </Stack>
+        </Step>
+        <Step key="Procedimiento" title="Procedimiento">
+          <Stack gap="md">
+            <Titulo
+              n={4}
+              texto="Procedimiento"
+              estado={estado(versiones.some(rige), {
+                aprobar: procPendiente,
+                pedido: pedidas.has('PROCEDIMIENTO'),
+              })}
+            />
+            {productoId ? (
+              <>
                 <Stack gap="md">
                   {formula ? <PanelProcedimiento formulaId={formula.id} /> : null}
                   {versiones.length === 0 ? (
@@ -517,21 +552,22 @@ export function PaginaNuevoProducto() {
                     </>
                   ) : null}
                 </Stack>
-              </Accordion.Panel>
-            </Accordion.Item>
-
-            <Accordion.Item value="especificacion">
-              <Accordion.Control>
-                <Titulo
-                  n={5}
-                  texto="Especificación"
-                  estado={estado(espec?.estado === 'VIGENTE', {
-                    aprobar: espec?.estado === 'BORRADOR',
-                    pedido: pedidas.has('ESPECIFICACION'),
-                  })}
-                />
-              </Accordion.Control>
-              <Accordion.Panel>
+              </>
+            ) : null}
+          </Stack>
+        </Step>
+        <Step key="Especificación" title="Especificación">
+          <Stack gap="md">
+            <Titulo
+              n={5}
+              texto="Especificación"
+              estado={estado(espec?.estado === 'VIGENTE', {
+                aprobar: espec?.estado === 'BORRADOR',
+                pedido: pedidas.has('ESPECIFICACION'),
+              })}
+            />
+            {productoId ? (
+              <>
                 {espec ? (
                   <FichaEspecificacion id={espec.id} onCambiarId={() => {}} />
                 ) : (
@@ -568,14 +604,15 @@ export function PaginaNuevoProducto() {
                     <CabeceraEspecificacion productoId={productoId} onListo={() => {}} />
                   </Stack>
                 )}
-              </Accordion.Panel>
-            </Accordion.Item>
-
-            <Accordion.Item value="costos">
-              <Accordion.Control>
-                <Titulo n={6} texto="Costos" estado="opcional" />
-              </Accordion.Control>
-              <Accordion.Panel>
+              </>
+            ) : null}
+          </Stack>
+        </Step>
+        <Step key="Costos" title="Costos">
+          <Stack gap="md">
+            <Titulo n={6} texto="Costos" estado="opcional" />
+            {productoId ? (
+              <>
                 <Stack gap="sm">
                   <Text size="sm" c="dimmed">
                     El costo de cada envase y etiqueta se carga en la sección 3; acá, el
@@ -590,24 +627,25 @@ export function PaginaNuevoProducto() {
                     Ver el costo completo del producto
                   </Anchor>
                 </Stack>
-              </Accordion.Panel>
-            </Accordion.Item>
-
-            <Accordion.Item value="tiempos">
-              <Accordion.Control>
-                <Titulo
-                  n={7}
-                  texto="Tiempos de envasado y etiquetado"
-                  estado={tiempoDe(producto) ? 'listo' : 'opcional'}
-                />
-              </Accordion.Control>
-              <Accordion.Panel>
+              </>
+            ) : null}
+          </Stack>
+        </Step>
+        <Step key="Tiempos" title="Tiempos">
+          <Stack gap="md">
+            <Titulo
+              n={7}
+              texto="Tiempos de envasado y etiquetado"
+              estado={tiempoDe(producto) ? 'listo' : 'opcional'}
+            />
+            {productoId ? (
+              <>
                 <TiempoEnvasado productoId={productoId} cantidadSugerida={0} />
-              </Accordion.Panel>
-            </Accordion.Item>
-          </>
-        ) : null}
-      </Accordion>
+              </>
+            ) : null}
+          </Stack>
+        </Step>
+      </Stepper>
     </>
   );
 }
