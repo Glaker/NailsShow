@@ -15,7 +15,7 @@ import {
   Text,
   TextInput,
   Title,
-  UnstyledButton,
+  useComputedColorScheme,
 } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import {
@@ -28,6 +28,8 @@ import { useTieneRol } from '@/features/auth/sesion';
 import { BadgeEstadoFormula } from './estadoFormula';
 import { FormularioNuevaFormula } from './PaginaFormulas';
 import './familias.css';
+import MagicBento from '@/vendor/reactbits/MagicBento';
+import { FlipCard } from '@/components/FlipCard';
 
 /* «Sin familia» y «variante única» en la URL. */
 const SIN_FAMILIA = '~';
@@ -107,61 +109,45 @@ const TONOS: [RegExp, string][] = [
 ];
 const PALETA = ['indigo', 'teal', 'grape', 'orange', 'cyan', 'pink', 'lime', 'violet'];
 
-function tono(nombre: string) {
-  const c =
+function nombreTono(nombre: string) {
+  return (
     TONOS.find(([re]) => re.test(nombre))?.[1] ??
-    PALETA[[...nombre].reduce((a, ch) => a + ch.charCodeAt(0), 0) % PALETA.length];
-  return `var(--mantine-color-${c}-6)`;
+    PALETA[[...nombre].reduce((a, ch) => a + ch.charCodeAt(0), 0) % PALETA.length] ??
+    'gray'
+  );
 }
 
-function Cuadrado({
+function tono(nombre: string) {
+  return `var(--mantine-color-${nombreTono(nombre)}-6)`;
+}
+
+/** El contenido de cada cuadrado de familia, dentro de MagicBento. */
+function CaraFamilia({
   titulo,
   detalle,
   pie,
   color,
-  indice,
-  onClick,
 }: {
   titulo: string;
   detalle: string;
-  pie?: React.ReactNode;
+  pie: string;
   color: string;
-  indice: number;
-  onClick: () => void;
 }) {
   return (
-    <UnstyledButton
-      onClick={onClick}
-      className="familia-cuadrado"
-      style={{ display: 'block' }}
-    >
-      <Paper
-        withBorder
-        p="md"
-        radius="md"
-        className="familia-tarjeta"
-        style={{
-          '--tono': color,
-          '--i': indice,
-          borderColor: 'var(--superficie-borde)',
-          aspectRatio: '1 / 1',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-        }}
-      >
-        <Title order={4} style={{ overflowWrap: 'anywhere' }}>
-          <span className="familia-punto" />
-          {titulo}
-        </Title>
-        <Stack gap={6}>
-          <Text size="sm" c="dimmed">
-            {detalle}
-          </Text>
+    <Stack h="100%" justify="space-between" style={{ '--tono': color }}>
+      <Title order={4} style={{ overflowWrap: 'anywhere' }}>
+        <span className="familia-punto" />
+        {titulo}
+      </Title>
+      <Stack gap={4}>
+        <Text size="sm" style={{ opacity: 0.75 }}>
+          {detalle}
+        </Text>
+        <Text size="xs" style={{ opacity: 0.6 }}>
           {pie}
-        </Stack>
-      </Paper>
-    </UnstyledButton>
+        </Text>
+      </Stack>
+    </Stack>
   );
 }
 
@@ -177,6 +163,7 @@ export function FamiliasFormulas() {
   const [params, setParams] = useSearchParams();
   const familia = params.get('familia');
   const variante = params.get('variante');
+  const esquema = useComputedColorScheme('light');
   const ir = (f: string | null, v: string | null = null) =>
     setParams((p) => {
       p.set('vista', 'familias');
@@ -214,39 +201,48 @@ export function FamiliasFormulas() {
     ) as string[];
     const sinFamilia = todos.filter((p) => !p.familia);
     return (
-      <SimpleGrid cols={{ base: 2, sm: 3, md: 4, lg: 5 }} spacing="md">
-        {familias.map((f, i) => {
-          const ps = todos.filter((p) => p.familia === f);
-          const vs = new Set(ps.map((p) => p.variante ?? ''));
-          return (
-            <Cuadrado
-              key={f}
-              titulo={f}
-              color={tono(f)}
-              indice={i}
-              detalle={`${vs.size} ${vs.size === 1 ? 'variante' : 'fragancias o colores'} · ${ps.length} presentaciones`}
-              pie={
-                <Text size="xs" c="dimmed">
-                  {conFormula(ps)} con fórmula vigente
-                </Text>
-              }
-              onClick={() => ir(f)}
-            />
-          );
-        })}
-        <Cuadrado
-          titulo="Sin familia"
-          color="var(--mantine-color-gray-5)"
-          indice={familias.length}
-          detalle={`${sinFamilia.length} productos`}
-          pie={
-            <Text size="xs" c="dimmed">
-              Se asigna en Catálogos › Productos
-            </Text>
-          }
-          onClick={() => ir(SIN_FAMILIA)}
-        />
-      </SimpleGrid>
+      // Grilla con brillo de borde y luz que sigue al cursor (MagicBento de React Bits).
+      <MagicBento
+        columns={4}
+        rowHeight={170}
+        gap={12}
+        radius={18}
+        theme={esquema === 'dark' ? 'dark' : 'light'}
+        glowColor="#be4bdb"
+        spotlightRadius={260}
+        clickEffect
+        onItemClick={(item) => ir(item.id ?? null)}
+        items={[
+          ...familias.map((f) => {
+            const ps = todos.filter((p) => p.familia === f);
+            const vs = new Set(ps.map((p) => p.variante ?? ''));
+            return {
+              id: f,
+              title: f,
+              content: (
+                <CaraFamilia
+                  titulo={f}
+                  color={tono(f)}
+                  detalle={`${vs.size} ${vs.size === 1 ? 'variante' : 'fragancias o colores'} · ${ps.length} presentaciones`}
+                  pie={`${conFormula(ps)} con fórmula vigente`}
+                />
+              ),
+            };
+          }),
+          {
+            id: SIN_FAMILIA,
+            title: 'Sin familia',
+            content: (
+              <CaraFamilia
+                titulo="Sin familia"
+                color="var(--mantine-color-gray-5)"
+                detalle={`${sinFamilia.length} productos`}
+                pie="Se asigna en Catálogos › Productos"
+              />
+            ),
+          },
+        ]}
+      />
     );
   }
 
@@ -270,27 +266,68 @@ export function FamiliasFormulas() {
     return (
       <>
         {migas}
-        <SimpleGrid cols={{ base: 2, sm: 3, md: 4, lg: 5 }} spacing="md">
-          {variantes.map((v, i) => {
-            const ps = deFamilia.filter((p) => (p.variante ?? UNICA) === v);
+        {/* Fragancias o colores en tarjetas que dan vuelta: al frente el nombre
+            y su color, al dorso las presentaciones (2026-11-06). */}
+        <SimpleGrid cols={{ base: 1, xs: 2, md: 3, lg: 4 }} spacing="md">
+          {variantes.map((v) => {
+            const ps = deFamilia
+              .filter((p) => (p.variante ?? UNICA) === v)
+              .sort(porContenido);
             const n = conFormula(ps);
+            const nombre = v === UNICA ? 'Única' : v;
+            const color = tono(v === UNICA ? familia : v);
             return (
-              <Cuadrado
+              <FlipCard
                 key={v}
-                titulo={v === UNICA ? 'Única' : v}
-                color={tono(v === UNICA ? familia : v)}
-                indice={i}
-                detalle={ps.map(contenido).filter(Boolean).join(' · ') || `${ps.length}`}
-                pie={
-                  <Badge
-                    variant="light"
-                    radius="sm"
-                    color={n > 0 ? 'estadoAprobado' : 'gray'}
+                etiqueta={nombre}
+                alto={220}
+                frente={
+                  <Stack
+                    h="100%"
+                    justify="space-between"
+                    p="md"
+                    style={{
+                      background: `linear-gradient(150deg, color-mix(in srgb, ${color} 26%, var(--mantine-color-body)), var(--mantine-color-body) 75%)`,
+                    }}
                   >
-                    {n > 0 ? 'Con fórmula' : 'Sin fórmula'}
-                  </Badge>
+                    <div style={{ height: 6, borderRadius: 3, background: color }} />
+                    <Title order={3} style={{ overflowWrap: 'anywhere' }}>
+                      {nombre}
+                    </Title>
+                    <Group justify="space-between" gap="xs">
+                      <Text size="sm" c="dimmed">
+                        {ps.length} {ps.length === 1 ? 'presentación' : 'presentaciones'}
+                      </Text>
+                      <Badge
+                        variant="light"
+                        radius="sm"
+                        color={n > 0 ? 'estadoAprobado' : 'gray'}
+                      >
+                        {n > 0 ? 'Con fórmula' : 'Sin fórmula'}
+                      </Badge>
+                    </Group>
+                  </Stack>
                 }
-                onClick={() => ir(familia, v)}
+                dorso={
+                  <Stack h="100%" justify="space-between" p="md" gap="xs">
+                    <Stack gap={4}>
+                      <Text fw={700}>{nombre}</Text>
+                      {ps.slice(0, 5).map((p) => (
+                        <Group key={p.id} justify="space-between" gap="xs" wrap="nowrap">
+                          <Text size="sm">{contenido(p) ?? p.codigo_interno}</Text>
+                          <Text size="xs" c="dimmed">
+                            {formulaDe(fs, p.id)?.estado === 'VIGENTE'
+                              ? 'Vigente'
+                              : 'Sin vigente'}
+                          </Text>
+                        </Group>
+                      ))}
+                    </Stack>
+                    <Button variant="light" size="md" onClick={() => ir(familia, v)}>
+                      Ver presentaciones
+                    </Button>
+                  </Stack>
+                }
               />
             );
           })}

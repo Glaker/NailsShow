@@ -20,7 +20,11 @@ import {
   useMantineColorScheme,
 } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
-import { NavLink as EnlaceRuta, Link, useLocation } from 'react-router-dom';
+import { NavLink as EnlaceRuta, Link, useLocation, useNavigate } from 'react-router-dom';
+import BranchedMenu from '@/vendor/reactbits/BranchedMenu';
+import Iridescence from '@/vendor/reactbits/Iridescence';
+import ShapeBlur from '@/vendor/reactbits/ShapeBlur';
+import type { ItemRama } from '@/vendor/reactbits/tipos';
 import {
   IconBooks,
   IconChevronRight,
@@ -74,28 +78,127 @@ export function CartelPractica() {
 
 const ANCHO_BARRA = 250;
 
-function ItemLateral({
-  item,
+const esActiva = (ruta: string, pathname: string) =>
+  ruta === '/' ? pathname === '/' : pathname.startsWith(ruta);
+
+/*
+ * Menú en ramas (pedido del codirector técnico, 2026-11-06): las pantallas se
+ * agrupan por área y cada rama se despliega con líneas que se dibujan hacia
+ * sus hojas. Una rama con una sola pantalla visible para el rol se muestra
+ * suelta. Lo que no está en ninguna rama va al final, suelto.
+ */
+const RAMAS: { etiqueta: string; rutas: string[] }[] = [
+  { etiqueta: 'Inicio', rutas: ['/', '/mis-tareas', '/descargas'] },
+  {
+    etiqueta: 'Ventas',
+
+    rutas: ['/ventas', '/armado', '/pedidos', '/clientes', '/precios', '/cotizaciones'],
+  },
+  {
+    etiqueta: 'Producción',
+
+    rutas: ['/planificacion', '/formulas', '/tercerizados'],
+  },
+  {
+    etiqueta: 'Stock',
+
+    rutas: ['/stock', '/lotes', '/catalogos', '/compras'],
+  },
+  {
+    etiqueta: 'Calidad',
+
+    rutas: ['/liberacion', '/especificaciones', '/estabilidad'],
+  },
+  {
+    etiqueta: 'Administración y finanzas',
+
+    rutas: [
+      '/administracion',
+      '/facturas',
+      '/cuentas-proveedores',
+      '/cuentas-clientes',
+      '/tesoreria',
+      '/solicitudes-pago',
+      '/costos',
+      '/resultado',
+      '/eficiencia',
+    ],
+  },
+  {
+    etiqueta: 'Gerencia e informes',
+
+    rutas: ['/gerencia', '/reportes', '/informes'],
+  },
+  {
+    etiqueta: 'Sistema',
+
+    rutas: ['/usuarios', '/visibilidad', '/auditoria'],
+  },
+];
+
+function MenuRamas({
+  items,
   onNavegar,
 }: {
-  item: ItemNavegacion;
+  items: ItemNavegacion[];
   onNavegar?: (() => void) | undefined;
 }) {
   const { pathname } = useLocation();
-  const activo = item.ruta === '/' ? pathname === '/' : pathname.startsWith(item.ruta);
-  const Icono = item.icono;
+  const navegar = useNavigate();
+  const porRuta = new Map(items.map((i) => [i.ruta, i]));
+  const hoja = (i: ItemNavegacion) => {
+    const Icono = i.icono;
+    return {
+      value: i.ruta,
+      label: (
+        <>
+          {i.etiqueta}
+          <PuntoAviso ruta={i.ruta} />
+        </>
+      ),
+      icon: <Icono size={18} stroke={1.6} />,
+    };
+  };
+  const secciones: ItemRama[] = [
+    ...RAMAS.flatMap((r): ItemRama[] => {
+      const hijos = r.rutas.flatMap((x) => porRuta.get(x) ?? []);
+      if (hijos.length === 0) return [];
+      // Una sola pantalla visible: va suelta, sin rama.
+      if (hijos.length === 1)
+        return [{ value: hijos[0]!.ruta, label: hijos[0]!.etiqueta }];
+      return [{ label: r.etiqueta, children: hijos.map(hoja) }];
+    }),
+    ...items
+      .filter((i) => !RAMAS.some((r) => r.rutas.includes(i.ruta)))
+      .map((i) => ({ value: i.ruta, label: i.etiqueta })),
+  ];
+  const activa =
+    items
+      .filter((i) => esActiva(i.ruta, pathname))
+      .sort((a, b) => b.ruta.length - a.ruta.length)[0]?.ruta ?? '';
+  const abierta = secciones.findIndex((s) => s.children?.some((h) => h.value === activa));
 
   return (
-    <EnlaceRuta
-      to={item.ruta}
-      className="nav-item"
-      data-activo={activo}
-      onClick={onNavegar}
-    >
-      <Icono size={20} stroke={1.6} />
-      <span>{item.etiqueta}</span>
-      <PuntoAviso ruta={item.ruta} />
-    </EnlaceRuta>
+    <Box pb="md" pl={4}>
+      {/* La clave reinicia el menú al llegar a una pantalla por otro camino. */}
+      <BranchedMenu
+        key={activa}
+        items={secciones}
+        defaultOpen={abierta}
+        defaultActive={activa}
+        onSelect={(ruta) => {
+          void navegar(ruta);
+          onNavegar?.();
+        }}
+        color="var(--app-barra-activa-texto)"
+        accentColor="var(--mantine-color-azul-filled)"
+        lineColor="var(--superficie-borde)"
+        width={226}
+        rowHeight={40}
+        indent={38}
+        fontSize={14.5}
+      />
+    </Box>
   );
 }
 
@@ -212,7 +315,22 @@ function ContenidoBarra({ onNavegar }: { onNavegar?: (() => void) | undefined })
   return (
     <Stack h="100%" gap={0} style={{ background: SUPERFICIE.barra }}>
       <Group gap={12} px="md" pt="lg" pb="md" wrap="nowrap">
-        <Marca size={44} />
+        {/* Aro con lente (ShapeBlur de React Bits, 2026-11-06): se desenfoca
+            cuando el cursor se acerca al logo. */}
+        <Box pos="relative" w={44} h={44} style={{ flexShrink: 0 }}>
+          <ShapeBlur
+            shape="circle"
+            size={0.92}
+            thickness={1.6}
+            color="#cc5de8"
+            blur={7}
+            lensSize={0.55}
+            chroma={0.6}
+            idle={false}
+            style={{ position: 'absolute', inset: -8, width: 60, height: 60 }}
+          />
+          <Marca size={44} />
+        </Box>
         <div style={{ minWidth: 0 }}>
           <Text fw={650} fz={16} lh={1.15} style={{ letterSpacing: '-0.015em' }}>
             Wandel
@@ -224,11 +342,7 @@ function ContenidoBarra({ onNavegar }: { onNavegar?: (() => void) | undefined })
       </Group>
 
       <ScrollArea flex={1} px="sm" type="never">
-        <Stack gap={2} pb="md">
-          {items.map((item) => (
-            <ItemLateral key={item.ruta} item={item} onNavegar={onNavegar} />
-          ))}
-        </Stack>
+        <MenuRamas items={items} onNavegar={onNavegar} />
       </ScrollArea>
 
       <Box p="sm">
@@ -330,6 +444,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const [panelAbierto, panel] = useDisclosure(false);
   const { claims } = useSesion();
   const { pathname } = useLocation();
+  const esquema = useComputedColorScheme('light');
 
   return (
     <AppShell
@@ -359,6 +474,24 @@ export function Layout({ children }: { children: ReactNode }) {
       </AppShell.Navbar>
 
       <AppShell.Main>
+        {/* Fondo iridiscente muy leve (React Bits, 2026-11-06), con los rosas y
+            lilas de Nail Show. En el teléfono no: cuida la batería en planta. */}
+        {esMovil ? null : (
+          <Iridescence
+            className="fondo-iridiscente no-imprimir"
+            color="#f3b6dc"
+            saturation={0.55}
+            brightness={1.35}
+            speed={0.18}
+            scale={1.4}
+            detail={6}
+            mouseReact={false}
+            clickSwirl={false}
+            opacity={esquema === 'dark' ? 0.07 : 0.16}
+            resolution={0.35}
+            style={{ position: 'fixed' }}
+          />
+        )}
         {MODO_PRACTICA ? <CartelPractica /> : null}
         {esMovil ? (
           <Group justify="space-between" mb="md" className="no-imprimir" wrap="nowrap">

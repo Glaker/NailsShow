@@ -32,6 +32,7 @@ import {
   IconChartBar,
   IconChecklist,
   IconTemperature,
+  IconDownload,
   type Icon,
 } from '@tabler/icons-react';
 import { FINANZAS, useSesion, type Rol } from '@/features/auth/sesion';
@@ -325,6 +326,13 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiquetaCorta: 'Informes',
     icono: IconChartBar,
     roles: ['GERENCIA_PRODUCCION', 'DIRECCION_TECNICA', 'GERENCIA', FINANZAS],
+  },
+  {
+    // Todo lo descargable, en carpetas (2026-11-06). Cada rol ve sus carpetas.
+    ruta: '/descargas',
+    etiqueta: 'Descargas',
+    etiquetaCorta: 'Descargas',
+    icono: IconDownload,
   },
   {
     // Las tareas que manda Naza, para quien no las tiene en el tablero
