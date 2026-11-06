@@ -464,7 +464,7 @@ function FormularioMeta({
   onListo: () => void;
 }) {
   const guardar = useGuardarMetaSS();
-  const [valor, setValor] = useState<number | ''>(n(fila.ss_meta));
+  const [valor, setValor] = useState<number | string>(n(fila.ss_meta));
   const [motivo, setMotivo] = useState('');
   return (
     <Stack gap="md">
@@ -478,7 +478,7 @@ function FormularioMeta({
         min={0}
         allowDecimal={false}
         value={valor}
-        onChange={(v) => setValor(typeof v === 'number' ? v : '')}
+        onChange={(v) => setValor(v)}
       />
       <Textarea
         label="Motivo"
@@ -537,7 +537,7 @@ function FormularioProducirStock({
   onListo: (hecho: boolean) => void;
 }) {
   const producir = useProducirParaStock();
-  const [cantidades, setCantidades] = useState<Record<string, number | ''>>(() =>
+  const [cantidades, setCantidades] = useState<Record<string, number | string>>(() =>
     Object.fromEntries(filas.map((f) => [f.sku_id!, faltaTotal(f) || ''])),
   );
   const [obs, setObs] = useState('');
@@ -577,7 +577,7 @@ function FormularioProducirStock({
                   onChange={(v) =>
                     setCantidades({
                       ...cantidades,
-                      [f.sku_id!]: typeof v === 'number' ? v : '',
+                      [f.sku_id!]: v,
                     })
                   }
                 />

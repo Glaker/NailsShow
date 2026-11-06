@@ -157,9 +157,9 @@ export function PaginaCalculadoraLote() {
   const formulas = useFormulasFabricacion();
   const [formulaId, setFormulaId] = useState<string | null>(null);
   const [tipoObjetivo, setTipoObjetivo] = useState<TipoObjetivo>('volumen');
-  const [volumenL, setVolumenL] = useState<number | ''>('');
-  const [masaKg, setMasaKg] = useState<number | ''>('');
-  const [tempC, setTempC] = useState<number | ''>(20);
+  const [volumenL, setVolumenL] = useState<number | string>('');
+  const [masaKg, setMasaKg] = useState<number | string>('');
+  const [tempC, setTempC] = useState<number | string>(20);
   /** Densidad del granel escrita a mano. Null = la de por defecto. */
   const [densidadEditada, setDensidadEditada] = useState<number | string | null>(null);
 
@@ -314,7 +314,7 @@ export function PaginaCalculadoraLote() {
                 decimalScale={2}
                 hideControls
                 value={volumenL}
-                onChange={(v) => setVolumenL(typeof v === 'number' ? v : '')}
+                onChange={(v) => setVolumenL(v)}
               />
             ) : (
               <NumberInput
@@ -324,7 +324,7 @@ export function PaginaCalculadoraLote() {
                 decimalScale={3}
                 hideControls
                 value={masaKg}
-                onChange={(v) => setMasaKg(typeof v === 'number' ? v : '')}
+                onChange={(v) => setMasaKg(v)}
               />
             )}
 
@@ -339,7 +339,7 @@ export function PaginaCalculadoraLote() {
               description={`Entre ${TEMP_MIN_C} y ${TEMP_MAX_C} °C`}
               error={tempFueraDeRango ? `Fuera del rango operativo` : null}
               value={tempC}
-              onChange={(v) => setTempC(typeof v === 'number' ? v : '')}
+              onChange={(v) => setTempC(v)}
             />
 
             {tipoObjetivo === 'volumen' && formula ? (
