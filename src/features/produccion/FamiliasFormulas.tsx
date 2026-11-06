@@ -24,7 +24,6 @@ import {
   type EstadoDocumento,
 } from '@/lib/consultas';
 import { deContenido } from '@/lib/consultasCostos';
-import { numero } from '@/lib/formato';
 import { useTieneRol } from '@/features/auth/sesion';
 import { BadgeEstadoFormula } from './estadoFormula';
 import { FormularioNuevaFormula } from './PaginaFormulas';
@@ -58,7 +57,15 @@ function contenido(p: Prod) {
     p.contenido_neto == null ? null : Number(p.contenido_neto),
     p.unidad_contenido,
   );
-  return c.cantidad === '' ? null : `${numero(c.cantidad, 3)} ${c.unidad}`;
+  if (c.cantidad !== '')
+    return `${c.cantidad.toLocaleString('es-AR', { maximumFractionDigits: 3 })} ${c.unidad}`;
+  // Sin el dato en la ficha, el del nombre («1L», «200ml.», «14GRM»).
+  const m = /(\d+(?:[.,]\d+)?)\s*(ml|cc|lts?|l|grs?|grm|gmr|g|kg)\b/i.exec(p.nombre);
+  if (!m?.[2]) return null;
+  const u = m[2].toLowerCase();
+  const unidad =
+    u === 'ml' || u === 'cc' ? 'ml' : u.startsWith('l') ? 'L' : u === 'kg' ? 'kg' : 'g';
+  return `${m[1]} ${unidad}`;
 }
 
 /** Ordena presentaciones de menor a mayor contenido (las sin dato al final). */
@@ -74,7 +81,7 @@ function porContenido(a: Prod, b: Prod) {
    reconoce; si no, uno fijo por nombre para que siempre salga el mismo. */
 const TONOS: [RegExp, string][] = [
   [/AMOR|FRUTOS ROJOS/i, 'pink'],
-  [/PAZ/i, 'teal'],
+  [/PAZ/i, 'violet'],
   [/AIRE/i, 'cyan'],
   [/EXFOLIANTE/i, 'orange'],
   [/HUMECTANTE/i, 'teal'],
@@ -133,17 +140,15 @@ function Cuadrado({
         p="md"
         radius="md"
         className="familia-tarjeta"
-        style={
-          {
-            '--tono': color,
-            '--i': indice,
-            borderColor: 'var(--superficie-borde)',
-            aspectRatio: '1 / 1',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-          }
-        }
+        style={{
+          '--tono': color,
+          '--i': indice,
+          borderColor: 'var(--superficie-borde)',
+          aspectRatio: '1 / 1',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+        }}
       >
         <Title order={4} style={{ overflowWrap: 'anywhere' }}>
           <span className="familia-punto" />
@@ -360,13 +365,11 @@ function Presentaciones({
               p="md"
               radius="md"
               className="familia-tarjeta"
-              style={
-                {
-                  '--tono': tono(p.variante ?? p.familia ?? p.nombre),
-                  '--i': i,
-                  borderColor: 'var(--superficie-borde)',
-                }
-              }
+              style={{
+                '--tono': tono(p.variante ?? p.familia ?? p.nombre),
+                '--i': i,
+                borderColor: 'var(--superficie-borde)',
+              }}
             >
               <Stack gap="xs">
                 <Group justify="space-between" align="flex-start" wrap="nowrap">
