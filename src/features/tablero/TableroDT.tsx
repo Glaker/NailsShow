@@ -4,7 +4,6 @@ import {
   Badge,
   Group,
   Paper,
-  SimpleGrid,
   Skeleton,
   Stack,
   Table,
@@ -14,6 +13,7 @@ import {
 import { IconFlask, IconRosetteDiscountCheck } from '@tabler/icons-react';
 import { InsigniaEstado } from '@/components/InsigniaEstado';
 import { Vacio } from '@/components/Vacio';
+import { BentoIndicadores } from '@/components/BentoIndicadores';
 import { useSesion } from '@/features/auth/sesion';
 import { useLotes, useProductos } from '@/lib/consultas';
 import { useOrdenes } from '@/lib/consultasOrdenes';
@@ -53,45 +53,27 @@ export function TableroDT() {
         </Text>
       </div>
 
-      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-        <Paper
-          withBorder
-          p="lg"
-          radius="lg"
-          className="contador"
-          component={Link}
-          to="/lotes?estado=CUARENTENA"
-          style={{ borderColor: 'var(--superficie-borde)', '--i': 0 }}
-        >
-          <Group gap="sm" mb={6}>
-            <IconFlask size={22} color="var(--mantine-color-estadoCuarentena-7)" />
-            <Text fw={600}>Insumos sin aprobar</Text>
-          </Group>
-          <Text fz={40} lh={1} c="estadoCuarentena.8" className="cifra">
-            {cargando ? '…' : insumos.length}
-          </Text>
-        </Paper>
-        <Paper
-          withBorder
-          p="lg"
-          radius="lg"
-          className="contador"
-          component={Link}
-          to="/liberacion"
-          style={{ borderColor: 'var(--superficie-borde)', '--i': 1 }}
-        >
-          <Group gap="sm" mb={6}>
-            <IconRosetteDiscountCheck
-              size={22}
-              color="var(--mantine-color-estadoEnAnalisis-7)"
-            />
-            <Text fw={600}>Lotes de producto por liberar</Text>
-          </Group>
-          <Text fz={40} lh={1} c="estadoEnAnalisis" className="cifra">
-            {cargando ? '…' : porLiberar.length}
-          </Text>
-        </Paper>
-      </SimpleGrid>
+      <BentoIndicadores
+        columnas={2}
+        indicadores={[
+          {
+            etiqueta: 'Insumos sin aprobar',
+            valor: cargando ? '…' : insumos.length,
+            icono: IconFlask,
+            color: 'estadoCuarentena',
+            detalle: 'En cuarentena o en análisis',
+            a: '/lotes?estado=CUARENTENA',
+          },
+          {
+            etiqueta: 'Lotes de producto por liberar',
+            valor: cargando ? '…' : porLiberar.length,
+            icono: IconRosetteDiscountCheck,
+            color: 'estadoEnAnalisis',
+            detalle: 'Órdenes terminadas que esperan tu liberación',
+            a: '/liberacion',
+          },
+        ]}
+      />
 
       <OrdenesSinEspecificacion />
 

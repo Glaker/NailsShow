@@ -26,7 +26,7 @@ import {
   IconClipboardOff,
 } from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
-import { TarjetaIndicador } from '@/components/TarjetaIndicador';
+import { BentoIndicadores } from '@/components/BentoIndicadores';
 import { InsigniaEstado, TEXTO_ESTADO } from '@/components/InsigniaEstado';
 import { GraficoArea } from '@/components/GraficoArea';
 import { Vacio } from '@/components/Vacio';
@@ -181,49 +181,50 @@ function TableroGeneral() {
       />
 
       <Stack gap="lg">
-        <SimpleGrid
-          cols={{ base: 1, xs: 2, lg: 4 }}
-          spacing="md"
-          className="entrada-escalonada"
-        >
-          {tablero.isLoading ? (
-            [0, 1, 2, 3].map((i) => <Skeleton key={i} h={116} radius="lg" />)
-          ) : (
-            <>
-              <TarjetaIndicador
-                etiqueta="Lotes en cuarentena"
-                valor={numero(t?.lotes_en_cuarentena ?? 0)}
-                icono={IconHourglassHigh}
-                color="estadoCuarentena"
-                detalle="Esperan muestreo según I.50.4"
-                a="/lotes?estado=CUARENTENA"
-              />
-              <TarjetaIndicador
-                etiqueta="Lotes aprobados"
-                valor={numero(t?.lotes_aprobados ?? 0)}
-                icono={IconChecks}
-                color="estadoAprobado"
-                detalle="Disponibles para pesada (RN-13)"
-                a="/lotes?estado=APROBADO"
-              />
-              <TarjetaIndicador
-                etiqueta="Recepciones del mes"
-                valor={numero(t?.recepciones_del_mes ?? 0)}
-                icono={IconTruckDelivery}
-                detalle={`${numero(t?.recepciones_sin_cargar ?? 0)} sin carga administrativa`}
-                a="/stock?vista=recepciones"
-              />
-              <TarjetaIndicador
-                etiqueta="Sin rotular"
-                valor={numero(t?.lotes_sin_rotular ?? 0)}
-                icono={IconClipboardOff}
-                color="indigo"
-                detalle="Recibidos y todavía sin rótulo de estado"
-                a="/lotes?estado=RECIBIDO"
-              />
-            </>
-          )}
-        </SimpleGrid>
+        {tablero.isLoading ? (
+          <SimpleGrid cols={{ base: 1, xs: 2, lg: 4 }} spacing="md">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} h={140} radius="lg" />
+            ))}
+          </SimpleGrid>
+        ) : (
+          <BentoIndicadores
+            columnas={4}
+            indicadores={[
+              {
+                etiqueta: 'Lotes en cuarentena',
+                valor: numero(t?.lotes_en_cuarentena ?? 0),
+                icono: IconHourglassHigh,
+                color: 'estadoCuarentena',
+                detalle: 'Esperan muestreo según I.50.4',
+                a: '/lotes?estado=CUARENTENA',
+              },
+              {
+                etiqueta: 'Lotes aprobados',
+                valor: numero(t?.lotes_aprobados ?? 0),
+                icono: IconChecks,
+                color: 'estadoAprobado',
+                detalle: 'Disponibles para pesada (RN-13)',
+                a: '/lotes?estado=APROBADO',
+              },
+              {
+                etiqueta: 'Recepciones del mes',
+                valor: numero(t?.recepciones_del_mes ?? 0),
+                icono: IconTruckDelivery,
+                detalle: `${numero(t?.recepciones_sin_cargar ?? 0)} sin carga administrativa`,
+                a: '/stock?vista=recepciones',
+              },
+              {
+                etiqueta: 'Sin rotular',
+                valor: numero(t?.lotes_sin_rotular ?? 0),
+                icono: IconClipboardOff,
+                color: 'indigo',
+                detalle: 'Recibidos y todavía sin rótulo de estado',
+                a: '/lotes?estado=RECIBIDO',
+              },
+            ]}
+          />
+        )}
 
         <Grid gutter="md" align="stretch">
           <Grid.Col span={{ base: 12, lg: 7 }}>

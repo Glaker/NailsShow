@@ -29,6 +29,7 @@ import { BadgeEstadoFormula } from './estadoFormula';
 import { FormularioNuevaFormula } from './PaginaFormulas';
 import './familias.css';
 import MagicBento from '@/vendor/reactbits/MagicBento';
+import { VISIBLE } from '@/components/bentoVisible';
 import { FlipCard } from '@/components/FlipCard';
 
 /* «Sin familia» y «variante única» en la URL. */
@@ -211,6 +212,10 @@ export function FamiliasFormulas() {
         glowColor="#be4bdb"
         spotlightRadius={260}
         clickEffect
+        enableTilt
+        enableStars
+        particleCount={18}
+        style={VISIBLE}
         onItemClick={(item) => ir(item.id ?? null)}
         items={[
           ...familias.map((f) => {
