@@ -88,7 +88,7 @@ const esActiva = (ruta: string, pathname: string) =>
  * suelta. Lo que no está en ninguna rama va al final, suelto.
  */
 const RAMAS: { etiqueta: string; rutas: string[] }[] = [
-  { etiqueta: 'Inicio', rutas: ['/', '/mis-tareas'] },
+  { etiqueta: 'Inicio', rutas: ['/', '/mis-tareas', '/descargas'] },
   {
     etiqueta: 'Ventas',
 

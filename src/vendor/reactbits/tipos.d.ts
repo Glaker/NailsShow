@@ -210,3 +210,81 @@ export interface PropsStepper {
   className?: string;
   style?: CSSProperties;
 }
+
+export interface ItemCarpeta {
+  title?: ReactNode;
+  description?: ReactNode;
+  image?: string;
+  alt?: string;
+  content?: ReactNode;
+}
+
+export interface PropsFolder {
+  items?: (string | ItemCarpeta)[];
+  children?: ReactNode;
+  mode?: 'flap' | 'book';
+  variant?: 'solid' | 'glass' | 'matte';
+  layout?: 'spread' | 'stack' | 'row';
+  color?: string;
+  paperColor?: string;
+  label?: string;
+  tabPosition?: 'left' | 'center' | 'right';
+  openOn?: 'click' | 'hover';
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onItemClick?: (item: string | ItemCarpeta, index: number) => void;
+  onItemDrop?: (item: string | ItemCarpeta, index: number, inside: boolean) => void;
+  draggable?: boolean;
+  zoomOnClick?: boolean;
+  peek?: boolean;
+  intro?: boolean;
+  size?: number;
+  frost?: number;
+  tilt?: number;
+  speed?: number;
+  bounce?: number;
+  closeOnOutsideClick?: boolean;
+  theme?: 'dark' | 'light';
+  className?: string;
+  style?: CSSProperties;
+}
+
+export interface ItemBento {
+  id?: string;
+  label?: ReactNode;
+  title?: string;
+  description?: ReactNode;
+  icon?: ReactNode;
+  image?: string;
+  visual?: ReactNode;
+  content?: ReactNode;
+  href?: string;
+  onClick?: () => void;
+  colSpan?: number;
+  rowSpan?: number;
+}
+
+export interface PropsMagicBento {
+  items?: ItemBento[];
+  columns?: number;
+  rowHeight?: number;
+  gap?: number;
+  radius?: number;
+  theme?: 'dark' | 'light';
+  glowColor?: string;
+  enableBorderGlow?: boolean;
+  enableSpotlight?: boolean;
+  spotlightRadius?: number;
+  enableStars?: boolean;
+  particleCount?: number;
+  enableTilt?: boolean;
+  enableMagnetism?: boolean;
+  clickEffect?: boolean;
+  textAutoHide?: boolean;
+  intro?: boolean;
+  disableAnimations?: boolean;
+  onItemClick?: (item: ItemBento, index: number) => void;
+  className?: string;
+  style?: CSSProperties;
+}
