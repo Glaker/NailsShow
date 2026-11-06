@@ -48,8 +48,8 @@ export function PaginaListaMateriales() {
   const quitar = useQuitarMaterial();
 
   const [insumoId, setInsumoId] = useState<string | null>(null);
-  const [porUnidad, setPorUnidad] = useState<number | ''>(1);
-  const [merma, setMerma] = useState<number | ''>(0);
+  const [porUnidad, setPorUnidad] = useState<number | string>(1);
+  const [merma, setMerma] = useState<number | string>(0);
 
   const filas = materiales.data ?? [];
   const yaCargados = new Set(filas.map((f) => f.insumo_id));
@@ -192,7 +192,7 @@ export function PaginaListaMateriales() {
                     hideControls
                     w={170}
                     value={porUnidad}
-                    onChange={(v) => setPorUnidad(typeof v === 'number' ? v : '')}
+                    onChange={(v) => setPorUnidad(v)}
                   />
                   <NumberInput
                     label="Merma (%)"
@@ -203,7 +203,7 @@ export function PaginaListaMateriales() {
                     hideControls
                     w={150}
                     value={merma}
-                    onChange={(v) => setMerma(typeof v === 'number' ? v : '')}
+                    onChange={(v) => setMerma(v)}
                   />
                   <Button
                     leftSection={<IconPlus size={16} />}

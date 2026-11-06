@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useElementSize } from '@mantine/hooks';
+import SlideCommit from '@/vendor/reactbits/SlideCommit';
 import {
   Badge,
   Button,
@@ -111,6 +113,7 @@ function ModalListo({
   onCerrar: () => void;
 }) {
   const cerrar = useCerrarTramo();
+  const { ref: pistaRef, width: anchoPista } = useElementSize();
   const [cuantas, setCuantas] = useState<number | string>('');
   const n = cuantas === '' ? null : Number(cuantas);
   return (
@@ -146,20 +149,28 @@ function ModalListo({
         >
           Listo por hoy: quedan pendientes
         </Button>
-        <Button
-          size="xl"
-          color="green"
-          leftSection={<IconCheck size={22} />}
-          loading={cerrar.isPending}
-          onClick={() =>
-            cerrar.mutate(
-              { tramoId, cierre: 'COMPLETA', cantidad: n },
-              { onSuccess: onCerrar },
-            )
-          }
-        >
-          Completamos la tarea
-        </Button>
+        {/* Deslizar para completar (2026-11-06): en el celular, con guantes, no se
+            completa por un toque sin querer. */}
+        <div ref={pistaRef}>
+          {anchoPista > 0 ? (
+            <SlideCommit
+              label="Deslizá: completamos la tarea"
+              doneLabel="¡Completada!"
+              errorLabel="No se guardó, probá de nuevo"
+              width={anchoPista}
+              height={64}
+              radius={32}
+              trackColor="#e9ecef"
+              handleColor="#2f9e44"
+              successColor="#2f9e44"
+              holdMs={700}
+              onConfirm={() =>
+                cerrar.mutateAsync({ tramoId, cierre: 'COMPLETA', cantidad: n })
+              }
+              onDone={onCerrar}
+            />
+          ) : null}
+        </div>
         {falta !== null ? (
           <Text size="xs" c="dimmed">
             Si tocás «Completamos» sin poner cuántas, se cuentan las {numero(falta)} que

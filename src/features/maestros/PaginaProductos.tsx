@@ -9,6 +9,7 @@ import {
   NumberInput,
   Paper,
   Select,
+  SimpleGrid,
   Skeleton,
   Stack,
   Switch,
@@ -24,6 +25,8 @@ import { zod4Resolver } from 'mantine-form-zod-resolver';
 import { z } from 'zod';
 import { IconPackage, IconPlus, IconSearch } from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
+import { FlipCard } from '@/components/FlipCard';
+import RubberSegment from '@/vendor/reactbits/RubberSegment';
 import { MaterialesProducto } from '@/features/produccion/TareasCarga';
 import { Vacio } from '@/components/Vacio';
 import {
@@ -240,11 +243,131 @@ export function FormularioProducto({
  * hasta que la lista real fije el vocabulario y se promuevan a enum, igual que
  * pasó con el tipo de insumo.
  */
+/* Color de la familia (o del nombre), siempre el mismo para el mismo texto. */
+const PALETA_FAMILIA = [
+  'pink',
+  'grape',
+  'violet',
+  'indigo',
+  'cyan',
+  'teal',
+  'orange',
+  'red',
+];
+function colorFamilia(texto: string) {
+  const i = [...texto].reduce((a, c) => a + c.charCodeAt(0), 0) % PALETA_FAMILIA.length;
+  return `var(--mantine-color-${PALETA_FAMILIA[i]}-6)`;
+}
+
+/**
+ * Catálogo en tarjetas (2026-11-06): al frente el producto, al dorso sus
+ * datos y el botón para editarlo. Se da vuelta con un toque.
+ */
+function TarjetasProductos({
+  productos,
+  puedeEditar,
+  onEditar,
+}: {
+  productos: Producto[];
+  puedeEditar: boolean;
+  onEditar: (p: Producto) => void;
+}) {
+  return (
+    <SimpleGrid cols={{ base: 1, xs: 2, md: 3, lg: 4 }} spacing="md" mb="md">
+      {productos.map((p) => {
+        const color = colorFamilia(p.familia ?? p.nombre);
+        return (
+          <FlipCard
+            key={p.id}
+            etiqueta={p.nombre}
+            frente={
+              <Stack h="100%" justify="space-between" p="md" gap="xs">
+                <div
+                  style={{
+                    height: 6,
+                    borderRadius: 3,
+                    background: color,
+                    marginBottom: 4,
+                  }}
+                />
+                <div>
+                  <Text size="xs" c="dimmed" ff="monospace">
+                    {p.codigo_interno}
+                  </Text>
+                  <Text fw={700} size="lg" lh={1.25} lineClamp={3}>
+                    {p.nombre}
+                  </Text>
+                </div>
+                <Group gap={6}>
+                  {p.familia ? (
+                    <Badge variant="light" radius="sm" style={{ color }}>
+                      {p.familia}
+                    </Badge>
+                  ) : null}
+                  {p.variante ? (
+                    <Badge variant="outline" radius="sm" color="gray">
+                      {p.variante}
+                    </Badge>
+                  ) : null}
+                  {!p.activo ? (
+                    <Badge variant="light" radius="sm" color="gray">
+                      Inactivo
+                    </Badge>
+                  ) : null}
+                </Group>
+                <Text size="xs" c="dimmed">
+                  Tocá para ver el detalle
+                </Text>
+              </Stack>
+            }
+            dorso={
+              <Stack h="100%" justify="space-between" p="md" gap={6}>
+                <Stack gap={4}>
+                  <Text fw={700} lineClamp={1}>
+                    {p.nombre}
+                  </Text>
+                  <Dato etiqueta="Origen">
+                    {p.origen ? etiquetaEnum(p.origen) : 'Sin definir'}
+                  </Dato>
+                  <Dato etiqueta="Vida útil">
+                    {p.vida_util_meses ? `${p.vida_util_meses} meses` : 'Sin cargar'}
+                  </Dato>
+                  <Dato etiqueta="Tipo">{p.tipo ?? '—'}</Dato>
+                  <Dato etiqueta="Forma cosmética">{p.forma_cosmetica ?? '—'}</Dato>
+                </Stack>
+                {puedeEditar ? (
+                  <Button variant="light" size="md" onClick={() => onEditar(p)}>
+                    Editar ficha
+                  </Button>
+                ) : null}
+              </Stack>
+            }
+          />
+        );
+      })}
+    </SimpleGrid>
+  );
+}
+
+function Dato({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {
+  return (
+    <Group justify="space-between" gap="xs" wrap="nowrap">
+      <Text size="sm" c="dimmed">
+        {etiqueta}
+      </Text>
+      <Text size="sm" fw={600} ta="right" lineClamp={1}>
+        {children}
+      </Text>
+    </Group>
+  );
+}
+
 export function PaginaProductos() {
   const productos = useProductos();
   const [abierto, modal] = useDisclosure(false);
   const [enEdicion, setEnEdicion] = useState<Producto | undefined>();
   const [texto, setTexto] = useDebouncedState('', 250);
+  const [vista, setVista] = useState<'tarjetas' | 'tabla'>('tarjetas');
   const puedeEditar = useTieneRol(
     'DIRECCION_TECNICA',
     'GERENCIA_PRODUCCION',
@@ -294,18 +417,43 @@ export function PaginaProductos() {
           mb="md"
           style={{ borderColor: 'var(--superficie-borde)' }}
         >
-          <TextInput
-            placeholder="Nombre, código o variedad"
-            leftSection={<IconSearch size={17} />}
-            defaultValue={texto}
-            onChange={(e) => setTexto(e.currentTarget.value)}
-            w={{ base: '100%', sm: 360 }}
-          />
+          <Group justify="space-between" gap="sm">
+            <TextInput
+              placeholder="Nombre, código o variedad"
+              leftSection={<IconSearch size={17} />}
+              defaultValue={texto}
+              onChange={(e) => setTexto(e.currentTarget.value)}
+              w={{ base: '100%', sm: 360 }}
+            />
+            <RubberSegment
+              aria-label="Cómo ver el catálogo"
+              items={[
+                { value: 'tarjetas', label: 'Tarjetas' },
+                { value: 'tabla', label: 'Tabla' },
+              ]}
+              value={vista}
+              onChange={(v) => setVista(v as 'tarjetas' | 'tabla')}
+              size="lg"
+              trackColor="var(--mantine-color-default-hover)"
+              thumbColor="var(--mantine-color-body)"
+              textColor="var(--mantine-color-text)"
+              activeTextColor="var(--mantine-color-text)"
+            />
+          </Group>
         </Paper>
+      ) : null}
+
+      {vista === 'tarjetas' && !productos.isLoading ? (
+        <TarjetasProductos
+          productos={filas}
+          puedeEditar={puedeEditar}
+          onEditar={abrirEdicion}
+        />
       ) : null}
 
       <Paper
         withBorder
+        display={vista === 'tabla' || productos.isLoading ? undefined : 'none'}
         style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}
       >
         {productos.isLoading ? (

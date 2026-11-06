@@ -1,3 +1,4 @@
+import HoldButton from '@/vendor/reactbits/HoldButton';
 import { useMemo, useState } from 'react';
 import {
   Badge,
@@ -302,7 +303,35 @@ export function FormularioInsumo({
             description="RN-48 · va al depósito exterior certificado (I.20.6)"
             {...form.getInputProps('es_inflamable', { type: 'checkbox' })}
           />
-          {editando ? (
+          {/* Dar de baja manteniendo apretado (2026-11-06): no se hace de un toque.
+              Un insumo no se borra, se desactiva (invariante 9, RLS sin DELETE). */}
+          {insumo?.activo ? (
+            <Stack gap={4}>
+              <HoldButton
+                size="lg"
+                holdTime={1100}
+                releaseTime={150}
+                backgroundColor="#fdecec"
+                textColor="#c92a2a"
+                fillColor="#e03131"
+                fillTextColor="#ffffff"
+                doneLabel="Dado de baja"
+                resetAfter={0}
+                disabled={actualizar.isPending}
+                onHold={() =>
+                  actualizar.mutate(
+                    { id: insumo.id, cambios: { activo: false } },
+                    { onSuccess: () => onListo() },
+                  )
+                }
+              >
+                Mantené apretado para dar de baja
+              </HoldButton>
+              <Text size="xs" c="dimmed">
+                No se borra: queda inactivo y los registros que lo citan quedan intactos.
+              </Text>
+            </Stack>
+          ) : editando ? (
             <Switch
               label="Activo"
               description="Un insumo no se borra, se desactiva. Los registros que lo citan quedan intactos."

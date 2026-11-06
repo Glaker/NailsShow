@@ -1,3 +1,4 @@
+import Orb from '@/vendor/reactbits/Orb';
 import {
   useEffect,
   useId,
@@ -159,7 +160,18 @@ export function Giorgio() {
               else campo.current?.focus();
             }}
           >
-            G
+            {/* Orbe de React Bits (2026-11-06), con los colores de Nail Show. */}
+            <Orb
+              colors={['#f06595', '#9775fa', '#3b0764']}
+              backgroundColor="#1b1530"
+              size={1.15}
+              glow={1.2}
+              speed={0.8}
+              hoverIntensity={0.8}
+              clickPulse
+              style={{ position: 'absolute', inset: 0, borderRadius: 999 }}
+            />
+            <span className="giorgio-letra">G</span>
           </button>
           <input
             ref={campo}

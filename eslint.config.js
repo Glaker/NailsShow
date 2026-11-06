@@ -18,6 +18,8 @@ export default tseslint.config(
       'supabase/functions/*/index.ts',
       // Bibliotecas de terceros copiadas tal cual (versión fija, con su hash).
       'supabase/functions/_shared/vendor',
+      // Componentes de React Bits copiados tal cual (2026-11-06); tipos en tipos.d.ts.
+      'src/vendor',
     ],
   },
   {
