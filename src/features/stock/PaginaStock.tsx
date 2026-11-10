@@ -9,6 +9,7 @@ import {
   Collapse,
   Group,
   Modal,
+  NumberInput,
   Paper,
   Skeleton,
   Table,
@@ -27,6 +28,7 @@ import {
   IconChevronRight,
   IconFlame,
   IconPackages,
+  IconPencil,
   IconSearch,
   IconTrash,
 } from '@tabler/icons-react';
@@ -39,7 +41,11 @@ import {
   useExistenciasPorLote,
   useStockPorArticulo,
 } from '@/lib/consultas';
-import { useDescartarArticulo } from '@/lib/consultasComercial';
+import {
+  ROLES_ACTUALIZAN_STOCK,
+  useDescartarArticulo,
+  useRegistrarConteo,
+} from '@/lib/consultasComercial';
 import { useTieneRol } from '@/features/auth/sesion';
 import { fecha, fechaHora, numero } from '@/lib/formato';
 import { PanelReservas } from '@/features/tercerizados/PanelReservas';
@@ -61,6 +67,8 @@ export function PaginaStock() {
   const [texto, setTexto] = useDebouncedState('', 250);
   const [filtro, setFiltro] = useState<Filtro>('con-saldo');
   const [abierto, setAbierto] = useState<string | null>(null);
+  const puedeActualizar = useTieneRol(...ROLES_ACTUALIZAN_STOCK);
+  const [actualizando, setActualizando] = useState<InsumoAActualizar | null>(null);
 
   const filas = useMemo(() => {
     const busqueda = texto.trim().toLowerCase();
@@ -176,6 +184,7 @@ export function PaginaStock() {
                   <Table.Th ta="right">Mínimo</Table.Th>
                   <Table.Th ta="right">Lotes</Table.Th>
                   <Table.Th>Vence primero</Table.Th>
+                  {puedeActualizar ? <Table.Th /> : null}
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
@@ -282,9 +291,30 @@ export function PaginaStock() {
                         <Table.Td>
                           <Text size="sm">{fecha(a.vence_primero)}</Text>
                         </Table.Td>
+                        {puedeActualizar ? (
+                          <Table.Td ta="right">
+                            {a.insumo_id ? (
+                              <Button
+                                size="sm"
+                                variant="light"
+                                leftSection={<IconPencil size={16} />}
+                                onClick={() =>
+                                  setActualizando({
+                                    insumoId: a.insumo_id!,
+                                    nombre: a.insumo_nombre ?? '',
+                                    unidad: a.unidad_medida ?? '',
+                                    hay: total,
+                                  })
+                                }
+                              >
+                                Actualizar stock
+                              </Button>
+                            ) : null}
+                          </Table.Td>
+                        ) : null}
                       </Table.Tr>
                       <Table.Tr>
-                        <Table.Td colSpan={7} p={0} style={{ border: 0 }}>
+                        <Table.Td colSpan={8} p={0} style={{ border: 0 }}>
                           <Collapse in={expandido}>
                             {expandido && a.articulo_id ? (
                               <Desglose articuloId={a.articulo_id} />
@@ -304,7 +334,105 @@ export function PaginaStock() {
       <Box mt="lg">
         <PanelReservas titular={null} />
       </Box>
+
+      <ActualizarStock
+        key={actualizando?.insumoId ?? 'nada'}
+        insumo={actualizando}
+        onCerrar={() => setActualizando(null)}
+      />
     </>
+  );
+}
+
+interface InsumoAActualizar {
+  insumoId: string;
+  nombre: string;
+  unidad: string;
+  hay: number;
+}
+
+/**
+ * Actualizar el stock de un insumo sin pasar por recepciones (pedido del
+ * 2026-11-10): se carga lo que hay y el saldo pasa a eso. Queda el conteo con
+ * lo que había antes (existencia histórica) y el ajuste en el kardex a nombre
+ * de quien lo cargó (comercial.registrar_conteo).
+ */
+function ActualizarStock({
+  insumo,
+  onCerrar,
+}: {
+  insumo: InsumoAActualizar | null;
+  onCerrar: () => void;
+}) {
+  const registrar = useRegistrarConteo();
+  const [hay, setHay] = useState<number | string>(insumo?.hay ?? '');
+  const [obs, setObs] = useState('');
+  const n = typeof hay === 'number' ? hay : Number(String(hay).replace(',', '.'));
+  const valido = hay !== '' && Number.isFinite(n) && n >= 0;
+  const dif = valido && insumo ? n - insumo.hay : 0;
+  return (
+    <Modal
+      opened={insumo !== null}
+      onClose={onCerrar}
+      title={insumo ? `Actualizar stock de ${insumo.nombre}` : ''}
+      centered
+      radius="md"
+    >
+      {insumo ? (
+        <Stack gap="md">
+          <Text size="sm">
+            Hoy figuran <b>{numero(insumo.hay, 3)}</b> {insumo.unidad}. Cargá lo que hay
+            de verdad: queda registrado el conteo con lo que había antes y el ajuste en el
+            kardex a tu nombre.
+          </Text>
+          <NumberInput
+            label={`Hay ahora (${insumo.unidad})`}
+            size="md"
+            min={0}
+            decimalSeparator=","
+            thousandSeparator="."
+            value={hay}
+            onChange={setHay}
+            data-autofocus
+          />
+          {valido && dif !== 0 ? (
+            <Text size="sm" c={dif > 0 ? 'estadoAprobado.8' : 'orange.8'} fw={600}>
+              {dif > 0 ? 'Entran' : 'Salen'} {numero(Math.abs(dif), 3)} {insumo.unidad}
+            </Text>
+          ) : null}
+          <Textarea
+            label="Motivo u observación (opcional)"
+            autosize
+            minRows={2}
+            maxLength={500}
+            value={obs}
+            onChange={(e) => setObs(e.currentTarget.value)}
+          />
+          <Group justify="flex-end">
+            <Button variant="default" onClick={onCerrar}>
+              Cancelar
+            </Button>
+            <Button
+              size="md"
+              disabled={!valido || dif === 0}
+              loading={registrar.isPending}
+              onClick={() =>
+                registrar.mutate(
+                  {
+                    insumoId: insumo.insumoId,
+                    cantidad: n,
+                    observacion: obs.trim() || null,
+                  },
+                  { onSuccess: onCerrar },
+                )
+              }
+            >
+              Guardar
+            </Button>
+          </Group>
+        </Stack>
+      ) : null}
+    </Modal>
   );
 }
 

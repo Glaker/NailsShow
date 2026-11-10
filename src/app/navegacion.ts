@@ -414,7 +414,8 @@ export const PESTANIAS: { ruta: string; etiqueta: string; de: string; roles?: Ro
       ruta: '/stock?vista=conteo',
       etiqueta: 'Stock › Conteo',
       de: '/stock',
-      roles: ['GERENCIA_PRODUCCION', 'GERENCIA'],
+      // Los que actualizan stock de insumos (20261110130100).
+      roles: ['GERENCIA_PRODUCCION', 'GERENCIA', 'DIRECCION_TECNICA', 'ADMINISTRACION'],
     },
     {
       // Envases, tapas, cajas y bolsas ya etiquetados (D-insumos-etiquetados-1).

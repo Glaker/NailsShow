@@ -1140,6 +1140,9 @@ export const ROLES_CUENTAN = [
   'GERENCIA_PRODUCCION',
 ] as const;
 
+/** Quién actualiza el stock de un insumo (comercial.registrar_conteo, 20261110130100). */
+export const ROLES_ACTUALIZAN_STOCK = [...ROLES_CUENTAN, 'GERENCIA'] as const;
+
 export function useUltimosConteos() {
   return useQuery({
     queryKey: ['ultimos-conteos'],

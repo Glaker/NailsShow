@@ -192,6 +192,12 @@ function FormularioFecha({
       return e.falta > e.libre;
     },
   );
+  /* A Producción le llega solo lo que no está reservado en el depósito del
+     pedido (pedido del 2026-11-10): lo que Ventas ya reservó no pide fecha. */
+  const pendientesFecha = (renglones.data ?? []).filter(
+    (r) => estadoDe(r.producto_id).falta > 0,
+  );
+  const yaReservados = (renglones.data ?? []).length - pendientesFecha.length;
   const faltaReservar = [
     ...new Set((renglones.data ?? []).map((r) => r.producto_id)),
   ].some((pid) => estadoDe(pid).falta > 0);
@@ -221,6 +227,17 @@ function FormularioFecha({
         Sale de <b>{nombreOrigen}</b>. Lo que hay en stock reservalo acá; la fecha es solo
         para lo que hay que producir. Si reservás todo, el pedido queda aprobado para hoy.
       </Text>
+      {yaReservados > 0 ? (
+        <Text size="sm" c="teal.8" fw={600}>
+          {yaReservados === 1
+            ? '1 producto ya está reservado en '
+            : `${yaReservados} productos ya están reservados en `}
+          {nombreOrigen}: no necesitan fecha.
+          {pendientesFecha.length === 0 && !renglones.isLoading
+            ? ' Está todo reservado: lo aprueba Ventas.'
+            : ''}
+        </Text>
+      ) : null}
       {aProducir.length === 0 ? null : (
         <DateInput
           label="Fecha del pedido entero"
@@ -250,7 +267,7 @@ function FormularioFecha({
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {(renglones.data ?? []).map((r) => (
+            {pendientesFecha.map((r) => (
               <Table.Tr key={r.id}>
                 <Table.Td>{nombre(r.producto_id)}</Table.Td>
                 <Table.Td ta="right" ff="monospace">

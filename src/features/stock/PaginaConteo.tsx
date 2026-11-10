@@ -22,7 +22,7 @@ import { useTieneRol } from '@/features/auth/sesion';
 import { useInsumos, useStockPorArticulo } from '@/lib/consultas';
 import { fecha, numero } from '@/lib/formato';
 import {
-  ROLES_CUENTAN,
+  ROLES_ACTUALIZAN_STOCK,
   useRegistrarConteo,
   useUltimosConteos,
   type UltimoConteoRow,
@@ -55,7 +55,7 @@ export function PaginaConteo() {
   const insumos = useInsumos();
   const stock = useStockPorArticulo();
   const conteos = useUltimosConteos();
-  const puedeContar = useTieneRol(...ROLES_CUENTAN);
+  const puedeContar = useTieneRol(...ROLES_ACTUALIZAN_STOCK);
 
   const [vista, setVista] = useState<Vista>('provisorios');
   const [tipo, setTipo] = useState<string | null>(null);
