@@ -173,6 +173,11 @@ export function ReservarPedido({
                     onChange={(x) => setCant((m) => ({ ...m, [f.productoId]: x }))}
                     aria-label={`Reservar de ${f.producto}`}
                   />
+                  {f.pide - f.ya - f.valor > 0 && f.valor <= f.tope ? (
+                    <Text size="xs" c="orange.8" mt={2}>
+                      faltan {numero(f.pide - f.ya - f.valor)}: van a Producción
+                    </Text>
+                  ) : null}
                 </Table.Td>
               </Table.Tr>
             ))}
@@ -195,7 +200,10 @@ export function ReservarPedido({
             loading={reservar.isPending}
             onClick={() => void confirmar()}
           >
-            Reservar {numero(aReservar.reduce((s, f) => s + f.valor, 0))} en {nombre(dep)}
+            {filas.some((f) => f.pide - f.ya > f.tope)
+              ? 'Reservar lo que hay: '
+              : 'Reservar '}
+            {numero(aReservar.reduce((s, f) => s + f.valor, 0))} en {nombre(dep)}
           </Button>
         </Group>
       </Stack>
