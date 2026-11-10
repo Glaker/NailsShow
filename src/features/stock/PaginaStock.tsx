@@ -11,6 +11,7 @@ import {
   Modal,
   NumberInput,
   Paper,
+  Select,
   Skeleton,
   Table,
   Stack,
@@ -28,7 +29,7 @@ import {
   IconChevronRight,
   IconFlame,
   IconPackages,
-  IconPencil,
+  IconPlus,
   IconSearch,
   IconTrash,
 } from '@tabler/icons-react';
@@ -39,6 +40,7 @@ import { Vacio } from '@/components/Vacio';
 import {
   useEntradasDeArticulo,
   useExistenciasPorLote,
+  useInsumos,
   useStockPorArticulo,
 } from '@/lib/consultas';
 import {
@@ -67,8 +69,8 @@ export function PaginaStock() {
   const [texto, setTexto] = useDebouncedState('', 250);
   const [filtro, setFiltro] = useState<Filtro>('con-saldo');
   const [abierto, setAbierto] = useState<string | null>(null);
-  const puedeActualizar = useTieneRol(...ROLES_ACTUALIZAN_STOCK);
-  const [actualizando, setActualizando] = useState<InsumoAActualizar | null>(null);
+  const puedeAgregar = useTieneRol(...ROLES_ACTUALIZAN_STOCK);
+  const [agregando, setAgregando] = useState(false);
 
   const filas = useMemo(() => {
     const busqueda = texto.trim().toLowerCase();
@@ -105,6 +107,17 @@ export function PaginaStock() {
       <EncabezadoPagina
         titulo="Stock"
         descripcion="Existencia real por artículo, con el desglose por lote y depósito."
+        acciones={
+          puedeAgregar ? (
+            <Button
+              size="md"
+              leftSection={<IconPlus size={18} />}
+              onClick={() => setAgregando(true)}
+            >
+              Agregar stock de insumos
+            </Button>
+          ) : null
+        }
       />
 
       <Group grow mb="md" wrap="wrap">
@@ -184,7 +197,6 @@ export function PaginaStock() {
                   <Table.Th ta="right">Mínimo</Table.Th>
                   <Table.Th ta="right">Lotes</Table.Th>
                   <Table.Th>Vence primero</Table.Th>
-                  {puedeActualizar ? <Table.Th /> : null}
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
@@ -291,30 +303,9 @@ export function PaginaStock() {
                         <Table.Td>
                           <Text size="sm">{fecha(a.vence_primero)}</Text>
                         </Table.Td>
-                        {puedeActualizar ? (
-                          <Table.Td ta="right">
-                            {a.insumo_id ? (
-                              <Button
-                                size="sm"
-                                variant="light"
-                                leftSection={<IconPencil size={16} />}
-                                onClick={() =>
-                                  setActualizando({
-                                    insumoId: a.insumo_id!,
-                                    nombre: a.insumo_nombre ?? '',
-                                    unidad: a.unidad_medida ?? '',
-                                    hay: total,
-                                  })
-                                }
-                              >
-                                Actualizar stock
-                              </Button>
-                            ) : null}
-                          </Table.Td>
-                        ) : null}
                       </Table.Tr>
                       <Table.Tr>
-                        <Table.Td colSpan={8} p={0} style={{ border: 0 }}>
+                        <Table.Td colSpan={7} p={0} style={{ border: 0 }}>
                           <Collapse in={expandido}>
                             {expandido && a.articulo_id ? (
                               <Desglose articuloId={a.articulo_id} />
@@ -335,103 +326,88 @@ export function PaginaStock() {
         <PanelReservas titular={null} />
       </Box>
 
-      <ActualizarStock
-        key={actualizando?.insumoId ?? 'nada'}
-        insumo={actualizando}
-        onCerrar={() => setActualizando(null)}
-      />
+      {agregando ? <AgregarStock onCerrar={() => setAgregando(false)} /> : null}
     </>
   );
 }
 
-interface InsumoAActualizar {
-  insumoId: string;
-  nombre: string;
-  unidad: string;
-  hay: number;
-}
-
 /**
- * Actualizar el stock de un insumo sin pasar por recepciones (pedido del
- * 2026-11-10): se carga lo que hay y el saldo pasa a eso. Queda el conteo con
- * lo que había antes (existencia histórica) y el ajuste en el kardex a nombre
- * de quien lo cargó (comercial.registrar_conteo).
+ * Agregar stock de insumos sin pasar por recepciones (pedido del 2026-11-10):
+ * solo insumo y cantidad. Se suma al saldo con comercial.registrar_conteo, que
+ * deja el conteo (lo que había y lo que quedó: existencia histórica) y el
+ * ajuste en el kardex a nombre de quien lo cargó.
  */
-function ActualizarStock({
-  insumo,
-  onCerrar,
-}: {
-  insumo: InsumoAActualizar | null;
-  onCerrar: () => void;
-}) {
+function AgregarStock({ onCerrar }: { onCerrar: () => void }) {
+  const insumos = useInsumos();
+  const stock = useStockPorArticulo();
   const registrar = useRegistrarConteo();
-  const [hay, setHay] = useState<number | string>(insumo?.hay ?? '');
-  const [obs, setObs] = useState('');
-  const n = typeof hay === 'number' ? hay : Number(String(hay).replace(',', '.'));
-  const valido = hay !== '' && Number.isFinite(n) && n >= 0;
-  const dif = valido && insumo ? n - insumo.hay : 0;
+  const [insumoId, setInsumoId] = useState<string | null>(null);
+  const [cantidad, setCantidad] = useState<number | string>('');
+  const insumo = (insumos.data ?? []).find((i) => i.id === insumoId);
+  // ponytail: el saldo sale de la última lectura; dos cargas simultáneas del mismo insumo pisan una.
+  const hay = Number(
+    (stock.data ?? []).find((s) => s.insumo_id === insumoId)?.saldo_total ?? 0,
+  );
+  const n = Number(cantidad);
+  const valido = insumo !== undefined && cantidad !== '' && n > 0;
   return (
     <Modal
-      opened={insumo !== null}
+      opened
       onClose={onCerrar}
-      title={insumo ? `Actualizar stock de ${insumo.nombre}` : ''}
+      title="Agregar stock de insumos"
       centered
       radius="md"
     >
-      {insumo ? (
-        <Stack gap="md">
-          <Text size="sm">
-            Hoy figuran <b>{numero(insumo.hay, 3)}</b> {insumo.unidad}. Cargá lo que hay
-            de verdad: queda registrado el conteo con lo que había antes y el ajuste en el
-            kardex a tu nombre.
-          </Text>
-          <NumberInput
-            label={`Hay ahora (${insumo.unidad})`}
+      <Stack gap="md">
+        <Select
+          label="Insumo"
+          size="md"
+          searchable
+          data-autofocus
+          nothingFoundMessage="No hay un insumo con ese nombre o código"
+          data={(insumos.data ?? [])
+            .filter((i) => i.activo && i.unidad_medida)
+            .map((i) => ({ value: i.id, label: `${i.codigo_interno} · ${i.nombre}` }))}
+          value={insumoId}
+          onChange={setInsumoId}
+        />
+        <NumberInput
+          label={`Cantidad${insumo ? ` (${insumo.unidad_medida})` : ''}`}
+          size="md"
+          min={0}
+          decimalSeparator=","
+          thousandSeparator="."
+          value={cantidad}
+          onChange={setCantidad}
+          description={
+            insumo
+              ? `Hay ${numero(hay, 3)}; queda en ${numero(hay + (n > 0 ? n : 0), 3)}.`
+              : undefined
+          }
+        />
+        <Group justify="flex-end">
+          <Button variant="default" onClick={onCerrar}>
+            Cancelar
+          </Button>
+          <Button
             size="md"
-            min={0}
-            decimalSeparator=","
-            thousandSeparator="."
-            value={hay}
-            onChange={setHay}
-            data-autofocus
-          />
-          {valido && dif !== 0 ? (
-            <Text size="sm" c={dif > 0 ? 'estadoAprobado.8' : 'orange.8'} fw={600}>
-              {dif > 0 ? 'Entran' : 'Salen'} {numero(Math.abs(dif), 3)} {insumo.unidad}
-            </Text>
-          ) : null}
-          <Textarea
-            label="Motivo u observación (opcional)"
-            autosize
-            minRows={2}
-            maxLength={500}
-            value={obs}
-            onChange={(e) => setObs(e.currentTarget.value)}
-          />
-          <Group justify="flex-end">
-            <Button variant="default" onClick={onCerrar}>
-              Cancelar
-            </Button>
-            <Button
-              size="md"
-              disabled={!valido || dif === 0}
-              loading={registrar.isPending}
-              onClick={() =>
-                registrar.mutate(
-                  {
-                    insumoId: insumo.insumoId,
-                    cantidad: n,
-                    observacion: obs.trim() || null,
-                  },
-                  { onSuccess: onCerrar },
-                )
-              }
-            >
-              Guardar
-            </Button>
-          </Group>
-        </Stack>
-      ) : null}
+            disabled={!valido || stock.isFetching}
+            loading={registrar.isPending}
+            onClick={() =>
+              registrar.mutate(
+                {
+                  insumoId: insumo!.id,
+                  cantidad: hay + n,
+                  observacion: `Ingreso de ${n} ${insumo!.unidad_medida} desde Stock (se suma al saldo)`,
+                },
+                { onSuccess: onCerrar },
+              )
+            }
+          >
+            Agregar
+          </Button>
+        </Group>
+      </Stack>
     </Modal>
   );
 }
