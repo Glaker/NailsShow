@@ -21,6 +21,7 @@ const SOLO_PRODUCCION = new Set([
   '20261106120100_comercial_ventas_casiopea_berna.sql',
   '20261106140000_ingreso_etiquetas_cleanser_removedor_monomero.sql',
   '20261106150000_comercial_stock_berna_casiopea_06_11.sql',
+  '20261110110000_ingreso_etiqueta_192et.sql',
 ]);
 
 export async function reconstruir({ silencioso = false } = {}) {
