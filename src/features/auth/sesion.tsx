@@ -34,6 +34,8 @@ export interface ClaimsSesion {
   sector: Sector | null;
   nombre: string | null;
   es_dt_titular: boolean;
+  /** Cuenta del portal de clientes: entra sin rol interno (20261110160100). */
+  es_cliente: boolean;
 }
 
 interface ValorSesion {
@@ -42,6 +44,8 @@ interface ValorSesion {
   cargando: boolean;
   /** Autenticado en Supabase pero sin rol: usuario desactivado o recién creado. */
   sinHabilitar: boolean;
+  /** Cliente mayorista: ve solo el portal de pedidos (src/features/cliente). */
+  esCliente: boolean;
   /**
    * La sesión se cerró sin que el usuario tocara «Salir» (refresco fallido,
    * sesión revocada). La pantalla sigue montada, con lo que había escrito, y se
@@ -79,6 +83,7 @@ function leerClaims(session: Session | null): ClaimsSesion | null {
       sector: (json.sector as Sector) ?? null,
       nombre: (json.nombre as string) ?? null,
       es_dt_titular: json.es_dt_titular === true,
+      es_cliente: json.es_cliente === true,
     };
   } catch {
     return null;
@@ -181,7 +186,8 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
       session,
       claims,
       cargando,
-      sinHabilitar: Boolean(session) && !claims?.rol,
+      sinHabilitar: Boolean(session) && !claims?.rol && !claims?.es_cliente,
+      esCliente: Boolean(session) && claims?.es_cliente === true,
       vencida: vencida && { email: vencida.email },
       ingresar,
       registrar,

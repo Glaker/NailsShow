@@ -7,6 +7,7 @@ import { PantallaIngreso } from '@/features/auth/PantallaIngreso';
 import { PantallaSinHabilitar } from '@/features/auth/PantallaSinHabilitar';
 import { ModalReingreso } from '@/features/auth/ModalReingreso';
 import { IntroMarca } from '@/components/IntroMarca';
+import { AppCliente } from '@/features/cliente/AppCliente';
 
 /**
  * Puerta de la aplicación.
@@ -17,7 +18,7 @@ import { IntroMarca } from '@/components/IntroMarca';
  * reemplaza al control (CLAUDE.md §6).
  */
 function Puerta() {
-  const { cargando, session, sinHabilitar, vencida } = useSesion();
+  const { cargando, session, sinHabilitar, esCliente, vencida } = useSesion();
 
   if (cargando) {
     return (
@@ -31,6 +32,8 @@ function Puerta() {
   // encima (ModalReingreso), para no perder lo escrito.
   if (!session && !vencida) return <PantallaIngreso />;
   if (sinHabilitar) return <PantallaSinHabilitar />;
+  // Portal de clientes: su propia app, pensada para el celular.
+  if (esCliente) return <AppCliente />;
 
   return (
     <>

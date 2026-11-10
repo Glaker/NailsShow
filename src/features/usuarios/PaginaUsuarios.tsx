@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   Badge,
@@ -18,10 +18,16 @@ import { IconInfoCircle, IconUserCog, IconUsers } from '@tabler/icons-react';
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { Vacio } from '@/components/Vacio';
 import { useActualizarUsuario, useUsuarios, type Usuario } from '@/lib/consultas';
+import { useClientes } from '@/lib/consultasFacturacion';
+import { useVincularCliente, useVinculosClientes } from '@/lib/consultasClientesUsuarios';
 import { etiquetaEnum, fecha, fechaISO } from '@/lib/formato';
 import { useSesion, type Rol, type Sector } from '@/features/auth/sesion';
 
-const ROLES: Rol[] = [
+/* CLIENTE (migración 20261110160000) todavía no está en database.types.ts: al
+   regenerar los tipos con `npm run db:types` se puede quitar este tipo y usar Rol. */
+type RolAsignable = Rol | 'CLIENTE';
+
+const ROLES: RolAsignable[] = [
   // Reemplaza a OPERARIO (D-tareas-1).
   'PRODUCCION',
   'CONTROL_CALIDAD',
@@ -33,6 +39,8 @@ const ROLES: Rol[] = [
   'ENCARGADA_STOCK',
   'VENTAS',
   'RECEPCION',
+  // Portal de clientes (D-portal-clientes-1): va vinculada a un cliente.
+  'CLIENTE',
 ];
 
 const SECTORES: Sector[] = [
@@ -47,6 +55,9 @@ const SECTORES: Sector[] = [
   'GERENCIA',
 ];
 
+const etiquetaRol = (r: string) =>
+  r === 'CLIENTE' ? 'Cliente (portal de pedidos)' : etiquetaEnum(r);
+
 function ModalUsuario({
   usuario,
   onCerrar,
@@ -55,32 +66,56 @@ function ModalUsuario({
   onCerrar: () => void;
 }) {
   const actualizar = useActualizarUsuario();
+  const vincular = useVincularCliente();
+  const vinculos = useVinculosClientes();
+  const clientes = useClientes();
   const { claims } = useSesion();
-  const [rol, setRol] = useState<Rol>(usuario?.rol ?? 'PRODUCCION');
+  const [rol, setRol] = useState<RolAsignable>(usuario?.rol ?? 'PRODUCCION');
   const [adicionales, setAdicionales] = useState<string[]>(
     usuario?.roles_adicionales ?? [],
   );
   const [sector, setSector] = useState<Sector>(usuario?.sector ?? 'DEPOSITO');
   const [activo, setActivo] = useState<boolean>(usuario?.activo ?? true);
+  /* Sin tocar (undefined) se muestra el vínculo actual, que puede llegar después
+     de abrir el modal. */
+  const [clienteElegido, setClienteElegido] = useState<string | null | undefined>(
+    undefined,
+  );
 
   if (!usuario) return null;
 
   const esUnoMismo = usuario.id === claims?.usuario_id;
+  const esCliente = rol === 'CLIENTE';
+  const clienteActual = vinculos.data?.get(usuario.id) ?? null;
+  const cliente = clienteElegido === undefined ? clienteActual : clienteElegido;
+  const sinCliente = esCliente && !cliente;
 
   const guardar = async () => {
-    await actualizar.mutateAsync({
-      id: usuario.id,
-      cambios: {
-        rol,
-        roles_adicionales: adicionales.filter((r) => r !== rol) as Rol[],
-        sector,
-        activo,
-        /* El CHECK `usuarios_baja_consistente` exige que la baja lógica lleve
-           fecha: activo y fecha_baja se mueven juntos. */
-        fecha_baja: activo ? null : (fechaISO(new Date()) ?? null),
-      },
-    });
-    onCerrar();
+    try {
+      await actualizar.mutateAsync({
+        id: usuario.id,
+        cambios: {
+          /* Ver RolAsignable: el CHECK de la base acepta CLIENTE aunque los tipos
+             generados todavía no. */
+          rol: rol as Rol,
+          /* Un cliente no tiene roles adicionales: el JWT lo emite sin rol. */
+          roles_adicionales: (esCliente
+            ? []
+            : adicionales.filter((r) => r !== rol)) as Rol[],
+          sector,
+          activo,
+          /* El CHECK `usuarios_baja_consistente` exige que la baja lógica lleve
+             fecha: activo y fecha_baja se mueven juntos. */
+          fecha_baja: activo ? null : (fechaISO(new Date()) ?? null),
+        },
+      });
+      /* El rol va primero: la base exige que la cuenta sea CLIENTE para vincularla. */
+      if (esCliente && cliente)
+        await vincular.mutateAsync({ usuarioId: usuario.id, clienteId: cliente });
+      onCerrar();
+    } catch {
+      // avisarError ya mostró el motivo; el modal queda abierto para corregir.
+    }
   };
 
   return (
@@ -97,23 +132,38 @@ function ModalUsuario({
 
         <Select
           label="Rol principal"
-          data={ROLES.map((r) => ({ value: r, label: etiquetaEnum(r) }))}
+          data={ROLES.map((r) => ({ value: r, label: etiquetaRol(r) }))}
           value={rol}
-          onChange={(v) => setRol((v as Rol) ?? 'PRODUCCION')}
+          onChange={(v) => setRol((v as RolAsignable) ?? 'PRODUCCION')}
           allowDeselect={false}
         />
 
-        <MultiSelect
-          label="Roles adicionales"
-          description="En esta planta una persona ocupa más de un puesto (§4.1). Los permisos son la unión de todos."
-          data={ROLES.filter((r) => r !== rol).map((r) => ({
-            value: r,
-            label: etiquetaEnum(r),
-          }))}
-          value={adicionales.filter((r) => r !== rol)}
-          onChange={setAdicionales}
-          clearable
-        />
+        {esCliente ? (
+          <Select
+            label="¿Qué cliente es?"
+            description="La cuenta ve la lista mayorista y solo los pedidos de este cliente."
+            placeholder="Buscá el cliente"
+            searchable
+            nothingFoundMessage="Ningún cliente con ese nombre"
+            data={(clientes.data ?? [])
+              .filter((c) => c.activo || c.id === clienteActual)
+              .map((c) => ({ value: c.id, label: c.razon_social }))}
+            value={cliente}
+            onChange={(v) => setClienteElegido(v)}
+          />
+        ) : (
+          <MultiSelect
+            label="Roles adicionales"
+            description="En esta planta una persona ocupa más de un puesto (§4.1). Los permisos son la unión de todos."
+            data={ROLES.filter((r) => r !== rol && r !== 'CLIENTE').map((r) => ({
+              value: r,
+              label: etiquetaRol(r),
+            }))}
+            value={adicionales.filter((r) => r !== rol)}
+            onChange={setAdicionales}
+            clearable
+          />
+        )}
 
         <Select
           label="Sector"
@@ -147,16 +197,48 @@ function ModalUsuario({
           </Alert>
         ) : null}
 
+        {sinCliente ? (
+          <Text size="sm" c="orange.8" fw={600}>
+            Una cuenta Cliente tiene que estar vinculada a su cliente para guardarla.
+            Elegilo arriba.
+          </Text>
+        ) : null}
+
         <Group justify="flex-end">
           <Button variant="subtle" color="gray" onClick={onCerrar}>
             Cancelar
           </Button>
-          <Button loading={actualizar.isPending} onClick={() => void guardar()}>
+          <Button
+            loading={actualizar.isPending || vincular.isPending}
+            disabled={sinCliente}
+            onClick={() => void guardar()}
+          >
             Guardar
           </Button>
         </Group>
       </Stack>
     </Modal>
+  );
+}
+
+/** Cliente vinculado a una cuenta del portal; en naranja si todavía no tiene. */
+function ClienteVinculado({
+  clienteId,
+  nombrePorId,
+}: {
+  clienteId: string | null;
+  nombrePorId: Map<string, string>;
+}) {
+  if (!clienteId)
+    return (
+      <Text size="xs" c="orange.8">
+        Sin cliente vinculado
+      </Text>
+    );
+  return (
+    <Text size="xs" c="dimmed">
+      → {nombrePorId.get(clienteId) ?? 'Cliente sin nombre'}
+    </Text>
   );
 }
 
@@ -169,7 +251,14 @@ function ModalUsuario({
  */
 export function PaginaUsuarios() {
   const usuarios = useUsuarios();
+  const vinculos = useVinculosClientes();
+  const clientes = useClientes();
   const [editando, setEditando] = useState<Usuario | null>(null);
+  const nombrePorId = useMemo(
+    () =>
+      new Map<string, string>((clientes.data ?? []).map((c) => [c.id, c.razon_social])),
+    [clientes.data],
+  );
 
   return (
     <>
@@ -222,10 +311,16 @@ export function PaginaUsuarios() {
                     </Table.Td>
                     <Table.Td>
                       <Stack gap={2}>
-                        <Text size="sm">{etiquetaEnum(u.rol)}</Text>
+                        <Text size="sm">{etiquetaRol(u.rol)}</Text>
+                        {(u.rol as RolAsignable) === 'CLIENTE' ? (
+                          <ClienteVinculado
+                            clienteId={vinculos.data?.get(u.id) ?? null}
+                            nombrePorId={nombrePorId}
+                          />
+                        ) : null}
                         {u.roles_adicionales.length > 0 ? (
                           <Text size="xs" c="dimmed">
-                            + {u.roles_adicionales.map(etiquetaEnum).join(', ')}
+                            + {u.roles_adicionales.map(etiquetaRol).join(', ')}
                           </Text>
                         ) : null}
                       </Stack>
