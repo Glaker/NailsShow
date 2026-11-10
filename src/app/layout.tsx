@@ -23,7 +23,6 @@ import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { NavLink as EnlaceRuta, Link, useLocation, useNavigate } from 'react-router-dom';
 import BranchedMenu from '@/vendor/reactbits/BranchedMenu';
 import Iridescence from '@/vendor/reactbits/Iridescence';
-import ShapeBlur from '@/vendor/reactbits/ShapeBlur';
 import type { ItemRama } from '@/vendor/reactbits/tipos';
 import {
   IconBooks,
@@ -315,22 +314,7 @@ function ContenidoBarra({ onNavegar }: { onNavegar?: (() => void) | undefined })
   return (
     <Stack h="100%" gap={0} style={{ background: SUPERFICIE.barra }}>
       <Group gap={12} px="md" pt="lg" pb="md" wrap="nowrap">
-        {/* Aro con lente (ShapeBlur de React Bits, 2026-11-06): se desenfoca
-            cuando el cursor se acerca al logo. */}
-        <Box pos="relative" w={44} h={44} style={{ flexShrink: 0 }}>
-          <ShapeBlur
-            shape="circle"
-            size={0.92}
-            thickness={1.6}
-            color="#cc5de8"
-            blur={7}
-            lensSize={0.55}
-            chroma={0.6}
-            idle={false}
-            style={{ position: 'absolute', inset: -8, width: 60, height: 60 }}
-          />
-          <Marca size={44} />
-        </Box>
+        <Marca size={44} />
         <div style={{ minWidth: 0 }}>
           <Text fw={650} fz={16} lh={1.15} style={{ letterSpacing: '-0.015em' }}>
             Wandel
