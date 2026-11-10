@@ -286,6 +286,12 @@ function FormularioFecha({
                       return (
                         <Text size="sm" c="orange.8" fw={600}>
                           A producir {numero(e.falta)}
+                          {e.res > 0 ? (
+                            <Text span size="xs" c="teal.8" fw={600}>
+                              {' '}
+                              · {numero(e.res)} ya reservados
+                            </Text>
+                          ) : null}
                         </Text>
                       );
                     return (
@@ -308,12 +314,14 @@ function FormularioFecha({
                               )
                             }
                           >
-                            Reservar {numero(Math.min(e.falta, e.libre))}
+                            {e.falta > e.libre
+                              ? `Reservar lo que hay (${numero(e.libre)})`
+                              : `Reservar ${numero(e.falta)}`}
                           </Button>
                         ) : null}
                         {e.falta > e.libre ? (
                           <Text size="xs" c="orange.8">
-                            faltan {numero(e.falta - e.libre)}
+                            faltan {numero(e.falta - e.libre)}: les das fecha
                           </Text>
                         ) : null}
                       </Group>
