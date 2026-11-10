@@ -63,6 +63,7 @@ import {
   useAprobarVentaReservada,
   useReservadoPedido,
   useReservasPedido,
+  useReservarParaPedido,
   useEscalaDescuento,
   useGuardarVenta,
   useListaMayorista,
@@ -469,6 +470,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
       .filter((x) => x.producto_id === pid && x.deposito_id === origenId)
       .reduce((s, x) => s + x.vigente, 0);
   const aprobarReservada = useAprobarVentaReservada();
+  const reservarTodo = useReservarParaPedido();
   const [entrega, setEntrega] = useState<Date | null>(
     g?.fecha_entrega ? new Date(`${g.fecha_entrega}T12:00:00`) : null,
   );
@@ -666,6 +668,10 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
         }));
   const abierto = !nuevo && v!.estado !== 'CUMPLIDO' && v!.estado !== 'CANCELADO';
   const faltaReservar = aReservar.some((r) => resOrigen(r.productoId) < r.pide);
+  // Hay algo libre en el depósito para lo que falta reservar.
+  const puedeReservarAlgo = aReservar.some(
+    (r) => resOrigen(r.productoId) < r.pide && (libres.data?.get(r.productoId) ?? 0) > 0,
+  );
   // Lo que no está en el depósito del pedido es lo único que va a Producción.
   const sinStock = editable
     ? pedidos.filter((p) => p.c > resOrigen(p.pid) + (libres.data?.get(p.pid) ?? 0))
@@ -716,6 +722,36 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
           </div>
         </Group>
         <Group gap="sm">
+          {/* Reservar todo (pedido del 2026-11-10): de una, todo lo que pide o lo
+              que haya en el depósito del pedido; lo que falta queda para Producción. */}
+          {abierto && puedeReservar && faltaReservar && (editable || hayPendiente) ? (
+            <Button
+              color="teal"
+              leftSection={<IconBookmark size={18} />}
+              loading={reservarTodo.isPending}
+              disabled={!puedeReservarAlgo}
+              onClick={() =>
+                void (async () => {
+                  const pid = editable ? await guardarBorrador() : id;
+                  await reservarTodo.mutateAsync({
+                    pedidoId: pid,
+                    depositoId: origenId!,
+                    renglones: aReservar
+                      .map((r) => ({
+                        productoId: r.productoId,
+                        cantidad: Math.min(
+                          r.pide - resOrigen(r.productoId),
+                          libres.data?.get(r.productoId) ?? 0,
+                        ),
+                      }))
+                      .filter((r) => r.cantidad > 0),
+                  });
+                })()
+              }
+            >
+              Reservar todo
+            </Button>
+          ) : null}
           {abierto && puedeReservar && faltaReservar && (editable || hayPendiente) ? (
             <Button
               variant="default"
