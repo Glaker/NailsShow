@@ -38,11 +38,12 @@ import {
 } from '@tabler/icons-react';
 import { useClientes } from '@/lib/consultasFacturacion';
 import { useEliminarPedido, useNomina } from '@/lib/consultasComercial';
-import { useDepositos } from '@/lib/consultas';
+import { avisarError, useDepositos } from '@/lib/consultas';
+import { comercial } from '@/lib/supabase';
 import { useTieneRol } from '@/features/auth/sesion';
 import { BadgeEstadoPedido } from '@/features/comercial/estadoPedido';
 import { TablaEscala } from './TablaEscala';
-import { ModalReserva } from '@/features/comercial/Calle5';
+import { ReservarPedido } from './ReservarPedido';
 import { usePendientesDespacho } from '@/lib/consultasCalle5';
 import { ROLES_STOCK_PT } from '@/lib/consultasStockSeguridad';
 import { fecha, fechaHora, fechaISO, numero, desdeCalendario } from '@/lib/formato';
@@ -59,7 +60,9 @@ import {
   saleDeFabrica,
   useDisponiblePt,
   useEnviarVenta,
+  useAprobarVentaReservada,
   useReservadoPedido,
+  useReservasPedido,
   useEscalaDescuento,
   useGuardarVenta,
   useListaMayorista,
@@ -459,6 +462,13 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
   /** Lo que puede salir del depósito para este pedido: lo libre más lo que ya tiene reservado. */
   const dispDe = (pid: string) =>
     (libres.data?.get(pid) ?? 0) + (reservado.data?.get(pid) ?? 0);
+  const reservas = useReservasPedido(id);
+  /** Lo reservado para el pedido en el depósito del que sale. */
+  const resOrigen = (pid: string) =>
+    (reservas.data ?? [])
+      .filter((x) => x.producto_id === pid && x.deposito_id === origenId)
+      .reduce((s, x) => s + x.vigente, 0);
+  const aprobarReservada = useAprobarVentaReservada();
   const [entrega, setEntrega] = useState<Date | null>(
     g?.fecha_entrega ? new Date(`${g.fecha_entrega}T12:00:00`) : null,
   );
@@ -639,6 +649,40 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
   const renglonDe = (pid: string) =>
     venta.data?.renglones.find((r) => r.producto_id === pid);
 
+  /* Reservar desde el pedido (pedido del 2026-11-10): sin aprobar, lo que
+     pide; aprobado, lo que falta despachar. */
+  const aReservar = editable
+    ? pedidos.map((p) => ({
+        productoId: p.pid,
+        producto: p.f?.producto ?? '',
+        pide: p.c,
+      }))
+    : (pendientes.data ?? [])
+        .filter((p) => Number(p.pendiente) > 0 && p.producto_id)
+        .map((p) => ({
+          productoId: p.producto_id!,
+          producto: p.producto ?? '',
+          pide: Number(p.pendiente),
+        }));
+  const abierto = !nuevo && v!.estado !== 'CUMPLIDO' && v!.estado !== 'CANCELADO';
+  const faltaReservar = aReservar.some((r) => resOrigen(r.productoId) < r.pide);
+  // Lo que no está en el depósito del pedido es lo único que va a Producción.
+  const sinStock = editable
+    ? pedidos.filter((p) => p.c > resOrigen(p.pid) + (libres.data?.get(p.pid) ?? 0))
+    : [];
+  const todoReservado = editable && pedidos.length > 0 && !faltaReservar;
+  const cambiarOrigen = async (dep: string) => {
+    const { error } = await comercial()
+      .from('pedidos')
+      .update({ deposito_origen_id: dep })
+      .eq('id', id!);
+    if (error) {
+      avisarError(error);
+      throw error;
+    }
+    setOrigen(dep);
+  };
+
   return (
     <>
       <Group justify="space-between" mb="md" wrap="wrap" gap="sm">
@@ -672,13 +716,20 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
           </div>
         </Group>
         <Group gap="sm">
-          {!nuevo && !editable && puedeReservar && hayPendiente ? (
+          {abierto && puedeReservar && faltaReservar && (editable || hayPendiente) ? (
             <Button
               variant="default"
               leftSection={<IconBookmark size={18} />}
-              onClick={() => setReservando(true)}
+              loading={editable && guardar.isPending && !pedirFecha.isPending}
+              onClick={() =>
+                void (async () => {
+                  // Sin aprobar: se guarda antes, para reservar sobre lo que pide de verdad.
+                  if (editable) await guardarBorrador();
+                  setReservando(true);
+                })()
+              }
             >
-              Reservar stock
+              Reservar stock de {nombreOrigen}
             </Button>
           ) : null}
           {!nuevo && !editable ? (
@@ -701,7 +752,25 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
               >
                 {etapa === 'BORRADOR' ? 'Guardar borrador' : 'Guardar cambios'}
               </Button>
-              {etapa === 'BORRADOR' ? (
+              {/* Todo reservado en su depósito: no hay nada que pedirle a Producción. */}
+              {todoReservado &&
+              puedeAprobar &&
+              (etapa === 'BORRADOR' || etapa === 'ESPERANDO_FECHA') ? (
+                <Button
+                  color="estadoAprobado"
+                  leftSection={<IconCircleCheck size={18} />}
+                  disabled={!cliente.trim()}
+                  loading={aprobarReservada.isPending}
+                  onClick={() =>
+                    void (async () => {
+                      const pid = await guardarBorrador();
+                      await aprobarReservada.mutateAsync(pid);
+                    })()
+                  }
+                >
+                  Aprobar: está todo reservado
+                </Button>
+              ) : etapa === 'BORRADOR' ? (
                 <Button
                   leftSection={<IconCalendarEvent size={18} />}
                   disabled={!cliente.trim() || pedidos.length === 0}
@@ -713,7 +782,9 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                     })()
                   }
                 >
-                  Pedir fecha a Producción
+                  {sinStock.length
+                    ? `Pedir fecha a Producción (${sinStock.length} sin stock en ${nombreOrigen})`
+                    : 'Pedir fecha a Producción'}
                 </Button>
               ) : null}
               {etapa === 'FECHA_PROPUESTA' && puedeAprobar ? (
@@ -818,10 +889,69 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
           ) : null}
           {v!.reservar_calle5 ? (
             <Badge size="lg" variant="light" color="teal">
-              reservado en Calle 5
+              reservado en {nombreOrigen}
             </Badge>
           ) : null}
         </Group>
+      ) : null}
+
+      {/* Reservados (pedido del 2026-11-10): lo que el pedido tiene apartado,
+          a la vista apenas se reserva, con depósito, quién y cuándo. */}
+      {reservas.data?.length ? (
+        <Paper
+          withBorder
+          p="md"
+          radius="lg"
+          mb="md"
+          style={{ borderColor: 'var(--mantine-color-teal-4)' }}
+        >
+          <Group gap="xs" mb="xs">
+            <IconBookmark size={20} color="var(--mantine-color-teal-7)" />
+            <Text fw={700}>Reservados</Text>
+            <Badge color="teal" variant="filled" radius="sm">
+              {numero(reservas.data.reduce((s, x) => s + x.vigente, 0))} u
+            </Badge>
+          </Group>
+          <Table fz="sm" verticalSpacing={4}>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Producto</Table.Th>
+                <Table.Th>Depósito</Table.Th>
+                <Table.Th ta="right">Reservado</Table.Th>
+                <Table.Th>Quién</Table.Th>
+                <Table.Th>Cuándo</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {reservas.data.map((x) => {
+                const depNum = (depositos.data ?? []).find(
+                  (d) => d.id === x.deposito_id,
+                )?.numero;
+                return (
+                  <Table.Tr key={x.id}>
+                    <Table.Td>
+                      {porId.get(x.producto_id)?.producto ??
+                        aReservar.find((r) => r.productoId === x.producto_id)?.producto ??
+                        '(producto)'}
+                    </Table.Td>
+                    <Table.Td>
+                      {DEPOSITOS_VENTA.find((d) => d.numero === depNum)?.etiqueta ??
+                        depNum ??
+                        '—'}
+                    </Table.Td>
+                    <Table.Td ta="right" ff="monospace" fw={700}>
+                      {numero(x.vigente)}
+                    </Table.Td>
+                    <Table.Td>
+                      {x.creado_por ? (nomina.data?.get(x.creado_por) ?? '—') : '—'}
+                    </Table.Td>
+                    <Table.Td>{fechaHora(x.creado_en)}</Table.Td>
+                  </Table.Tr>
+                );
+              })}
+            </Table.Tbody>
+          </Table>
+        </Paper>
       ) : null}
 
       <Paper
@@ -1137,20 +1267,27 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                       </Table.Td>
                       <Table.Td ta="right">
                         {editable ? (
-                          <Badge
-                            variant="light"
-                            color={
-                              c === 0
-                                ? 'gray'
-                                : d >= c
-                                  ? 'estadoAprobado'
-                                  : d > 0
-                                    ? 'orange'
-                                    : 'red'
-                            }
-                          >
-                            {numero(d)}
-                          </Badge>
+                          <Stack gap={2} align="flex-end">
+                            <Badge
+                              variant="light"
+                              color={
+                                c === 0
+                                  ? 'gray'
+                                  : d >= c
+                                    ? 'estadoAprobado'
+                                    : d > 0
+                                      ? 'orange'
+                                      : 'red'
+                              }
+                            >
+                              {numero(d)}
+                            </Badge>
+                            {resOrigen(f.producto_id) > 0 ? (
+                              <Text size="xs" c="teal.8" fw={700}>
+                                {numero(resOrigen(f.producto_id))} reservados
+                              </Text>
+                            ) : null}
+                          </Stack>
                         ) : r ? (
                           <Text size="xs" ff="monospace">
                             {numero(r.de_calle5 ?? 0)} de C5
@@ -1257,11 +1394,20 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
         </Group>
       </Paper>
 
-      <ModalReserva
-        inicial={reservando && id ? { productoId: null, pedidoId: id } : null}
-        onCerrar={() => setReservando(false)}
-        pedidos={pendientes.data ?? []}
-      />
+      {id ? (
+        <ReservarPedido
+          abierto={reservando}
+          onCerrar={() => setReservando(false)}
+          pedidoId={id}
+          depositoId={origenId}
+          depositos={(depositos.data ?? []).filter((d) =>
+            DEPOSITOS_VENTA.some((x) => x.numero === d.numero),
+          )}
+          renglones={aReservar}
+          reservas={reservas.data ?? []}
+          onCambiarDeposito={editable ? cambiarOrigen : undefined}
+        />
+      ) : null}
 
       <Modal
         opened={confirmando}

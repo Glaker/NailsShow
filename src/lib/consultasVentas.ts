@@ -94,6 +94,106 @@ export function useOrigenPedido(pedidoId: string | null | undefined) {
   });
 }
 
+export interface ReservaPedido {
+  id: string;
+  producto_id: string;
+  deposito_id: string;
+  /** Lo que sigue reservado: cantidad menos lo ya despachado. */
+  vigente: number;
+  creado_en: string;
+  creado_por: string | null;
+}
+
+/** Las reservas vigentes del pedido, una por fila, con su depósito. */
+export function useReservasPedido(pedidoId: string | null | undefined) {
+  return useQuery({
+    // Bajo 'reservado-pedido' para que lo invaliden los mismos cambios.
+    queryKey: ['reservado-pedido', pedidoId, 'filas'],
+    enabled: !!pedidoId,
+    queryFn: async () => {
+      const r = (await comercialST()
+        .from('reservas_pt')
+        .select(
+          'id, producto_id, deposito_id, cantidad, consumido, creado_en, creado_por',
+        )
+        .eq('pedido_id', pedidoId)
+        .eq('liberada', false)
+        .order('creado_en')) as {
+        data:
+          | (Omit<ReservaPedido, 'vigente'> & {
+              cantidad: number | string;
+              consumido: number | string;
+            })[]
+          | null;
+        error: Error | null;
+      };
+      if (r.error) throw r.error;
+      return (r.data ?? [])
+        .map((x) => ({
+          id: x.id,
+          producto_id: x.producto_id,
+          deposito_id: x.deposito_id,
+          vigente: n(x.cantidad) - n(x.consumido),
+          creado_en: x.creado_en,
+          creado_por: x.creado_por,
+        }))
+        .filter((x) => x.vigente > 0);
+    },
+  });
+}
+
+/** Reservas de un pedido de venta en un depósito, todas juntas (comercial.reservas_pt). */
+export function useReservarParaPedido() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: {
+      pedidoId: string;
+      depositoId: string;
+      renglones: { productoId: string; cantidad: number }[];
+    }) => {
+      const { error } = await comercialST()
+        .from('reservas_pt')
+        .insert(
+          a.renglones.map((r) => ({
+            producto_id: r.productoId,
+            deposito_id: a.depositoId,
+            pedido_id: a.pedidoId,
+            cantidad: r.cantidad,
+          })),
+        );
+      if (error) throw error;
+    },
+    onSuccess: (_, a) => {
+      invalidar(qc);
+      void qc.invalidateQueries({ queryKey: ['reservas-pt'] });
+      const total = a.renglones.reduce((s, r) => s + r.cantidad, 0);
+      avisarExito(`Reservadas ${total} unidades.`);
+    },
+    onError: avisarError,
+  });
+}
+
+/**
+ * Todo el pedido reservado en su depósito: Ventas lo aprueba para hoy sin
+ * pedir fecha a Producción (comercial.aprobar_venta_reservada).
+ */
+export function useAprobarVentaReservada() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await comercialST().rpc('aprobar_venta_reservada', {
+        p_pedido_id: id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidar(qc);
+      avisarExito('Pedido aprobado: estaba todo reservado, sale hoy.');
+    },
+    onError: avisarError,
+  });
+}
+
 /** Lo que el pedido ya tiene reservado, por producto. */
 export function useReservadoPedido(pedidoId: string | null | undefined) {
   return useQuery({
