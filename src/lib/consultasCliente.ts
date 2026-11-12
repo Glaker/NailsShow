@@ -32,10 +32,15 @@ export interface ProductoCliente {
   pack: number | null;
 }
 
+export type EstadoCliente =
+  'PENDIENTE' | 'EN_PRODUCCION' | 'EN_CAMINO' | 'FINALIZADO' | 'CANCELADO';
+
 export interface PedidoCliente {
   id: string;
   numero: string;
   estado: string;
+  /** Pendiente, en producción, en camino, finalizado o cancelado (20261112120000). */
+  estado_cliente: EstadoCliente;
   enviado_en: string;
   fecha_entrega: string | null;
   editable: boolean;

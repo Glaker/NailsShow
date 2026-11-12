@@ -22,27 +22,46 @@ import { fecha, fechaHora, numero } from '@/lib/formato';
 import {
   useCancelarPedidoCliente,
   usePedidosCliente,
+  type EstadoCliente,
   type PedidoCliente,
 } from '@/lib/consultasCliente';
 
-/** El estado del pedido dicho como lo entiende el cliente. */
-function estadoParaCliente(p: PedidoCliente): { texto: string; color: string } {
-  if (p.cancelado) return { texto: 'Cancelado', color: 'gray' };
-  switch (p.estado) {
-    case 'BORRADOR':
-      return { texto: 'Enviado · Ventas lo está revisando', color: 'grape' };
-    case 'ESPERANDO_FECHA':
-    case 'FECHA_PROPUESTA':
-      return { texto: 'Estamos viendo la fecha de entrega', color: 'blue' };
-    case 'CONFIRMADO':
-      return { texto: 'Aprobado', color: 'teal' };
-    case 'EN_PRODUCCION':
-      return { texto: 'En preparación', color: 'teal' };
-    case 'CUMPLIDO':
-      return { texto: 'Entregado', color: 'green' };
-    default:
-      return { texto: p.estado, color: 'gray' };
-  }
+/** Los cuatro estados que ve el cliente (pedido del 2026-11-12), en orden. */
+const PASOS: { clave: EstadoCliente; texto: string; color: string }[] = [
+  { clave: 'PENDIENTE', texto: 'Pendiente', color: 'grape' },
+  { clave: 'EN_PRODUCCION', texto: 'En producción', color: 'blue' },
+  { clave: 'EN_CAMINO', texto: 'En camino', color: 'orange' },
+  { clave: 'FINALIZADO', texto: 'Finalizado', color: 'teal' },
+];
+
+function estadoParaCliente(p: PedidoCliente) {
+  if (p.estado_cliente === 'CANCELADO')
+    return { texto: 'Cancelado', color: 'gray', paso: -1 };
+  const paso = PASOS.findIndex((x) => x.clave === p.estado_cliente);
+  return { ...PASOS[paso]!, paso };
+}
+
+/** Los cuatro pasos como una línea: lo hecho, en color; lo que falta, gris. */
+function Recorrido({ paso, color }: { paso: number; color: string }) {
+  return (
+    <Group gap={4} mt={10} wrap="nowrap" aria-hidden="true">
+      {PASOS.map((x, i) => (
+        <Box
+          key={x.clave}
+          h={6}
+          style={{
+            flex: 1,
+            borderRadius: 99,
+            background:
+              i <= paso
+                ? `var(--mantine-color-${color}-6)`
+                : 'var(--mantine-color-default-border)',
+            transition: 'background .3s',
+          }}
+        />
+      ))}
+    </Group>
+  );
 }
 
 export function MisPedidos({
@@ -132,6 +151,7 @@ export function MisPedidos({
                   </Badge>
                 ) : null}
               </Group>
+              {e.paso >= 0 ? <Recorrido paso={e.paso} color={e.color} /> : null}
             </UnstyledButton>
 
             <Collapse in={visto}>

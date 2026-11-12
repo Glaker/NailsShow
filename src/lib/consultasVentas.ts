@@ -194,6 +194,28 @@ export function useAprobarVentaReservada() {
   });
 }
 
+/**
+ * Ventas marca entregado un pedido aprobado que seguía abierto
+ * (comercial.finalizar_pedido_venta, 20261112120000). No mueve stock.
+ */
+export function useFinalizarPedidoVenta() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: { id: string; motivo: string }) => {
+      const { error } = await comercialST().rpc('finalizar_pedido_venta', {
+        p_pedido_id: a.id,
+        p_motivo: a.motivo || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidar(qc);
+      avisarExito('Pedido finalizado: el cliente lo ve como entregado.');
+    },
+    onError: avisarError,
+  });
+}
+
 /** Lo que el pedido ya tiene reservado, por producto. */
 export function useReservadoPedido(pedidoId: string | null | undefined) {
   return useQuery({

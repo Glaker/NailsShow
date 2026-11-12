@@ -63,6 +63,7 @@ import {
   useDisponiblePt,
   useEnviarVenta,
   useAprobarVentaReservada,
+  useFinalizarPedidoVenta,
   useReservadoPedido,
   useReservasPedido,
   useReservarParaPedido,
@@ -473,6 +474,9 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
       .filter((x) => x.producto_id === pid && x.deposito_id === origenId)
       .reduce((s, x) => s + x.vigente, 0);
   const aprobarReservada = useAprobarVentaReservada();
+  const finalizar = useFinalizarPedidoVenta();
+  const [finalizando, setFinalizando] = useState(false);
+  const [motivoFinal, setMotivoFinal] = useState('');
   const reservarTodo = useReservarParaPedido();
   const [entrega, setEntrega] = useState<Date | null>(
     g?.fecha_entrega ? new Date(`${g.fecha_entrega}T12:00:00`) : null,
@@ -779,6 +783,20 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
               leftSection={<IconFileInvoice size={18} />}
             >
               Facturar y ver el despacho
+            </Button>
+          ) : null}
+          {/* Finalizar a mano (pedido del 2026-11-12): un aprobado que se entregó
+              por fuera del despacho y seguía apareciendo abierto. */}
+          {!nuevo &&
+          puedeAprobar &&
+          (v!.estado === 'CONFIRMADO' || v!.estado === 'EN_PRODUCCION') ? (
+            <Button
+              variant="light"
+              color="teal"
+              leftSection={<IconCircleCheck size={18} />}
+              onClick={() => setFinalizando(true)}
+            >
+              Finalizar pedido
             </Button>
           ) : null}
           {editable ? (
@@ -1552,6 +1570,46 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
               }
             >
               Aprobar
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Modal
+        opened={finalizando}
+        onClose={() => setFinalizando(false)}
+        title="Finalizar el pedido"
+        centered
+      >
+        <Stack gap="md">
+          <Text size="sm">
+            Queda como entregado: el cliente lo ve «Finalizado» y se libera lo que seguía
+            reservado. No mueve stock: si salió mercadería por fuera del sistema, ajustala
+            aparte.
+          </Text>
+          <Textarea
+            label="¿Cómo se entregó? (opcional)"
+            placeholder="Lo retiró el cliente, se mandó por expreso…"
+            autosize
+            minRows={2}
+            value={motivoFinal}
+            onChange={(e) => setMotivoFinal(e.currentTarget.value)}
+          />
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setFinalizando(false)}>
+              Volver
+            </Button>
+            <Button
+              color="teal"
+              loading={finalizar.isPending}
+              onClick={() =>
+                finalizar.mutate(
+                  { id: id!, motivo: motivoFinal.trim() },
+                  { onSuccess: () => setFinalizando(false) },
+                )
+              }
+            >
+              Finalizar
             </Button>
           </Group>
         </Stack>

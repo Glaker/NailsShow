@@ -23,6 +23,7 @@ export const NOMBRE_ROL: Record<Rol, string> = {
   FINANZAS: 'Finanzas',
   RECEPCION: 'Recepción',
   PRODUCCION: 'Producción',
+  CLIENTE: 'Cliente (portal de pedidos)',
 };
 
 /**
