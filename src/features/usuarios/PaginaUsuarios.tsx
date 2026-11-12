@@ -23,11 +23,7 @@ import { useVincularCliente, useVinculosClientes } from '@/lib/consultasClientes
 import { etiquetaEnum, fecha, fechaISO } from '@/lib/formato';
 import { useSesion, type Rol, type Sector } from '@/features/auth/sesion';
 
-/* CLIENTE (migración 20261110160000) todavía no está en database.types.ts: al
-   regenerar los tipos con `npm run db:types` se puede quitar este tipo y usar Rol. */
-type RolAsignable = Rol | 'CLIENTE';
-
-const ROLES: RolAsignable[] = [
+const ROLES: Rol[] = [
   // Reemplaza a OPERARIO (D-tareas-1).
   'PRODUCCION',
   'CONTROL_CALIDAD',
@@ -70,7 +66,7 @@ function ModalUsuario({
   const vinculos = useVinculosClientes();
   const clientes = useClientes();
   const { claims } = useSesion();
-  const [rol, setRol] = useState<RolAsignable>(usuario?.rol ?? 'PRODUCCION');
+  const [rol, setRol] = useState<Rol>(usuario?.rol ?? 'PRODUCCION');
   const [adicionales, setAdicionales] = useState<string[]>(
     usuario?.roles_adicionales ?? [],
   );
@@ -95,9 +91,7 @@ function ModalUsuario({
       await actualizar.mutateAsync({
         id: usuario.id,
         cambios: {
-          /* Ver RolAsignable: el CHECK de la base acepta CLIENTE aunque los tipos
-             generados todavía no. */
-          rol: rol as Rol,
+          rol,
           /* Un cliente no tiene roles adicionales: el JWT lo emite sin rol. */
           roles_adicionales: (esCliente
             ? []
@@ -134,7 +128,7 @@ function ModalUsuario({
           label="Rol principal"
           data={ROLES.map((r) => ({ value: r, label: etiquetaRol(r) }))}
           value={rol}
-          onChange={(v) => setRol((v as RolAsignable) ?? 'PRODUCCION')}
+          onChange={(v) => setRol((v as Rol) ?? 'PRODUCCION')}
           allowDeselect={false}
         />
 
@@ -312,7 +306,7 @@ export function PaginaUsuarios() {
                     <Table.Td>
                       <Stack gap={2}>
                         <Text size="sm">{etiquetaRol(u.rol)}</Text>
-                        {(u.rol as RolAsignable) === 'CLIENTE' ? (
+                        {u.rol === 'CLIENTE' ? (
                           <ClienteVinculado
                             clienteId={vinculos.data?.get(u.id) ?? null}
                             nombrePorId={nombrePorId}

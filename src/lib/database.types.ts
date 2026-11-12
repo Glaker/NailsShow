@@ -513,6 +513,42 @@ export type Database = {
           },
         ]
       }
+      clientes_usuarios: {
+        Row: {
+          cliente_id: string
+          creado_en: string
+          creado_por: string
+          usuario_id: string
+        }
+        Insert: {
+          cliente_id: string
+          creado_en?: string
+          creado_por?: string
+          usuario_id: string
+        }
+        Update: {
+          cliente_id?: string
+          creado_en?: string
+          creado_por?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clientes_usuarios_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clientes_usuarios_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "v_saldos_clientes"
+            referencedColumns: ["cliente_id"]
+          },
+        ]
+      }
       cobros_cliente: {
         Row: {
           anulado_en: string | null
@@ -3204,6 +3240,7 @@ export type Database = {
           precio_lista: number
           precio_promo: number
           producto_id: string
+          retirado: boolean
           rubro: string | null
           unidades_pack: number
         }
@@ -3221,6 +3258,7 @@ export type Database = {
           precio_lista: number
           precio_promo: number
           producto_id: string
+          retirado?: boolean
           rubro?: string | null
           unidades_pack?: number
         }
@@ -3238,6 +3276,7 @@ export type Database = {
           precio_lista?: number
           precio_promo?: number
           producto_id?: string
+          retirado?: boolean
           rubro?: string | null
           unidades_pack?: number
         }
@@ -4425,6 +4464,7 @@ export type Database = {
           eliminado_por: string | null
           entregado_en: string | null
           entregado_por: string | null
+          enviado_por_cliente_en: string | null
           es_venta: boolean
           estado: Database["comercial"]["Enums"]["estado_pedido_enum"]
           estado_pago: string
@@ -4460,6 +4500,7 @@ export type Database = {
           eliminado_por?: string | null
           entregado_en?: string | null
           entregado_por?: string | null
+          enviado_por_cliente_en?: string | null
           es_venta?: boolean
           estado?: Database["comercial"]["Enums"]["estado_pedido_enum"]
           estado_pago?: string
@@ -4495,6 +4536,7 @@ export type Database = {
           eliminado_por?: string | null
           entregado_en?: string | null
           entregado_por?: string | null
+          enviado_por_cliente_en?: string | null
           es_venta?: boolean
           estado?: Database["comercial"]["Enums"]["estado_pedido_enum"]
           estado_pago?: string
@@ -8078,6 +8120,7 @@ export type Database = {
         Args: { p_de_deposito?: Json; p_pedido_id: string }
         Returns: Json
       }
+      aprobar_venta_reservada: { Args: { p_pedido_id: string }; Returns: Json }
       articulo_de_insumo: { Args: { p_insumo_id: string }; Returns: string }
       asignar_lotes_pt: {
         Args: {
@@ -8173,6 +8216,48 @@ export type Database = {
             }
             Returns: string
           }
+      cliente_actual: { Args: never; Returns: string }
+      cliente_cancelar_pedido: { Args: { p_id: string }; Returns: undefined }
+      cliente_enviar_pedido: {
+        Args: { p_id: string; p_observaciones?: string; p_renglones: Json }
+        Returns: string
+      }
+      cliente_escala: {
+        Args: never
+        Returns: {
+          desde_monto: number
+          porcentaje: number
+        }[]
+      }
+      cliente_exigir: { Args: never; Returns: string }
+      cliente_lista: {
+        Args: never
+        Returns: {
+          codigo: string
+          minimo: number
+          orden_lista: number
+          precio_lista: number
+          precio_promo: number
+          producto: string
+          producto_id: string
+          rubro: string
+        }[]
+      }
+      cliente_pedidos: {
+        Args: never
+        Returns: {
+          cancelado: boolean
+          editable: boolean
+          enviado_en: string
+          estado: string
+          fecha_entrega: string
+          id: string
+          numero: string
+          observaciones: string
+          renglones: Json
+        }[]
+      }
+      cliente_perfil: { Args: never; Returns: Json }
       codigo_comprobante_arca:
         | { Args: { p_clase: string }; Returns: number }
         | { Args: { p_clase: string; p_comprobante: string }; Returns: number }
@@ -9407,6 +9492,7 @@ export type Database = {
         | "FINANZAS"
         | "RECEPCION"
         | "PRODUCCION"
+        | "CLIENTE"
       sector_enum:
         | "ADMINISTRACION"
         | "RECEPCION_EXPEDICION"
@@ -13112,6 +13198,7 @@ export const Constants = {
         "FINANZAS",
         "RECEPCION",
         "PRODUCCION",
+        "CLIENTE",
       ],
       sector_enum: [
         "ADMINISTRACION",

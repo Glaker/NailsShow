@@ -163,5 +163,59 @@ await prueba('cancela uno nuevo', async () => {
   if (!r.cancelado || r.editable) throw new Error(JSON.stringify(r));
 });
 
+// Estados para el cliente y finalizar (20261112120000).
+await db.exec('reset role');
+await db.exec('set session_replication_role = replica');
+await q(
+  `insert into comercial.movimientos_pt (producto_id, deposito_id, tipo, cantidad, motivo, registrado_por)
+   values ($1, (select id from gmp.depositos where numero='BER'), 'ENTRADA_DEVOLUCION', 50, 'stock de prueba', $2)`,
+  [pB, await idDe('mati@x')],
+);
+await db.exec('set session_replication_role = origin');
+const estadoCli = async (id) =>
+  (await q(`select * from comercial.cliente_pedidos()`)).find((x) => x.id === id).estado_cliente;
+await comoCliente('cli1@x');
+const ped2 = (
+  await uno(`select comercial.cliente_enviar_pedido(null, $1::jsonb) id`, [
+    JSON.stringify([{ producto_id: pB, cantidad: 5 }]),
+  ])
+).id;
+await prueba('recién enviado: Pendiente', async () => {
+  if ((await estadoCli(ped2)) !== 'PENDIENTE') throw new Error(await estadoCli(ped2));
+});
+await como('mati@x');
+await prueba('Mati reserva todo y aprueba: En camino', async () => {
+  await q(
+    `insert into comercial.reservas_pt (producto_id, deposito_id, pedido_id, cantidad)
+     values ($1, (select deposito_origen_id from comercial.pedidos where id=$2), $2, 5)`,
+    [pB, ped2],
+  );
+  await q(`select comercial.aprobar_venta_reservada($1)`, [ped2]);
+  await comoCliente('cli1@x');
+  if ((await estadoCli(ped2)) !== 'EN_CAMINO') throw new Error(await estadoCli(ped2));
+});
+await como('mati@x');
+await rechaza(
+  'uno sin aprobar no se finaliza',
+  `select comercial.finalizar_pedido_venta('${ped}')`,
+  /aprobado/,
+);
+await prueba('Mati lo finaliza: Finalizado y sin reservas', async () => {
+  await q(`select comercial.finalizar_pedido_venta($1, 'Lo retiró el cliente')`, [ped2]);
+  const r = await uno(
+    `select count(*)::int n from comercial.reservas_pt where pedido_id=$1 and not liberada`,
+    [ped2],
+  );
+  if (r.n !== 0) throw new Error(String(r.n));
+  await comoCliente('cli1@x');
+  if ((await estadoCli(ped2)) !== 'FINALIZADO') throw new Error(await estadoCli(ped2));
+});
+await comoCliente('cli1@x');
+await rechaza(
+  'el cliente no finaliza',
+  `select comercial.finalizar_pedido_venta('${ped2}')`,
+  /Ventas/,
+);
+
 await invariantes();
 await fin();
