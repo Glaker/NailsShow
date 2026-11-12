@@ -54,9 +54,10 @@ export interface PedidoCliente {
   }[];
 }
 
-export function usePerfilCliente() {
+export function usePerfilCliente(enabled = true) {
   return useQuery({
     queryKey: ['cliente', 'perfil'],
+    enabled,
     queryFn: () => rpc<{ cliente: string; nombre: string | null }>('cliente_perfil'),
     retry: false,
   });
@@ -102,9 +103,10 @@ export function useEscalaCliente() {
   });
 }
 
-export function usePedidosCliente() {
+export function usePedidosCliente(enabled = true) {
   return useQuery({
     queryKey: ['cliente', 'pedidos'],
+    enabled,
     queryFn: async () =>
       (await rpc<PedidoCliente[]>('cliente_pedidos')).map((p) => ({
         ...p,
@@ -113,6 +115,12 @@ export function usePedidosCliente() {
     // Ventas lo va tomando: se refresca al volver a la pestaña.
     refetchOnWindowFocus: true,
   });
+}
+
+export interface EnvioPedido {
+  id: string | null;
+  renglones: { producto_id: string; cantidad: number }[];
+  observaciones: string;
 }
 
 export function useEnviarPedidoCliente() {

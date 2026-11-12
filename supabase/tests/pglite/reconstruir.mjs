@@ -23,6 +23,7 @@ const SOLO_PRODUCCION = new Set([
   '20261106150000_comercial_stock_berna_casiopea_06_11.sql',
   '20261110110000_ingreso_etiqueta_192et.sql',
   '20261110150100_carga_lista_codigos_pack_a_unidad.sql', // lista real: los PACK pasan a unidad
+  '20261112130100_carga_cuenta_cliente_prueba.sql', // cuenta de demostración real
 ]);
 
 export async function reconstruir({ silencioso = false } = {}) {

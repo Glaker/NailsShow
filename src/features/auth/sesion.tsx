@@ -36,6 +36,8 @@ export interface ClaimsSesion {
   es_dt_titular: boolean;
   /** Cuenta del portal de clientes: entra sin rol interno (20261110160100). */
   es_cliente: boolean;
+  /** Cuenta de demostración del portal: pedidos de ejemplo (20261112130000). */
+  es_demo: boolean;
 }
 
 interface ValorSesion {
@@ -84,6 +86,7 @@ function leerClaims(session: Session | null): ClaimsSesion | null {
       nombre: (json.nombre as string) ?? null,
       es_dt_titular: json.es_dt_titular === true,
       es_cliente: json.es_cliente === true,
+      es_demo: json.es_demo === true,
     };
   } catch {
     return null;

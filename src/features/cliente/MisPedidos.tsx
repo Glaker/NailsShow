@@ -68,12 +68,16 @@ export function MisPedidos({
   onEditar,
   onRepetir,
   onNuevo,
+  demo,
 }: {
   onEditar: (p: PedidoCliente) => void;
   onRepetir: (p: PedidoCliente) => void;
   onNuevo: () => void;
+  /** Modo demostración: pedidos de ejemplo en memoria (20261112130000). */
+  demo?: { pedidos: PedidoCliente[]; cancelar: (id: string) => void } | undefined;
 }) {
-  const pedidos = usePedidosCliente();
+  const consulta = usePedidosCliente(!demo);
+  const pedidos = demo ? { isLoading: false, data: demo.pedidos } : consulta;
   const cancelar = useCancelarPedidoCliente();
   const [abierto, setAbierto] = useState<string | null>(null);
   const [confirmando, setConfirmando] = useState<string | null>(null);
@@ -204,7 +208,9 @@ export function MisPedidos({
                     size="md"
                     loading={cancelar.isPending}
                     onClick={() =>
-                      cancelar.mutate(p.id, { onSettled: () => setConfirmando(null) })
+                      demo
+                        ? (demo.cancelar(p.id), setConfirmando(null))
+                        : cancelar.mutate(p.id, { onSettled: () => setConfirmando(null) })
                     }
                   >
                     ¿Seguro? Cancelar

@@ -217,5 +217,37 @@ await rechaza(
   /Ventas/,
 );
 
+// Cuenta de demostración (20261112130000): ve lista y escala, no escribe.
+await usuario('demo@x', 'CLIENTE', 'ADMINISTRACION');
+await db.exec('reset role');
+await q(`update core.usuarios set es_ejemplo = true where email = 'demo@x'`);
+ids.set('demo@x', (await uno(`select id from core.usuarios where email='demo@x'`)).id);
+await prueba('el hook marca la demo', async () => {
+  const au = '00000000-0000-0000-0000-00000000d111';
+  await q(`insert into auth.users (id, email) values ($1, 'demo-hook@x')`, [au]);
+  await q(
+    `update core.usuarios set rol='CLIENTE', activo=true, fecha_baja=null, es_ejemplo=true where auth_user_id=$1`,
+    [au],
+  );
+  const r = await uno(`select core.custom_access_token_hook($1::jsonb) e`, [
+    JSON.stringify({ user_id: au, claims: {} }),
+  ]);
+  if (r.e.claims.es_demo !== true || r.e.claims.rol !== null) throw new Error(JSON.stringify(r.e.claims));
+});
+await comoCliente('demo@x');
+await prueba('la demo ve la lista y la escala', async () => {
+  const l = await uno(`select count(*)::int n from comercial.cliente_lista()`);
+  if (l.n < 3) throw new Error(String(l.n));
+  await q(`select * from comercial.cliente_escala()`);
+});
+await rechaza(
+  'la demo no envía pedidos',
+  `select comercial.cliente_enviar_pedido(null, '[{"producto_id":"${pA}","cantidad":1}]'::jsonb)`,
+  /vinculada/,
+);
+await rechaza('ni ve pedidos', `select * from comercial.cliente_pedidos()`, /vinculada/);
+await comoCliente('cli3@x');
+await rechaza('un cliente sin vincular y sin demo sigue afuera', `select * from comercial.cliente_lista()`, /vinculada/);
+
 await invariantes();
 await fin();
