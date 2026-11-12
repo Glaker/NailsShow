@@ -31,6 +31,7 @@ import {
   IconBookmark,
   IconCalendarEvent,
   IconCircleCheck,
+  IconDeviceMobile,
   IconFileInvoice,
   IconPencil,
   IconSearch,
@@ -42,6 +43,7 @@ import { avisarError, useDepositos } from '@/lib/consultas';
 import { comercial } from '@/lib/supabase';
 import { useTieneRol } from '@/features/auth/sesion';
 import { BadgeEstadoPedido } from '@/features/comercial/estadoPedido';
+import { useEnvioPortal } from '@/lib/consultasClientesUsuarios';
 import { TablaEscala } from './TablaEscala';
 import { ReservarPedido } from './ReservarPedido';
 import { usePendientesDespacho } from '@/lib/consultasCalle5';
@@ -431,6 +433,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
   const cajas = useDescuentosCaja();
   const clientes = useClientes();
   const venta = useVenta(id ?? undefined);
+  const envioPortal = useEnvioPortal(id ?? undefined);
   const depositos = useDepositos();
   const descartar = useEliminarPedido();
   const [descartando, setDescartando] = useState(false);
@@ -847,6 +850,19 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
           ) : null}
         </Group>
       </Group>
+
+      {envioPortal.data ? (
+        <Alert
+          color="violet"
+          variant="light"
+          mb="md"
+          icon={<IconDeviceMobile size={20} />}
+        >
+          Lo envió el cliente desde el portal el {fechaHora(envioPortal.data)}. Revisalo,
+          reservá lo que haya y aprobalo o pedí fecha a Producción. Mientras siga en
+          borrador el cliente todavía puede corregirlo.
+        </Alert>
+      ) : null}
 
       {etapa === 'ESPERANDO_FECHA' ? (
         <Alert

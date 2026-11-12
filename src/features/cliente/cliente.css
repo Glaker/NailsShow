@@ -1,0 +1,181 @@
+/* Portal de clientes: pensado para el celular. Animaciones cortas que acompañan
+   lo que pasa (sumar, llegar a un descuento, enviar); con reducción de
+   movimiento, quietas. */
+
+.cli-fondo {
+  min-height: 100dvh;
+  background:
+    radial-gradient(120% 60% at 0% 0%, rgba(204, 93, 232, 0.16), transparent 60%),
+    radial-gradient(120% 60% at 100% 10%, rgba(34, 139, 230, 0.12), transparent 55%),
+    var(--mantine-color-body);
+}
+
+.cli-cabecera {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--mantine-color-body) 82%, transparent);
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.cli-buscador {
+  position: sticky;
+  top: 64px;
+  z-index: 15;
+  backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--mantine-color-body) 88%, transparent);
+}
+
+.cli-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+.cli-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.cli-tarjeta {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 112px;
+  border-radius: 18px;
+  border: 1.5px solid var(--mantine-color-default-border);
+  background: var(--mantine-color-body);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
+  animation: cli-entra 0.35s ease both;
+}
+.cli-tarjeta[data-elegido='true'] {
+  border-color: #cc5de8;
+  box-shadow: 0 6px 22px -10px rgba(190, 75, 219, 0.55);
+}
+.cli-tarjeta:active {
+  transform: scale(0.99);
+}
+
+.cli-cantidad {
+  min-width: 52px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.cli-pop {
+  animation: cli-pop 0.28s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+.cli-barra {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--mantine-color-body) 86%, transparent);
+  border-top: 1px solid var(--mantine-color-default-border);
+  animation: cli-sube 0.3s ease both;
+}
+
+.cli-progreso {
+  height: 8px;
+  border-radius: 99px;
+  background: var(--mantine-color-default-border);
+  overflow: hidden;
+}
+.cli-progreso > div {
+  width: 100%;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #cc5de8, #4dabf7);
+  transform-origin: left center;
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.cli-descuento {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, #be4bdb, #7950f2);
+}
+
+.cli-festejo {
+  animation: cli-festejo 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+.cli-confeti {
+  position: fixed;
+  top: -12px;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 400;
+  animation: cli-cae 1.6s ease-in forwards;
+}
+
+@keyframes cli-entra {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes cli-pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.28);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes cli-sube {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes cli-festejo {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes cli-cae {
+  to {
+    transform: translateY(105vh) rotate(540deg);
+    opacity: 0.2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cli-tarjeta,
+  .cli-pop,
+  .cli-barra,
+  .cli-festejo,
+  .cli-confeti {
+    animation: none;
+  }
+  .cli-progreso > div {
+    transition: none;
+  }
+}

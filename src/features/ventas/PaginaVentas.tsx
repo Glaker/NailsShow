@@ -26,6 +26,7 @@ import {
   type FilaVenta,
 } from '@/lib/consultasVentas';
 import { BadgeEstadoPedido } from '@/features/comercial/estadoPedido';
+import { useEnviadosPorCliente } from '@/lib/consultasClientesUsuarios';
 
 const pesos = (n: number) => `$${numero(n, 0)}`;
 type Filtro = 'abiertos' | 'entregados' | 'todos';
@@ -78,6 +79,7 @@ function Faltantes({ v }: { v: FilaVenta }) {
  */
 export function PaginaVentas() {
   const ventas = useVentas();
+  const enviados = useEnviadosPorCliente();
   const actualizar = useActualizarVenta();
   const navigate = useNavigate();
   const [texto, setTexto] = useState('');
@@ -196,6 +198,11 @@ export function PaginaVentas() {
                       <Text size="xs" c="dimmed" ff="monospace">
                         {v.numero}
                       </Text>
+                      {enviados.data?.has(v.id) ? (
+                        <Badge size="xs" variant="light" color="violet" radius="sm">
+                          Enviado por el cliente
+                        </Badge>
+                      ) : null}
                     </Table.Td>
                     <Table.Td>{fecha(v.fecha).slice(0, 5)}</Table.Td>
                     <Table.Td>
