@@ -203,7 +203,7 @@ Reglas de las animaciones de Hada:
 
 ## 3. Supuestos a confirmar (valores iniciales)
 
-1. Los aromas Amor, Paz y Aire aplican a la crema humectante y a la exfoliante.
+1. Los aromas Amor, Paz y Aire aplican a la crema humectante, la exfoliante, el aceite de cutícula y el sanitizante (corregido por Agus el 2026-11-12).
 2. Si el cliente pide un aroma sin stock, el pedido se acepta y la falta se resuelve internamente al prepararlo (sustitución acordada con el cliente por fuera de la app o entrega parcial). La app no le avisa al cliente.
 3. La caja mixta se reparte mitad y mitad; con unidades impares la opción mixta se deshabilita.
 4. Un pedido se puede editar solo mientras esté en los estados previos a la preparación.

@@ -77,7 +77,7 @@ Plan: `docs/PROMPT_PEDIDOS_HADA.md`. Una rama por paquete desde `main`, sin merg
 
 1. **P1 necesita Playwright**, que no está instalado. Es una dependencia de desarrollo nueva, que se justificará en el PR.
 2. **P3 asume venta por caja**, pero hoy se vende por unidad: la caja es solo un descuento, con `unidades_caja` por producto. Conservador: la opción por caja se suma como una forma de cargar cajas de un producto con aromas, con las unidades de caja de `descuentos_caja`, sin cambiar la venta por unidad del resto. La decide el `arquitecto` en P3.
-3. **Familias de P3:** solo Humectante y Exfoliante, como dice el supuesto 1 del plan. Aceite de cutícula y Sanitizante también tienen AMOR/AIRE/PAZ y quedan afuera hasta que Agus diga.
+3. **Familias de P3 (confirmado por Agus, 2026-11-12):** las opciones por aroma aplican a las cuatro familias con AMOR/AIRE/PAZ: Humectante, Exfoliante (las cremas), Aceite de cutícula y Sanitizante. Reemplaza el supuesto 1 del plan, que nombraba solo las cremas. Sanitizante tiene tres presentaciones por aroma (391/392/NS-397 y siguientes).
 4. **Una caja de Humectante «Amor y Paz»** son dos SKU distintos (370 y 372). La caja mixta se arma como dos renglones con la mitad de unidades cada uno.
 5. **El rol que asigna el surtido es VENTAS** (Matías Alonso), también Administración.
 6. **FuseButton (P4):** se usan íconos de `@tabler/icons-react`, que es la librería de toda la app, aunque `@hugeicons/react` también esté instalado.
