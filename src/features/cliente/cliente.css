@@ -179,3 +179,52 @@
     transition: none;
   }
 }
+
+/* Botones: altura mínima en vez de fija, y la etiqueta parte renglón al lado
+   del ícono (celular a 320 px o texto al 200 %) en lugar de cortarse. */
+.cli-fondo .mantine-Button-root,
+.cli-portal .mantine-Button-root {
+  height: auto;
+  min-height: var(--button-height, var(--button-height-sm));
+  padding-block: 4px;
+}
+.cli-fondo .mantine-Button-label,
+.cli-portal .mantine-Button-label {
+  min-width: 0;
+  white-space: normal;
+  overflow: visible;
+  text-wrap: balance;
+  text-align: center;
+  line-height: 1.25;
+  padding-block: 2px;
+}
+@media (max-width: 420px) {
+  .cli-fondo .mantine-Button-root,
+  .cli-portal .mantine-Button-root {
+    padding-inline: 12px;
+  }
+}
+
+/* HoldButton: crece en alto y el texto parte renglón. No expone variable de
+   altura (la fija .hold-button--md), así que el mínimo queda en 44 px. */
+.hold-button.cli-hold {
+  height: auto;
+  min-height: 44px;
+  padding-block: 8px;
+  line-height: 1.25;
+}
+.hold-button.cli-hold .hold-button__label > span {
+  white-space: normal;
+  text-align: center;
+  text-wrap: balance;
+}
+
+/* SlideCommit: el texto queda a la derecha de la manija y parte renglón. */
+.slide-commit.cli-slide .slide-commit__label {
+  left: calc(var(--sc-radius) * 2);
+  right: var(--sc-pad);
+  white-space: normal;
+  text-align: center;
+  text-wrap: balance;
+  line-height: 1.15;
+}
