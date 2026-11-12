@@ -44,3 +44,8 @@ supabase/.env
 npm-debug.log*
 # Playwright CLI output (may contain credentials)
 .playwright-cli/
+
+# Pruebas en navegador (P1): build de prueba, resultados y reporte
+dist-e2e/
+test-results/
+playwright-report/

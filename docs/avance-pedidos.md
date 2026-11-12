@@ -136,6 +136,18 @@ Avisos antes de delegar:
 - **Build:** `vite build` falla porque `@hugeicons/react` no está instalado en el `node_modules` del worktree. El CSS compila bien. Antes del encargo 2 hay que correr `npm install`.
 - **Pendiente:** el encargo 2 (prueba de anchos con Playwright) no arrancó. La sesión sigue en la carpeta `NailsShow`.
 
+### Encargo 2 (2026-11-12)
+
+- `npm ci` en el worktree; el lock no cambió. Después, `@playwright/test` 1.56.1 con versión fija (único cambio en `package.json` y en el lock).
+- `armador-de-pantallas` escribió `playwright.config.ts` y `e2e/pedidos-botones.spec.ts` sobre la base de `coma-decimal`. El recorrido cubre todo el portal: inicial, búsqueda vacía, menú, tutorial (4 pasos), armado con filtros, resumen nuevo y en edición, cada estado de «Mis pedidos», festejos, cuenta sin vincular y cuenta sin pedidos. `corredor-de-pruebas` la corrió.
+- Arreglos de la prueba tras las primeras corridas: `quieto()` espera solo las animaciones en curso, con tope de 2 s (las pausadas no terminan nunca). Un control tapado o fuera de pantalla se anota como falla en vez de cortar la prueba. El SlideCommit se confirma con `End`. Se usan 2 workers con 180 s por caso.
+- **Caso de 1280 px en claro, que fallaba:** no es de ancho ni de superposición. Solo pasa entero, en 16 s. Fallaba por saturación: con 4 navegadores en paralelo la página no terminaba de cargar la lista dentro del tiempo. Por eso se bajó a 2 workers.
+
+### Para el encargo 3
+
+- Agregar `overflow-wrap: break-word` y `hyphens: auto` a las etiquetas de los botones.
+- `<html>` ya tiene `lang="es-AR"` (`index.html:2`), así que `hyphens: auto` corta con reglas del español. Verificarlo igual en la build.
+
 ## Registro de subagentes
 
 | Paquete | Tarea | Subagente | Modelo | Escaló |
