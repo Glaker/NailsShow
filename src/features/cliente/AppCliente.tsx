@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   ActionIcon,
+  Alert,
   Box,
   Button,
   Center,
@@ -13,6 +14,7 @@ import {
 } from '@mantine/core';
 import {
   IconDotsVertical,
+  IconFlask,
   IconHelpCircle,
   IconListDetails,
   IconLogout,
@@ -21,7 +23,13 @@ import {
 import RubberSegment from '@/vendor/reactbits/RubberSegment';
 import { Marca } from '@/components/Marca';
 import { useSesion } from '@/features/auth/sesion';
-import { usePerfilCliente, type PedidoCliente } from '@/lib/consultasCliente';
+import {
+  useListaCliente,
+  usePerfilCliente,
+  type EnvioPedido,
+  type PedidoCliente,
+} from '@/lib/consultasCliente';
+import { aplicarEnvioDemo, pedidosDeEjemplo } from './demo';
 import { ArmarPedido, type Carrito } from './ArmarPedido';
 import { MisPedidos } from './MisPedidos';
 import { Tutorial, tutorialVisto } from './Tutorial';
@@ -37,8 +45,26 @@ import './cliente.css';
  * de negocio hasta que lo envía (CLAUDE.md: nada de localStorage para eso).
  */
 export function AppCliente() {
-  const { salir } = useSesion();
-  const perfil = usePerfilCliente();
+  const { salir, claims } = useSesion();
+  /* Cuenta de demostración (20261112130000): lista real, pedidos de ejemplo
+     en memoria; no escribe nada ni le llega a Ventas. */
+  const demo = claims?.es_demo === true;
+  const consultaPerfil = usePerfilCliente(!demo);
+  const perfil = demo
+    ? {
+        isLoading: false,
+        isError: false,
+        refetch: consultaPerfil.refetch,
+        data: { cliente: 'Comercio de prueba', nombre: claims?.nombre ?? null },
+      }
+    : consultaPerfil;
+  const lista = useListaCliente();
+  const [pedidosDemo, setPedidosDemo] = useState<PedidoCliente[] | null>(null);
+  const ejemplos = pedidosDemo ?? pedidosDeEjemplo(lista.data ?? []);
+  const enviarDemo = async (e: EnvioPedido) => {
+    await new Promise((r) => setTimeout(r, 600));
+    setPedidosDemo(aplicarEnvioDemo(ejemplos, e, lista.data ?? []));
+  };
   const [vista, setVista] = useState<'armar' | 'pedidos'>('armar');
   const [carrito, setCarrito] = useState<Carrito>(new Map());
   const [observaciones, setObservaciones] = useState('');
@@ -131,6 +157,21 @@ export function AppCliente() {
         </Menu>
       </Group>
 
+      {demo ? (
+        <Alert
+          mx="md"
+          mt="sm"
+          radius="lg"
+          color="orange"
+          variant="light"
+          icon={<IconFlask size={20} />}
+          title="Modo demostración"
+        >
+          Precios reales, pedidos de ejemplo. Lo que envíes acá no se guarda ni le llega a
+          Ventas.
+        </Alert>
+      ) : null}
+
       <Box px="md" pt="sm">
         <RubberSegment
           aria-label="Sección"
@@ -163,6 +204,7 @@ export function AppCliente() {
           setObservaciones={setObservaciones}
           editando={editando}
           onVaciar={vaciar}
+          enviarDemo={demo ? enviarDemo : undefined}
           onEnviado={() => {
             vaciar();
             setVista('pedidos');
@@ -173,6 +215,27 @@ export function AppCliente() {
           onEditar={(p) => cargarPedido(p, false)}
           onRepetir={(p) => cargarPedido(p, true)}
           onNuevo={() => setVista('armar')}
+          demo={
+            demo
+              ? {
+                  pedidos: ejemplos,
+                  cancelar: (id) =>
+                    setPedidosDemo(
+                      ejemplos.map((p) =>
+                        p.id === id
+                          ? {
+                              ...p,
+                              estado: 'CANCELADO',
+                              estado_cliente: 'CANCELADO',
+                              cancelado: true,
+                              editable: false,
+                            }
+                          : p,
+                      ),
+                    ),
+                }
+              : undefined
+          }
         />
       )}
 

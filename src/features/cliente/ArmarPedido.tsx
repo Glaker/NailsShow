@@ -43,6 +43,7 @@ import {
   useEnviarPedidoCliente,
   useEscalaCliente,
   useListaCliente,
+  type EnvioPedido,
   type ProductoCliente,
 } from '@/lib/consultasCliente';
 
@@ -77,6 +78,7 @@ export function ArmarPedido({
   editando,
   onVaciar,
   onEnviado,
+  enviarDemo,
 }: {
   carrito: Carrito;
   setCarrito: Dispatch<SetStateAction<Carrito>>;
@@ -85,6 +87,8 @@ export function ArmarPedido({
   editando: { id: string; numero: string } | null;
   onVaciar: () => void;
   onEnviado: () => void;
+  /** Modo demostración: el envío no va a la base (20261112130000). */
+  enviarDemo?: ((e: EnvioPedido) => Promise<unknown>) | undefined;
 }) {
   const lista = useListaCliente();
   const escala = useEscalaCliente();
@@ -231,6 +235,7 @@ export function ArmarPedido({
         }
       >
         <ResumenPedido
+          enviarDemo={enviarDemo}
           productos={productos}
           carrito={carrito}
           cuenta={cuenta}
@@ -423,6 +428,7 @@ function ResumenPedido({
   editando,
   onVaciar,
   onEnviado,
+  enviarDemo,
 }: {
   productos: ProductoCliente[];
   carrito: Carrito;
@@ -433,6 +439,7 @@ function ResumenPedido({
   editando: { id: string; numero: string } | null;
   onVaciar: () => void;
   onEnviado: () => void;
+  enviarDemo?: ((e: EnvioPedido) => Promise<unknown>) | undefined;
 }) {
   const enviar = useEnviarPedidoCliente();
   const { ref, width } = useElementSize();
@@ -564,7 +571,7 @@ function ResumenPedido({
             successColor="#2f9e44"
             holdMs={500}
             onConfirm={() =>
-              enviar.mutateAsync({
+              (enviarDemo ?? enviar.mutateAsync)({
                 id: editando?.id ?? null,
                 renglones: items.map(([producto_id, cantidad]) => ({
                   producto_id,
