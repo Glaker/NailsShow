@@ -369,7 +369,24 @@
     --fb-px: 12px;
   }
 }
+/* Tarjeta de pedido que se da vuelta (P5): se puede seleccionar texto y cada cara lleva el borde de la tarjeta. */
+.flip-card.cli-flip {
+  cursor: default;
+  user-select: text;
+  -webkit-user-select: text;
+  touch-action: auto;
+}
+.cli-flip .flip-card__face {
+  border: 1.5px solid var(--mantine-color-default-border);
+  overflow-wrap: anywhere;
+}
+
 /* Fila con el borrado en marcha. */
 .cli-por-borrar {
   opacity: 0.5;
+}
+/* En la tarjeta de pedido el texto largo parte renglón en vez de ensanchar el botón (texto al 200 %). */
+.cli-flip .cli-acciones .mantine-Button-root {
+  min-width: 0;
+  max-width: 100%;
 }

@@ -282,3 +282,31 @@ Se frenaron tres subagentes a mitad de camino. Nada quedó commiteado después d
   - la mecha se cancela al ocultar la pestaña o al desmontar.
   - Reemplaza la papelera de cada SKU y de cada caja en el resumen.
   - **Pruebas:** Playwright 26/26, dos veces; `tsc` y `eslint` limpios. `implementador`, sin escalar (un corte por límite de uso, retomado).
+
+### Pausa del 2026-11-13 (pedida por Agus: se acaban los créditos)
+
+- **Commiteados:**
+
+  | Paquete | Rama | Commit |
+  |---|---|---|
+  | P1 | `ux/p1-botones-pedidos` | `f5d728b` |
+  | P2 | `pedidos-p2-busqueda` | `93bc75f` |
+  | P3 | `pedidos-p3-opciones-caja` | `6c4ab2a` |
+  | P4 | `pedidos-p4-fusebutton` | `0907985` |
+
+- **P2 sin renumerar:** la migración `20261113150000` choca con #118 de `main`. Agus tiene que correr `git mv` en el worktree `p2-renumera` (pasa a `20261113200000`). Después hay que commitear en P2, mergear P2 en P3, P4 y P5, y actualizar las referencias.
+- **P5 (rama `pedidos-p5-flipcard`):** se cortó a medias, sin probar y sin commit.
+  - Archivos: `FlipCard.*`, `GradualBlur.*`, `MisPedidos.tsx`, `cliente.css`, `e2e/pedidos-flipcard.spec.ts` y `e2e/pedidos-botones.spec.ts`.
+- **P6:**
+  - Diseño en `docs/disenos/P6-hada.md`.
+  - El servidor se cortó a medias, sin commit:
+    - `supabase/functions/hada/`, `_shared/hada.ts`, `_shared/hada.test.ts` y `pglite/probar_hada.mjs`;
+    - los borradores en `pglite/borradores/`.
+  - Al retomarlo, primero hay que correr `tsc`, `eslint` y las pruebas.
+- **El `arquitecto` vence el 17/11 a las 4:59.** Falta su revisión final de P6. Después de esa fecha, la hace la sesión principal.
+- **P5 hecho:**
+  - `FlipCard` y `GradualBlur` en `src/components/reactbits/`; la tarjeta gira solo con botones, mide su alto y hay una sola girada a la vez.
+  - El dorso muestra el detalle y «Editar en el armado», que abre el flujo actual: no duplica la lógica de envío. Si el pedido no es editable, es de solo lectura.
+  - El blur va al pie de «Mis pedidos», sin interceptar clics.
+  - Playwright 32/32 dos veces; `tsc`, `eslint` y React Doctor sin errores.
+  - Queda un `vite preview` viejo en el puerto 5174 (PID 6028) que hay que cerrar a mano. Al agente le denegaron matarlo.

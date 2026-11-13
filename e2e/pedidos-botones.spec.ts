@@ -226,6 +226,10 @@ const masCaja = (page: Page, i: number, etiqueta: string) =>
     name: new RegExp(`^Más: (set|caja) de ${CAJAS[i]!.nombre}, ${etiqueta}$`),
   });
 
+/** La cara de cada tarjeta de pedido que se ve (la otra va aria-hidden). */
+const carasVisibles = (page: Page) =>
+  page.locator('.flip-card__face[aria-hidden="false"]');
+
 for (const modo of MODOS) {
   for (const ancho of ANCHOS) {
     test(`botones del portal a ${ancho}px, ${modo.nombre}`, async ({ page }) => {
@@ -331,12 +335,11 @@ for (const modo of MODOS) {
 
       // 7. Mis pedidos: la lista cerrada, y cada tarjeta abierta según su estado.
       await page.getByRole('radio', { name: /Mis pedidos/ }).click();
-      await expect(page.getByRole('button', { name: 'V-DEMO-5' })).toBeVisible();
+      await expect(carasVisibles(page).getByText('V-DEMO-5')).toBeVisible();
       await quieto(page);
       fallas.pedidosLista = await revisarControles(page);
       await captura(page, `lista-${sufijo}`);
 
-      await page.getByRole('button', { name: 'V-DEMO-5' }).click();
       await quieto(page);
       fallas.pedidos = await revisarControles(page);
       await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
@@ -349,14 +352,27 @@ for (const modo of MODOS) {
         ['V-DEMO-2', 'pedidosFinalizado'],
         ['V-DEMO-1', 'pedidosCancelado'],
       ] as const) {
-        await page.getByRole('button', { name: numero }).click();
+        // Frente (sin tocar) y dorso («Ver detalle» o «Editar» → «Volver»).
+        const tarjeta = page.locator('.flip-card', { hasText: numero });
+        await tarjeta.scrollIntoViewIfNeeded();
         await quieto(page);
         fallas[clave] = await revisarControles(page);
+        await tarjeta.getByRole('button', { name: 'Ver detalle' }).click();
+        await expect(tarjeta.getByRole('button', { name: 'Volver' })).toBeVisible();
+        await quieto(page);
+        fallas[`${clave}Dorso`] = await revisarControles(page);
+        await tarjeta.getByRole('button', { name: 'Volver' }).click();
+        await expect(tarjeta.getByRole('button', { name: 'Ver detalle' })).toBeVisible();
       }
 
       // 8. Editar el pendiente: el armado en modo edición y el resumen con los textos más largos.
-      await page.getByRole('button', { name: 'V-DEMO-5' }).click();
-      await page.getByRole('button', { name: 'Editar', exact: true }).click();
+      const pendiente = page.locator('.flip-card', { hasText: 'V-DEMO-5' });
+      await pendiente.scrollIntoViewIfNeeded();
+      await pendiente.getByRole('button', { name: 'Editar', exact: true }).click();
+      await expect(pendiente.getByRole('button', { name: 'Volver' })).toBeVisible();
+      await quieto(page);
+      fallas.pedidoDorso = await revisarControles(page);
+      await pendiente.getByRole('button', { name: 'Editar en el armado' }).click();
       await expect(page.getByRole('radio', { name: /Editando V-DEMO-5/ })).toBeVisible();
       await quieto(page);
       fallas.editando = await revisarControles(page);
@@ -382,9 +398,8 @@ for (const modo of MODOS) {
       fallas.pedidosTrasEditar = await revisarControles(page);
 
       // 10. Repetir un pedido anterior y enviarlo: el festejo de «¡Pedido enviado!».
-      await page.getByRole('button', { name: 'V-DEMO-4' }).click();
       await page
-        .locator('.cli-tarjeta', { hasText: 'V-DEMO-4' })
+        .locator('.flip-card', { hasText: 'V-DEMO-4' })
         .getByRole('button', { name: 'Repetir', exact: true })
         .click();
       await expect(page.getByRole('button', { name: /Ver pedido/ })).toBeVisible();
@@ -544,6 +559,7 @@ async function editarPedido(page: Page, cajas: unknown[], renglones: unknown[]) 
   await page
     .getByRole('button', { name: 'Editar', exact: true })
     .click({ timeout: 30_000 });
+  await page.getByRole('button', { name: 'Editar en el armado' }).click();
   await page.getByRole('button', { name: /Ver pedido/ }).click();
   return escenario;
 }
