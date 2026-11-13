@@ -13,6 +13,7 @@
  * Capturas: CAPTURAS=antes|despues npx playwright test → docs/capturas/pedidos/.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { CLAVE_SESION, NOMBRES, prepararPortal, sesion } from './portal-falso';
 
 const ANCHOS = [320, 360, 390, 768, 1280];
 const MODOS = [
@@ -21,98 +22,6 @@ const MODOS = [
   { nombre: 'texto200', oscuro: false, texto: 200 },
 ];
 const CAPTURAS = process.env.CAPTURAS;
-/** Clave de sessionStorage: si está, la sesión de la prueba cambia de cuenta. */
-const CLAVE_SESION = 'nailshow.prueba.sesion';
-
-const NOMBRES = [
-  'Crema humectante para manos y cuerpo Amor 250 ml',
-  'Crema exfoliante con microgránulos Paz 500 ml',
-  'Aceite de cutícula con vitamina E Aire 15 ml',
-  'Sanitizante para manos y superficies Amor 1 L',
-  'Monómero líquido de secado lento 120 ml',
-  'Polímero acrílico transparente 42 g',
-  'Removedor de esmalte semipermanente sin acetona 500 ml',
-  'Cleanser deshidratante 250 ml',
-  'Primer sin ácido 15 ml',
-  'Top coat brillo extremo 15 ml',
-  'Base coat rubber 15 ml',
-  'Gel constructor rosa natural 30 g',
-  'Esmalte semipermanente rojo pasión 10 ml',
-  'Lima 100/180 profesional',
-];
-const LISTA = NOMBRES.map((producto, i) => ({
-  producto_id: `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`,
-  codigo: String(360 + i),
-  producto,
-  rubro: i < 4 ? 'Cosmética' : 'Uñas',
-  precio_lista: 12000 + i * 900,
-  precio_promo: 9000 + i * 700,
-  minimo: i % 3 === 0 ? 6 : null,
-}));
-const ESCALA = [
-  { desde_monto: 0, porcentaje: 0 },
-  { desde_monto: 300000, porcentaje: 5 },
-  { desde_monto: 900000, porcentaje: 10 },
-];
-const USUARIO = { id: 'u-demo', aud: 'authenticated', role: 'authenticated', email: 'demo@x.test' };
-
-function jwt(carga: Record<string, unknown>) {
-  const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString('base64url');
-  return `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64(carga)}.firma`;
-}
-
-/** Sesión falsa de cliente. demo=false: cuenta real, sin pedidos de ejemplo. */
-function sesion(demo: boolean) {
-  const exp = Math.floor(Date.now() / 1000) + 3600 * 24;
-  return JSON.stringify({
-    access_token: jwt({ sub: 'u-demo', exp, role: 'authenticated', es_cliente: true, es_demo: demo }),
-    refresh_token: 'r',
-    token_type: 'bearer',
-    expires_in: 86400,
-    expires_at: exp,
-    user: USUARIO,
-  });
-}
-
-/** Lo que la red falsa responde; la prueba lo cambia para provocar el estado sin vincular. */
-interface Escenario {
-  perfilCaido: boolean;
-}
-
-async function prepararPortal(page: Page, oscuro: boolean, texto: number): Promise<Escenario> {
-  const escenario: Escenario = { perfilCaido: false };
-  await page.addInitScript(
-    ([s, oscuro, texto, clave]) => {
-      localStorage.setItem(
-        'sb-falso-auth-token',
-        sessionStorage.getItem(clave as string) ?? (s as string),
-      );
-      localStorage.setItem('nailshow.cliente.tutorial-visto', '1');
-      localStorage.setItem('mantine-color-scheme-value', oscuro ? 'dark' : 'light');
-      document.addEventListener('DOMContentLoaded', () => {
-        document.documentElement.style.fontSize = `${texto as number}%`;
-      });
-    },
-    [sesion(true), oscuro, texto, CLAVE_SESION] as const,
-  );
-  await page.route('http://falso.supabase.test/**', (route) => {
-    const url = route.request().url();
-    if (url.includes('/rpc/cliente_perfil')) {
-      return escenario.perfilCaido
-        ? route.fulfill({ status: 500, json: { message: 'Cliente sin vincular' } })
-        : route.fulfill({ json: { cliente: 'Comercio de prueba', nombre: null } });
-    }
-    const cuerpo = url.includes('/rpc/cliente_lista')
-      ? LISTA
-      : url.includes('/rpc/cliente_escala')
-        ? ESCALA
-        : url.includes('/auth/v1/user')
-          ? USUARIO
-          : [];
-    return route.fulfill({ json: cuerpo });
-  });
-  return escenario;
-}
 
 interface Falla {
   tipo: string;
@@ -127,14 +36,24 @@ interface Falla {
  */
 function revisarControles(page: Page): Promise<Falla[]> {
   return page.evaluate(() => {
-    const SEL = 'button, a[href], [role="button"], [role="slider"], [role="radio"], .slide-commit';
+    const SEL =
+      'button, a[href], [role="button"], [role="slider"], [role="radio"], .slide-commit';
     const visible = (el: Element) => {
       const r = el.getBoundingClientRect();
       const cs = getComputedStyle(el);
-      return r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && el.closest('[aria-hidden="true"]') === null;
+      return (
+        r.width > 0 &&
+        r.height > 0 &&
+        cs.visibility !== 'hidden' &&
+        // Dentro de content-visibility:auto fuera de pantalla no hay cajas reales.
+        el.checkVisibility({ contentVisibilityAuto: true }) &&
+        el.closest('[aria-hidden="true"]') === null
+      );
     };
     const nombre = (el: Element) =>
-      (el.getAttribute('aria-label') || el.textContent || el.className.toString()).trim().slice(0, 60);
+      (el.getAttribute('aria-label') || el.textContent || el.className.toString())
+        .trim()
+        .slice(0, 60);
     // Capa: el ancestro fijo o pegajoso más cercano (o el documento).
     const capa = (el: Element) => {
       for (let e: Element | null = el; e; e = e.parentElement) {
@@ -155,7 +74,11 @@ function revisarControles(page: Page): Promise<Falla[]> {
         // ≤ 2 px: texto solo para lectores de pantalla, oculto a propósito.
         if (!(e instanceof HTMLElement) || e.clientWidth <= 2) continue;
         if (e.scrollWidth > e.clientWidth + 1) {
-          fallas.push({ tipo: 'recortado', control: nombre(c), otro: e.className.toString().slice(0, 50) });
+          fallas.push({
+            tipo: 'recortado',
+            control: nombre(c),
+            otro: e.className.toString().slice(0, 50),
+          });
           break;
         }
       }
@@ -174,7 +97,8 @@ function revisarControles(page: Page): Promise<Falla[]> {
         const rb = b.getBoundingClientRect();
         const ancho = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left);
         const alto = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top);
-        if (ancho > 1 && alto > 1) fallas.push({ tipo: 'encimado', control: nombre(a), otro: nombre(b) });
+        if (ancho > 1 && alto > 1)
+          fallas.push({ tipo: 'encimado', control: nombre(a), otro: nombre(b) });
       }
     }
 
@@ -196,18 +120,27 @@ function revisarControles(page: Page): Promise<Falla[]> {
 
 /** Con la página al fondo, lo último del contenido queda arriba de la barra fija. */
 async function revisarPie(page: Page, barra: string): Promise<Falla[]> {
-  return page.evaluate((selBarra) => {
-    window.scrollTo(0, document.documentElement.scrollHeight);
+  return page.evaluate(async (selBarra) => {
+    // Dos pasadas: al llegar al fondo se despliegan tarjetas salteadas (content-visibility) y el alto cambia.
+    for (let i = 0; i < 3; i++) {
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    }
     const b = document.querySelector(selBarra);
     if (!b) return [];
     const tope = b.getBoundingClientRect().top;
-    const ultimos = [...document.querySelectorAll('.cli-tarjeta button, .cli-tarjeta input')].filter(
-      (e) => !b.contains(e),
-    );
+    const ultimos = [
+      ...document.querySelectorAll('.cli-tarjeta button, .cli-tarjeta input'),
+    ].filter((e) => !b.contains(e));
     const ultimo = ultimos.at(-1);
     if (!ultimo) return [];
     return ultimo.getBoundingClientRect().bottom > tope + 1
-      ? [{ tipo: 'tapado por la barra', control: ultimo.getAttribute('aria-label') ?? '' }]
+      ? [
+          {
+            tipo: 'tapado por la barra',
+            control: ultimo.getAttribute('aria-label') ?? '',
+          },
+        ]
       : [];
   }, barra);
 }
@@ -223,7 +156,11 @@ async function quieto(page: Page) {
       Promise.all(
         document
           .getAnimations()
-          .filter((a) => a.playState === 'running' && Number.isFinite(a.effect?.getComputedTiming().endTime))
+          .filter(
+            (a) =>
+              a.playState === 'running' &&
+              Number.isFinite(a.effect?.getComputedTiming().endTime),
+          )
           .map((a) => a.finished.catch(() => undefined)),
       ),
       new Promise((r) => setTimeout(r, 2000)),
@@ -245,7 +182,10 @@ async function tocar(loc: Locator, fallas: Falla[], donde: string) {
       : /outside of the viewport/.test(String(e))
         ? 'fuera de pantalla al tocar'
         : 'no se puede tocar';
-    fallas.push({ tipo: motivo, control: `${donde}: ${(await loc.getAttribute('aria-label')) ?? ''}` });
+    fallas.push({
+      tipo: motivo,
+      control: `${donde}: ${(await loc.getAttribute('aria-label')) ?? ''}`,
+    });
     await loc.dispatchEvent('click');
   }
 }
@@ -278,7 +218,8 @@ for (const modo of MODOS) {
       const fallas: Record<string, Falla[]> = {};
       const sufijo = `${ancho}-${modo.nombre}`;
       const buscador = page.getByPlaceholder('Buscá por nombre o código');
-      const uno = (i: number) => page.getByRole('button', { name: `Uno más de ${NOMBRES[i]}` });
+      const uno = (i: number) =>
+        page.getByRole('button', { name: `Uno más de ${NOMBRES[i]}` });
 
       // 1. Armar pedido vacío: lo que ve el cliente antes de agregar nada.
       await expect(uno(0)).toBeVisible({ timeout: 30_000 });
@@ -301,7 +242,9 @@ for (const modo of MODOS) {
 
       // 4. Tutorial desde el menú: cada paso, hasta «¡Empezar!», que cierra.
       await page.getByRole('menuitem', { name: 'Ver cómo se usa' }).click();
-      const tutorial = page.getByRole('dialog').filter({ hasText: 'Así se arma tu pedido' });
+      const tutorial = page
+        .getByRole('dialog')
+        .filter({ hasText: 'Así se arma tu pedido' });
       await expect(tutorial).toBeVisible();
       await quieto(page);
       fallas.tutorial1 = await revisarControles(page);
@@ -387,7 +330,9 @@ for (const modo of MODOS) {
 
       // 9. Guardar la edición: el festejo y el regreso a «Mis pedidos».
       await deslizar(page);
-      await expect(page.getByRole('heading', { name: '¡Cambios guardados!' })).toBeVisible({
+      await expect(
+        page.getByRole('heading', { name: '¡Cambios guardados!' }),
+      ).toBeVisible({
         timeout: 15_000,
       });
       await quieto(page);
@@ -421,10 +366,10 @@ for (const modo of MODOS) {
       fallas.pedidosTrasEnviar = await revisarControles(page);
 
       // 11. Cuenta sin vincular: «¡Ya casi!» con los botones de reintentar y salir.
-      await page.evaluate(
-        ({ clave, valor }) => sessionStorage.setItem(clave, valor),
-        { clave: CLAVE_SESION, valor: sesion(false) },
-      );
+      await page.evaluate(({ clave, valor }) => sessionStorage.setItem(clave, valor), {
+        clave: CLAVE_SESION,
+        valor: sesion(false),
+      });
       escenario.perfilCaido = true;
       await page.goto('/', { waitUntil: 'domcontentloaded' });
       await expect(page.getByRole('heading', { name: '¡Ya casi!' })).toBeVisible();
@@ -441,9 +386,13 @@ for (const modo of MODOS) {
       fallas.sinPedidos = await revisarControles(page);
       await captura(page, `sin-pedidos-${sufijo}`);
 
-      const todas = Object.entries(fallas).flatMap(([donde, f]) => f.map((x) => ({ donde, ...x })));
+      const todas = Object.entries(fallas).flatMap(([donde, f]) =>
+        f.map((x) => ({ donde, ...x })),
+      );
       expect(
-        todas.map((f) => `${f.donde} · ${f.tipo} · ${f.control}${f.otro ? ` ↔ ${f.otro}` : ''}`),
+        todas.map(
+          (f) => `${f.donde} · ${f.tipo} · ${f.control}${f.otro ? ` ↔ ${f.otro}` : ''}`,
+        ),
       ).toEqual([]);
     });
   }

@@ -1,4 +1,13 @@
-import { memo, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import {
+  memo,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type Dispatch,
+  type SetStateAction,
+} from 'react';
 import {
   ActionIcon,
   Badge,
@@ -18,7 +27,7 @@ import {
   ThemeIcon,
   Title,
 } from '@mantine/core';
-import { useDebouncedValue, useElementSize } from '@mantine/hooks';
+import { useDebouncedValue, useElementSize, useMediaQuery } from '@mantine/hooks';
 import {
   IconCheck,
   IconMinus,
@@ -33,6 +42,7 @@ import {
 import SlideCommit from '@/vendor/reactbits/SlideCommit';
 import HoldButton from '@/vendor/reactbits/HoldButton';
 import { numero } from '@/lib/formato';
+import { TextoDual } from './TextoDual';
 import {
   calcularVenta,
   precioFinalUnidad,
@@ -197,7 +207,13 @@ export function ArmarPedido({
         </div>
       </Box>
 
-      <Stack gap={10} px="md" pt="xs" pb={cuenta.productos ? 190 : 40}>
+      <Stack
+        gap={10}
+        px="md"
+        pt="xs"
+        {...(cuenta.productos ? {} : { pb: 40 })}
+        {...(cuenta.productos ? { className: 'cli-pie-barra' } : {})}
+      >
         {visibles.length === 0 ? (
           <Center py={60}>
             <Stack align="center" gap={6}>
@@ -228,6 +244,7 @@ export function ArmarPedido({
         position="bottom"
         size="92%"
         radius="xl"
+        className="cli-portal"
         title={
           <Text fw={800} size="lg">
             {editando ? `Tu pedido ${editando.numero}` : 'Tu pedido'}
@@ -267,6 +284,9 @@ export function ArmarPedido({
 }
 
 type Cuenta = ReturnType<typeof useCuenta>;
+
+/** Botones de ícono de 44 px fijos: no crecen con el texto del sistema. */
+const PX44 = { '--ai-size': '44px' } as CSSProperties;
 
 const TarjetaProducto = memo(function TarjetaProducto({
   p,
@@ -313,7 +333,7 @@ const TarjetaProducto = memo(function TarjetaProducto({
           )}
         </div>
       </Group>
-      <Group mt="sm" justify="space-between" wrap="nowrap" gap={8}>
+      <Group mt="sm" justify="space-between" gap={8}>
         {p.pack ? (
           <Button
             variant="light"
@@ -328,9 +348,9 @@ const TarjetaProducto = memo(function TarjetaProducto({
         ) : (
           <span />
         )}
-        <Group gap={6} wrap="nowrap">
+        <Group gap={6} wrap="nowrap" ml="auto">
           <ActionIcon
-            size={46}
+            style={PX44}
             radius="xl"
             variant="light"
             color="gray"
@@ -342,7 +362,7 @@ const TarjetaProducto = memo(function TarjetaProducto({
           </ActionIcon>
           <NumberInput
             classNames={{ input: 'cli-cantidad' }}
-            w={64}
+            style={{ width: 64, flexShrink: 0 }}
             size="md"
             radius="md"
             hideControls
@@ -355,7 +375,7 @@ const TarjetaProducto = memo(function TarjetaProducto({
             aria-label={`Cantidad de ${p.producto}`}
           />
           <ActionIcon
-            size={46}
+            style={PX44}
             radius="xl"
             color="grape"
             onClick={() => onCambiar(p.producto_id, cantidad + 1)}
@@ -373,8 +393,22 @@ function BarraTotal({ cuenta, onAbrir }: { cuenta: Cuenta; onAbrir: () => void }
   const avance = cuenta.proximo
     ? Math.min(100, (cuenta.lista / (cuenta.lista + cuenta.proximo.falta)) * 100)
     : 100;
+  const barra = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = barra.current;
+    if (!el) return;
+    const raiz = document.documentElement.style;
+    const medir = () => raiz.setProperty('--cli-barra-h', `${el.offsetHeight}px`);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      raiz.removeProperty('--cli-barra-h');
+    };
+  }, []);
   return (
-    <div className="cli-barra">
+    <div className="cli-barra" ref={barra}>
       <Group justify="space-between" mb={6} wrap="nowrap">
         <Text size="sm" fw={600} lh={1.2}>
           {cuenta.proximo ? (
@@ -443,6 +477,8 @@ function ResumenPedido({
 }) {
   const enviar = useEnviarPedidoCliente();
   const { ref, width } = useElementSize();
+  // Celular: más alto para que «Deslizá…» entre en dos renglones.
+  const alto = useMediaQuery('(max-width: 420px)') ? 64 : 56;
   const porId = new Map(productos.map((p) => [p.producto_id, p]));
   const items = [...carrito].filter(([pid, c]) => c > 0 && porId.has(pid));
 
@@ -461,7 +497,7 @@ function ResumenPedido({
           const p = porId.get(pid)!;
           const final = precioFinalUnidad(p.precio_promo, cuenta.descuento, null);
           return (
-            <Group key={pid} justify="space-between" wrap="nowrap" gap="xs">
+            <Stack key={pid} gap={4}>
               <div style={{ minWidth: 0 }}>
                 <Text fw={600} size="sm" lh={1.25} lineClamp={2}>
                   {p.producto}
@@ -470,9 +506,9 @@ function ResumenPedido({
                   {numero(c, 0)} × {pesos(final)} = <b>{pesos(c * final)}</b>
                 </Text>
               </div>
-              <Group gap={4} wrap="nowrap">
+              <Group gap={4} wrap="wrap" justify="flex-end">
                 <ActionIcon
-                  size={40}
+                  style={PX44}
                   radius="xl"
                   variant="light"
                   color="gray"
@@ -481,11 +517,11 @@ function ResumenPedido({
                 >
                   <IconMinus size={18} />
                 </ActionIcon>
-                <Text fw={800} w={40} ta="center">
+                <Text fw={800} miw={40} ta="center">
                   {numero(c, 0)}
                 </Text>
                 <ActionIcon
-                  size={40}
+                  style={PX44}
                   radius="xl"
                   color="grape"
                   onClick={() => onCambiar(pid, c + 1)}
@@ -494,7 +530,7 @@ function ResumenPedido({
                   <IconPlus size={18} />
                 </ActionIcon>
                 <ActionIcon
-                  size={40}
+                  style={PX44}
                   radius="xl"
                   variant="subtle"
                   color="red"
@@ -504,7 +540,7 @@ function ResumenPedido({
                   <IconTrash size={18} />
                 </ActionIcon>
               </Group>
-            </Group>
+            </Stack>
           );
         })}
       </Stack>
@@ -563,9 +599,10 @@ function ResumenPedido({
             }
             doneLabel="¡Listo!"
             errorLabel="No salió, probá de nuevo"
+            className="cli-slide"
             width={width}
-            height={64}
-            radius={32}
+            height={alto}
+            radius={alto / 2}
             trackColor="#f3e8f8"
             handleColor="#be4bdb"
             successColor="#2f9e44"
@@ -587,6 +624,7 @@ function ResumenPedido({
 
       <HoldButton
         size="md"
+        className="cli-hold"
         holdTime={900}
         releaseTime={150}
         backgroundColor="#fdecec"
@@ -598,9 +636,17 @@ function ResumenPedido({
         resetAfter={0}
         onHold={onVaciar}
       >
-        {editando
-          ? 'Mantené apretado para descartar los cambios'
-          : 'Mantené apretado para borrar todo'}
+        {editando ? (
+          <TextoDual
+            corto="Mantené para descartar"
+            largo="Mantené apretado para descartar los cambios"
+          />
+        ) : (
+          <TextoDual
+            corto="Mantené para borrar todo"
+            largo="Mantené apretado para borrar todo"
+          />
+        )}
       </HoldButton>
     </Stack>
   );
@@ -626,7 +672,13 @@ function Festejo({
     })),
   );
   return (
-    <Modal opened={abierto} onClose={onCerrar} fullScreen withCloseButton={false}>
+    <Modal
+      opened={abierto}
+      onClose={onCerrar}
+      fullScreen
+      withCloseButton={false}
+      className="cli-portal"
+    >
       {abierto
         ? piezas.map((p, i) => (
             <span

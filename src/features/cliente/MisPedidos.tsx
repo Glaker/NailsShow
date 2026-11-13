@@ -18,6 +18,7 @@ import {
   IconRepeat,
   IconX,
 } from '@tabler/icons-react';
+import { TextoDual } from './TextoDual';
 import { fecha, fechaHora, numero } from '@/lib/formato';
 import {
   useCancelarPedidoCliente,
@@ -178,7 +179,7 @@ export function MisPedidos({
               </Stack>
             </Collapse>
 
-            <Group mt="sm" gap="xs" grow>
+            <div className="cli-acciones">
               {p.editable ? (
                 <Button
                   variant="light"
@@ -213,7 +214,7 @@ export function MisPedidos({
                         : cancelar.mutate(p.id, { onSettled: () => setConfirmando(null) })
                     }
                   >
-                    ¿Seguro? Cancelar
+                    <TextoDual corto="¿Cancelar?" largo="¿Seguro? Cancelar" />
                   </Button>
                 ) : (
                   <Button
@@ -228,7 +229,7 @@ export function MisPedidos({
                   </Button>
                 )
               ) : null}
-            </Group>
+            </div>
           </Box>
         );
       })}

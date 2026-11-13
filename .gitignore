@@ -49,3 +49,6 @@ npm-debug.log*
 dist-e2e/
 test-results/
 playwright-report/
+
+# Originales pesados (video y fotos de Hada); al repo van solo los procesados de public/hada/.
+assets-originales/

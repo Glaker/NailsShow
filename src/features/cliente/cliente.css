@@ -221,10 +221,100 @@
 
 /* SlideCommit: el texto queda a la derecha de la manija y parte renglón. */
 .slide-commit.cli-slide .slide-commit__label {
-  left: calc(var(--sc-radius) * 2);
+  left: calc(var(--sc-radius) * 2 + 6px);
   right: var(--sc-pad);
   white-space: normal;
   text-align: center;
   text-wrap: balance;
   line-height: 1.15;
+}
+
+/* Texto corto / largo (TextoDual). El largo queda para lectores de pantalla. */
+.cli-corto {
+  display: none;
+}
+@media (max-width: 420px) {
+  .cli-corto {
+    display: inline;
+  }
+  .cli-largo {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* Etiquetas que parten palabra larga en vez de salirse. */
+.cli-fondo .mantine-Button-label,
+.cli-portal .mantine-Button-label,
+.hold-button.cli-hold .hold-button__label > span,
+.slide-commit.cli-slide .slide-commit__label {
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Botones de la tarjeta de pedido: dos columnas en celular. */
+.cli-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: var(--mantine-spacing-sm);
+}
+.cli-acciones > * {
+  flex: 1 1 auto;
+}
+
+/* Lo que Mantine monta en portales (menú, cajón): nunca más ancho que la pantalla. */
+.cli-portal.mantine-Menu-dropdown {
+  max-width: calc(100vw - 16px);
+}
+.cli-portal .mantine-Menu-itemLabel {
+  white-space: normal;
+}
+
+/* Espacio al pie del listado: lo que mide la barra fija (la escribe BarraTotal). */
+.cli-pie-barra {
+  padding-bottom: calc(var(--cli-barra-h, 0px) + env(safe-area-inset-bottom) + 24px);
+}
+
+/* Texto grande: botones e insignias de la tarjeta de pedido pasan a varias líneas en vez de recortarse. */
+.cli-acciones .mantine-Button-root {
+  height: auto;
+  min-height: 42px;
+  min-width: max-content;
+  padding-block: 6px;
+}
+.cli-acciones .mantine-Button-label,
+.cli-tarjeta .mantine-Badge-label,
+.cli-tarjeta .mantine-Badge-root {
+  white-space: normal;
+  text-overflow: clip;
+}
+.cli-tarjeta .mantine-Badge-root {
+  height: auto;
+  min-height: 26px;
+  padding-block: 2px;
+}
+
+/* Barra «Ver pedido»: crece con el texto del sistema en vez de recortarlo. */
+.cli-barra .mantine-Button-root {
+  height: auto;
+  min-height: 60px;
+  padding-block: 8px;
+}
+.cli-barra .mantine-Button-label {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+.cli-barra .mantine-Button-inner {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+.cli-barra .mantine-Button-label {
+  flex: 1 1 auto;
+  min-width: min-content;
 }

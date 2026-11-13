@@ -32,6 +32,7 @@ import {
 import { aplicarEnvioDemo, pedidosDeEjemplo } from './demo';
 import { ArmarPedido, type Carrito } from './ArmarPedido';
 import { MisPedidos } from './MisPedidos';
+import { TextoDual } from './TextoDual';
 import { Tutorial, tutorialVisto } from './Tutorial';
 import './cliente.css';
 
@@ -133,13 +134,18 @@ export function AppCliente() {
             </Text>
           </div>
         </Group>
-        <Menu position="bottom-end" shadow="md" width={220}>
+        <Menu
+          position="bottom-end"
+          shadow="md"
+          width={220}
+          middlewares={{ flip: true, shift: true }}
+        >
           <Menu.Target>
             <ActionIcon variant="subtle" color="gray" size={44} aria-label="Más opciones">
               <IconDotsVertical size={24} />
             </ActionIcon>
           </Menu.Target>
-          <Menu.Dropdown>
+          <Menu.Dropdown className="cli-portal">
             <Menu.Item
               leftSection={<IconHelpCircle size={18} />}
               onClick={() => setTutorial(true)}
@@ -184,7 +190,11 @@ export function AppCliente() {
           items={[
             {
               value: 'armar',
-              label: editando ? `Editando ${editando.numero}` : 'Armar pedido',
+              label: editando ? (
+                <TextoDual corto="Editando" largo={`Editando ${editando.numero}`} />
+              ) : (
+                'Armar pedido'
+              ),
               icon: <IconShoppingBag size={18} />,
             },
             {

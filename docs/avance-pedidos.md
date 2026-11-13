@@ -85,6 +85,12 @@ Plan: `docs/PROMPT_PEDIDOS_HADA.md`. Una rama por paquete desde `main`, sin merg
 8. **Mensajes de novedades (3 bis):** la especificación está en `docs/PLAN_SIMPLIFICACION_WANDEL.md`, que no existe. En P7 se arma un registro mínimo en `src/novedades/registro.ts`.
 9. **Material de Hada:** no hay video ni fotos (`assets-originales/hada/` no existe), así que P6 arranca con un avatar en SVG/CSS y el video se suma cuando llegue. `ffmpeg` no está; se usaría `ffmpeg-static` como dependencia de desarrollo.
 10. **Hada necesita `ANTHROPIC_API_KEY`** en los secretos de Supabase (ya existe para Giorgio) y un tope de gasto en la consola de Anthropic. Lo revisa Agus.
+12. **P3 y las migraciones de #111 (2026-11-12):** la cadena sale de `8abb957` (#110), sin #111 ni #112.
+    - Decisión conservadora: P3 sale de la rama de P2 y se le mergea `origin/main` (que ya trae #111 y #112), sin rebase ni `--force`.
+    - Así P3 contiene las migraciones de #111 y conserva la cadena P1 → P2 → P3.
+    - Se mergea `main` y no solo la rama de #111 porque #112 corrige a #111, y dejar #111 sin su corrección no tiene sentido.
+13. **Chequeo «base desde cero» de NS-397 y NS-398:** pendiente, no se arregla en este trabajo (pedido de Agus).
+14. **Tipos generados:** `npm run db:types` lee la base alojada, donde las migraciones nuevas todavía no están aplicadas. Mientras tanto, `src/lib/database.types.ts` se ajusta a mano solo en las funciones que cambian, y hay que regenerarlo después del `db push`.
 11. **Subagentes nuevos:** `implementador`, `revisor-seguridad`, `revisor-gmp` y `arquitecto` se crearon en esta rama. Puede hacer falta reabrir la sesión para que Claude Code los cargue.
 
 ## P1 · Encargos (rama `ux/p1-botones-pedidos`, desde `main`)
@@ -142,6 +148,63 @@ Avisos antes de delegar:
 - `armador-de-pantallas` escribió `playwright.config.ts` y `e2e/pedidos-botones.spec.ts` sobre la base de `coma-decimal`. El recorrido cubre todo el portal: inicial, búsqueda vacía, menú, tutorial (4 pasos), armado con filtros, resumen nuevo y en edición, cada estado de «Mis pedidos», festejos, cuenta sin vincular y cuenta sin pedidos. `corredor-de-pruebas` la corrió.
 - Arreglos de la prueba tras las primeras corridas: `quieto()` espera solo las animaciones en curso, con tope de 2 s (las pausadas no terminan nunca). Un control tapado o fuera de pantalla se anota como falla en vez de cortar la prueba. El SlideCommit se confirma con `End`. Se usan 2 workers con 180 s por caso.
 - **Caso de 1280 px en claro, que fallaba:** no es de ancho ni de superposición. Solo pasa entero, en 16 s. Fallaba por saturación: con 4 navegadores en paralelo la página no terminaba de cargar la lista dentro del tiempo. Por eso se bajó a 2 workers.
+
+- Commit `a16ec00` «P1: encargo 2, prueba de pantallas del portal» (sin push). Agus dio el visto bueno el 2026-11-12 y pidió correr de corrido P1 (encargo 3) a P7.
+
+### Corrida P1-encargo 3 a P7 (desde 2026-11-12, sin confirmación entre pasos)
+
+Reglas que fijó Agus para esta corrida:
+- **Ramas encadenadas:** cada paquete sale de la rama del anterior (P2 desde `ux/p1-botones-pedidos`, P3 desde la de P2, etc.). Un commit por paquete, sin push ni merge. La base de cada rama queda anotada en la tabla de abajo, para que Glaker revise los PR en orden.
+- Antes de P3 hay que verificar que estén las migraciones de #111. El chequeo «base desde cero» de NS-397 y NS-398 no se arregla acá: queda pendiente.
+- Hada sin `ANTHROPIC_API_KEY` se construye y se prueba con el modelo simulado.
+- Si no existe el motor de novedades (3 bis), no se construye: los textos de cada novedad quedan redactados acá.
+
+| Paquete | Rama | Sale de | Commit |
+|---|---|---|---|
+| P1 | `ux/p1-botones-pedidos` | `main` en `8abb957` (#110) | `a16ec00` (encargo 2), encargo 3 pendiente |
+
+Hechos y decisiones al arrancar:
+- **#111 no está en la base de la cadena.** Está mergeado en `main` (`774007b`), y después vino #112 (`8aa1ba0`, que anula ajustes de Romero), pero `ux/p1-botones-pedidos` salió de `8abb957`. Decisión para P3, en `Supuestos a confirmar`.
+- **Material de Hada:** `assets-originales/hada/` no existía. Se copiaron desde la carpeta `App`:
+  - `hada video.mp4` → `hada-video.mp4` (7,7 MB);
+  - `WhatsApp Image 2026-11-12 at 11.59.13.jpeg` → `hada-1.jpeg`;
+  - `…11.59.132.jpeg` → `hada-2.jpeg`.
+
+  `assets-originales/` se agregó al `.gitignore`, porque no estaba. No hay `ffmpeg` en la máquina.
+- **`ANTHROPIC_API_KEY`** no está definida en el entorno local: Hada se prueba con el modelo simulado (regla 4).
+- **Causa raíz de P2:** el nombre en `gmp.productos` es «HUMECTANTE AMOR 240ml.» / «EXFOLIANTE AMOR 240ml.» (`20260911170000_carga_productos.sql:307-320`), sin «crema». Además, el portal filtra en memoria sin sacar tildes.
+
+  Corrección: tabla nueva `comercial.productos_nombre_comercial` (nombre comercial + alias). `cliente_lista()` devuelve el nombre comercial y los alias, y el filtro del portal normaliza tildes y mayúsculas. No se usan `unaccent` ni `pg_trgm`, porque la búsqueda es en el navegador. `gmp` no se toca.
+
+### Pausa del 2026-11-12 (pedida por Agus; se retoma al día siguiente)
+
+Se frenaron tres subagentes a mitad de camino. Nada quedó commiteado después de `a16ec00`.
+- **Encargo 3 de P1 (`implementador`, Sonnet): a medias, sin probar.** Dejó cambios en:
+  - `AppCliente.tsx`, `ArmarPedido.tsx`, `MisPedidos.tsx`, `Tutorial.tsx`, `demo.ts`, `cliente.css` y `e2e/pedidos-botones.spec.ts`;
+  - archivos nuevos: `src/features/cliente/TextoDual.tsx`, `e2e/portal-falso.ts` y `e2e/deslizador-arrastre.spec.ts`.
+
+  Estaba pasando la sesión falsa del spec a `portal-falso.ts`. Al retomar: revisar el diff (`git diff`), terminar los puntos 1-8 del encargo y correr la prueba (criterio: 15/15 más el arrastre). No se corrió `tsc` ni `eslint`.
+- **Borrador de migración de P2 (`implementador`, Sonnet): hecho.** Está en `supabase/tests/pglite/borradores/20261112170000_comercial_nombre_comercial_y_alias.sql`, con su suite `supabase/tests/pglite/probar_nombre_comercial.mjs` (6/6 en verde). La carpeta `borradores/` y el symlink `supabase/tests/pglite/node_modules` no se versionan. Falta:
+  - la revisión de `revisor-sql`, que se cortó sin informe y hay que relanzarla;
+  - escribir la migración en `supabase/migrations/`;
+  - el frente de P2: filtro sin tildes que use `alias` en `ArmarPedido.tsx`, y los tipos.
+- **Diseño de P3 (`arquitecto`, Fable 5.2): cortado sin respuesta.** Hay que relanzarlo con el mismo encargo, siempre antes del 17/11/2026 a las 4:59.
+- Los cambios sin commitear de `.gitignore` (`assets-originales/`) y de este archivo son de la sesión principal.
+
+### Reanudación del 2026-11-13
+
+- `CLAUDE_CODE_SUBAGENT_MODEL` vacía y `implementador` cargado: los modelos de la tabla ya se respetan.
+- En paralelo:
+  - `implementador` (Sonnet) termina el encargo 3 y corre tsc, eslint y Playwright;
+  - `revisor-sql` (Sonnet) revisa el borrador de P2;
+  - `arquitecto` (Fable 5.2) diseña P3. Fecha del sistema: 13/11, 11:05, antes del corte.
+
+- **P2, borrador corregido (25/25).**
+  - `revisor-sql` no encontró bloqueantes; el `implementador` aplicó sus correcciones.
+  - Bug encontrado al probar: la política UPDATE exigía `actualizado_por` = sesión, y Ventas no podía editar. Ahora lo sella un trigger.
+  - La sesión principal agregó `id uuid unique`, para que `core.auditoria.registro_id` no quede nulo.
+  - Falta el frente (filtro sin tildes con alias), que espera a que termine el encargo 3 porque toca `ArmarPedido.tsx`.
+- **P3, diseño del `arquitecto`:** `docs/disenos/P3-opciones-caja.md`, con tres decisiones abiertas (D-opciones-caja-1 a 3).
 
 ### Para el encargo 3
 
