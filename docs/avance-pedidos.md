@@ -268,3 +268,17 @@ Se frenaron tres subagentes a mitad de camino. Nada quedó commiteado después d
 - **Pruebas:** `tsc` limpio. Playwright 22/22 dos veces seguidas, corridas por la sesión principal.
 - **Subagentes:** `arquitecto` (diseño y revisión final), `implementador` ×6, `revisor-sql` ×1. Sin escalar.
 - **`reconstruir.mjs`:** omite `20261113130000`, que viene de `main` y mezcla esquema con el arreglo de OP-2026-0008. Ver el comentario en el archivo.
+
+### P4 en curso (2026-11-13, rama `pedidos-p4-fusebutton`, sale de P3 `6c4ab2a`)
+
+- **Licencia de React Bits, verificada el 2026-11-13** en `LICENSE.md` de `DavidHDev/react-bits` (`main`): «MIT + Commons Clause License Condition v1.0».
+  - Permite usar, copiar y modificar los componentes «as part of an application, website, or product».
+  - Prohíbe vender, sublicenciar o redistribuir los componentes en sí.
+  - Copiarlos dentro de la app está permitido.
+- **P2 renumerada:** `main` tomó `20261113150000` (#118, tandas), así que la migración de P2 pasa a `20261113200000`.
+  - El hook bloquea mover migraciones; lo corre Agus en el worktree `p2-renumera` (autorizado el 2026-11-13).
+- **P4 hecho:**
+  - `src/components/reactbits/FuseButton.{jsx,css,d.ts}`, con íconos de Tabler, `inert` para React 18 y Escape que no cierra el Drawer;
+  - la mecha se cancela al ocultar la pestaña o al desmontar.
+  - Reemplaza la papelera de cada SKU y de cada caja en el resumen.
+  - **Pruebas:** Playwright 26/26, dos veces; `tsc` y `eslint` limpios. `implementador`, sin escalar (un corte por límite de uso, retomado).

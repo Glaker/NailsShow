@@ -355,3 +355,21 @@
     display: block;
   }
 }
+
+/* FuseButton («Borrar» una línea): en celular chico solo el ícono, así la
+   pastilla no excede el ancho de la fila. La mecha usa el color de advertencia. */
+.cli-borrar-linea {
+  flex: none;
+}
+@media (max-width: 479px) {
+  .cli-borrar-linea .fuse-button__label {
+    display: none;
+  }
+  .cli-borrar-linea .fuse-button {
+    --fb-px: 12px;
+  }
+}
+/* Fila con el borrado en marcha. */
+.cli-por-borrar {
+  opacity: 0.5;
+}

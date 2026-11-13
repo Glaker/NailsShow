@@ -41,6 +41,7 @@ import {
 } from '@tabler/icons-react';
 import SlideCommit from '@/vendor/reactbits/SlideCommit';
 import HoldButton from '@/vendor/reactbits/HoldButton';
+import FuseButton from '@/components/reactbits/FuseButton';
 import { numero } from '@/lib/formato';
 import { normalizarNombre } from '@/lib/consultasVentas';
 import { TextoDual } from './TextoDual';
@@ -543,6 +544,52 @@ function BarraTotal({ cuenta, onAbrir }: { cuenta: Cuenta; onAbrir: () => void }
   );
 }
 
+function MarcaPorBorrar() {
+  return (
+    <Text size="xs" fw={700} c="orange.8">
+      por borrar
+    </Text>
+  );
+}
+
+/**
+ * Borra UNA línea con mecha de 4 s: el borrado ocurre al terminar la mecha y
+ * «Deshacer» (o Escape) lo cancela. Si se cierra el resumen, se sale de la
+ * pantalla o se oculta la pestaña, se cancela: no se pierde nada por accidente.
+ */
+function BorrarLinea({
+  nombre,
+  onArmado,
+  onBorrar,
+}: {
+  nombre: string;
+  onArmado: (armado: boolean) => void;
+  onBorrar: () => void;
+}) {
+  // Al desmontarse (cierre del cajón, otra pantalla) la mecha se cancela sola.
+  return (
+    <div className="cli-borrar-linea">
+      <FuseButton
+        commitOn="fuseEnd"
+        undoWindow={4000}
+        fuse="outline"
+        size="sm"
+        label="Borrar"
+        undoLabel="Deshacer"
+        doneLabel="Borrado"
+        ariaLabel={`Borrar ${nombre}`}
+        undoAriaLabel={`Deshacer borrar ${nombre}`}
+        background="var(--mantine-color-red-light)"
+        color="var(--mantine-color-red-light-color)"
+        fuseColor="var(--mantine-color-orange-6)"
+        cancelarAlOcultar
+        onPhaseChange={(f) => onArmado(f === 'armed')}
+        onFuseEnd={onBorrar}
+      />
+    </div>
+  );
+}
+
 function ResumenPedido({
   productos,
   carrito,
@@ -576,6 +623,15 @@ function ResumenPedido({
   enviarDemo?: ((e: EnvioPedido) => Promise<unknown>) | undefined;
 }) {
   const enviar = useEnviarPedidoCliente();
+  // Líneas con la mecha encendida (se ven atenuadas hasta que termina o se deshace).
+  const [porBorrar, setPorBorrar] = useState<ReadonlySet<string>>(new Set());
+  const marcar = (clave: string, armado: boolean) =>
+    setPorBorrar((prev) => {
+      const sig = new Set(prev);
+      if (armado) sig.add(clave);
+      else sig.delete(clave);
+      return sig;
+    });
   const { ref, width } = useElementSize();
   // Celular: más alto para que «Deslizá…» entre en dos renglones.
   const alto = useMediaQuery('(max-width: 420px)') ? 64 : 56;
@@ -638,10 +694,14 @@ function ResumenPedido({
           const que = `${g.nombre}, ${etiquetaOpcion(opcion)}`;
           return (
             <Stack key={clave} gap={4}>
-              <div style={{ minWidth: 0 }}>
+              <div
+                style={{ minWidth: 0 }}
+                className={porBorrar.has(clave) ? 'cli-por-borrar' : undefined}
+              >
                 <Text fw={600} size="sm" lh={1.25} lineClamp={2}>
                   {g.nombre} · {etiquetaOpcion(opcion)}
                 </Text>
+                {porBorrar.has(clave) ? <MarcaPorBorrar /> : null}
                 <Text size="xs" c="dimmed">
                   {textoCajas(opcion, c)} × {pesos(final)} = <b>{pesos(c * final)}</b>
                 </Text>
@@ -666,16 +726,11 @@ function ResumenPedido({
                 >
                   <IconPlus size={18} />
                 </ActionIcon>
-                <ActionIcon
-                  style={PX44}
-                  radius="xl"
-                  variant="subtle"
-                  color="red"
-                  onClick={() => onCambiarCaja(clave, 0)}
-                  aria-label={`Sacar ${que}`}
-                >
-                  <IconTrash size={18} />
-                </ActionIcon>
+                <BorrarLinea
+                  nombre={que}
+                  onArmado={(a) => marcar(clave, a)}
+                  onBorrar={() => onCambiarCaja(clave, 0)}
+                />
               </Group>
             </Stack>
           );
@@ -685,10 +740,14 @@ function ResumenPedido({
           const final = precioFinalUnidad(p.precio_promo, cuenta.descuento, null);
           return (
             <Stack key={pid} gap={4}>
-              <div style={{ minWidth: 0 }}>
+              <div
+                style={{ minWidth: 0 }}
+                className={porBorrar.has(pid) ? 'cli-por-borrar' : undefined}
+              >
                 <Text fw={600} size="sm" lh={1.25} lineClamp={2}>
                   {p.producto}
                 </Text>
+                {porBorrar.has(pid) ? <MarcaPorBorrar /> : null}
                 <Text size="xs" c="dimmed">
                   {numero(c, 0)} × {pesos(final)} = <b>{pesos(c * final)}</b>
                 </Text>
@@ -716,16 +775,11 @@ function ResumenPedido({
                 >
                   <IconPlus size={18} />
                 </ActionIcon>
-                <ActionIcon
-                  style={PX44}
-                  radius="xl"
-                  variant="subtle"
-                  color="red"
-                  onClick={() => onCambiar(pid, 0)}
-                  aria-label={`Sacar ${p.producto}`}
-                >
-                  <IconTrash size={18} />
-                </ActionIcon>
+                <BorrarLinea
+                  nombre={p.producto}
+                  onArmado={(a) => marcar(pid, a)}
+                  onBorrar={() => onCambiar(pid, 0)}
+                />
               </Group>
             </Stack>
           );

@@ -314,6 +314,17 @@ for (const modo of MODOS) {
       await cajon.locator('.slide-commit').scrollIntoViewIfNeeded();
       fallas.resumenNuevoPie = await revisarControles(page);
       await captura(page, `resumen-nuevo-${sufijo}`);
+
+      // 6b. Una línea «por borrar» (mecha encendida): la pastilla «Deshacer» cabe en la fila.
+      const borrar = cajon.getByRole('button', { name: `Borrar ${NOMBRES[0]}` });
+      fallas.porBorrar = [];
+      await tocar(borrar, fallas.porBorrar, 'borrar');
+      await expect(cajon.getByText('por borrar')).toBeVisible();
+      await quieto(page);
+      fallas.resumenPorBorrar = await revisarControles(page);
+      await captura(page, `resumen-por-borrar-${sufijo}`);
+      await cajon.getByRole('button', { name: `Deshacer borrar ${NOMBRES[0]}` }).click();
+      await expect(cajon.getByText('por borrar')).toBeHidden();
       await page.keyboard.press('Escape');
       await expect(cajon).toBeHidden();
       await quieto(page);
@@ -571,4 +582,66 @@ test('editar sin cajas y cliente_cajas caído: sale con p_cajas null', async ({
   await deslizar(page);
   await expect.poll(() => escenario.enviados.length).toBe(1);
   expect(escenario.enviados[0]!['p_cajas']).toBeNull();
+});
+
+/** Portal con un producto en el pedido y el resumen abierto. */
+async function resumenConUnaLinea(page: Page) {
+  await page.setViewportSize({ width: 390, height: 800 });
+  await prepararPortal(page, false, 100);
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('button', { name: `Uno más de ${NOMBRES[0]}` }).click({
+    timeout: 30_000,
+  });
+  await page.getByRole('button', { name: /Ver pedido/ }).click();
+  const cajon = page.getByRole('dialog');
+  const linea = cajon.getByText(NOMBRES[0]!, { exact: true });
+  await expect(linea).toBeVisible();
+  return {
+    cajon,
+    linea,
+    borrar: cajon.getByRole('button', { name: `Borrar ${NOMBRES[0]}` }),
+  };
+}
+
+test('borrar una línea: con la mecha completa la saca', async ({ page }) => {
+  const { cajon, linea, borrar } = await resumenConUnaLinea(page);
+  await borrar.click();
+  await expect(cajon.getByText('por borrar')).toBeVisible();
+  await expect(linea).toBeVisible();
+  await expect(cajon.getByText('Tu pedido está vacío.')).toBeVisible({ timeout: 8000 });
+  await expect(linea).toBeHidden();
+});
+
+test('borrar una línea: Deshacer dentro de la ventana no la saca', async ({ page }) => {
+  const { cajon, linea, borrar } = await resumenConUnaLinea(page);
+  await borrar.click();
+  await cajon.getByRole('button', { name: `Deshacer borrar ${NOMBRES[0]}` }).click();
+  await expect(cajon.getByText('por borrar')).toBeHidden();
+  await page.waitForTimeout(4500);
+  await expect(linea).toBeVisible();
+});
+
+test('borrar una línea: Escape deshace y no cierra el resumen', async ({ page }) => {
+  const { cajon, linea, borrar } = await resumenConUnaLinea(page);
+  await borrar.click();
+  await expect(cajon.getByText('por borrar')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(cajon.getByText('por borrar')).toBeHidden();
+  await expect(cajon).toBeVisible();
+  await page.waitForTimeout(4500);
+  await expect(linea).toBeVisible();
+});
+
+test('borrar una línea: cerrar el resumen con la mecha encendida no la saca', async ({
+  page,
+}) => {
+  const { cajon, borrar } = await resumenConUnaLinea(page);
+  await borrar.click();
+  await expect(cajon.getByText('por borrar')).toBeVisible();
+  await page.locator('.mantine-Drawer-close').click();
+  await expect(cajon).toBeHidden();
+  await page.waitForTimeout(4500);
+  await page.getByRole('button', { name: /Ver pedido/ }).click();
+  await expect(cajon.getByText(NOMBRES[0]!, { exact: true })).toBeVisible();
+  await expect(cajon.getByText('por borrar')).toBeHidden();
 });
