@@ -1718,6 +1718,27 @@ descuentan el reemplazo con la misma cantidad que pide la fórmula
 - Cargar una sustitución después de descontada la materia prima no tiene
   efecto. Ese consumo se corrige con un movimiento inverso (RN-54).
 
+### D-armado-duo-1 · Packs armados con otros productos terminados
+
+**Decidido** por el codirector técnico (2026-11-13). Un pack, por ejemplo
+DUO01 = 1 PREP 377 + 1 PRIMER 105, lo arma Gerencia de Producción en el
+depósito que elige. Salen los componentes y entra el pack en el mismo
+depósito. Los componentes salen solo de lotes vendibles (RN-51), primero el
+que vence antes. Todos los movimientos quedan atados al armado
+(`comercial.armados_pack`, documento `ARMADO`). Así se sabe de qué lote salió
+cada componente. La composición está en `comercial.pack_componentes`
+(`20261113140000`). Por ahora no se descuenta la bolsita 105BOL, porque no
+tiene stock cargado.
+
+**Abierto.**
+
+- Si después se bloquea un lote de un componente (RN-52), un pack ya armado
+  no se bloquea solo. El pack entra sin lote. Para un retiro se rastrea
+  con los movimientos del armado.
+- No hay pantalla para cargar la composición de un pack nuevo: hoy se carga
+  por migración.
+- Falta el desarmado. Mientras tanto se corrige con ajustes.
+
 ## Abiertas — 2026-10-14
 
 ### D-55 · Especificaciones cargadas en borrador: qué revisar antes de aprobar
