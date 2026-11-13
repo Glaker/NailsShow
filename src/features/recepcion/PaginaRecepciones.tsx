@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import {
   ActionIcon,
   Badge,
@@ -20,6 +20,8 @@ import { modals } from '@mantine/modals';
 import {
   IconAlertTriangle,
   IconCheck,
+  IconChevronDown,
+  IconChevronUp,
   IconFlask,
   IconPackageImport,
   IconPencil,
@@ -43,7 +45,8 @@ import {
   useLotesDeRecepcion,
   useRecepciones,
 } from '@/lib/consultas';
-import { fechaHora, numero } from '@/lib/formato';
+import { etiquetaUnidad, fechaHora, numero } from '@/lib/formato';
+import { InsigniaEstado } from '@/components/InsigniaEstado';
 import { useTieneRol } from '@/features/auth/sesion';
 import {
   ETIQUETA_COMPROBANTE,
@@ -55,8 +58,8 @@ import {
  * Recepciones (I.20.1).
  *
  * El listado es el índice del registro: número correlativo, remito, proveedor y
- * cuántos lotes entraron. El detalle de cada lote vive en la pantalla de lotes,
- * porque es ahí donde el material sigue su circuito.
+ * cuántos lotes entraron. Cada fila se despliega y muestra qué llegó, aun
+ * cargada a stock. El circuito de cada lote se sigue en la pantalla de lotes.
  */
 export function PaginaRecepciones() {
   const recepciones = useRecepciones();
@@ -143,6 +146,14 @@ export function PaginaRecepciones() {
   ];
 
   const filas = recepciones.data ?? [];
+  /* Recepciones desplegadas: muestran qué llegó, cargadas a stock o no. */
+  const [desplegadas, setDesplegadas] = useState<Set<string>>(() => new Set());
+  const alternar = (id: string) =>
+    setDesplegadas((prev) => {
+      const sig = new Set(prev);
+      if (!sig.delete(id)) sig.add(id);
+      return sig;
+    });
   /* El id y no la fila: tras cada control la recepción se relee y el modal
      tiene que ver el estado nuevo de sus lotes. */
   const [aCargarId, setACargar] = useState<string | null>(null);
@@ -205,170 +216,207 @@ export function PaginaRecepciones() {
               <Table.Tbody>
                 {filas.map((r) => {
                   const proveedor = r.proveedor as { razon_social: string } | null;
-                  const lotes = (r.lotes as { id: string }[] | null) ?? [];
+                  const lotes = r.lotes ?? [];
+                  const desplegada = desplegadas.has(r.id);
                   return (
-                    <Table.Tr key={r.id}>
-                      <Table.Td>
-                        <Text ff="monospace" fw={600} size="sm">
-                          {r.numero}
-                        </Text>
-                      </Table.Td>
-                      <Table.Td>
-                        <Text size="sm">{fechaHora(r.fecha_hora)}</Text>
-                      </Table.Td>
-                      <Table.Td>
-                        <Group gap={6} wrap="nowrap">
-                          <Text size="sm">{proveedor?.razon_social ?? '—'}</Text>
-                          {r.proveedor_nuevo ? (
-                            <Badge size="xs" variant="light" color="indigo" radius="sm">
-                              nuevo
-                            </Badge>
-                          ) : null}
-                        </Group>
-                      </Table.Td>
-                      <Table.Td>
-                        <Group gap={6} wrap="nowrap">
-                          <Text size="sm">{r.numero_remito ?? 'Sin remito'}</Text>
-                          {!r.coincide_con_pedido ? (
-                            <Tooltip label="No coincide con lo pedido (I.20.1 paso 2)">
-                              <IconAlertTriangle
-                                size={15}
-                                color="var(--mantine-color-estadoCuarentena-7)"
-                              />
-                            </Tooltip>
-                          ) : null}
-                        </Group>
-                      </Table.Td>
-                      <Table.Td>
-                        {(comprobantesDe.get(r.id) ?? []).map((c) => (
-                          <Group key={c.id} gap={6} wrap="nowrap">
-                            <Badge
-                              size="sm"
-                              variant="light"
-                              radius="sm"
-                              color={
-                                c.tipo === 'SIN_FACTURA' ? 'estadoCuarentena' : 'azul'
-                              }
-                            >
-                              {ETIQUETA_COMPROBANTE[c.tipo]}
-                            </Badge>
-                            {c.tipo === 'SIN_FACTURA' ? null : (
-                              <Text size="xs" ff="monospace">
-                                {numeroComprobante(c)}
-                              </Text>
-                            )}
-                          </Group>
-                        ))}
-                        {comprobantesDe.has(r.id) ? null : (
-                          <Text size="xs" c="dimmed">
-                            sin cargar
-                          </Text>
-                        )}
-                      </Table.Td>
-                      <Table.Td>
-                        <Text size="sm">{numero(lotes.length)}</Text>
-                      </Table.Td>
-                      <Table.Td>
-                        <Badge
-                          variant="light"
-                          radius="sm"
-                          color={r.cargado_a_stock ? 'azul' : 'gray'}
-                        >
-                          {r.cargado_a_stock ? 'Cargada a stock' : 'Pendiente'}
-                        </Badge>
-                        {r.cargado_a_stock ? (
-                          <Text size="xs" c="dimmed" mt={2}>
-                            {fechaHora(r.cargado_en)}
-                          </Text>
-                        ) : null}
-                      </Table.Td>
-                      {puedeCargarStock || haceControlRapido || puedeEliminar ? (
+                    <Fragment key={r.id}>
+                      <Table.Tr>
                         <Table.Td>
-                          {puedeEliminar && !r.cargado_a_stock ? (
-                            <Tooltip label="Editar recepción">
-                              <ActionIcon
-                                size="lg"
-                                variant="subtle"
-                                color="azul"
-                                aria-label={`Editar la recepción ${r.numero}`}
-                                onClick={() => setAEditar(r)}
-                                style={{ float: 'right' }}
-                              >
-                                <IconPencil size={18} />
-                              </ActionIcon>
-                            </Tooltip>
-                          ) : null}
-                          {puedeEliminar && eliminable(r, esDT) ? (
-                            <Tooltip label="Eliminar recepción">
-                              <ActionIcon
-                                size="lg"
-                                variant="subtle"
-                                color="estadoRechazado"
-                                aria-label={`Eliminar la recepción ${r.numero}`}
-                                loading={
-                                  eliminar.isPending && eliminar.variables === r.id
+                          <Text ff="monospace" fw={600} size="sm">
+                            {r.numero}
+                          </Text>
+                        </Table.Td>
+                        <Table.Td>
+                          <Text size="sm">{fechaHora(r.fecha_hora)}</Text>
+                        </Table.Td>
+                        <Table.Td>
+                          <Group gap={6} wrap="nowrap">
+                            <Text size="sm">{proveedor?.razon_social ?? '—'}</Text>
+                            {r.proveedor_nuevo ? (
+                              <Badge size="xs" variant="light" color="indigo" radius="sm">
+                                nuevo
+                              </Badge>
+                            ) : null}
+                          </Group>
+                        </Table.Td>
+                        <Table.Td>
+                          <Group gap={6} wrap="nowrap">
+                            <Text size="sm">{r.numero_remito ?? 'Sin remito'}</Text>
+                            {!r.coincide_con_pedido ? (
+                              <Tooltip label="No coincide con lo pedido (I.20.1 paso 2)">
+                                <IconAlertTriangle
+                                  size={15}
+                                  color="var(--mantine-color-estadoCuarentena-7)"
+                                />
+                              </Tooltip>
+                            ) : null}
+                          </Group>
+                        </Table.Td>
+                        <Table.Td>
+                          {(comprobantesDe.get(r.id) ?? []).map((c) => (
+                            <Group key={c.id} gap={6} wrap="nowrap">
+                              <Badge
+                                size="sm"
+                                variant="light"
+                                radius="sm"
+                                color={
+                                  c.tipo === 'SIN_FACTURA' ? 'estadoCuarentena' : 'azul'
                                 }
-                                onClick={() => confirmarEliminar(r)}
-                                style={{ float: 'right' }}
                               >
-                                <IconTrash size={18} />
-                              </ActionIcon>
-                            </Tooltip>
-                          ) : null}
-                          {puedeCargarStock && !r.cargado_a_stock ? (
-                            <Button
-                              size="compact-sm"
-                              variant="light"
-                              color="azul"
-                              leftSection={<IconPackageImport size={15} />}
-                              loading={
-                                cargar.isPending && cargar.variables.recepcionId === r.id
-                              }
-                              onClick={() => setACargar(r.id)}
-                            >
-                              Cargar a stock
-                            </Button>
-                          ) : null}
-                          {aControlarDe(r).length > 0 ? (
-                            <Button
-                              size="compact-sm"
-                              variant="light"
-                              color="estadoEnAnalisis"
-                              leftSection={<IconFlask size={15} />}
-                              mt={4}
-                              onClick={() => setAControlar(aControlarDe(r))}
-                            >
-                              Control de calidad ({aControlarDe(r).length})
-                            </Button>
-                          ) : null}
-                          {/* Envases que quedaron en cuarentena: lo constatado al
-                              recibirlos es el control, sin preguntas. */}
-                          {controlaEnvases && envasesPendientes(r).length > 0 ? (
-                            <Button
-                              size="compact-sm"
-                              variant="light"
-                              color="estadoAprobado"
-                              leftSection={<IconCheck size={15} />}
-                              mt={4}
-                              loading={aprobarEnvases.isPending}
-                              onClick={() => {
-                                const faltan = sinContenedorLimpio(envasesPendientes(r));
-                                if (faltan.length > 0) {
-                                  setTildados([]);
-                                  setACompletar({ recepcion: r, lotes: faltan });
-                                } else {
-                                  aprobarEnvases.mutate(
-                                    envasesPendientes(r).map((l) => l.id),
-                                  );
-                                }
-                              }}
-                            >
-                              Dar envases por controlados ({envasesPendientes(r).length})
-                            </Button>
+                                {ETIQUETA_COMPROBANTE[c.tipo]}
+                              </Badge>
+                              {c.tipo === 'SIN_FACTURA' ? null : (
+                                <Text size="xs" ff="monospace">
+                                  {numeroComprobante(c)}
+                                </Text>
+                              )}
+                            </Group>
+                          ))}
+                          {comprobantesDe.has(r.id) ? null : (
+                            <Text size="xs" c="dimmed">
+                              sin cargar
+                            </Text>
+                          )}
+                        </Table.Td>
+                        <Table.Td>
+                          <Button
+                            size="compact-md"
+                            variant="subtle"
+                            color="azul"
+                            aria-expanded={desplegada}
+                            aria-label={`Qué llegó en la recepción ${r.numero}`}
+                            rightSection={
+                              desplegada ? (
+                                <IconChevronUp size={16} />
+                              ) : (
+                                <IconChevronDown size={16} />
+                              )
+                            }
+                            onClick={() => alternar(r.id)}
+                          >
+                            {numero(lotes.length)}
+                          </Button>
+                        </Table.Td>
+                        <Table.Td>
+                          <Badge
+                            variant="light"
+                            radius="sm"
+                            color={r.cargado_a_stock ? 'azul' : 'gray'}
+                          >
+                            {r.cargado_a_stock ? 'Cargada a stock' : 'Pendiente'}
+                          </Badge>
+                          {r.cargado_a_stock ? (
+                            <Text size="xs" c="dimmed" mt={2}>
+                              {fechaHora(r.cargado_en)}
+                            </Text>
                           ) : null}
                         </Table.Td>
+                        {puedeCargarStock || haceControlRapido || puedeEliminar ? (
+                          <Table.Td>
+                            {puedeEliminar && !r.cargado_a_stock ? (
+                              <Tooltip label="Editar recepción">
+                                <ActionIcon
+                                  size="lg"
+                                  variant="subtle"
+                                  color="azul"
+                                  aria-label={`Editar la recepción ${r.numero}`}
+                                  onClick={() => setAEditar(r)}
+                                  style={{ float: 'right' }}
+                                >
+                                  <IconPencil size={18} />
+                                </ActionIcon>
+                              </Tooltip>
+                            ) : null}
+                            {puedeEliminar && eliminable(r, esDT) ? (
+                              <Tooltip label="Eliminar recepción">
+                                <ActionIcon
+                                  size="lg"
+                                  variant="subtle"
+                                  color="estadoRechazado"
+                                  aria-label={`Eliminar la recepción ${r.numero}`}
+                                  loading={
+                                    eliminar.isPending && eliminar.variables === r.id
+                                  }
+                                  onClick={() => confirmarEliminar(r)}
+                                  style={{ float: 'right' }}
+                                >
+                                  <IconTrash size={18} />
+                                </ActionIcon>
+                              </Tooltip>
+                            ) : null}
+                            {puedeCargarStock && !r.cargado_a_stock ? (
+                              <Button
+                                size="compact-sm"
+                                variant="light"
+                                color="azul"
+                                leftSection={<IconPackageImport size={15} />}
+                                loading={
+                                  cargar.isPending &&
+                                  cargar.variables.recepcionId === r.id
+                                }
+                                onClick={() => setACargar(r.id)}
+                              >
+                                Cargar a stock
+                              </Button>
+                            ) : null}
+                            {aControlarDe(r).length > 0 ? (
+                              <Button
+                                size="compact-sm"
+                                variant="light"
+                                color="estadoEnAnalisis"
+                                leftSection={<IconFlask size={15} />}
+                                mt={4}
+                                onClick={() => setAControlar(aControlarDe(r))}
+                              >
+                                Control de calidad ({aControlarDe(r).length})
+                              </Button>
+                            ) : null}
+                            {/* Envases que quedaron en cuarentena: lo constatado al
+                              recibirlos es el control, sin preguntas. */}
+                            {controlaEnvases && envasesPendientes(r).length > 0 ? (
+                              <Button
+                                size="compact-sm"
+                                variant="light"
+                                color="estadoAprobado"
+                                leftSection={<IconCheck size={15} />}
+                                mt={4}
+                                loading={aprobarEnvases.isPending}
+                                onClick={() => {
+                                  const faltan = sinContenedorLimpio(
+                                    envasesPendientes(r),
+                                  );
+                                  if (faltan.length > 0) {
+                                    setTildados([]);
+                                    setACompletar({ recepcion: r, lotes: faltan });
+                                  } else {
+                                    aprobarEnvases.mutate(
+                                      envasesPendientes(r).map((l) => l.id),
+                                    );
+                                  }
+                                }}
+                              >
+                                Dar envases por controlados ({envasesPendientes(r).length}
+                                )
+                              </Button>
+                            ) : null}
+                          </Table.Td>
+                        ) : null}
+                      </Table.Tr>
+                      {desplegada ? (
+                        <Table.Tr>
+                          <Table.Td
+                            colSpan={
+                              puedeCargarStock || haceControlRapido || puedeEliminar
+                                ? 8
+                                : 7
+                            }
+                            bg="var(--mantine-color-default-hover)"
+                          >
+                            <LotesQueLlegaron lotes={lotes} />
+                          </Table.Td>
+                        </Table.Tr>
                       ) : null}
-                    </Table.Tr>
+                    </Fragment>
                   );
                 })}
               </Table.Tbody>
@@ -517,6 +565,67 @@ export function PaginaRecepciones() {
 
 type Recepcion = NonNullable<ReturnType<typeof useRecepciones>['data']>[number];
 type LoteDeRecepcion = Recepcion['lotes'][number];
+
+/** Qué llegó en una recepción: un renglón por lote. */
+function LotesQueLlegaron({ lotes }: { lotes: LoteDeRecepcion[] }) {
+  if (lotes.length === 0) {
+    return (
+      <Text size="sm" c="dimmed">
+        La recepción no tiene lotes.
+      </Text>
+    );
+  }
+  return (
+    <Table verticalSpacing={6} withRowBorders={false}>
+      <Table.Thead>
+        <Table.Tr>
+          <Table.Th>Lote interno</Table.Th>
+          <Table.Th>Insumo</Table.Th>
+          <Table.Th>Lote del proveedor</Table.Th>
+          <Table.Th ta="right">Cantidad</Table.Th>
+          <Table.Th ta="right">Bultos</Table.Th>
+          <Table.Th>Estado</Table.Th>
+        </Table.Tr>
+      </Table.Thead>
+      <Table.Tbody>
+        {lotes.map((l) => (
+          <Table.Tr key={l.id}>
+            <Table.Td>
+              <Text size="sm" ff="monospace">
+                {l.numero_registro_interno}
+              </Text>
+            </Table.Td>
+            <Table.Td>
+              <Text size="sm">
+                {l.insumo?.codigo_interno ? (
+                  <Text span ff="monospace" size="sm" c="dimmed" mr={6}>
+                    {l.insumo.codigo_interno}
+                  </Text>
+                ) : null}
+                {l.insumo?.nombre ?? '—'}
+              </Text>
+            </Table.Td>
+            <Table.Td>
+              <Text size="sm">{l.lote_proveedor || '—'}</Text>
+            </Table.Td>
+            <Table.Td ta="right">
+              <Text size="sm">
+                {numero(l.cantidad_unidades, 2)}{' '}
+                {l.unidad ? etiquetaUnidad(l.unidad) : ''}
+              </Text>
+            </Table.Td>
+            <Table.Td ta="right">
+              <Text size="sm">{numero(l.cantidad_bultos)}</Text>
+            </Table.Td>
+            <Table.Td>
+              <InsigniaEstado estado={l.estado} size="sm" />
+            </Table.Td>
+          </Table.Tr>
+        ))}
+      </Table.Tbody>
+    </Table>
+  );
+}
 
 /** Los que todavía no pueden pasar a cuarentena: I.20.1 pide contenedores limpios. */
 const sinContenedorLimpio = (lotes: LoteDeRecepcion[]) =>

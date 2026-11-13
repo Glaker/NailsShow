@@ -432,7 +432,7 @@ export function useRecepciones() {
       const { data, error } = await gmp()
         .from('recepciones')
         .select(
-          '*, proveedor:proveedores(razon_social), lotes:lotes_insumo(id, numero_registro_interno, insumo_id, deposito_actual_id, estado, cantidad_bultos, contenedores_limpiados, protocolo_recibido, insumo:insumos_catalogo(nombre, tipo, requiere_protocolo))',
+          '*, proveedor:proveedores(razon_social), lotes:lotes_insumo(id, numero_registro_interno, insumo_id, deposito_actual_id, estado, cantidad_bultos, cantidad_unidades, unidad, lote_proveedor, contenedores_limpiados, protocolo_recibido, insumo:insumos_catalogo(codigo_interno, nombre, tipo, requiere_protocolo))',
         )
         .order('fecha_hora', { ascending: false })
         .limit(200);
