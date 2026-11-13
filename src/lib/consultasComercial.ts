@@ -1137,7 +1137,7 @@ export function usePackComponentes() {
 
 /**
  * Arma packs en un depósito (comercial.armar_pack): salen los componentes, de
- * lotes vendibles, y entra el pack. Lo hace Gerencia de Producción.
+ * lotes vendibles, y entra el pack. Lo hacen Gerencia de Producción y Ventas.
  */
 export function useArmarPack() {
   const qc = useQueryClient();
