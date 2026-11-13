@@ -29,6 +29,25 @@ const LISTA = NOMBRES.map((producto, i) => ({
   precio_promo: 9000 + i * 700,
   minimo: i % 3 === 0 ? 6 : null,
 }));
+/** cliente_cajas: un grupo que se arma mitad y mitad y otro de unidades impares. */
+export const CAJAS = [
+  {
+    caja_id: '00000000-0000-4000-9000-000000000001',
+    nombre: 'Crema humectante 250 ml',
+    unidades_caja: 24,
+    porcentaje: 10,
+    precio_promo: 9000,
+    mixta: true,
+  },
+  {
+    caja_id: '00000000-0000-4000-9000-000000000002',
+    nombre: 'Aceite de cutícula 8 ml',
+    unidades_caja: 91,
+    porcentaje: 10,
+    precio_promo: 2500,
+    mixta: false,
+  },
+];
 const ESCALA = [
   { desde_monto: 0, porcentaje: 0 },
   { desde_monto: 300000, porcentaje: 5 },
@@ -68,6 +87,14 @@ export function sesion(demo: boolean) {
 /** Lo que la red falsa responde; la prueba lo cambia para provocar el estado sin vincular. */
 export interface Escenario {
   perfilCaido: boolean;
+  /** cliente_cajas responde 500. */
+  cajasCaidas: boolean;
+  /** Respuesta de cliente_pedidos. */
+  pedidos: unknown[];
+  /** Cuerpos de cada cliente_enviar_pedido recibido. */
+  enviados: Record<string, unknown>[];
+  /** Todo lo que la red falsa devolvió al portal (para buscar claves de stock). */
+  respuestas: unknown[];
 }
 
 export async function prepararPortal(
@@ -75,7 +102,13 @@ export async function prepararPortal(
   oscuro: boolean,
   texto: number,
 ): Promise<Escenario> {
-  const escenario: Escenario = { perfilCaido: false };
+  const escenario: Escenario = {
+    perfilCaido: false,
+    cajasCaidas: false,
+    pedidos: [],
+    enviados: [],
+    respuestas: [],
+  };
   await page.addInitScript(
     ([s, oscuro, texto, clave]) => {
       localStorage.setItem(
@@ -97,13 +130,24 @@ export async function prepararPortal(
         ? route.fulfill({ status: 500, json: { message: 'Cliente sin vincular' } })
         : route.fulfill({ json: { cliente: 'Comercio de prueba', nombre: null } });
     }
+    if (url.includes('/rpc/cliente_enviar_pedido')) {
+      escenario.enviados.push(route.request().postDataJSON() as Record<string, unknown>);
+      return route.fulfill({ json: '00000000-0000-4000-a000-000000000001' });
+    }
+    if (escenario.cajasCaidas && url.includes('/rpc/cliente_cajas'))
+      return route.fulfill({ status: 500, json: { message: 'caída' } });
     const cuerpo = url.includes('/rpc/cliente_lista')
       ? LISTA
-      : url.includes('/rpc/cliente_escala')
-        ? ESCALA
-        : url.includes('/auth/v1/user')
-          ? USUARIO
-          : [];
+      : url.includes('/rpc/cliente_cajas')
+        ? CAJAS
+        : url.includes('/rpc/cliente_escala')
+          ? ESCALA
+          : url.includes('/rpc/cliente_pedidos')
+            ? escenario.pedidos
+            : url.includes('/auth/v1/user')
+              ? USUARIO
+              : [];
+    escenario.respuestas.push(cuerpo);
     return route.fulfill({ json: cuerpo });
   });
   return escenario;

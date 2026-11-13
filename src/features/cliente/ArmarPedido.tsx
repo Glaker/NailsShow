@@ -44,6 +44,7 @@ import HoldButton from '@/vendor/reactbits/HoldButton';
 import { numero } from '@/lib/formato';
 import { normalizarNombre } from '@/lib/consultasVentas';
 import { TextoDual } from './TextoDual';
+import { TarjetaCaja } from './CajasAromas';
 import {
   calcularVenta,
   precioFinalUnidad,
@@ -51,9 +52,15 @@ import {
   type Escalon,
 } from '@/lib/consultasVentas';
 import {
+  etiquetaOpcion,
+  textoCajas,
+  partirClaveCaja,
+  useCajasCliente,
   useEnviarPedidoCliente,
   useEscalaCliente,
   useListaCliente,
+  type CajaCliente,
+  type CarritoCajas,
   type EnvioPedido,
   type ProductoCliente,
 } from '@/lib/consultasCliente';
@@ -63,10 +70,16 @@ export type Carrito = Map<string, number>;
 const pesos = (n: number) => `$${numero(n, 0)}`;
 
 /** Lo que cuesta el carrito con la escala de descuentos, igual que en Ventas. */
-function useCuenta(carrito: Carrito, lista: ProductoCliente[], escala: Escalon[]) {
+function useCuenta(
+  carrito: Carrito,
+  lista: ProductoCliente[],
+  escala: Escalon[],
+  cajas: CarritoCajas,
+  catalogo: CajaCliente[],
+) {
   return useMemo(() => {
     const porId = new Map(lista.map((p) => [p.producto_id, p]));
-    const lineas = [...carrito]
+    const sueltas = [...carrito]
       .filter(([pid, c]) => c > 0 && porId.has(pid))
       .map(([pid, c]) => ({
         cantidad: c,
@@ -74,16 +87,35 @@ function useCuenta(carrito: Carrito, lista: ProductoCliente[], escala: Escalon[]
         unidades_pack: 1,
         manual: null,
       }));
+    // Una caja vale precio_promo × unidades de la caja, con su % de caja (como calcularVenta).
+    const porCaja = new Map(catalogo.map((c) => [c.caja_id, c]));
+    const deCajas = [...cajas]
+      .filter(([k, c]) => c > 0 && porCaja.has(partirClaveCaja(k).caja_id))
+      .map(([k, c]) => {
+        const g = porCaja.get(partirClaveCaja(k).caja_id)!;
+        return {
+          cantidad: c * g.unidades_caja,
+          precio_promo: g.precio_promo,
+          unidades_pack: 1,
+          manual: null,
+          caja: g.porcentaje,
+          cantidad_caja: c * g.unidades_caja,
+        };
+      });
+    const lineas = [...sueltas, ...deCajas];
     const cuenta = calcularVenta(lineas, escala, null);
     const proximo = proximoEscalon(cuenta.lista, escala);
     const unidades = lineas.reduce((a, l) => a + l.cantidad, 0);
     return { ...cuenta, proximo, unidades, productos: lineas.length };
-  }, [carrito, lista, escala]);
+  }, [carrito, lista, escala, cajas, catalogo]);
 }
 
 export function ArmarPedido({
   carrito,
   setCarrito,
+  cajas,
+  setCajas,
+  cajasDemo,
   observaciones,
   setObservaciones,
   editando,
@@ -93,6 +125,10 @@ export function ArmarPedido({
 }: {
   carrito: Carrito;
   setCarrito: Dispatch<SetStateAction<Carrito>>;
+  cajas: CarritoCajas;
+  setCajas: Dispatch<SetStateAction<CarritoCajas>>;
+  /** Cuenta de demostración: las cajas vienen de demo.ts, no de la base. */
+  cajasDemo?: CajaCliente[] | undefined;
   observaciones: string;
   setObservaciones: (v: string) => void;
   editando: { id: string; numero: string } | null;
@@ -103,6 +139,11 @@ export function ArmarPedido({
 }) {
   const lista = useListaCliente();
   const escala = useEscalaCliente();
+  const consultaCajas = useCajasCliente(!cajasDemo);
+  const catalogo = useMemo(
+    () => cajasDemo ?? consultaCajas.data ?? [],
+    [cajasDemo, consultaCajas.data],
+  );
   const [busqueda, setBusqueda] = useState('');
   const [buscar] = useDebouncedValue(busqueda, 150);
   const [rubro, setRubro] = useState<string | null>(null);
@@ -111,11 +152,25 @@ export function ArmarPedido({
   const [festejo, setFestejo] = useState(false);
 
   const productos = useMemo(() => lista.data ?? [], [lista.data]);
-  const cuenta = useCuenta(carrito, productos, escala.data ?? []);
+  const cuenta = useCuenta(carrito, productos, escala.data ?? [], cajas, catalogo);
   const rubros = useMemo(
     () => [...new Set(productos.map((p) => p.rubro).filter(Boolean))] as string[],
     [productos],
   );
+
+  const cajasVisibles = useMemo(() => {
+    if (rubro) return [];
+    const palabras = normalizarNombre(buscar).split(' ').filter(Boolean);
+    return catalogo.filter((g) => {
+      if (
+        soloMios &&
+        ![...cajas].some(([k, c]) => c > 0 && k.startsWith(`${g.caja_id}|`))
+      )
+        return false;
+      const texto = normalizarNombre(`${g.nombre} caja cajas`);
+      return palabras.every((w) => texto.includes(w));
+    });
+  }, [catalogo, buscar, rubro, soloMios, cajas]);
 
   const visibles = useMemo(() => {
     // Sin tildes ni mayúsculas; los alias («crema», «cremas») cuentan como texto (P2).
@@ -140,7 +195,16 @@ export function ArmarPedido({
       return n;
     });
 
-  if (lista.isLoading || escala.isLoading) {
+  const cambiarCaja = (clave: string, cantidad: number) =>
+    setCajas((m) => {
+      const n = new Map(m);
+      const c = Math.max(0, Math.min(10000, Math.round(cantidad || 0)));
+      if (c === 0) n.delete(clave);
+      else n.set(clave, c);
+      return n;
+    });
+
+  if (lista.isLoading || escala.isLoading || consultaCajas.isLoading) {
     return (
       <Stack p="md" gap="sm">
         {Array.from({ length: 6 }, (_, i) => (
@@ -217,7 +281,16 @@ export function ArmarPedido({
         {...(cuenta.productos ? {} : { pb: 40 })}
         {...(cuenta.productos ? { className: 'cli-pie-barra' } : {})}
       >
-        {visibles.length === 0 ? (
+        {cajasVisibles.map((g) => (
+          <TarjetaCaja
+            key={g.caja_id}
+            caja={g}
+            descuento={cuenta.descuento}
+            cantidades={cajas}
+            onCambiar={cambiarCaja}
+          />
+        ))}
+        {visibles.length === 0 && cajasVisibles.length === 0 ? (
           <Center py={60}>
             <Stack align="center" gap={6}>
               <IconSearch size={36} opacity={0.4} />
@@ -258,6 +331,10 @@ export function ArmarPedido({
           enviarDemo={enviarDemo}
           productos={productos}
           carrito={carrito}
+          catalogo={catalogo}
+          cajasError={!cajasDemo && consultaCajas.isError}
+          cajas={cajas}
+          onCambiarCaja={cambiarCaja}
           cuenta={cuenta}
           onCambiar={cambiar}
           observaciones={observaciones}
@@ -392,26 +469,13 @@ const TarjetaProducto = memo(function TarjetaProducto({
   );
 });
 
-function BarraTotal({ cuenta, onAbrir }: { cuenta: Cuenta; onAbrir: () => void }) {
+/** Próximo escalón de descuento, badge y barra de avance. Va en la barra (tablet) y en el resumen (celular). */
+function AvisoEscala({ cuenta }: { cuenta: Cuenta }) {
   const avance = cuenta.proximo
     ? Math.min(100, (cuenta.lista / (cuenta.lista + cuenta.proximo.falta)) * 100)
     : 100;
-  const barra = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = barra.current;
-    if (!el) return;
-    const raiz = document.documentElement.style;
-    const medir = () => raiz.setProperty('--cli-barra-h', `${el.offsetHeight}px`);
-    medir();
-    const ro = new ResizeObserver(medir);
-    ro.observe(el);
-    return () => {
-      ro.disconnect();
-      raiz.removeProperty('--cli-barra-h');
-    };
-  }, []);
   return (
-    <div className="cli-barra" ref={barra}>
+    <>
       <Group justify="space-between" mb={6} wrap="nowrap">
         <Text size="sm" fw={600} lh={1.2}>
           {cuenta.proximo ? (
@@ -434,9 +498,33 @@ function BarraTotal({ cuenta, onAbrir }: { cuenta: Cuenta; onAbrir: () => void }
       <div className="cli-progreso">
         <div style={{ transform: `scaleX(${avance / 100})` }} />
       </div>
+    </>
+  );
+}
+
+function BarraTotal({ cuenta, onAbrir }: { cuenta: Cuenta; onAbrir: () => void }) {
+  const barra = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = barra.current;
+    if (!el) return;
+    const raiz = document.documentElement.style;
+    const medir = () => raiz.setProperty('--cli-barra-h', `${el.offsetHeight}px`);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      raiz.removeProperty('--cli-barra-h');
+    };
+  }, []);
+  return (
+    <div className="cli-barra" ref={barra}>
+      {/* En celular el aviso de escala va en el resumen: la barra queda en una línea. */}
+      <div className="cli-barra-aviso">
+        <AvisoEscala cuenta={cuenta} />
+      </div>
       <Button
         fullWidth
-        mt={10}
         size="xl"
         radius="xl"
         color="grape"
@@ -458,6 +546,10 @@ function BarraTotal({ cuenta, onAbrir }: { cuenta: Cuenta; onAbrir: () => void }
 function ResumenPedido({
   productos,
   carrito,
+  catalogo,
+  cajasError,
+  cajas,
+  onCambiarCaja,
   cuenta,
   onCambiar,
   observaciones,
@@ -469,6 +561,11 @@ function ResumenPedido({
 }: {
   productos: ProductoCliente[];
   carrito: Carrito;
+  catalogo: CajaCliente[];
+  /** cliente_cajas falló: no se sabe qué cajas hay, así que no se tocan las del pedido. */
+  cajasError: boolean;
+  cajas: CarritoCajas;
+  onCambiarCaja: (clave: string, c: number) => void;
   cuenta: Cuenta;
   onCambiar: (pid: string, c: number) => void;
   observaciones: string;
@@ -484,8 +581,17 @@ function ResumenPedido({
   const alto = useMediaQuery('(max-width: 420px)') ? 64 : 56;
   const porId = new Map(productos.map((p) => [p.producto_id, p]));
   const items = [...carrito].filter(([pid, c]) => c > 0 && porId.has(pid));
+  const porCaja = new Map(catalogo.map((g) => [g.caja_id, g]));
+  const delCarrito = [...cajas]
+    .map(([clave, c]) => ({ clave, c, ...partirClaveCaja(clave) }))
+    .filter((x) => x.c > 0);
+  const itemsCajas = delCarrito.filter((x) => porCaja.has(x.caja_id));
+  // Una caja que ya no está en la lista no se descarta en silencio: se muestra y frena el envío.
+  const faltantes = cajasError ? [] : delCarrito.filter((x) => !porCaja.has(x.caja_id));
+  const sinCajas = cajasError && delCarrito.length > 0;
+  const bloqueado = sinCajas || faltantes.length > 0;
 
-  if (items.length === 0) {
+  if (items.length === 0 && delCarrito.length === 0) {
     return (
       <Center py={60}>
         <Text c="dimmed">Tu pedido está vacío.</Text>
@@ -496,6 +602,84 @@ function ResumenPedido({
   return (
     <Stack gap="md" pb="xl">
       <Stack gap={8}>
+        {sinCajas ? (
+          <Text size="sm" c="red" fw={600} role="alert">
+            No pudimos cargar las cajas. Probá de nuevo en un rato.
+          </Text>
+        ) : null}
+        {faltantes.map(({ clave, c, opcion }) => (
+          <Group key={clave} gap={4} wrap="nowrap" justify="space-between">
+            <div style={{ minWidth: 0 }}>
+              <Text fw={600} size="sm" c="red" lh={1.25}>
+                Caja que ya no está en la lista · {etiquetaOpcion(opcion)}
+              </Text>
+              <Text size="xs" c="dimmed">
+                {textoCajas(opcion, c)}. Sacala para poder enviar el pedido.
+              </Text>
+            </div>
+            <ActionIcon
+              style={PX44}
+              radius="xl"
+              variant="subtle"
+              color="red"
+              onClick={() => onCambiarCaja(clave, 0)}
+              aria-label="Sacar caja que ya no está en la lista"
+            >
+              <IconTrash size={18} />
+            </ActionIcon>
+          </Group>
+        ))}
+        {itemsCajas.map(({ clave, c, caja_id, opcion }) => {
+          const g = porCaja.get(caja_id)!;
+          const paso = opcion === 'UNA_DE_CADA' ? 3 : 1;
+          const final =
+            precioFinalUnidad(g.precio_promo, cuenta.descuento, g.porcentaje) *
+            g.unidades_caja;
+          const que = `${g.nombre}, ${etiquetaOpcion(opcion)}`;
+          return (
+            <Stack key={clave} gap={4}>
+              <div style={{ minWidth: 0 }}>
+                <Text fw={600} size="sm" lh={1.25} lineClamp={2}>
+                  {g.nombre} · {etiquetaOpcion(opcion)}
+                </Text>
+                <Text size="xs" c="dimmed">
+                  {textoCajas(opcion, c)} × {pesos(final)} = <b>{pesos(c * final)}</b>
+                </Text>
+              </div>
+              <Group gap={4} wrap="wrap" justify="flex-end">
+                <ActionIcon
+                  style={PX44}
+                  radius="xl"
+                  variant="light"
+                  color="gray"
+                  onClick={() => onCambiarCaja(clave, c - paso)}
+                  aria-label={`Menos de ${que}`}
+                >
+                  <IconMinus size={18} />
+                </ActionIcon>
+                <ActionIcon
+                  style={PX44}
+                  radius="xl"
+                  color="grape"
+                  onClick={() => onCambiarCaja(clave, c + paso)}
+                  aria-label={`Más de ${que}`}
+                >
+                  <IconPlus size={18} />
+                </ActionIcon>
+                <ActionIcon
+                  style={PX44}
+                  radius="xl"
+                  variant="subtle"
+                  color="red"
+                  onClick={() => onCambiarCaja(clave, 0)}
+                  aria-label={`Sacar ${que}`}
+                >
+                  <IconTrash size={18} />
+                </ActionIcon>
+              </Group>
+            </Stack>
+          );
+        })}
         {items.map(([pid, c]) => {
           const p = porId.get(pid)!;
           const final = precioFinalUnidad(p.precio_promo, cuenta.descuento, null);
@@ -548,6 +732,10 @@ function ResumenPedido({
         })}
       </Stack>
 
+      <div className="cli-aviso-resumen">
+        <AvisoEscala cuenta={cuenta} />
+      </div>
+
       <Box
         p="md"
         style={{
@@ -593,7 +781,7 @@ function ResumenPedido({
       />
 
       <div ref={ref}>
-        {width > 0 ? (
+        {width > 0 && !bloqueado ? (
           <SlideCommit
             label={
               editando
@@ -617,6 +805,15 @@ function ResumenPedido({
                   producto_id,
                   cantidad,
                 })),
+                // Sin cajas y con la consulta caída: null = no tocar las del pedido.
+                cajas:
+                  cajasError && delCarrito.length === 0
+                    ? null
+                    : itemsCajas.map((x) => ({
+                        caja_id: x.caja_id,
+                        opcion: x.opcion,
+                        cajas: x.c,
+                      })),
                 observaciones,
               })
             }

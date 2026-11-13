@@ -234,3 +234,37 @@ Se frenaron tres subagentes a mitad de camino. Nada quedó commiteado después d
 - **Pruebas:** `tsc` y `eslint` limpios; Playwright 19/19.
 - **P1 también tiene las capturas «antes»** (`f5d728b`): con el código del portal de `8abb957`, fallan 10 de los 15 casos.
 - **Pendiente menor:** React Doctor marca `jsx-no-new-function-as-prop` en `ArmarPedido.tsx:231` (`onCambiar={cambiar}`). Es anterior a P1 y no se toca.
+
+### P3 · Revisión final del `arquitecto` (2026-11-13): «sí, con cambios»
+
+- **Cambios obligatorios en curso:**
+  - CHECK `not anulado or cantidad_opcion = 0` en `pedido_renglones`;
+  - `v_cc` no puede quedar por debajo de `cantidad_opcion`;
+  - el frente no manda `p_cajas: []` si `cliente_cajas` no cargó;
+  - D-opciones-caja-1 a 3 en `DECISIONES_ABIERTAS.md` (hecho).
+- **Bloquea el despliegue, no el commit:** Ventas todavía no tiene pantalla para repartir el surtido.
+  - En `src/` nada llama a `asignar_surtido` ni lee `pedido_cajas`.
+  - Con P3 en servicio, un pedido con Surtido solo se podría cancelar.
+  - Hace falta la acción en la central de Ventas antes de poner P3 en servicio.
+- **Orden de despliegue:** primero la migración y después el frente. Al revés, `cliente_enviar_pedido` con `p_cajas` da PGRST202.
+
+**Supuestos a confirmar (riesgos residuales de P3):**
+- **Asignado sin reserva:** si Stock, GP, un retiro o el recorte liberan la reserva, el surtido sigue «asignado».
+  - Se detecta buscando `pedido_cajas` asignadas sin reserva vigente.
+- **El caso l** (red sin claves de stock) corre contra `e2e/portal-falso.ts`: hay que repetirlo contra la base real después del `db push`.
+- **`surtido_disponible`, después de asignar,** devuelve lo adicional, no el total: la pantalla de Ventas tiene que sumarle lo ya asignado.
+- **Retiros (RN-52):** el bloqueo por retiro no se prueba en `probar_opciones_caja`, porque depende de `gmp.impedimento_despacho_orden`.
+- **Flag de asignación:** Ventas con SQL directo podría prender `comercial.asignando`. Por PostgREST no se puede, y queda en `core.auditoria`.
+- **Totales:** el total del portal puede diferir en centavos del de `recalcular_venta`, cuando un mismo SKU va suelto y en caja.
+
+### P3 hecho (2026-11-13, rama `pedidos-p3-opciones-caja`, sale de P2 + merge de `origin/main`)
+
+- **Migración:** `20261113210000_comercial_opciones_caja.sql`. El número `20261113160000` quedó tomado en `main` (#119, armado de packs).
+- **Suite:** `probar_opciones_caja.mjs`, 71/71. Las suites vecinas (caja mixta, portal, descuento por caja, ventas central, venta por depósito, reservas y nombre comercial) también en verde.
+- **Frente:**
+  - `CajasAromas.tsx`, con las 8 opciones y los sets de 3;
+  - la barra del pie en una sola línea en celular (el aviso de escala pasa al resumen);
+  - `p_cajas` va `null` si `cliente_cajas` no cargó.
+- **Pruebas:** `tsc` limpio. Playwright 22/22 dos veces seguidas, corridas por la sesión principal.
+- **Subagentes:** `arquitecto` (diseño y revisión final), `implementador` ×6, `revisor-sql` ×1. Sin escalar.
+- **`reconstruir.mjs`:** omite `20261113130000`, que viene de `main` y mezcla esquema con el arreglo de OP-2026-0008. Ver el comentario en el archivo.

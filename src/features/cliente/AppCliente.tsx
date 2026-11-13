@@ -24,12 +24,14 @@ import RubberSegment from '@/vendor/reactbits/RubberSegment';
 import { Marca } from '@/components/Marca';
 import { useSesion } from '@/features/auth/sesion';
 import {
+  claveCaja,
   useListaCliente,
+  type CarritoCajas,
   usePerfilCliente,
   type EnvioPedido,
   type PedidoCliente,
 } from '@/lib/consultasCliente';
-import { aplicarEnvioDemo, pedidosDeEjemplo } from './demo';
+import { aplicarEnvioDemo, CAJAS_DEMO, pedidosDeEjemplo } from './demo';
 import { ArmarPedido, type Carrito } from './ArmarPedido';
 import { MisPedidos } from './MisPedidos';
 import { TextoDual } from './TextoDual';
@@ -64,10 +66,11 @@ export function AppCliente() {
   const ejemplos = pedidosDemo ?? pedidosDeEjemplo(lista.data ?? []);
   const enviarDemo = async (e: EnvioPedido) => {
     await new Promise((r) => setTimeout(r, 600));
-    setPedidosDemo(aplicarEnvioDemo(ejemplos, e, lista.data ?? []));
+    setPedidosDemo(aplicarEnvioDemo(ejemplos, e, lista.data ?? [], CAJAS_DEMO));
   };
   const [vista, setVista] = useState<'armar' | 'pedidos'>('armar');
   const [carrito, setCarrito] = useState<Carrito>(new Map());
+  const [cajas, setCajas] = useState<CarritoCajas>(new Map());
   const [observaciones, setObservaciones] = useState('');
   /** Pedido enviado que se está corrigiendo, o null si es uno nuevo. */
   const [editando, setEditando] = useState<{ id: string; numero: string } | null>(null);
@@ -103,6 +106,7 @@ export function AppCliente() {
 
   const cargarPedido = (p: PedidoCliente, comoNuevo: boolean) => {
     setCarrito(new Map(p.renglones.map((r) => [r.producto_id, r.cantidad])));
+    setCajas(new Map(p.cajas.map((c) => [claveCaja(c.caja_id, c.opcion), c.cajas])));
     setObservaciones(comoNuevo ? '' : (p.observaciones ?? ''));
     setEditando(comoNuevo ? null : { id: p.id, numero: p.numero });
     setVista('armar');
@@ -110,6 +114,7 @@ export function AppCliente() {
 
   const vaciar = () => {
     setCarrito(new Map());
+    setCajas(new Map());
     setObservaciones('');
     setEditando(null);
   };
@@ -210,6 +215,9 @@ export function AppCliente() {
         <ArmarPedido
           carrito={carrito}
           setCarrito={setCarrito}
+          cajas={cajas}
+          setCajas={setCajas}
+          cajasDemo={demo ? CAJAS_DEMO : undefined}
           observaciones={observaciones}
           setObservaciones={setObservaciones}
           editando={editando}

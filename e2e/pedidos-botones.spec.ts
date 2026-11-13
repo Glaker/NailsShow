@@ -13,7 +13,7 @@
  * Capturas: CAPTURAS=antes|despues npx playwright test → docs/capturas/pedidos/.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { CLAVE_SESION, NOMBRES, prepararPortal, sesion } from './portal-falso';
+import { CAJAS, CLAVE_SESION, NOMBRES, prepararPortal, sesion } from './portal-falso';
 
 const ANCHOS = [320, 360, 390, 768, 1280];
 const MODOS = [
@@ -173,7 +173,14 @@ async function quieto(page: Page) {
  * pantalla, lo anota como falla y lo activa igual para seguir el recorrido.
  */
 async function tocar(loc: Locator, fallas: Falla[], donde: string) {
-  await loc.evaluate((e) => e.scrollIntoView({ block: 'center', inline: 'center' }));
+  // Dos pasadas: al llegar se despliegan tarjetas salteadas (content-visibility), el alto
+  // cambia y el control se corre; se espera ese diseño antes de tocar (era la prueba intermitente).
+  await loc.evaluate(async (e) => {
+    for (let i = 0; i < 2; i++) {
+      e.scrollIntoView({ block: 'center', inline: 'center' });
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    }
+  });
   try {
     await loc.click({ timeout: 5000 });
   } catch (e) {
@@ -207,6 +214,17 @@ async function captura(page: Page, nombre: string) {
     quality: 60,
   });
 }
+
+/** La tarjeta de la caja `i` del catálogo. */
+const tarjetaCaja = (page: Page, i: number) =>
+  page.locator('.cli-tarjeta', { hasText: CAJAS[i]!.nombre }).first();
+const opcion = (page: Page, i: number, etiqueta: string) =>
+  tarjetaCaja(page, i).getByText(etiqueta, { exact: true });
+/** El «+» de la caja `i` con la opción `etiqueta` elegida. */
+const masCaja = (page: Page, i: number, etiqueta: string) =>
+  page.getByRole('button', {
+    name: new RegExp(`^Más: (set|caja) de ${CAJAS[i]!.nombre}, ${etiqueta}$`),
+  });
 
 for (const modo of MODOS) {
   for (const ancho of ANCHOS) {
@@ -275,6 +293,17 @@ for (const modo of MODOS) {
       fallas.rubro = await revisarControles(page);
       await page.getByText('Todo', { exact: true }).click();
       await quieto(page);
+
+      // 5b. Cajas de aromas: «Una de cada una» (sets de 3) y la caja que no se arma mitad y mitad.
+      fallas.cajas = [];
+      await opcion(page, 0, 'Una de cada una').click();
+      await tocar(masCaja(page, 0, 'Una de cada una'), fallas.cajas, 'caja');
+      await expect(page.getByText('1 set (3 cajas)')).toBeVisible();
+      await expect(page.getByText('Esta caja no se arma mitad y mitad')).toBeVisible();
+      fallas.cajasArmar = await revisarControles(page);
+      fallas.cajasPie = await revisarPie(page, '.cli-barra');
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await captura(page, `cajas-${sufijo}`);
 
       // 6. Resumen para enviar: el cajón con el total y el deslizador.
       await page.getByRole('button', { name: /Ver pedido/ }).click();
@@ -397,3 +426,149 @@ for (const modo of MODOS) {
     });
   }
 }
+
+/** Claves que delatarían stock en cualquier respuesta de red del portal (caso «l» del diseño P3). */
+const CLAVE_DE_STOCK = /stock|dispon|reserv|asign|saldo/i;
+const clavesDe = (x: unknown): string[] =>
+  Array.isArray(x)
+    ? x.flatMap(clavesDe)
+    : x && typeof x === 'object'
+      ? Object.entries(x).flatMap(([k, v]) => [k, ...clavesDe(v)])
+      : [];
+
+test('cajas: arma una de cada opción, manda p_cajas y la red no trae claves de stock', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  const escenario = await prepararPortal(page, false, 100);
+  // Cuenta real (no demo): el envío sale por cliente_enviar_pedido.
+  await page.addInitScript(
+    (s) => localStorage.setItem('sb-falso-auth-token', s),
+    sesion(false),
+  );
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  const nombre = CAJAS[0]!.nombre;
+  const OPCIONES = [
+    ['Surtido', 'SURTIDO', 1],
+    ['Amor', 'AMOR', 1],
+    ['Paz', 'PAZ', 1],
+    ['Aire', 'AIRE', 1],
+    ['Amor y Paz', 'AMOR_PAZ', 1],
+    ['Amor y Aire', 'AMOR_AIRE', 1],
+    ['Paz y Aire', 'PAZ_AIRE', 1],
+    ['Una de cada una', 'UNA_DE_CADA', 2],
+  ] as const;
+
+  await expect(tarjetaCaja(page, 0)).toBeVisible({ timeout: 30_000 });
+  for (const [etiqueta, , toques] of OPCIONES) {
+    await opcion(page, 0, etiqueta).click();
+    for (let i = 0; i < toques; i++) await masCaja(page, 0, etiqueta).click();
+  }
+  await expect(page.getByText('2 sets (6 cajas)')).toBeVisible();
+
+  // La caja de unidades impares no ofrece mitad y mitad, pero muestra las 8 opciones.
+  const impar = tarjetaCaja(page, 1);
+  await expect(impar.getByText('Esta caja no se arma mitad y mitad')).toBeVisible();
+  for (const [etiqueta, valor] of OPCIONES) {
+    const input = impar.locator(`input[value="${valor}"]`);
+    if (valor.includes('_') && valor !== 'UNA_DE_CADA')
+      await expect(input).toBeDisabled();
+    else await expect(input).toBeEnabled();
+    await expect(impar.getByText(etiqueta, { exact: true })).toBeVisible();
+  }
+
+  await page.getByRole('button', { name: /Ver pedido/ }).click();
+  const cajon = page.getByRole('dialog');
+  await expect(cajon.getByText(`${nombre} · Surtido`, { exact: true })).toBeVisible();
+  await expect(cajon.getByText('2 sets (6 cajas) ×')).toBeVisible();
+  await deslizar(page);
+  await expect(page.getByRole('heading', { name: '¡Pedido enviado!' })).toBeVisible({
+    timeout: 15_000,
+  });
+
+  expect(escenario.enviados).toHaveLength(1);
+  const enviado = escenario.enviados[0]!;
+  expect(enviado['p_renglones']).toEqual([]);
+  expect(enviado['p_cajas']).toEqual(
+    OPCIONES.map(([, opcion, toques]) => ({
+      caja_id: CAJAS[0]!.caja_id,
+      opcion,
+      cajas: opcion === 'UNA_DE_CADA' ? toques * 3 : toques,
+    })),
+  );
+
+  await page.getByRole('button', { name: 'Ver mis pedidos' }).click();
+  await expect(page.getByText('Todavía no hiciste pedidos')).toBeVisible();
+  expect(clavesDe(escenario.respuestas).filter((k) => CLAVE_DE_STOCK.test(k))).toEqual(
+    [],
+  );
+});
+
+/** Un pedido editable, con las cajas y los renglones que se le pasen. */
+const PEDIDO_EDITABLE = (cajas: unknown[], renglones: unknown[]) => ({
+  id: '00000000-0000-4000-a000-000000000009',
+  numero: 'V-0009',
+  estado: 'PENDIENTE',
+  estado_cliente: 'PENDIENTE',
+  enviado_en: '2026-11-10T12:00:00Z',
+  fecha_entrega: null,
+  editable: true,
+  cancelado: false,
+  observaciones: null,
+  renglones,
+  cajas,
+});
+
+async function editarPedido(page: Page, cajas: unknown[], renglones: unknown[]) {
+  await page.setViewportSize({ width: 390, height: 800 });
+  const escenario = await prepararPortal(page, false, 100);
+  escenario.cajasCaidas = true;
+  escenario.pedidos = [PEDIDO_EDITABLE(cajas, renglones)];
+  await page.addInitScript(
+    (s) => localStorage.setItem('sb-falso-auth-token', s),
+    sesion(false),
+  );
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('radio', { name: /Mis pedidos/ }).click();
+  await page
+    .getByRole('button', { name: 'Editar', exact: true })
+    .click({ timeout: 30_000 });
+  await page.getByRole('button', { name: /Ver pedido/ }).click();
+  return escenario;
+}
+
+const RENGLON = {
+  producto_id: '00000000-0000-4000-8000-000000000000',
+  cantidad: 6,
+  producto: NOMBRES[0],
+  codigo: '360',
+};
+
+test('editar con cajas y cliente_cajas caído: el envío no sale', async ({ page }) => {
+  const caja = {
+    caja_id: CAJAS[0]!.caja_id,
+    nombre: CAJAS[0]!.nombre,
+    opcion: 'AMOR',
+    cajas: 2,
+  };
+  const escenario = await editarPedido(page, [caja], [RENGLON]);
+  await expect(
+    page
+      .getByRole('dialog')
+      .getByText('No pudimos cargar las cajas. Probá de nuevo en un rato.'),
+  ).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('.slide-commit__capsule')).toHaveCount(0);
+  expect(escenario.enviados).toHaveLength(0);
+});
+
+test('editar sin cajas y cliente_cajas caído: sale con p_cajas null', async ({
+  page,
+}) => {
+  const escenario = await editarPedido(page, [], [RENGLON]);
+  await expect(page.locator('.slide-commit__capsule').first()).toBeVisible({
+    timeout: 30_000,
+  });
+  await deslizar(page);
+  await expect.poll(() => escenario.enviados.length).toBe(1);
+  expect(escenario.enviados[0]!['p_cajas']).toBeNull();
+});

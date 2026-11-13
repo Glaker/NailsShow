@@ -19,10 +19,13 @@ import {
   IconX,
 } from '@tabler/icons-react';
 import { TextoDual } from './TextoDual';
+
 import { fecha, fechaHora, numero } from '@/lib/formato';
 import {
   useCancelarPedidoCliente,
   usePedidosCliente,
+  etiquetaOpcion,
+  textoCajas,
   type EstadoCliente,
   type PedidoCliente,
 } from '@/lib/consultasCliente';
@@ -122,6 +125,7 @@ export function MisPedidos({
       {pedidos.data.map((p) => {
         const e = estadoParaCliente(p);
         const unidades = p.renglones.reduce((a, r) => a + r.cantidad, 0);
+        const nCajas = p.cajas.reduce((a, c) => a + c.cajas, 0);
         const visto = abierto === p.id;
         return (
           <Box key={p.id} className="cli-tarjeta" p="md">
@@ -136,6 +140,7 @@ export function MisPedidos({
                   <Text size="xs" c="dimmed">
                     {fechaHora(p.enviado_en)} · {p.renglones.length} productos ·{' '}
                     {numero(unidades, 0)} u
+                    {nCajas > 0 ? ` · ${numero(nCajas, 0)} cajas` : ''}
                   </Text>
                 </div>
                 <IconChevronDown
@@ -161,6 +166,20 @@ export function MisPedidos({
 
             <Collapse in={visto}>
               <Stack gap={4} mt="sm">
+                {p.cajas.map((c) => (
+                  <Group
+                    key={`${c.caja_id}|${c.opcion}`}
+                    justify="space-between"
+                    wrap="nowrap"
+                  >
+                    <Text size="sm" lineClamp={2}>
+                      {c.nombre} · {etiquetaOpcion(c.opcion)}
+                    </Text>
+                    <Text size="sm" fw={700} style={{ flexShrink: 0 }}>
+                      {textoCajas(c.opcion, c.cajas)}
+                    </Text>
+                  </Group>
+                ))}
                 {p.renglones.map((r) => (
                   <Group key={r.producto_id} justify="space-between" wrap="nowrap">
                     <Text size="sm" lineClamp={1}>

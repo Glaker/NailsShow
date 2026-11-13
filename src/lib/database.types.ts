@@ -8219,8 +8219,24 @@ export type Database = {
       cliente_actual: { Args: never; Returns: string }
       cliente_cancelar_pedido: { Args: { p_id: string }; Returns: undefined }
       cliente_enviar_pedido: {
-        Args: { p_id: string; p_observaciones?: string; p_renglones: Json }
+        Args: {
+          p_cajas?: Json | null
+          p_id: string
+          p_observaciones?: string
+          p_renglones: Json
+        }
         Returns: string
+      }
+      cliente_cajas: {
+        Args: never
+        Returns: {
+          caja_id: string
+          mixta: boolean
+          nombre: string
+          porcentaje: number
+          precio_promo: number
+          unidades_caja: number
+        }[]
       }
       cliente_escala: {
         Args: never
@@ -8247,6 +8263,7 @@ export type Database = {
       cliente_pedidos: {
         Args: never
         Returns: {
+          cajas: Json
           cancelado: boolean
           editable: boolean
           enviado_en: string

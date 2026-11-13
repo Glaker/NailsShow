@@ -318,3 +318,40 @@
   flex: 1 1 auto;
   min-width: min-content;
 }
+
+/* Opciones de una caja: grilla que baja a una columna cuando no entran dos. */
+.cli-opciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.cli-opciones .mantine-Chip-root {
+  display: block;
+}
+.cli-opciones .mantine-Chip-label {
+  width: 100%;
+  height: auto;
+  min-height: 44px;
+  justify-content: center;
+  text-align: center;
+  white-space: normal;
+  padding-block: 6px;
+}
+
+/* Barra fija en una línea en celular: el aviso de escala se lee en el resumen,
+   y en tablet/escritorio el resumen no lo repite. */
+.cli-barra-aviso {
+  margin-bottom: 10px;
+}
+.cli-aviso-resumen {
+  display: none;
+}
+@media (max-width: 420px) {
+  .cli-barra-aviso {
+    display: none;
+  }
+  .cli-aviso-resumen {
+    display: block;
+  }
+}

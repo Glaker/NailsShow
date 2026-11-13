@@ -2338,3 +2338,37 @@ tenía 1,00000 mal cargado: quedó sin medida y rige la estimada (0,8099 g/mL a
 proyecto: automático, sin que Gerencia de Producción elija. Sale primero del
 lote que vence antes; entre los que no vencen, del más antiguo en el sistema.
 Cada baja queda con su lote en el kardex. Se revisa cuando llegue I.20.3.
+
+## Rama pedidos-p3-opciones-caja (número definitivo al integrar en main)
+
+Diseño en `docs/disenos/P3-opciones-caja.md`; plan en `docs/PROMPT_PEDIDOS_HADA.md`, P3.
+
+### D-opciones-caja-1 · Surtido que no alcanza con los tres aromas — provisoria 2026-11-13
+
+**Pregunta.** El cliente pide N cajas «Surtido» y lo libre de Amor, Paz y Aire
+en el depósito del pedido no alcanza para repartirlas.
+**Conservador (aplicado).** `asignar_surtido` no deja asignar de más ni hay
+forma de forzarlo. El pedido no pasa a ESPERANDO_FECHA hasta que el surtido
+esté asignado. Las salidas son esperar producción, cambiar el depósito del
+pedido, o acordar con el cliente y pasar la línea a aromas fijos, que sí se
+mandan a producir. El cliente no recibe aviso (regla 8: no ve stock).
+**A confirmar.** Si Ventas debe poder asignar contra producción futura.
+
+### D-opciones-caja-2 · Descuento de caja en las cajas que elige el cliente — provisoria 2026-11-13
+
+**Pregunta.** Hasta ahora el descuento por caja lo marca Ventas en cada renglón.
+Con las opciones por caja, el cliente pide cajas directamente.
+**Conservador (aplicado).** El renglón que sale de una caja lleva el porcentaje
+por defecto de la caja (D-descuento-caja-1), y Ventas lo puede cambiar antes de
+aprobar. Si Ventas lo quita, el siguiente cambio de cajas lo vuelve a aplicar.
+**A confirmar.** Que el porcentaje por defecto sea el correcto para el portal.
+
+### D-opciones-caja-3 · Asignar el surtido reserva con el pedido en BORRADOR — provisoria 2026-11-13
+
+**Pregunta.** La asignación se hace con el pedido en BORRADOR, que el cliente
+todavía puede editar, y reserva stock (`reservas_pt.pedido_caja_id`).
+**Conservador (aplicado).** Se reserva al asignar, para que dos surtidos no
+cuenten el mismo stock. Si el cliente cambia la cantidad de cajas, la
+asignación vuelve a pendiente y la reserva se libera (se marca, no se borra).
+**Riesgo.** Las reservas de un BORRADOR abandonado no vencen: hace falta un
+listado de reservas de surtido por antigüedad.
