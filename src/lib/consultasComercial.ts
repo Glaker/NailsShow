@@ -1114,6 +1114,58 @@ export function useRegistrarMovimientoPt() {
   });
 }
 
+/** Un componente de un pack (comercial.pack_componentes, D-armado-duo-1). */
+export interface PackComponente {
+  pack_id: string;
+  componente_id: string;
+  cantidad: number;
+}
+
+/** Qué productos terminados lleva cada pack que se puede armar. */
+export function usePackComponentes() {
+  return useQuery({
+    queryKey: ['pack-componentes'],
+    queryFn: async () => {
+      const { data, error } = await tablaComercial<PackComponente[]>(
+        'pack_componentes',
+      ).select('pack_id, componente_id, cantidad');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+/**
+ * Arma packs en un depósito (comercial.armar_pack): salen los componentes, de
+ * lotes vendibles, y entra el pack. Lo hace Gerencia de Producción.
+ */
+export function useArmarPack() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: {
+      packId: string;
+      depositoId: string;
+      cantidad: number;
+      observaciones: string | null;
+    }) => {
+      const { error } = await rpcComercial<string>('armar_pack', {
+        p_pack_id: a.packId,
+        p_deposito_id: a.depositoId,
+        p_cantidad: a.cantidad,
+        p_observaciones: a.observaciones,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['stock-punto-venta'] });
+      void qc.invalidateQueries({ queryKey: ['stock-pt-lotes'] });
+      void qc.invalidateQueries({ queryKey: ['movimientos-pt'] });
+      avisarExito('Packs armados.');
+    },
+    onError: avisarError,
+  });
+}
+
 /* ------------------------------------------------------------------------- *
  * Conteo de inventario
  *

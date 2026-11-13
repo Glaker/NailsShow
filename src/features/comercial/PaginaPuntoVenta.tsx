@@ -53,6 +53,7 @@ import { useTieneRol } from '@/features/auth/sesion';
 import { CorregirReparto } from '@/features/produccion/Hermanos';
 import type { DepositoHermanos } from '@/lib/consultasHermanos';
 import { PanelCalle5 } from './Calle5';
+import { ArmarPack } from './ArmarPack';
 
 /**
  * Qué depósito de producto terminado muestra la pantalla. La de Calle 5 es la
@@ -394,6 +395,16 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
             >
               Enviar a otro depósito
             </Button>
+            {esGP ? (
+              <ArmarPack
+                depositoId={deposito.id}
+                nombreDeposito={
+                  DEPOSITOS_PT.find((d) => d.config.numero === config.numero)?.nombre ??
+                  config.titulo
+                }
+                saldoDe={saldoDe}
+              />
+            ) : null}
             <Button
               size="md"
               color="azul"
@@ -860,9 +871,7 @@ function RenglonesPt({
             allowDecimal={false}
             hideControls
             value={f.cantidad}
-            onChange={(v) =>
-              cambiar(f.clave, { cantidad: v })
-            }
+            onChange={(v) => cambiar(f.clave, { cantidad: v })}
           />
           {conLote ? (
             <TextInput
