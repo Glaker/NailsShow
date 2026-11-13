@@ -8250,6 +8250,7 @@ export type Database = {
           editable: boolean
           enviado_en: string
           estado: string
+          estado_cliente: string
           fecha_entrega: string
           id: string
           numero: string
@@ -8258,6 +8259,7 @@ export type Database = {
         }[]
       }
       cliente_perfil: { Args: never; Returns: Json }
+      cliente_ve_lista: { Args: never; Returns: boolean }
       codigo_comprobante_arca:
         | { Args: { p_clase: string }; Returns: number }
         | { Args: { p_clase: string; p_comprobante: string }; Returns: number }
@@ -8512,6 +8514,10 @@ export type Database = {
       }
       fijar_numero_factura: {
         Args: { p_clave: string; p_factura_id: string; p_numero: number }
+        Returns: undefined
+      }
+      finalizar_pedido_venta: {
+        Args: { p_motivo?: string; p_pedido_id: string }
         Returns: undefined
       }
       flujo_caja_dia: { Args: { p_fecha: string }; Returns: Json }
@@ -10950,6 +10956,86 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "op_etapas_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_produccion"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orden_sustituciones: {
+        Row: {
+          id: string
+          insumo_original_id: string
+          insumo_reemplazo_id: string
+          motivo: string
+          orden_id: string
+          registrado_en: string
+          registrado_por: string
+        }
+        Insert: {
+          id?: string
+          insumo_original_id: string
+          insumo_reemplazo_id: string
+          motivo: string
+          orden_id: string
+          registrado_en?: string
+          registrado_por?: string
+        }
+        Update: {
+          id?: string
+          insumo_original_id?: string
+          insumo_reemplazo_id?: string
+          motivo?: string
+          orden_id?: string
+          registrado_en?: string
+          registrado_por?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orden_sustituciones_insumo_original_id_fkey"
+            columns: ["insumo_original_id"]
+            isOneToOne: false
+            referencedRelation: "insumos_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orden_sustituciones_insumo_original_id_fkey"
+            columns: ["insumo_original_id"]
+            isOneToOne: false
+            referencedRelation: "v_existencias_recibidas"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "orden_sustituciones_insumo_original_id_fkey"
+            columns: ["insumo_original_id"]
+            isOneToOne: false
+            referencedRelation: "v_lotes_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "orden_sustituciones_insumo_reemplazo_id_fkey"
+            columns: ["insumo_reemplazo_id"]
+            isOneToOne: false
+            referencedRelation: "insumos_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orden_sustituciones_insumo_reemplazo_id_fkey"
+            columns: ["insumo_reemplazo_id"]
+            isOneToOne: false
+            referencedRelation: "v_existencias_recibidas"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "orden_sustituciones_insumo_reemplazo_id_fkey"
+            columns: ["insumo_reemplazo_id"]
+            isOneToOne: false
+            referencedRelation: "v_lotes_insumo"
+            referencedColumns: ["insumo_id"]
+          },
+          {
+            foreignKeyName: "orden_sustituciones_orden_id_fkey"
             columns: ["orden_id"]
             isOneToOne: false
             referencedRelation: "ordenes_produccion"
