@@ -1701,6 +1701,23 @@ certificado mal también por escritura directa.
   ya está en la tabla, pero el resto de los chequeos de aspecto y cantidad
   solo existen en la función.
 
+### D-sustitucion-alcohol-op8-1 · Sustituir un insumo en una orden ya liberada
+
+**Decidido** por el codirector técnico (2026-11-13). La OP-2026-0008
+(sanitizante 394) se liberó con la fórmula v1, que lleva 135SAN. Ese insumo
+se dio de baja y la carga de la primera tanda lo seguía pidiendo. La orden y
+la fórmula no se editan (invariante 1). La sustitución queda como fila en
+`gmp.orden_sustituciones`: la firma la DT, es append-only y apunta a la
+orden. `comercial.consumir_mp_orden` y `comercial.faltantes_tanda`
+descuentan el reemplazo con la misma cantidad que pide la fórmula
+(`20261113130000`).
+
+**Pendiente.**
+
+- No hay pantalla para cargar sustituciones: hoy se cargan por migración.
+- Cargar una sustitución después de descontada la materia prima no tiene
+  efecto. Ese consumo se corrige con un movimiento inverso (RN-54).
+
 ## Abiertas — 2026-10-14
 
 ### D-55 · Especificaciones cargadas en borrador: qué revisar antes de aprobar
