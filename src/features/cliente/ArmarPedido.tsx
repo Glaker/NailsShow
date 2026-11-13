@@ -42,6 +42,7 @@ import {
 import SlideCommit from '@/vendor/reactbits/SlideCommit';
 import HoldButton from '@/vendor/reactbits/HoldButton';
 import { numero } from '@/lib/formato';
+import { normalizarNombre } from '@/lib/consultasVentas';
 import { TextoDual } from './TextoDual';
 import {
   calcularVenta,
@@ -117,13 +118,15 @@ export function ArmarPedido({
   );
 
   const visibles = useMemo(() => {
-    const t = buscar.trim().toLowerCase();
-    const palabras = t.split(/\s+/).filter(Boolean);
+    // Sin tildes ni mayúsculas; los alias («crema», «cremas») cuentan como texto (P2).
+    const palabras = normalizarNombre(buscar).split(' ').filter(Boolean);
     return productos.filter((p) => {
       if (soloMios && !(carrito.get(p.producto_id) ?? 0)) return false;
       if (rubro && p.rubro !== rubro) return false;
       if (!palabras.length) return true;
-      const texto = `${p.producto} ${p.codigo} ${p.rubro ?? ''}`.toLowerCase();
+      const texto = normalizarNombre(
+        `${p.producto} ${p.codigo} ${p.rubro ?? ''} ${p.alias.join(' ')}`,
+      );
       return palabras.every((w) => texto.includes(w));
     });
   }, [productos, buscar, rubro, soloMios, carrito]);

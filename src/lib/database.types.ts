@@ -8233,6 +8233,7 @@ export type Database = {
       cliente_lista: {
         Args: never
         Returns: {
+          alias: string[]
           codigo: string
           minimo: number
           orden_lista: number

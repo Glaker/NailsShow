@@ -30,6 +30,8 @@ export interface ProductoCliente {
   precio_promo: number;
   /** Unidades del pack (el «mínimo» de la lista); null = se vende suelto. */
   pack: number | null;
+  /** Alias de búsqueda (P2): «crema», «cremas»… */
+  alias: string[];
 }
 
 export type EstadoCliente =
@@ -77,6 +79,7 @@ export function useListaCliente() {
             precio_lista: unknown;
             precio_promo: unknown;
             minimo: number | null;
+            alias?: string[] | null;
           }[]
         >('cliente_lista')
       ).map((x): ProductoCliente => ({
@@ -87,6 +90,7 @@ export function useListaCliente() {
         precio_lista: n(x.precio_lista),
         precio_promo: n(x.precio_promo),
         pack: x.minimo && x.minimo > 1 ? x.minimo : null,
+        alias: x.alias ?? [],
       })),
     retry: false,
   });

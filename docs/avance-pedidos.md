@@ -222,3 +222,15 @@ Se frenaron tres subagentes a mitad de camino. Nada quedó commiteado después d
 - `docs/PROMPT_PEDIDOS_HADA.md` (plan)
 - `docs/avance-pedidos.md`
 - `.claude/agents/`: `revisor-sql.md` (`model: sonnet`), y nuevos `implementador.md`, `revisor-seguridad.md`, `revisor-gmp.md` y `arquitecto.md`
+
+### P2 hecho (2026-11-13, rama `pedidos-p2-busqueda`, sale de `ux/p1-botones-pedidos` en `f5d728b`)
+
+- **Migración:** `20261113150000_comercial_nombre_comercial_y_alias.sql`.
+  - El número `20261112170000` del borrador ya lo usa una migración de `main` (sanitizantes), por eso cambió.
+  - Suite: `probar_nombre_comercial.mjs`, 25/25.
+- **Frente:** el filtro de `ArmarPedido.tsx` usa `normalizarNombre`, que ya existía en `consultasVentas.ts`. Saca tildes y pasa a minúsculas, y busca también en los alias.
+  - `ProductoCliente.alias` se agregó con `[]` por defecto.
+  - `database.types.ts` se tocó a mano solo en `cliente_lista` (supuesto 14): hay que regenerarlo después del `db push`.
+- **Pruebas:** `tsc` y `eslint` limpios; Playwright 19/19.
+- **P1 también tiene las capturas «antes»** (`f5d728b`): con el código del portal de `8abb957`, fallan 10 de los 15 casos.
+- **Pendiente menor:** React Doctor marca `jsx-no-new-function-as-prop` en `ArmarPedido.tsx:231` (`onCambiar={cambiar}`). Es anterior a P1 y no se toca.
