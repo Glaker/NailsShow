@@ -69,7 +69,13 @@ function TablaFaltantes({
 }: {
   filas: NonNullable<ReturnType<typeof useFaltantesTanda>['data']>;
 }) {
-  const u = (x: string | null) => (x === 'UNIDAD' ? 'u' : (x ?? ''));
+  // ml y g se muestran en L y kg (pedido del 2026-11-12): 98.891 ml se lee mejor como 98,89 L.
+  const cant = (n: number | string | null, x: string | null) => {
+    const v = Number(n);
+    if (x === 'ml') return `${numero(v / 1000, 2)} L`;
+    if (x === 'g') return `${numero(v / 1000, 2)} kg`;
+    return `${numero(v)} ${x === 'UNIDAD' ? 'u' : (x ?? '')}`;
+  };
   return (
     <Alert
       color="estadoRechazado"
@@ -95,7 +101,7 @@ function TablaFaltantes({
                 <Text size="xs" c="dimmed" ff="monospace">
                   {f.codigo}
                   {f.sin_aprobar > 0
-                    ? ` · ${numero(f.sin_aprobar)} ${u(f.unidad)} más sin aprobar por Calidad`
+                    ? ` · ${cant(f.sin_aprobar, f.unidad)} más sin aprobar por Calidad`
                     : ''}
                 </Text>
                 {f.nota ? (
@@ -105,13 +111,13 @@ function TablaFaltantes({
                 ) : null}
               </Table.Td>
               <Table.Td ta="right" ff="monospace">
-                {f.necesita === null ? '—' : `${numero(f.necesita)} ${u(f.unidad)}`}
+                {f.necesita === null ? '—' : cant(f.necesita, f.unidad)}
               </Table.Td>
               <Table.Td ta="right" ff="monospace">
-                {numero(f.disponible)}
+                {cant(f.disponible, f.unidad)}
               </Table.Td>
               <Table.Td ta="right" ff="monospace" fw={700} c="estadoRechazado">
-                {numero(f.falta)} {u(f.unidad)}
+                {cant(f.falta, f.unidad)}
               </Table.Td>
             </Table.Tr>
           ))}
