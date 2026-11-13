@@ -19,6 +19,7 @@ import { useArmarPack, usePackComponentes } from '@/lib/consultasComercial';
  * Armar packs con otros productos terminados (D-armado-duo-1), por ejemplo el
  * DUO01 = 1 PREP 377 + 1 PRIMER 105. Se arma en el depósito de la pantalla:
  * salen los componentes de ahí, de lotes vendibles, y entra el pack ahí mismo.
+ * Lo arman Gerencia de Producción y Ventas.
  * Lo que alcanza lo dice la base; acá se muestra para que no haya sorpresas.
  */
 export function ArmarPack({

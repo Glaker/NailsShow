@@ -215,6 +215,8 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
   const [conteoObs, setConteoObs] = useState('');
   const esCalle5 = config.numero === 'C5';
   const esGP = useTieneRol('GERENCIA_PRODUCCION');
+  // D-armado-duo-1: arman packs GP y Ventas (Mati y Agus).
+  const armaPacks = useTieneRol('GERENCIA_PRODUCCION', 'VENTAS');
   const transferir = useTransferirPt();
   const [enviando, setEnviando] = useState(false);
   const [envio, setEnvio] = useState<RenglonPt[]>(() => [renglonVacio()]);
@@ -395,7 +397,7 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
             >
               Enviar a otro depósito
             </Button>
-            {esGP ? (
+            {armaPacks ? (
               <ArmarPack
                 depositoId={deposito.id}
                 nombreDeposito={
