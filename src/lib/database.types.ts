@@ -14,6 +14,58 @@ export type Database = {
   }
   comercial: {
     Tables: {
+      armados_pack: {
+        Row: {
+          cantidad: number
+          deposito_id: string
+          id: string
+          observaciones: string | null
+          pack_id: string
+          registrado_en: string
+          registrado_por: string
+        }
+        Insert: {
+          cantidad: number
+          deposito_id: string
+          id?: string
+          observaciones?: string | null
+          pack_id: string
+          registrado_en?: string
+          registrado_por?: string
+        }
+        Update: {
+          cantidad?: number
+          deposito_id?: string
+          id?: string
+          observaciones?: string | null
+          pack_id?: string
+          registrado_en?: string
+          registrado_por?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "armados_pack_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "armados_pack_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "armados_pack_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
+        ]
+      }
       articulos: {
         Row: {
           activo: boolean
@@ -3793,6 +3845,70 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_stock_por_articulo"
             referencedColumns: ["insumo_id"]
+          },
+        ]
+      }
+      pack_componentes: {
+        Row: {
+          cantidad: number
+          componente_id: string
+          creado_en: string
+          pack_id: string
+        }
+        Insert: {
+          cantidad: number
+          componente_id: string
+          creado_en?: string
+          pack_id: string
+        }
+        Update: {
+          cantidad?: number
+          componente_id?: string
+          creado_en?: string
+          pack_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pack_componentes_componente_id_fkey"
+            columns: ["componente_id"]
+            isOneToOne: false
+            referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "pack_componentes_componente_id_fkey"
+            columns: ["componente_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "pack_componentes_componente_id_fkey"
+            columns: ["componente_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "pack_componentes_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "pack_componentes_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "pack_componentes_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
           },
         ]
       }
@@ -8121,6 +8237,15 @@ export type Database = {
         Returns: Json
       }
       aprobar_venta_reservada: { Args: { p_pedido_id: string }; Returns: Json }
+      armar_pack: {
+        Args: {
+          p_cantidad: number
+          p_deposito_id: string
+          p_observaciones?: string
+          p_pack_id: string
+        }
+        Returns: string
+      }
       articulo_de_insumo: { Args: { p_insumo_id: string }; Returns: string }
       asignar_lotes_pt: {
         Args: {
