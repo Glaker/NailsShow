@@ -59,8 +59,7 @@ import {
  *
  * El listado es el índice del registro: número correlativo, remito, proveedor y
  * cuántos lotes entraron. Cada fila se despliega y muestra qué llegó, aun
- * cargada a stock. El circuito de cada lote sigue en la pantalla de lotes,
- * porque es ahí donde el material sigue su circuito.
+ * cargada a stock. El circuito de cada lote se sigue en la pantalla de lotes.
  */
 export function PaginaRecepciones() {
   const recepciones = useRecepciones();
