@@ -335,3 +335,87 @@ Se frenaron tres subagentes a mitad de camino. Nada quedó commiteado después d
 - **Video de Hada pendiente:** solo está el poster JPG de 10 KB, porque no hay `ffmpeg`. Falta el WebM y el MP4 de hasta 500 KB, más el `IntersectionObserver`.
 - **D-hada-5**, a confirmar con Ventas.
 - **`probar_hada`:** cerca de la medianoche argentina tarda hasta 200 s más.
+
+## P7 · Cierre (2026-11-14, rama `pedidos-p7-cierre`, sale de P6 `86680e3`)
+
+### Mensajes de novedades (redactados; el motor no existe)
+
+No hay `docs/PLAN_SIMPLIFICACION_WANDEL.md` ni `src/novedades/` (supuesto 8). Según la regla de la corrida, no se construye el motor: los textos quedan acá, listos para cargar. Los cuatro son para el cliente, en el portal:
+
+1. **Cajas de aromas.** «Ahora podés pedir cajas de Amor, Paz o Aire, mitad y mitad, una de cada una (de a 3) o surtido. Elegí la opción en la tarjeta de la caja.»
+2. **Borrar con mecha.** «Para sacar un producto del pedido tocá Borrar: tenés unos segundos para Deshacer antes de que se vaya.»
+3. **Tarjeta de pedido.** «En Mis pedidos, tocá Editar y la tarjeta se da vuelta con el detalle. Desde ahí volvés a armarlo si todavía se puede cambiar.»
+4. **Hada** (con la animación de entrada). «Hacele tu pedido a la Hada de Nail Show: escribile lo que necesitás y te arma un borrador. Lo revisás y lo enviás vos.»
+   - Este mensaje se muestra recién cuando Hada esté activa (paso manual de la migración `20261113220100`).
+
+El tutorial de primer ingreso (3 ter) no existe, así que no hay nada que actualizar.
+
+### Pruebas finales (rama P6)
+
+- **Playwright:** 41/41.
+- **Vitest de Hada:** 31/31.
+- **PGlite**, de a una:
+
+  | Suite | Resultado |
+  |---|---|
+  | `probar_hada` | 44/44 |
+  | `probar_opciones_caja` | 71/71 |
+  | `probar_portal_clientes` | 25/25 |
+  | `probar_nombre_comercial` | 25/25 |
+
+- **`tsc`:** sin errores nuevos (solo los de `@dnd-kit`, que ya estaban).
+- **`eslint`:** 0 errores; queda 1 warning previo en `Tutorial.tsx`.
+- **`npm audit --omit=dev`:** 0 vulnerabilidades.
+- **gitleaks** (hook de pre-commit): sin hallazgos en todos los commits.
+
+### Orden para Glaker (PR en cadena, sin push todavía)
+
+| Paquete | Rama | Commit |
+|---|---|---|
+| P1 | `ux/p1-botones-pedidos` | `f5d728b` |
+| P2 | `pedidos-p2-busqueda` | `93bc75f` |
+| P3 | `pedidos-p3-opciones-caja` | `6c4ab2a` |
+| P4 | `pedidos-p4-fusebutton` | `0907985` |
+| P5 | `pedidos-p5-flipcard` | `591e9b6` |
+| P6 | `pedidos-p6-hada` | `86680e3` |
+| P7 | `pedidos-p7-cierre` | — |
+
+**Antes de poner en servicio:**
+1. **Renumerar P2:** `20261113150000` choca con #118. Agus corre `git mv` en `p2-renumera` (el hook no deja hacerlo a Claude). Después hay que mergear P2 en P3…P7.
+2. **Pantalla de Ventas para asignar el surtido:** sin ella, un pedido con Surtido solo se puede cancelar. Bloquea poner P3 en servicio.
+3. **Orden de despliegue:** primero el `db push` de las migraciones, después la Edge Function `hada` y al final el frente. Hay que regenerar `database.types.ts`.
+4. **Paso manual de Hada:**
+   - cargar los secretos `HADA_CLAVE`, `HADA_MODEL=claude-haiku-5-5` y `HADA_ORIGENES`;
+   - cargar el hash de la clave en `hada_config` y pasar `activo` a true;
+   - fijar el tope de gasto en la consola de Anthropic.
+5. **Primera corrida real con Haiku:** revisar el CORS, `strict`, la caché y el costo.
+6. **Pendientes de material:** el video de Hada (WebM y MP4).
+   - El chequeo «base desde cero» de NS-397 y NS-398 no se tocó en este trabajo (supuesto 13).
+   - `20261113130000` de `main` mezcla esquema y datos, y PGlite la omite.
+
+### Consumo por paquete (aproximado, por subagentes)
+
+- **P1:** `implementador` ×2, `armador-de-pantallas` ×1 y `corredor-de-pruebas` ×1.
+- **P2:**
+  - `implementador` ×2 y `revisor-sql` ×1;
+  - la sesión principal agregó la columna `id` a la tabla nueva.
+- **P3:** `arquitecto` ×2 (diseño y revisión), `implementador` ×6 y `revisor-sql` ×1.
+- **P4:** `implementador` ×1; se cortó por el límite de uso y se retomó.
+- **P5:** `implementador` ×2; el primero se cortó en la pausa por créditos.
+- **P6:**
+  - `arquitecto` ×2 (diseño y revisión), `implementador` ×5;
+  - `revisor-sql` ×1 y `revisor-seguridad` ×1.
+- **P7:** `revisor-gmp` ×1.
+- **Escalados:** ninguno. El único desvío de la tabla del plan fue P1, encargo 1, que hizo `implementador` en vez de `armador-de-pantallas`.
+
+### Revisión GMP de la cadena P1-P6 (`revisor-gmp`, 2026-11-14): sin hallazgos críticos ni altos
+
+- `gmp` y `core` quedan intactos. Las tablas nuevas de `comercial` apuntan a `gmp`/`core`, nunca al revés.
+  - Las 5 tablas nuevas tienen ENABLE y FORCE RLS, y auditoría.
+  - RN-51/52 se leen de `v_disponible_pt`, sin replicar la regla.
+  - Las reservas se liberan marcándolas, sin borrar nada.
+  - No hay `service_role` en runtime.
+- **Pendiente (media):** `reconstruir.mjs` omite `20261113130000` (viene de `main`), así que `gmp.orden_sustituciones` queda sin cobertura en PGlite.
+  - Arreglo: una migración nueva desde `main` que separe la parte de esquema del arreglo de OP-2026-0008, o un pgTAP contra la base real.
+  - No es de esta cadena.
+- **Cambio de P7:** la animación de entrada de Hada ya no rebota; pasa a una desaceleración suave (`cubic-bezier(0.25, 1, 0.5, 1)`), que encaja con el criterio de no usar animaciones decorativas.
