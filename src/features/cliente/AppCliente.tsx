@@ -75,6 +75,8 @@ export function AppCliente() {
   /** Pedido enviado que se está corrigiendo, o null si es uno nuevo. */
   const [editando, setEditando] = useState<{ id: string; numero: string } | null>(null);
   const [tutorial, setTutorial] = useState(() => !tutorialVisto());
+  /** Clave de idempotencia del pedido nuevo (P6): los reintentos de un envío la comparten. */
+  const [claveEnvio, setClaveEnvio] = useState(() => crypto.randomUUID());
 
   if (perfil.isLoading) {
     return (
@@ -117,6 +119,7 @@ export function AppCliente() {
     setCajas(new Map());
     setObservaciones('');
     setEditando(null);
+    setClaveEnvio(crypto.randomUUID());
   };
 
   return (
@@ -221,6 +224,10 @@ export function AppCliente() {
           observaciones={observaciones}
           setObservaciones={setObservaciones}
           editando={editando}
+          claveEnvio={claveEnvio}
+          hada={!demo && !tutorial}
+          onMisPedidos={() => setVista('pedidos')}
+          onTutorial={() => setTutorial(true)}
           onVaciar={vaciar}
           enviarDemo={demo ? enviarDemo : undefined}
           onEnviado={() => {

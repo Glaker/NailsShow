@@ -310,3 +310,28 @@ Se frenaron tres subagentes a mitad de camino. Nada quedó commiteado después d
   - El blur va al pie de «Mis pedidos», sin interceptar clics.
   - Playwright 32/32 dos veces; `tsc`, `eslint` y React Doctor sin errores.
   - Queda un `vite preview` viejo en el puerto 5174 (PID 6028) que hay que cerrar a mano. Al agente le denegaron matarlo.
+
+### P6 · Revisión final del `arquitecto` (2026-11-14): «sí, con cambios», aplicados
+
+- **Cambios obligatorios:**
+  - el encabezado de `20261113220100` nombra `HADA_ORIGENES` y `HADA_MODEL=claude-haiku-5-5`;
+  - el historial de Hada se conserva solo después de una pregunta (antes, dos respuestas cualesquiera trababan a Hada en «no entendí»), con prueba e2e;
+  - D-hada-1 a 5 están en `DECISIONES_ABIERTAS.md`.
+- **Recomendados que se aplicaron:**
+  - `MAX_TOKENS_SALIDA` sube de 700 a 1500, porque 25 renglones no entraban;
+  - el frente descarta cantidades de 0 o menos.
+- **Base:** subió zod de 4.5.4 a 4.6.7 (aviso GHSA-mrhx-c7xc-m3w5), en `package.json` y en `hada/deno.json`. `npm audit` da 0.
+
+**Supuestos a confirmar (riesgos residuales de P6):**
+- **Orden de despliegue:** primero el `db push`, después la función y al final el frente. El frente usa `cliente_enviar_pedido_unico` en todo pedido nuevo, así que si Vercel publica antes del `db push`, ningún cliente puede enviar.
+- **BYPASSRLS de `postgres`:** las escrituras de `hada_reservar` y `hada_cerrar` dependen de él bajo FORCE RLS. Hay que verificarlo en el proyecto alojado; si falta, falla cerrado con 403.
+- **Nunca corrió contra Haiku real.** En la primera corrida hay que revisar:
+  - `strict` con `tool_choice any`;
+  - el preflight de CORS con los encabezados de supabase-js;
+  - que el zod de `_shared` se resuelva por `deno.json`;
+  - que `cache_read_input_tokens` sea mayor que 0.
+- **Costo:** los precios son estimados; Agus tiene que fijar el tope en la consola de Anthropic.
+- **Tipos:** están editados a mano. Después del push, `npm run db:types` tiene que dar diff vacío.
+- **Video de Hada pendiente:** solo está el poster JPG de 10 KB, porque no hay `ffmpeg`. Falta el WebM y el MP4 de hasta 500 KB, más el `IntersectionObserver`.
+- **D-hada-5**, a confirmar con Ventas.
+- **`probar_hada`:** cerca de la medianoche argentina tarda hasta 200 s más.

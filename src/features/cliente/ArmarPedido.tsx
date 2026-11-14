@@ -46,6 +46,7 @@ import { numero } from '@/lib/formato';
 import { normalizarNombre } from '@/lib/consultasVentas';
 import { TextoDual } from './TextoDual';
 import { TarjetaCaja } from './CajasAromas';
+import { Hada } from './Hada';
 import {
   calcularVenta,
   precioFinalUnidad,
@@ -53,6 +54,7 @@ import {
   type Escalon,
 } from '@/lib/consultasVentas';
 import {
+  claveCaja,
   etiquetaOpcion,
   textoCajas,
   partirClaveCaja,
@@ -120,6 +122,10 @@ export function ArmarPedido({
   observaciones,
   setObservaciones,
   editando,
+  claveEnvio,
+  hada,
+  onMisPedidos,
+  onTutorial,
   onVaciar,
   onEnviado,
   enviarDemo,
@@ -133,6 +139,12 @@ export function ArmarPedido({
   observaciones: string;
   setObservaciones: (v: string) => void;
   editando: { id: string; numero: string } | null;
+  /** Clave de idempotencia del pedido nuevo (cliente_enviar_pedido_unico). */
+  claveEnvio: string;
+  /** Hada se ofrece solo en cuentas reales y sin el tutorial abierto (D-hada-2). */
+  hada: boolean;
+  onMisPedidos: () => void;
+  onTutorial: () => void;
   onVaciar: () => void;
   onEnviado: () => void;
   /** Modo demostración: el envío no va a la base (20261112130000). */
@@ -217,6 +229,41 @@ export function ArmarPedido({
 
   return (
     <>
+      {hada && !abierto && !festejo ? (
+        <Box px="md" pt="sm">
+          <Hada
+            productos={productos}
+            catalogo={catalogo}
+            irA={{
+              ARMAR_PEDIDO: () => window.scrollTo({ top: 0 }),
+              // Las cajas son lo primero de la lista, justo bajo el buscador.
+              CAJAS_AROMAS: () => window.scrollTo({ top: 0 }),
+              RESUMEN: () => setAbierto(true),
+              MIS_PEDIDOS: onMisPedidos,
+              TUTORIAL: onTutorial,
+            }}
+            onPasar={(b) => {
+              setCarrito((m) => {
+                const n = new Map(m);
+                for (const r of b.renglones)
+                  n.set(
+                    r.producto_id,
+                    Math.min(100000, (n.get(r.producto_id) ?? 0) + r.cantidad),
+                  );
+                return n;
+              });
+              setCajas((m) => {
+                const n = new Map(m);
+                for (const c of b.cajas) {
+                  const k = claveCaja(c.caja_id, c.opcion);
+                  n.set(k, Math.min(10000, (n.get(k) ?? 0) + c.cajas));
+                }
+                return n;
+              });
+            }}
+          />
+        </Box>
+      ) : null}
       <Box className="cli-buscador" px="md" pt="sm" pb={6}>
         <TextInput
           size="lg"
@@ -341,6 +388,7 @@ export function ArmarPedido({
           observaciones={observaciones}
           setObservaciones={setObservaciones}
           editando={editando}
+          claveEnvio={claveEnvio}
           onVaciar={() => {
             onVaciar();
             setAbierto(false);
@@ -602,6 +650,7 @@ function ResumenPedido({
   observaciones,
   setObservaciones,
   editando,
+  claveEnvio,
   onVaciar,
   onEnviado,
   enviarDemo,
@@ -618,6 +667,7 @@ function ResumenPedido({
   observaciones: string;
   setObservaciones: (v: string) => void;
   editando: { id: string; numero: string } | null;
+  claveEnvio: string;
   onVaciar: () => void;
   onEnviado: () => void;
   enviarDemo?: ((e: EnvioPedido) => Promise<unknown>) | undefined;
@@ -855,6 +905,7 @@ function ResumenPedido({
             onConfirm={() =>
               (enviarDemo ?? enviar.mutateAsync)({
                 id: editando?.id ?? null,
+                clave: claveEnvio,
                 renglones: items.map(([producto_id, cantidad]) => ({
                   producto_id,
                   cantidad,

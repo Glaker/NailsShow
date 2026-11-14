@@ -20,7 +20,7 @@ export const NOMBRES = [
   'Esmalte semipermanente rojo pasión 10 ml',
   'Lima 100/180 profesional',
 ];
-const LISTA = NOMBRES.map((producto, i) => ({
+export const LISTA = NOMBRES.map((producto, i) => ({
   producto_id: `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`,
   codigo: String(360 + i),
   producto,
@@ -93,6 +93,11 @@ export interface Escenario {
   pedidos: unknown[];
   /** Cuerpos de cada cliente_enviar_pedido recibido. */
   enviados: Record<string, unknown>[];
+  /** Respuesta de la función hada (status y cuerpo); las llamadas quedan en hadaLlamadas. */
+  hada: { status: number; cuerpo: unknown };
+  hadaLlamadas: Record<string, unknown>[];
+  /** Cuántos cliente_enviar_pedido* responden 500 antes de responder bien. */
+  fallarEnvios: number;
   /** Todo lo que la red falsa devolvió al portal (para buscar claves de stock). */
   respuestas: unknown[];
 }
@@ -107,6 +112,9 @@ export async function prepararPortal(
     cajasCaidas: false,
     pedidos: [],
     enviados: [],
+    hada: { status: 200, cuerpo: { tipo: 'pregunta', textos: ['¿Cuántas querés?'] } },
+    hadaLlamadas: [],
+    fallarEnvios: 0,
     respuestas: [],
   };
   await page.addInitScript(
@@ -130,8 +138,22 @@ export async function prepararPortal(
         ? route.fulfill({ status: 500, json: { message: 'Cliente sin vincular' } })
         : route.fulfill({ json: { cliente: 'Comercio de prueba', nombre: null } });
     }
+    if (url.includes('/functions/v1/hada')) {
+      if (route.request().method() === 'POST')
+        escenario.hadaLlamadas.push(
+          route.request().postDataJSON() as Record<string, unknown>,
+        );
+      return route.fulfill({
+        status: escenario.hada.status,
+        json: escenario.hada.cuerpo,
+      });
+    }
     if (url.includes('/rpc/cliente_enviar_pedido')) {
       escenario.enviados.push(route.request().postDataJSON() as Record<string, unknown>);
+      if (escenario.fallarEnvios > 0) {
+        escenario.fallarEnvios--;
+        return route.fulfill({ status: 500, json: { message: 'respuesta perdida' } });
+      }
       return route.fulfill({ json: '00000000-0000-4000-a000-000000000001' });
     }
     if (escenario.cajasCaidas && url.includes('/rpc/cliente_cajas'))

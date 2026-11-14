@@ -2372,3 +2372,46 @@ cuenten el mismo stock. Si el cliente cambia la cantidad de cajas, la
 asignación vuelve a pendiente y la reserva se libera (se marca, no se borra).
 **Riesgo.** Las reservas de un BORRADOR abandonado no vencen: hace falta un
 listado de reservas de surtido por antigüedad.
+
+## Rama pedidos-p6-hada (número definitivo al integrar en main)
+
+Diseño en `docs/disenos/P6-hada.md`; plan en `docs/PROMPT_PEDIDOS_HADA.md`, P6.
+
+### D-hada-1 · Límites, topes y máximos de Hada — provisoria 2026-11-13
+
+**Aplicado.** 5 mensajes por minuto y 40 por día por cliente; topes de 1 USD
+por día y 10 USD por mes para todos; borrador de hasta 25 líneas, 500 unidades
+o 50 cajas por línea. Viven en `comercial.hada_config` y los cambia el
+Administrador del sistema. El presupuesto es propio, separado del de Giorgio,
+aunque comparten `ANTHROPIC_API_KEY`.
+**A confirmar.** Los valores, y el tope de gasto en la consola de Anthropic,
+que es el respaldo real: los precios de la tabla son estimados.
+
+### D-hada-2 · Hada en la cuenta de demostración — provisoria 2026-11-13
+
+**Aplicado.** Apagada (`limite_dia_demo` = 0), y el portal no la muestra en la
+cuenta demo, para que una cuenta compartida no consuma el tope de los clientes.
+
+### D-hada-3 · Retención del registro de Hada — provisoria 2026-11-13
+
+**Aplicado.** Sin purga: el trigger de auditoría prohíbe DELETE. Las filas de
+`comercial.hada_interacciones` no guardan texto del cliente ni de Hada, nombres
+ni IP: solo usuario, hora, tokens, costo y códigos.
+**A confirmar.** Si hace falta un plazo, requiere una excepción explícita al
+trigger genérico.
+
+### D-hada-4 · Cómo entra el borrador de Hada — provisoria 2026-11-13
+
+**Aplicado.** El borrador se suma al carrito (no lo reemplaza) y se confirma con
+el «Deslizá para enviar» de siempre. «2 cajas» de un producto sin grupo de
+cajas genera una pregunta, nunca una conversión a unidades. Un destino de la
+app se ofrece como botón: nada que diga el modelo dispara una acción.
+
+### D-hada-5 · Reintento con la misma clave y otro contenido — abierta 2026-11-14
+
+**Pregunta.** Si se pierde la respuesta del envío y el cliente cambia el
+carrito (o cancela ese pedido) y reenvía con la misma clave, vuelve el pedido
+anterior y la pantalla dice «¡Pedido enviado!». El cliente ve el pedido real en
+«Mis pedidos».
+**A confirmar con Ventas.** Si alcanza así, o si el portal debe renovar la
+clave cuando cambia el carrito después de un envío fallido.

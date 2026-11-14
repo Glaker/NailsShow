@@ -8227,6 +8227,15 @@ export type Database = {
         }
         Returns: string
       }
+      cliente_enviar_pedido_unico: {
+        Args: {
+          p_cajas?: Json | null
+          p_clave: string
+          p_observaciones?: string
+          p_renglones: Json
+        }
+        Returns: string
+      }
       cliente_cajas: {
         Args: never
         Returns: {

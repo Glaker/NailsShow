@@ -13,7 +13,14 @@
  * Capturas: CAPTURAS=antes|despues npx playwright test → docs/capturas/pedidos/.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { CAJAS, CLAVE_SESION, NOMBRES, prepararPortal, sesion } from './portal-falso';
+import {
+  CAJAS,
+  CLAVE_SESION,
+  LISTA,
+  NOMBRES,
+  prepararPortal,
+  sesion,
+} from './portal-falso';
 
 const ANCHOS = [320, 360, 390, 768, 1280];
 const MODOS = [
@@ -440,6 +447,33 @@ for (const modo of MODOS) {
       await quieto(page);
       fallas.sinPedidos = await revisarControles(page);
       await captura(page, `sin-pedidos-${sufijo}`);
+
+      // 13. Hada (cuenta real): el panel abierto y con un borrador, sin recortes ni encimados.
+      await page.getByRole('radio', { name: /Armar pedido/ }).click();
+      escenario.hada.cuerpo = {
+        tipo: 'borrador',
+        textos: ['Te armé esto. Revisalo y pasalo al pedido.'],
+        borrador: {
+          renglones: [{ producto_id: LISTA[0]!.producto_id, cantidad: 5 }],
+          cajas: [{ caja_id: CAJAS[0]!.caja_id, opcion: 'UNA_DE_CADA', cajas: 3 }],
+        },
+      };
+      await page
+        .getByRole('button', { name: 'Hacele tu pedido a la Hada de Nail Show' })
+        .click();
+      const panelHada = page.getByRole('dialog', { name: 'Hada de Nail Show' });
+      await expect(panelHada.getByRole('textbox')).toBeVisible();
+      await quieto(page);
+      fallas.hadaAbierta = await revisarControles(page);
+      await captura(page, `hada-abierta-${sufijo}`);
+      await panelHada.getByRole('textbox').fill('poneme 5 cremas y una de cada una');
+      await panelHada.getByRole('button', { name: 'Enviar' }).click();
+      await expect(
+        panelHada.getByRole('button', { name: 'Pasar al pedido' }),
+      ).toBeVisible();
+      await quieto(page);
+      fallas.hadaBorrador = await revisarControles(page);
+      await captura(page, `hada-borrador-${sufijo}`);
 
       const todas = Object.entries(fallas).flatMap(([donde, f]) =>
         f.map((x) => ({ donde, ...x })),

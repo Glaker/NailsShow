@@ -219,18 +219,28 @@ export interface EnvioPedido {
   /** null = no tocar las cajas del pedido; [] = sacarlas todas. */
   cajas: { caja_id: string; opcion: OpcionCaja; cajas: number }[] | null;
   observaciones: string;
+  /** Clave de idempotencia del envío (P6, D-hada-4): solo para pedidos nuevos. */
+  clave?: string;
 }
 
 export function useEnviarPedidoCliente() {
   const qc = useQueryClient();
   return useMutation({
+    // Pedido nuevo con clave: un reintento tras una respuesta perdida devuelve el mismo pedido.
     mutationFn: (a: EnvioPedido) =>
-      rpc<string>('cliente_enviar_pedido', {
-        p_id: a.id,
-        p_renglones: a.renglones,
-        p_observaciones: a.observaciones,
-        p_cajas: a.cajas,
-      }),
+      a.id === null && a.clave
+        ? rpc<string>('cliente_enviar_pedido_unico', {
+            p_clave: a.clave,
+            p_renglones: a.renglones,
+            p_observaciones: a.observaciones,
+            p_cajas: a.cajas,
+          })
+        : rpc<string>('cliente_enviar_pedido', {
+            p_id: a.id,
+            p_renglones: a.renglones,
+            p_observaciones: a.observaciones,
+            p_cajas: a.cajas,
+          }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['cliente', 'pedidos'] }),
     onError: avisarError,
   });
