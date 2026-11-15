@@ -22,6 +22,7 @@ import {
   ESTADOS_SIN_APROBAR,
   TEXTO_PAGO,
   useActualizarVenta,
+  usePedidosSurtidoSinAsignar,
   useVentas,
   type FilaVenta,
 } from '@/lib/consultasVentas';
@@ -80,6 +81,7 @@ function Faltantes({ v }: { v: FilaVenta }) {
 export function PaginaVentas() {
   const ventas = useVentas();
   const enviados = useEnviadosPorCliente();
+  const sinAsignar = usePedidosSurtidoSinAsignar();
   const actualizar = useActualizarVenta();
   const navigate = useNavigate();
   const [texto, setTexto] = useState('');
@@ -201,6 +203,11 @@ export function PaginaVentas() {
                       {enviados.data?.has(v.id) ? (
                         <Badge size="xs" variant="light" color="violet" radius="sm">
                           Enviado por el cliente
+                        </Badge>
+                      ) : null}
+                      {sinAsignar.data?.has(v.id) ? (
+                        <Badge size="xs" variant="light" color="orange" radius="sm">
+                          Surtido sin asignar
                         </Badge>
                       ) : null}
                     </Table.Td>

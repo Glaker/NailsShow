@@ -46,6 +46,7 @@ import { BadgeEstadoPedido } from '@/features/comercial/estadoPedido';
 import { useEnvioPortal } from '@/lib/consultasClientesUsuarios';
 import { TablaEscala } from './TablaEscala';
 import { ReservarPedido } from './ReservarPedido';
+import { CajasPortal } from './CajasPortal';
 import { usePendientesDespacho } from '@/lib/consultasCalle5';
 import { ROLES_STOCK_PT } from '@/lib/consultasStockSeguridad';
 import { fecha, fechaHora, fechaISO, numero, desdeCalendario } from '@/lib/formato';
@@ -1022,6 +1023,15 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
             </Table.Tbody>
           </Table>
         </Paper>
+      ) : null}
+
+      {id ? (
+        <CajasPortal
+          pedidoId={id}
+          borrador={etapa === 'BORRADOR'}
+          puedeAsignar={puedeAprobar}
+          nombreDe={(u) => nomina.data?.get(u)}
+        />
       ) : null}
 
       <Paper
