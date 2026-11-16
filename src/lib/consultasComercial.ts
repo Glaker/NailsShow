@@ -187,7 +187,6 @@ export interface MovimientoPtRow {
   despacho?: { pedido_id: string } | null;
   documento_tipo: string | null;
   documento_id: string | null;
-  producto: { nombre: string; codigo_interno: string } | null;
 }
 
 /** Nombre legible de cada tipo de movimiento, para el historial. */
@@ -1082,34 +1081,21 @@ export function useStockPtLotes(depositoId: string | undefined) {
   });
 }
 
-export function useMovimientosPuntoVenta(depositoId: string | undefined) {
-  return useQuery({
-    queryKey: ['movimientos-pt', depositoId],
-    enabled: Boolean(depositoId),
-    queryFn: async () => {
-      const { data, error } = await tablaComercial<MovimientoPtRow[]>('movimientos_pt')
-        .select('*, producto:productos(nombre, codigo_interno)')
-        .eq('deposito_id', depositoId!)
-        .order('ocurrido_en', { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-}
-
 /**
  * Movimientos de un producto en todos los depósitos, para su historial. Trae
  * los otros depósitos porque una transferencia graba dos filas (sale de uno,
  * entra al otro) y la otra punta es la que dice de dónde vino o adónde fue.
+ *
+ * No embebe `productos`: vive en gmp y PostgREST no une entre esquemas
+ * (PGRST200). Pedirlo hacía fallar la consulta entera y el historial
+ * aparecía vacío. El nombre del producto ya lo tiene la pantalla.
  */
 export function useMovimientosProductoPt(productoId: string) {
   return useQuery({
     queryKey: ['movimientos-pt-producto', productoId],
     queryFn: async () => {
       const { data, error } = await tablaComercial<MovimientoPtRow[]>('movimientos_pt')
-        .select(
-          '*, producto:productos(nombre, codigo_interno), despacho:despachos_pt!movimientos_pt_despacho_id_fkey(pedido_id)',
-        )
+        .select('*, despacho:despachos_pt!movimientos_pt_despacho_id_fkey(pedido_id)')
         .eq('producto_id', productoId)
         .order('ocurrido_en', { ascending: false })
         .order('orden', { ascending: false });

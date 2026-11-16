@@ -14,7 +14,6 @@ const base: MovimientoPtRow = {
   orden_id: 'o1',
   documento_tipo: null,
   documento_id: null,
-  producto: null,
 };
 const nombre = (id: string) => ({ PTF: 'Fábrica', C5: 'Calle 5' })[id] ?? id;
 const refs = {
