@@ -43,11 +43,11 @@ import {
   ETIQUETA_MOVIMIENTO_PT,
   TIPOS_MOVIMIENTO_PT,
   TIPOS_PT_CON_MOTIVO,
-  useMovimientosPuntoVenta,
+  puntaExterna,
+  useMovimientosProductoPt,
   useNomina,
   useReferenciasMovimientosPt,
   useRegistrarMovimientoPt,
-  type MovimientoPtRow,
   useStockPtLotes,
   useStockPuntoVenta,
 } from '@/lib/consultasComercial';
@@ -246,13 +246,18 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
     isLoading: stockTodos.isLoading,
     data: (stockTodos.data ?? []).filter((f) => f.deposito_id === deposito?.id),
   };
-  const movimientos = useMovimientosPuntoVenta(deposito?.id);
+  const nombreDeposito = (id: string) => {
+    const n = (depositos.data ?? []).find((d) => d.id === id)?.numero;
+    return DEPOSITOS_PT.find((d) => d.config.numero === n)?.nombre ?? 'otro depósito';
+  };
   const lotes = useStockPtLotes(deposito?.id);
   /* Por producto, sus lotes con saldo en este depósito (pedido del 2026-10-26). */
   const lotesDe = (productoId: string | null) =>
     (lotes.data ?? []).filter((l) => l.producto_id === productoId && Number(l.saldo) > 0);
 
-  const [viendoHistorial, setViendoHistorial] = useState(false);
+  const [historialDe, setHistorialDe] = useState<{ id: string; nombre: string } | null>(
+    null,
+  );
   const [abierto, setAbierto] = useState(false);
   const [sentido, setSentido] = useState<'entra' | 'sale'>('sale');
   const [tipo, setTipo] = useState<string>('SALIDA_VENTA');
@@ -373,14 +378,6 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
             <Button
               size="md"
               variant="default"
-              leftSection={<IconHistory size={18} />}
-              onClick={() => setViendoHistorial(true)}
-            >
-              Movimientos
-            </Button>
-            <Button
-              size="md"
-              variant="default"
               leftSection={<IconClipboardCheck size={18} />}
               onClick={() => setContando(true)}
             >
@@ -480,12 +477,7 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
           productos={productos.data ?? []}
           stock={stockTodos.data ?? []}
           depositoId={deposito.id}
-          nombreDeposito={(id) => {
-            const n = (depositos.data ?? []).find((d) => d.id === id)?.numero;
-            return (
-              DEPOSITOS_PT.find((d) => d.config.numero === n)?.nombre ?? 'otro depósito'
-            );
-          }}
+          nombreDeposito={nombreDeposito}
         />
 
         {stock.isLoading ? (
@@ -511,6 +503,7 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
                     <Table.Th>Código</Table.Th>
                     <Table.Th>Producto</Table.Th>
                     <Table.Th ta="right">Unidades</Table.Th>
+                    <Table.Th />
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
@@ -564,6 +557,22 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
                             </Text>
                           ) : null}
                         </Table.Td>
+                        <Table.Td ta="right">
+                          <Button
+                            size="sm"
+                            variant="light"
+                            leftSection={<IconHistory size={16} />}
+                            onClick={() =>
+                              setHistorialDe({
+                                id: f.producto_id,
+                                nombre:
+                                  `${codigoDe.get(f.producto_id) ?? ''} ${f.producto}`.trim(),
+                              })
+                            }
+                          >
+                            Movimientos
+                          </Button>
+                        </Table.Td>
                       </Table.Tr>
                     ))}
                 </Table.Tbody>
@@ -576,13 +585,19 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
       </Stack>
 
       <Modal
-        opened={viendoHistorial}
-        onClose={() => setViendoHistorial(false)}
-        title={`Movimientos · ${config.titulo}`}
+        opened={historialDe !== null}
+        onClose={() => setHistorialDe(null)}
+        title={`Movimientos · ${historialDe?.nombre ?? ''} · ${config.titulo}`}
         size="xl"
         radius="md"
       >
-        <HistorialMovimientos filas={movimientos.data} cargando={movimientos.isLoading} />
+        {historialDe ? (
+          <HistorialMovimientos
+            productoId={historialDe.id}
+            depositoId={deposito.id}
+            nombreDeposito={nombreDeposito}
+          />
+        ) : null}
       </Modal>
 
       <Modal
@@ -920,55 +935,39 @@ function RenglonesPt({
 }
 
 /**
- * Historial del depósito como línea de tiempo: qué entró o salió, de qué
- * lote (orden de producción), por qué pedido y quién lo registró. Solo lee el
- * libro `movimientos_pt`; nada se edita desde acá (RN-54).
+ * Historial de un producto en un depósito, como línea de tiempo: de dónde vino
+ * cada ingreso y adónde fue cada egreso, con su lote y quién lo registró.
+ * Solo lee el libro `movimientos_pt`; nada se edita desde acá (RN-54).
  */
 function HistorialMovimientos({
-  filas,
-  cargando,
+  productoId,
+  depositoId,
+  nombreDeposito,
 }: {
-  filas: MovimientoPtRow[] | undefined;
-  cargando: boolean;
+  productoId: string;
+  depositoId: string;
+  nombreDeposito: (id: string) => string;
 }) {
   const nomina = useNomina();
-  const refs = useReferenciasMovimientosPt(filas);
-  const [producto, setProducto] = useState<string | null>(null);
+  // Trae el producto en todos los depósitos: la otra punta de una
+  // transferencia está en otro depósito.
+  const todas = useMovimientosProductoPt(productoId);
+  const refs = useReferenciasMovimientosPt(todas.data);
   const [cuantos, setCuantos] = useState(50);
 
-  if (cargando) return <Skeleton h={240} />;
-  const todas = filas ?? [];
-  if (todas.length === 0) {
+  if (todas.isLoading) return <Skeleton h={240} />;
+  const visibles = (todas.data ?? []).filter((m) => m.deposito_id === depositoId);
+  if (visibles.length === 0) {
     return (
       <Text size="sm" c="dimmed">
-        Todavía no hay movimientos en este depósito.
+        Este producto todavía no tiene movimientos en este depósito.
       </Text>
     );
   }
-
-  const nombre = (m: MovimientoPtRow) =>
-    m.producto ? `${m.producto.codigo_interno} · ${m.producto.nombre}` : '—';
-  const productos = [...new Map(todas.map((m) => [m.producto_id, nombre(m)]))].map(
-    ([value, label]) => ({ value, label }),
-  );
-  const visibles = todas.filter((m) => !producto || m.producto_id === producto);
+  const aca = nombreDeposito(depositoId);
 
   return (
     <Stack gap="md">
-      <Select
-        label="Producto"
-        placeholder="Todos los productos"
-        searchable
-        clearable
-        nothingFoundMessage="Sin coincidencias"
-        data={productos}
-        value={producto}
-        onChange={(v) => {
-          setProducto(v);
-          setCuantos(50);
-        }}
-      />
-
       <Timeline bulletSize={22} lineWidth={2}>
         {visibles.slice(0, cuantos).map((m) => {
           const entra = Number(m.cantidad) > 0;
@@ -980,10 +979,7 @@ function HistorialMovimientos({
               : (ETIQUETA_MOVIMIENTO_PT[m.tipo] ??
                 m.tipo.replace(/_/g, ' ').toLowerCase());
           const orden = m.orden_id ? refs.data?.ordenes.get(m.orden_id) : undefined;
-          const pedido =
-            m.documento_tipo === 'PEDIDO' && m.documento_id
-              ? refs.data?.pedidos.get(m.documento_id)
-              : undefined;
+          const otraPunta = puntaExterna(m, todas.data ?? [], refs.data, nombreDeposito);
           return (
             <Timeline.Item
               key={m.id}
@@ -992,7 +988,7 @@ function HistorialMovimientos({
               title={
                 <Group justify="space-between" wrap="nowrap" gap="sm">
                   <Text size="sm" fw={600}>
-                    {etiqueta} · {nombre(m)}
+                    {etiqueta}
                   </Text>
                   <Text
                     size="sm"
@@ -1006,6 +1002,17 @@ function HistorialMovimientos({
                 </Group>
               }
             >
+              <Text size="sm">
+                {entra ? (
+                  <>
+                    De <b>{otraPunta}</b> → {aca}
+                  </>
+                ) : (
+                  <>
+                    De {aca} → <b>{otraPunta}</b>
+                  </>
+                )}
+              </Text>
               <Text size="xs" c="dimmed">
                 {new Date(m.ocurrido_en).toLocaleString('es-AR', {
                   dateStyle: 'short',
@@ -1015,16 +1022,9 @@ function HistorialMovimientos({
                 {nomina.data?.get(m.registrado_por) ?? 'usuario sin nombre'}
               </Text>
               {orden ? (
-                <Text size="xs">
-                  Orden {orden.numero} · lote {orden.numero_lote}
-                </Text>
+                <Text size="xs">Lote {orden.numero_lote}</Text>
               ) : m.lote_texto ? (
                 <Text size="xs">Lote {m.lote_texto}</Text>
-              ) : null}
-              {pedido ? (
-                <Text size="xs">
-                  Pedido {pedido.numero} — {pedido.cliente}
-                </Text>
               ) : null}
               {m.motivo ? (
                 <Text size="xs" c="dimmed">
