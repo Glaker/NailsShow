@@ -1,4 +1,4 @@
-// Nombre comercial y alias en el portal (migración 20261113150000, P2).
+// Nombre comercial y alias en el portal (migración 20261113200000, P2).
 import { banco } from './lib.mjs';
 const { db, q, uno, prueba, rechaza, como, usuario, fin, invariantes } = await banco();
 await usuario('admin@x', 'ADMINISTRACION', 'ADMINISTRACION');
