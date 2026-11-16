@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   ActionIcon,
   Alert,
   Box,
   Button,
+  Chip,
   Group,
   Modal,
   NumberInput,
@@ -53,6 +54,7 @@ import {
   useStockPuntoVenta,
 } from '@/lib/consultasComercial';
 import { useRegistrarConteoPt } from '@/lib/consultasStockSeguridad';
+import { useListaMayorista } from '@/lib/consultasVentas';
 import { type DepositoPt, useTransferirPt } from '@/lib/consultasCalle5';
 import { ModalRemito, ModalRemitosEmitidos } from './Remito';
 import { useTieneRol } from '@/features/auth/sesion';
@@ -242,6 +244,8 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
   /* v_stock_pt no trae el código: sale del catálogo, que la pantalla ya carga. */
   const codigoDe = new Map((productos.data ?? []).map((x) => [x.id, x.codigo_interno]));
   const [busqueda, setBusqueda] = useState('');
+  const lista = useListaMayorista();
+  const [rubro, setRubro] = useState<string | null>(null);
   // La vista trae todos los depósitos comerciales: acá solo el de la pantalla.
   const stock = {
     isLoading: stockTodos.isLoading,
@@ -273,7 +277,26 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
   // `stock.data ?? []` crea un arreglo nuevo en cada render, así que el memo
   // se calcula sobre `stock.data` y el fallback queda adentro.
   const totalUnidades = stock.data.reduce((a, f) => a + Number(f.saldo), 0);
-  const conStock = stock.data.filter((f) => Number(f.saldo) > 0);
+  /* Por familia (cremas, monómeros, polímeros…) en el orden de la lista
+     mayorista, como en el portal de clientes (pedido del 2026-11-16). Lo que no
+     está en la lista va al final, en «Otros». */
+  const enLista = new Map((lista.data ?? []).map((f) => [f.producto_id, f]));
+  const rubroDe = (id: string | null) =>
+    rubroSinPromo(id ? enLista.get(id)?.rubro : null);
+  const conStock = stock.data
+    .filter((f) => Number(f.saldo) > 0)
+    .sort(
+      (a, b) =>
+        (enLista.get(a.producto_id ?? '')?.orden_lista ?? Infinity) -
+          (enLista.get(b.producto_id ?? '')?.orden_lista ?? Infinity) ||
+        (a.producto ?? '').localeCompare(b.producto ?? ''),
+    );
+  const rubros = [...new Set(conStock.map((f) => rubroDe(f.producto_id)))];
+  const visibles = conStock.filter(
+    (f) =>
+      (!rubro || rubroDe(f.producto_id) === rubro) &&
+      coincide(busqueda, codigoDe.get(f.producto_id ?? ''), f.producto),
+  );
   const saldoDe = (id: string | null) =>
     Number(stock.data.find((f) => f.producto_id === id)?.saldo ?? 0);
   const conteoDifiere =
@@ -481,6 +504,30 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
           nombreDeposito={nombreDeposito}
         />
 
+        {rubros.length > 1 ? (
+          <Group gap="xs">
+            <Chip
+              size="md"
+              variant="light"
+              checked={rubro === null}
+              onChange={() => setRubro(null)}
+            >
+              Todo
+            </Chip>
+            {rubros.map((r) => (
+              <Chip
+                key={r}
+                size="md"
+                variant="light"
+                checked={rubro === r}
+                onChange={() => setRubro(rubro === r ? null : r)}
+              >
+                {r}
+              </Chip>
+            ))}
+          </Group>
+        ) : null}
+
         {stock.isLoading ? (
           <Skeleton h={200} />
         ) : conStock.length === 0 ? (
@@ -508,12 +555,19 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
-                  {conStock
-                    .filter((f) =>
-                      coincide(busqueda, codigoDe.get(f.producto_id), f.producto),
-                    )
-                    .map((f) => (
-                      <Table.Tr key={f.producto_id}>
+                  {visibles.map((f, i) => (
+                    <Fragment key={f.producto_id}>
+                      {i === 0 ||
+                      rubroDe(visibles[i - 1]!.producto_id) !== rubroDe(f.producto_id) ? (
+                        <Table.Tr bg="var(--mantine-color-default-hover)">
+                          <Table.Td colSpan={4}>
+                            <Text size="sm" fw={800} tt="uppercase">
+                              {rubroDe(f.producto_id)}
+                            </Text>
+                          </Table.Td>
+                        </Table.Tr>
+                      ) : null}
+                      <Table.Tr>
                         <Table.Td>
                           <Text size="sm" ff="monospace">
                             {codigoDe.get(f.producto_id) ?? '—'}
@@ -575,7 +629,8 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
                           </Button>
                         </Table.Td>
                       </Table.Tr>
-                    ))}
+                    </Fragment>
+                  ))}
                 </Table.Tbody>
               </Table>
             </Table.ScrollContainer>
@@ -1053,6 +1108,20 @@ function HistorialMovimientos({
       ) : null}
     </Stack>
   );
+}
+
+/**
+ * El rubro de la lista mayorista sin el texto de promoción: «SANITIZANTES PROMO
+ * DESCUENTO» → «SANITIZANTES», «PINCELES (PROMO DECUENTO)» → «PINCELES».
+ */
+function rubroSinPromo(rubro: string | null | undefined) {
+  const r = (rubro ?? '')
+    .split(',')[0]!
+    .replace(/\(.*?\)/g, '')
+    .replace(/PROMO DESCUENTO/i, '')
+    .replace(/[\s.]+$/, '')
+    .trim();
+  return r || 'Otros';
 }
 
 /** Código o nombre, sin distinguir mayúsculas. Vacío coincide con todo. */
