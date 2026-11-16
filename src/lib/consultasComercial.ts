@@ -180,8 +180,30 @@ export interface MovimientoPtRow {
   lote_texto: string | null;
   motivo: string | null;
   ocurrido_en: string;
-  producto: { nombre: string; codigo_interno: string } | null;
+  registrado_por: string;
+  /** Lote: la orden de producción (gmp.ordenes_produccion). */
+  orden_id: string | null;
+  /** Solo en el historial por producto: el despacho de la venta. */
+  despacho?: { pedido_id: string } | null;
+  documento_tipo: string | null;
+  documento_id: string | null;
 }
+
+/** Nombre legible de cada tipo de movimiento, para el historial. */
+export const ETIQUETA_MOVIMIENTO_PT: Record<string, string> = {
+  ENTRADA_COMPRA: 'Ingreso por compra',
+  ENTRADA_PRODUCCION: 'Ingreso de producción',
+  ENTRADA_DEVOLUCION: 'Ingreso desde planta o devolución',
+  ENTRADA_AJUSTE: 'Ajuste de inventario (entra)',
+  ENTRADA_SALDO_APERTURA: 'Saldo de apertura',
+  ENTRADA_PROVISTO_TERCERO: 'Provisto por tercero',
+  SALIDA_VENTA: 'Venta',
+  SALIDA_CONSUMO_PRODUCCION: 'Consumo en producción',
+  SALIDA_MUESTRA: 'Muestra',
+  SALIDA_DESCARTE: 'Descarte',
+  SALIDA_AJUSTE: 'Ajuste de inventario (sale)',
+  SALIDA_RETIRO_MERCADO: 'Retiro de mercado',
+};
 
 /** Tipos de movimiento que el punto de venta puede registrar. */
 export const TIPOS_MOVIMIENTO_PT = [
@@ -1059,17 +1081,160 @@ export function useStockPtLotes(depositoId: string | undefined) {
   });
 }
 
-export function useMovimientosPuntoVenta(depositoId: string | undefined) {
+/**
+ * Movimientos de un producto en todos los depósitos, para su historial. Trae
+ * los otros depósitos porque una transferencia graba dos filas (sale de uno,
+ * entra al otro) y la otra punta es la que dice de dónde vino o adónde fue.
+ *
+ * No embebe `productos`: vive en gmp y PostgREST no une entre esquemas
+ * (PGRST200). Pedirlo hacía fallar la consulta entera y el historial
+ * aparecía vacío. El nombre del producto ya lo tiene la pantalla.
+ */
+export function useMovimientosProductoPt(productoId: string) {
   return useQuery({
-    queryKey: ['movimientos-pt', depositoId],
-    enabled: Boolean(depositoId),
+    queryKey: ['movimientos-pt-producto', productoId],
     queryFn: async () => {
       const { data, error } = await tablaComercial<MovimientoPtRow[]>('movimientos_pt')
-        .select('*, producto:productos(nombre, codigo_interno)')
-        .eq('deposito_id', depositoId!)
-        .order('ocurrido_en', { ascending: false });
+        .select('*, despacho:despachos_pt!movimientos_pt_despacho_id_fkey(pedido_id)')
+        .eq('producto_id', productoId)
+        .order('ocurrido_en', { ascending: false })
+        .order('orden', { ascending: false });
       if (error) throw error;
       return data ?? [];
+    },
+  });
+}
+
+/** El pedido de una venta: por documento o por el despacho que la generó. */
+function pedidoDe(m: MovimientoPtRow) {
+  if (m.documento_tipo === 'PEDIDO' && m.documento_id) return m.documento_id;
+  return m.despacho?.pedido_id ?? null;
+}
+
+/** La orden de producción que generó o consumió el movimiento. */
+function ordenDe(m: MovimientoPtRow) {
+  if (
+    (m.documento_tipo === 'ORDEN' || m.documento_tipo === 'ORDEN_CONSUMO') &&
+    m.documento_id
+  )
+    return m.documento_id;
+  return m.orden_id;
+}
+
+export type ReferenciasMovimientosPt = {
+  ordenes: Map<string, { id: string; numero: string; numero_lote: string }>;
+  pedidos: Map<string, { id: string; numero: string; cliente: string }>;
+};
+
+/**
+ * La otra punta de un movimiento: de dónde vino si entra, adónde fue si sale.
+ * Una transferencia busca su par (mismo producto, lote y momento, cantidad
+ * opuesta, otro depósito), que la base graba en la misma transacción.
+ */
+export function puntaExterna(
+  m: MovimientoPtRow,
+  todas: MovimientoPtRow[],
+  refs: ReferenciasMovimientosPt | undefined,
+  nombreDeposito: (id: string) => string,
+): string {
+  const ordenId = ordenDe(m);
+  const orden = ordenId ? refs?.ordenes.get(ordenId) : undefined;
+  const pedidoId = pedidoDe(m);
+  const pedido = pedidoId ? refs?.pedidos.get(pedidoId) : undefined;
+  const produccion = orden ? `Producción, orden ${orden.numero}` : 'Producción';
+
+  if (m.documento_tipo === 'ARMADO') return 'Armado de packs';
+  switch (m.tipo) {
+    case 'TRANSFERENCIA_ENTRE_DEPOSITOS': {
+      const par = todas.find(
+        (o) =>
+          o.id !== m.id &&
+          o.tipo === m.tipo &&
+          o.deposito_id !== m.deposito_id &&
+          o.ocurrido_en === m.ocurrido_en &&
+          o.orden_id === m.orden_id &&
+          Number(o.cantidad) === -Number(m.cantidad),
+      );
+      return par ? nombreDeposito(par.deposito_id) : 'otro depósito';
+    }
+    case 'ENTRADA_PRODUCCION':
+    case 'SALIDA_CONSUMO_PRODUCCION':
+      return produccion;
+    case 'SALIDA_VENTA':
+      return pedido
+        ? `Pedido ${pedido.numero} — ${pedido.cliente}`
+        : pedidoId
+          ? 'Pedido de venta'
+          : 'Venta sin pedido (mostrador)';
+    case 'ENTRADA_DEVOLUCION':
+      return 'Planta o devolución de cliente';
+    case 'ENTRADA_AJUSTE':
+    case 'SALIDA_AJUSTE':
+      return m.documento_tipo?.startsWith('CONTEO')
+        ? 'Conteo de inventario'
+        : 'Ajuste de inventario';
+    case 'ENTRADA_SALDO_APERTURA':
+      return 'Saldo inicial';
+    case 'ENTRADA_COMPRA':
+      return 'Compra';
+    case 'ENTRADA_PROVISTO_TERCERO':
+      return 'Tercero';
+    case 'SALIDA_DESCARTE':
+      return 'Descarte';
+    case 'SALIDA_MUESTRA':
+      return 'Muestra';
+    case 'SALIDA_RETIRO_MERCADO':
+      return 'Retiro de mercado';
+    default:
+      return Number(m.cantidad) > 0 ? 'Ingreso' : 'Egreso';
+  }
+}
+
+/**
+ * Lote y pedido de cada movimiento, para el historial. `orden_id` apunta a
+ * gmp y `documento_id` no es clave foránea, así que PostgREST no los embebe:
+ * se buscan aparte por id. Lo que el rol no puede leer (RLS) queda sin nombre.
+ */
+export function useReferenciasMovimientosPt(filas: MovimientoPtRow[] | undefined) {
+  const ordenes = [
+    ...new Set(
+      (filas ?? []).flatMap((m) =>
+        [m.orden_id, ordenDe(m)].filter((x): x is string => x !== null),
+      ),
+    ),
+  ];
+  const pedidos = [
+    ...new Set(
+      (filas ?? []).flatMap((m) => {
+        const id = pedidoDe(m);
+        return id ? [id] : [];
+      }),
+    ),
+  ];
+  return useQuery({
+    queryKey: ['movimientos-pt-referencias', ordenes, pedidos],
+    enabled: filas !== undefined,
+    queryFn: async () => {
+      // ponytail: todos los ids en una consulta; si el libro crece a miles, paginar el historial.
+      const [o, p] = await Promise.all([
+        ordenes.length
+          ? gmp()
+              .from('ordenes_produccion')
+              .select('id, numero, numero_lote')
+              .in('id', ordenes)
+          : Promise.resolve({ data: [], error: null }),
+        pedidos.length
+          ? tablaComercial<{ id: string; numero: string; cliente: string }[]>('pedidos')
+              .select('id, numero, cliente')
+              .in('id', pedidos)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+      if (o.error) throw o.error;
+      if (p.error) throw p.error;
+      return {
+        ordenes: new Map((o.data ?? []).map((x) => [x.id, x])),
+        pedidos: new Map((p.data ?? []).map((x) => [x.id, x])),
+      };
     },
   });
 }

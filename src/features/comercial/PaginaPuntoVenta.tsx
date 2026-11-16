@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import {
   ActionIcon,
   Alert,
-  Badge,
   Box,
   Button,
   Group,
@@ -19,14 +18,17 @@ import {
   Text,
   TextInput,
   Textarea,
+  Timeline,
   UnstyledButton,
 } from '@mantine/core';
 import {
   IconArrowDown,
+  IconArrowNarrowRight,
   IconArrowUp,
   IconBuildingStore,
   IconClipboardCheck,
   IconFileText,
+  IconHistory,
   IconInfoCircle,
   IconSearch,
   IconPackage,
@@ -39,9 +41,13 @@ import { Vacio } from '@/components/Vacio';
 import { useDepositos, useProductos } from '@/lib/consultas';
 import { fecha, numero } from '@/lib/formato';
 import {
+  ETIQUETA_MOVIMIENTO_PT,
   TIPOS_MOVIMIENTO_PT,
   TIPOS_PT_CON_MOTIVO,
-  useMovimientosPuntoVenta,
+  puntaExterna,
+  useMovimientosProductoPt,
+  useNomina,
+  useReferenciasMovimientosPt,
   useRegistrarMovimientoPt,
   useStockPtLotes,
   useStockPuntoVenta,
@@ -241,12 +247,18 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
     isLoading: stockTodos.isLoading,
     data: (stockTodos.data ?? []).filter((f) => f.deposito_id === deposito?.id),
   };
-  const movimientos = useMovimientosPuntoVenta(deposito?.id);
+  const nombreDeposito = (id: string) => {
+    const n = (depositos.data ?? []).find((d) => d.id === id)?.numero;
+    return DEPOSITOS_PT.find((d) => d.config.numero === n)?.nombre ?? 'otro depósito';
+  };
   const lotes = useStockPtLotes(deposito?.id);
   /* Por producto, sus lotes con saldo en este depósito (pedido del 2026-10-26). */
   const lotesDe = (productoId: string | null) =>
     (lotes.data ?? []).filter((l) => l.producto_id === productoId && Number(l.saldo) > 0);
 
+  const [historialDe, setHistorialDe] = useState<{ id: string; nombre: string } | null>(
+    null,
+  );
   const [abierto, setAbierto] = useState(false);
   const [sentido, setSentido] = useState<'entra' | 'sale'>('sale');
   const [tipo, setTipo] = useState<string>('SALIDA_VENTA');
@@ -466,12 +478,7 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
           productos={productos.data ?? []}
           stock={stockTodos.data ?? []}
           depositoId={deposito.id}
-          nombreDeposito={(id) => {
-            const n = (depositos.data ?? []).find((d) => d.id === id)?.numero;
-            return (
-              DEPOSITOS_PT.find((d) => d.config.numero === n)?.nombre ?? 'otro depósito'
-            );
-          }}
+          nombreDeposito={nombreDeposito}
         />
 
         {stock.isLoading ? (
@@ -497,7 +504,7 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
                     <Table.Th>Código</Table.Th>
                     <Table.Th>Producto</Table.Th>
                     <Table.Th ta="right">Unidades</Table.Th>
-                    <Table.Th>Último movimiento</Table.Th>
+                    <Table.Th />
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
@@ -551,12 +558,21 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
                             </Text>
                           ) : null}
                         </Table.Td>
-                        <Table.Td>
-                          <Text size="sm" c="dimmed">
-                            {f.ultimo_movimiento
-                              ? new Date(f.ultimo_movimiento).toLocaleDateString('es-AR')
-                              : '—'}
-                          </Text>
+                        <Table.Td ta="right">
+                          <Button
+                            size="sm"
+                            variant="light"
+                            leftSection={<IconHistory size={16} />}
+                            onClick={() =>
+                              setHistorialDe({
+                                id: f.producto_id,
+                                nombre:
+                                  `${codigoDe.get(f.producto_id) ?? ''} ${f.producto}`.trim(),
+                              })
+                            }
+                          >
+                            Movimientos
+                          </Button>
                         </Table.Td>
                       </Table.Tr>
                     ))}
@@ -567,12 +583,23 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
         )}
 
         {esCalle5 ? <PanelCalle5 /> : null}
-
-        <UltimosMovimientos
-          filas={movimientos.data ?? []}
-          cargando={movimientos.isLoading}
-        />
       </Stack>
+
+      <Modal
+        opened={historialDe !== null}
+        onClose={() => setHistorialDe(null)}
+        title={`Movimientos · ${historialDe?.nombre ?? ''} · ${config.titulo}`}
+        size="xl"
+        radius="md"
+      >
+        {historialDe ? (
+          <HistorialMovimientos
+            productoId={historialDe.id}
+            depositoId={deposito.id}
+            nombreDeposito={nombreDeposito}
+          />
+        ) : null}
+      </Modal>
 
       <Modal
         opened={contando}
@@ -908,85 +935,122 @@ function RenglonesPt({
   );
 }
 
-function UltimosMovimientos({
-  filas,
-  cargando,
+/**
+ * Historial de un producto en un depósito, como línea de tiempo: de dónde vino
+ * cada ingreso y adónde fue cada egreso, con su lote y quién lo registró.
+ * Solo lee el libro `movimientos_pt`; nada se edita desde acá (RN-54).
+ */
+function HistorialMovimientos({
+  productoId,
+  depositoId,
+  nombreDeposito,
 }: {
-  filas: NonNullable<ReturnType<typeof useMovimientosPuntoVenta>['data']>;
-  cargando: boolean;
+  productoId: string;
+  depositoId: string;
+  nombreDeposito: (id: string) => string;
 }) {
-  if (cargando) return <Skeleton h={160} />;
-  if (filas.length === 0) return null;
+  const nomina = useNomina();
+  // Trae el producto en todos los depósitos: la otra punta de una
+  // transferencia está en otro depósito.
+  const todas = useMovimientosProductoPt(productoId);
+  const refs = useReferenciasMovimientosPt(todas.data);
+  const [cuantos, setCuantos] = useState(50);
+
+  if (todas.isLoading) return <Skeleton h={240} />;
+  // Un error no es «sin movimientos»: decirlo así escondía la falla.
+  if (todas.isError) {
+    return (
+      <Alert color="red" variant="light" radius="md" title="No se pudo leer el historial">
+        {todas.error.message}
+      </Alert>
+    );
+  }
+  const visibles = (todas.data ?? []).filter((m) => m.deposito_id === depositoId);
+  if (visibles.length === 0) {
+    return (
+      <Text size="sm" c="dimmed">
+        Este producto todavía no tiene movimientos en este depósito.
+      </Text>
+    );
+  }
+  const aca = nombreDeposito(depositoId);
 
   return (
-    <Stack gap="xs">
-      <Text fw={600} size="sm" c="dimmed">
-        Últimos movimientos
-      </Text>
-      <Paper
-        withBorder
-        style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}
-      >
-        <Table.ScrollContainer minWidth={640}>
-          <Table verticalSpacing="sm">
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Fecha</Table.Th>
-                <Table.Th>Producto</Table.Th>
-                <Table.Th>Motivo</Table.Th>
-                <Table.Th>Lote</Table.Th>
-                <Table.Th ta="right">Cantidad</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {filas.slice(0, 40).map((m) => {
-                const entra = Number(m.cantidad) > 0;
-                return (
-                  <Table.Tr key={m.id}>
-                    <Table.Td>
-                      <Text size="sm" c="dimmed">
-                        {new Date(m.ocurrido_en).toLocaleDateString('es-AR')}
-                      </Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm">
-                        {m.producto
-                          ? `${m.producto.codigo_interno} · ${m.producto.nombre}`
-                          : '—'}
-                      </Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Badge
-                        variant="light"
-                        radius="sm"
-                        color={entra ? 'estadoAprobado' : 'azul'}
-                      >
-                        {m.tipo.replace(/_/g, ' ').toLowerCase()}
-                      </Badge>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm" c="dimmed">
-                        {m.lote_texto ?? '—'}
-                      </Text>
-                    </Table.Td>
-                    <Table.Td ta="right">
-                      <Text
-                        size="sm"
-                        ff="monospace"
-                        fw={600}
-                        c={entra ? 'estadoAprobado' : 'inherit'}
-                      >
-                        {entra ? '+' : ''}
-                        {numero(Number(m.cantidad), 0)}
-                      </Text>
-                    </Table.Td>
-                  </Table.Tr>
-                );
-              })}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
-      </Paper>
+    <Stack gap="md">
+      {/* La animación vive en global.css (.linea-tiempo): la línea se dibuja
+          hacia abajo y cada movimiento entra cuando le llega, una sola vez. */}
+      <Timeline className="linea-tiempo" bulletSize={28} lineWidth={2}>
+        {visibles.slice(0, cuantos).map((m, i) => {
+          // Escalonado sobre la tanda recién cargada, con tope: lo de más
+          // abajo no hace esperar a nadie.
+          const turno = Math.min(Math.max(i - (cuantos - 50), 0), 10);
+          const entra = Number(m.cantidad) > 0;
+          const etiqueta =
+            m.tipo === 'TRANSFERENCIA_ENTRE_DEPOSITOS'
+              ? entra
+                ? 'Transferencia recibida'
+                : 'Transferencia enviada'
+              : (ETIQUETA_MOVIMIENTO_PT[m.tipo] ??
+                m.tipo.replace(/_/g, ' ').toLowerCase());
+          const orden = m.orden_id ? refs.data?.ordenes.get(m.orden_id) : undefined;
+          const otraPunta = puntaExterna(m, todas.data ?? [], refs.data, nombreDeposito);
+          return (
+            <Timeline.Item
+              key={m.id}
+              data-entra={entra || undefined}
+              style={{ '--lt-demora': `${turno * 55}ms` }}
+              bullet={entra ? <IconArrowDown size={16} /> : <IconArrowUp size={16} />}
+              title={
+                <Group justify="space-between" wrap="nowrap" gap="sm">
+                  <Text size="sm" fw={600}>
+                    {etiqueta}
+                  </Text>
+                  <Text size="md" ff="monospace" fw={700}>
+                    {entra ? '+' : ''}
+                    {numero(Number(m.cantidad), 0)}
+                  </Text>
+                </Group>
+              }
+            >
+              {/* De dónde vino → adónde fue; en negrita, la punta que no es
+                  este depósito. */}
+              <Group gap={6} wrap="wrap" align="center">
+                <Text size="sm" fw={entra ? 600 : 400} c={entra ? 'inherit' : 'dimmed'}>
+                  {entra ? otraPunta : aca}
+                </Text>
+                <IconArrowNarrowRight size={16} aria-label="a" />
+                <Text size="sm" fw={entra ? 400 : 600} c={entra ? 'dimmed' : 'inherit'}>
+                  {entra ? aca : otraPunta}
+                </Text>
+              </Group>
+              <Text size="xs" c="dimmed">
+                {new Date(m.ocurrido_en).toLocaleString('es-AR', {
+                  dateStyle: 'short',
+                  timeStyle: 'short',
+                })}
+                {' · '}
+                {nomina.data?.get(m.registrado_por) ?? 'usuario sin nombre'}
+              </Text>
+              {orden ? (
+                <Text size="xs">Lote {orden.numero_lote}</Text>
+              ) : m.lote_texto ? (
+                <Text size="xs">Lote {m.lote_texto}</Text>
+              ) : null}
+              {m.motivo ? (
+                <Text size="xs" c="dimmed">
+                  {m.motivo}
+                </Text>
+              ) : null}
+            </Timeline.Item>
+          );
+        })}
+      </Timeline>
+
+      {visibles.length > cuantos ? (
+        <Button variant="default" onClick={() => setCuantos((c) => c + 50)}>
+          Ver más ({visibles.length - cuantos} restantes)
+        </Button>
+      ) : null}
     </Stack>
   );
 }
