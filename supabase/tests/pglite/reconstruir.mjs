@@ -32,6 +32,7 @@ const SOLO_PRODUCCION = new Set([
   '20261112170000_sanitizantes_alcohol_cleanser.sql', // carga de datos de la base real
   '20261113150000_tandas_sin_mp_duplicada.sql', // anula bajas dobles de OP-2026-0020/21/22 (datos reales)
   '20261113170000_carga_cuenta_cliente_1.sql', // cuenta de demostración real
+  '20261116100000_comercial_stock_berna_casiopea_13_11.sql', // stock real de Berna (productos dados de alta desde la pantalla)
 ]);
 
 export async function reconstruir({ silencioso = false } = {}) {
