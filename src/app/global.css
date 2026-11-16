@@ -1259,3 +1259,90 @@ a.contador:hover {
     transition: none;
   }
 }
+
+/* ---------------------------------------------------------------------
+ * Línea de tiempo de movimientos de un producto (Depósitos › Movimientos).
+ *
+ * Al abrir, la línea se dibuja hacia abajo y cada movimiento aparece cuando
+ * la línea le llega: el punto, con la flecha entrando en su sentido (baja lo
+ * que entra al depósito, sube lo que sale), y el texto saliendo de la línea.
+ * Una sola vez, al entrar: nada sugiere que algo se guardó o cambió de
+ * estado. Con reducción de movimiento no se ve (regla general de arriba).
+ *
+ * El ingreso lleva punto azul lleno y el egreso punto neutro: el verde es
+ * del estado «aprobado» y acá no se usa.
+ * --------------------------------------------------------------------- */
+
+@keyframes linea-crecer {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes punto-entrar {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes flecha-baja {
+  from {
+    opacity: 0;
+    transform: translateY(-9px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes flecha-sube {
+  from {
+    opacity: 0;
+    transform: translateY(9px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.linea-tiempo .mantine-Timeline-item::before {
+  transform-origin: top;
+  animation: linea-crecer 420ms var(--curva-salida) both;
+  animation-delay: var(--lt-demora, 0ms);
+}
+
+.linea-tiempo .mantine-Timeline-itemBullet {
+  overflow: hidden;
+  animation: punto-entrar 380ms var(--curva-resorte) both;
+  animation-delay: var(--lt-demora, 0ms);
+}
+
+.linea-tiempo .mantine-Timeline-item[data-entra] .mantine-Timeline-itemBullet {
+  border-color: var(--mantine-color-azul-filled);
+  background-color: var(--mantine-color-azul-filled);
+  color: var(--mantine-color-white);
+}
+
+.linea-tiempo .mantine-Timeline-itemBullet svg {
+  animation: flecha-sube 460ms var(--curva-resorte) both;
+  animation-delay: calc(var(--lt-demora, 0ms) + 90ms);
+}
+
+.linea-tiempo .mantine-Timeline-item[data-entra] .mantine-Timeline-itemBullet svg {
+  animation-name: flecha-baja;
+}
+
+.linea-tiempo .mantine-Timeline-itemBody {
+  animation: entrada-lateral 320ms var(--curva-salida) both;
+  animation-delay: calc(var(--lt-demora, 0ms) + 40ms);
+}
