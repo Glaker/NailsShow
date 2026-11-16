@@ -23,6 +23,7 @@ import {
 } from '@mantine/core';
 import {
   IconArrowDown,
+  IconArrowNarrowRight,
   IconArrowUp,
   IconBuildingStore,
   IconClipboardCheck,
@@ -968,8 +969,13 @@ function HistorialMovimientos({
 
   return (
     <Stack gap="md">
-      <Timeline bulletSize={22} lineWidth={2}>
-        {visibles.slice(0, cuantos).map((m) => {
+      {/* La animación vive en global.css (.linea-tiempo): la línea se dibuja
+          hacia abajo y cada movimiento entra cuando le llega, una sola vez. */}
+      <Timeline className="linea-tiempo" bulletSize={28} lineWidth={2}>
+        {visibles.slice(0, cuantos).map((m, i) => {
+          // Escalonado sobre la tanda recién cargada, con tope: lo de más
+          // abajo no hace esperar a nadie.
+          const turno = Math.min(Math.max(i - (cuantos - 50), 0), 10);
           const entra = Number(m.cantidad) > 0;
           const etiqueta =
             m.tipo === 'TRANSFERENCIA_ENTRE_DEPOSITOS'
@@ -983,36 +989,32 @@ function HistorialMovimientos({
           return (
             <Timeline.Item
               key={m.id}
-              color={entra ? 'estadoAprobado' : 'azul'}
-              bullet={entra ? <IconArrowDown size={13} /> : <IconArrowUp size={13} />}
+              data-entra={entra || undefined}
+              style={{ '--lt-demora': `${turno * 55}ms` }}
+              bullet={entra ? <IconArrowDown size={16} /> : <IconArrowUp size={16} />}
               title={
                 <Group justify="space-between" wrap="nowrap" gap="sm">
                   <Text size="sm" fw={600}>
                     {etiqueta}
                   </Text>
-                  <Text
-                    size="sm"
-                    ff="monospace"
-                    fw={700}
-                    c={entra ? 'estadoAprobado' : 'inherit'}
-                  >
+                  <Text size="md" ff="monospace" fw={700}>
                     {entra ? '+' : ''}
                     {numero(Number(m.cantidad), 0)}
                   </Text>
                 </Group>
               }
             >
-              <Text size="sm">
-                {entra ? (
-                  <>
-                    De <b>{otraPunta}</b> → {aca}
-                  </>
-                ) : (
-                  <>
-                    De {aca} → <b>{otraPunta}</b>
-                  </>
-                )}
-              </Text>
+              {/* De dónde vino → adónde fue; en negrita, la punta que no es
+                  este depósito. */}
+              <Group gap={6} wrap="wrap" align="center">
+                <Text size="sm" fw={entra ? 600 : 400} c={entra ? 'inherit' : 'dimmed'}>
+                  {entra ? otraPunta : aca}
+                </Text>
+                <IconArrowNarrowRight size={16} aria-label="a" />
+                <Text size="sm" fw={entra ? 400 : 600} c={entra ? 'dimmed' : 'inherit'}>
+                  {entra ? aca : otraPunta}
+                </Text>
+              </Group>
               <Text size="xs" c="dimmed">
                 {new Date(m.ocurrido_en).toLocaleString('es-AR', {
                   dateStyle: 'short',
