@@ -32,6 +32,10 @@ import './hada.css';
  * pasa de ahí al pedido es el borrador, y recién cuando el cliente toca «Pasar
  * al pedido» (D-hada-4: suma al carrito, no lo reemplaza). El envío sigue
  * siendo el SlideCommit de siempre.
+ *
+ * El borrador es incremental: el panel guarda el vigente, lo manda en cada
+ * mensaje y lo reemplaza por el que devuelve el servidor. La charla se guarda
+ * (hasta 6 turnos) y se vacía al pasar al pedido o al cerrar el panel.
  */
 
 /** Lugares de la app a los que Hada puede mandar: tabla cerrada, el resto se ignora. */
@@ -129,6 +133,7 @@ export function Hada({
   const [abierto, setAbierto] = useState(false);
   const [texto, setTexto] = useState('');
   const [historial, setHistorial] = useState<TurnoHada[]>([]);
+  const [vigente, setVigente] = useState<BorradorHada | null>(null);
   const [ultima, setUltima] = useState<{ mensaje: string; r: RespuestaHada } | null>(
     null,
   );
@@ -154,20 +159,30 @@ export function Hada({
   };
 
   const consulta = useMutation({
-    mutationFn: ({ mensaje, h }: { mensaje: string; h: TurnoHada[] }) =>
-      preguntarHada(mensaje, h),
+    mutationFn: ({
+      mensaje,
+      h,
+      b,
+    }: {
+      mensaje: string;
+      h: TurnoHada[];
+      b: BorradorHada | null;
+    }) => preguntarHada(mensaje, h, b),
     onSuccess: (r, { mensaje }) => {
       setUltima({ mensaje, r });
-      // Solo una pregunta de Hada abre conversación: el servidor corta con 2 turnos
-      // suyos, así que un aviso, una ubicación o un borrador empiezan de cero.
+      // El servidor manda el borrador completo; otra respuesta conserva el vigente.
+      if (r.tipo === 'borrador' && r.borrador) setVigente(r.borrador);
+      // El tipo va con el turno: el servidor corta solo tras 2 preguntas seguidas.
       setHistorial((h) =>
-        r.tipo === 'pregunta'
-          ? [
-              ...h,
-              { rol: 'cliente' as const, texto: mensaje },
-              { rol: 'hada' as const, texto: r.textos.join(' ').slice(0, 500) },
-            ].slice(-6)
-          : [],
+        [
+          ...h,
+          { rol: 'cliente' as const, texto: mensaje },
+          {
+            rol: 'hada' as const,
+            texto: r.textos.join(' ').slice(0, 500),
+            tipo: r.tipo,
+          },
+        ].slice(-6),
       );
       if (r.tipo === 'borrador' && r.borrador) reaccionar('borrador', 1000);
       else if (r.tipo === 'aviso' || r.rechazados?.length) reaccionar('error', 900);
@@ -190,6 +205,7 @@ export function Hada({
   const cerrar = () => {
     clearTimeout(tiempo.current);
     setReaccion(null);
+    setHistorial([]);
     setAbierto(false);
   };
 
@@ -197,16 +213,9 @@ export function Hada({
     ? 'pensando'
     : (reaccion ?? (entrando ? 'entrada' : texto ? 'escuchando' : 'reposo'));
 
-  const enviar = () => {
-    const mensaje = texto.trim();
-    if (!mensaje || consulta.isPending) return;
-    setTexto('');
-    consulta.mutate({ mensaje, h: historial });
-  };
-
   // Solo se ofrece lo que se puede nombrar con la lista ya cargada: nada se pasa a ciegas.
   const borrador = useMemo<BorradorHada | null>(() => {
-    const b = ultima?.r.borrador;
+    const b = vigente;
     if (!b) return null;
     const ids = new Set(productos.map((p) => p.producto_id));
     const cajas = new Set(catalogo.map((c) => c.caja_id));
@@ -215,7 +224,14 @@ export function Hada({
       cajas: b.cajas.filter((c) => cajas.has(c.caja_id)),
     };
     return v.renglones.length + v.cajas.length > 0 ? v : null;
-  }, [ultima, productos, catalogo]);
+  }, [vigente, productos, catalogo]);
+
+  const enviar = () => {
+    const mensaje = texto.trim();
+    if (!mensaje || consulta.isPending) return;
+    setTexto('');
+    consulta.mutate({ mensaje, h: historial, b: borrador });
+  };
 
   const destino = claveDestino(ultima?.r.destino);
 
@@ -257,7 +273,7 @@ export function Hada({
               <Text size="sm" c="dimmed" ta="right" style={{ overflowWrap: 'anywhere' }}>
                 {ultima.mensaje}
               </Text>
-              <div className="hada-burbuja" key={historial.length}>
+              <div className="hada-burbuja" key={consulta.submittedAt}>
                 {ultima.r.textos.map((t, i) => (
                   <Text key={i} style={{ overflowWrap: 'anywhere' }}>
                     {t}
@@ -301,7 +317,7 @@ export function Hada({
                     onClick={() => {
                       onPasar(borrador);
                       setUltima(null);
-                      setHistorial([]);
+                      setVigente(null);
                       cerrar();
                     }}
                   >
