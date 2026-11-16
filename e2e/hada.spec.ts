@@ -173,7 +173,7 @@ test('destino: solo los de la lista cerrada, y se toca para ir', async ({ page }
   await expect(page.getByRole('button', { name: ENTRADA })).toHaveCount(0);
 });
 
-test('Hada no se ofrece con el resumen abierto ni en la cuenta demo', async ({
+test('Hada no se ofrece con el resumen abierto; en la cuenta demo sí (D-hada-2)', async ({
   page,
 }) => {
   await portal(page);
@@ -185,10 +185,22 @@ test('Hada no se ofrece con el resumen abierto ni en la cuenta demo', async ({
 
   const demo = await page.context().newPage();
   await demo.setViewportSize({ width: 390, height: 800 });
-  await prepararPortal(demo, false, 100); // sesión demo por defecto
+  const esc = await prepararPortal(demo, false, 100); // sesión demo por defecto
   await demo.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(uno(demo, 0)).toBeVisible({ timeout: 30_000 });
-  await expect(demo.getByRole('button', { name: ENTRADA })).toHaveCount(0);
+  // El borrador (con una caja de cliente_cajas) se suma al carrito como en una cuenta real.
+  esc.hada.cuerpo = {
+    tipo: 'borrador',
+    textos: ['Te armé esto.'],
+    borrador: {
+      renglones: [{ producto_id: LISTA[0]!.producto_id, cantidad: 5 }],
+      cajas: [{ caja_id: CAJAS[1]!.caja_id, opcion: 'AMOR_PAZ', cajas: 1 }],
+    },
+  };
+  const panel = await preguntar(demo);
+  await panel.getByRole('button', { name: 'Pasar al pedido' }).click();
+  await expect(demo.getByText('Lo que llevo (2)', { exact: true })).toBeVisible();
+  expect(esc.enviados).toHaveLength(0);
 });
 
 test('pedido nuevo: usa cliente_enviar_pedido_unico y reintenta con la misma clave', async ({

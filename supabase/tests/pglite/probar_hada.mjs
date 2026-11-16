@@ -453,9 +453,14 @@ await prueba('límite por día: la 4.ª del día da LIMITE_DIA', async () => {
 // ---------------------------------------------------------------------------
 // Demo, interruptor y topes
 // ---------------------------------------------------------------------------
+await prueba('la demo arranca con 10 por día (D-hada-2, 20261116120000)', async () => {
+  await db.exec('reset role');
+  const f = await uno(`select limite_dia_demo n from comercial.hada_config`);
+  if (f.n !== 10) throw new Error(JSON.stringify(f));
+});
 await prueba('la cuenta demo no usa Hada con limite_dia_demo = 0', async () => {
   await limpiar();
-  await config('limite_dia = 40, limite_minuto = 5');
+  await config('limite_dia = 40, limite_minuto = 5, limite_dia_demo = 0');
   await comoCliente('demo@x');
   const r = await reservar();
   if (r.permitido || r.motivo !== 'APAGADO') throw new Error(JSON.stringify(r));

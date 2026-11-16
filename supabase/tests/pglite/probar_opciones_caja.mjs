@@ -154,17 +154,37 @@ for (const n of [3, 6])
     esperaRen(await ren(p), { 370: (n / 3) * 50, 372: (n / 3) * 50, 371: (n / 3) * 50 });
   });
 
-// c. Mixtas con unidades impares.
-await rechaza(
-  'c. una mixta de 91 unidades por caja se rechaza',
-  `insert into comercial.pedido_cajas (pedido_id, caja_id, opcion, cajas) values ('${await pedido()}','${ACE.id}','AMOR_PAZ',2)`,
-  /mixta_unidades_pares/,
+// c. Mixtas con unidades impares (D-opciones-caja-4): el primer aroma nombrado
+// lleva la mitad hacia arriba y el segundo la mitad hacia abajo, por caja.
+// Aceite: amor 381, paz 383, aire 382. Sanitizante 1 L: NS-397, NS-399, NS-398.
+for (const [o, n, esp] of [
+  ['AMOR_PAZ', 1, { 381: 46, 383: 45 }],
+  ['AMOR_PAZ', 3, { 381: 138, 383: 135 }],
+  ['AMOR_AIRE', 2, { 381: 92, 382: 90 }],
+  ['PAZ_AIRE', 5, { 383: 230, 382: 225 }],
+])
+  await prueba(`c. mixta ${o} de 91 con ${n} cajas: 46 y 45 por caja`, async () => {
+    const p = await pedido();
+    await cajaDe(p, ACE, o, n);
+    esperaRen(await ren(p), esp);
+  });
+await prueba(
+  'c. mixta de 15 por caja: 8 y 7; bajar y quitar revierte exacto',
+  async () => {
+    const p = await pedido();
+    const c1 = await cajaDe(p, SAN1L, 'AMOR_AIRE', 2);
+    esperaRen(await ren(p), { 'NS-397': 16, 'NS-398': 14 });
+    await q(`update comercial.pedido_cajas set cajas = 1 where id=$1`, [c1]);
+    esperaRen(await ren(p), { 'NS-397': 8, 'NS-398': 7 });
+    await q(`update comercial.pedido_cajas set anulado = true where id=$1`, [c1]);
+    if ((await ren(p)).size !== 0) throw new Error('quedó un renglón vigente');
+  },
 );
-await rechaza(
-  'c. una mixta de 15 unidades por caja se rechaza',
-  `insert into comercial.pedido_cajas (pedido_id, caja_id, opcion, cajas) values ('${await pedido()}','${SAN1L.id}','AMOR_AIRE',2)`,
-  /mixta_unidades_pares/,
-);
+await prueba('c. mixta de 50 por caja (par): sin cambios, 25 y 25', async () => {
+  const p = await pedido();
+  await cajaDe(p, H240, 'PAZ_AIRE', 3);
+  esperaRen(await ren(p), { 372: 75, 371: 75 });
+});
 await prueba('c. el aceite de 91 sí va de un solo aroma', async () => {
   const p = await pedido();
   await cajaDe(p, ACE, 'AIRE', 1);
@@ -571,7 +591,9 @@ await prueba(
     if (!h || h.unidades_caja !== 50 || !h.mixta || N(h.precio_promo) <= 0)
       throw new Error(JSON.stringify(r));
     const a = r.find((x) => x.caja_id === ACE.id);
-    if (!a || a.mixta) throw new Error('aceite: ' + JSON.stringify(a));
+    // D-opciones-caja-4: toda caja admite mixtas, también las de unidades impares.
+    if (!a || !a.mixta || a.unidades_caja !== 91)
+      throw new Error('aceite: ' + JSON.stringify(a));
     if (r.some((x) => x.caja_id === SAN1L.id))
       throw new Error('ofrece el sanitizante de 1 L sin precio');
   },
@@ -603,11 +625,6 @@ for (const [n, cajas, pat] of [
     'una de cada con 2',
     [{ caja_id: H240.id, opcion: 'UNA_DE_CADA', cajas: 2 }],
     /de a 3/,
-  ],
-  [
-    'mixta del aceite',
-    [{ caja_id: ACE.id, opcion: 'AMOR_PAZ', cajas: 2 }],
-    /no se vende mezclando/,
   ],
   [
     'caja fuera de lista',
@@ -835,6 +852,21 @@ await prueba(
       .join();
     await db.exec('rollback to savepoint det');
     if (pos !== 'cliente_x,cliente_y') throw new Error('el detector no detecta: ' + pos);
+  },
+);
+// k. El cliente envía una mixta del aceite (91 por caja): 46 Amor y 45 Paz por caja (D-opciones-caja-4).
+await prueba(
+  'k. el cliente envía una mixta impar y se vuelca 46/45 por caja',
+  async () => {
+    await comoCliente('cli1@x');
+    const p = (
+      await uno(
+        `select comercial.cliente_enviar_pedido(null, '[]'::jsonb, null, $1::jsonb) id`,
+        [JSON.stringify([{ caja_id: ACE.id, opcion: 'AMOR_PAZ', cajas: 2 }])],
+      )
+    ).id;
+    await como('ven@x');
+    esperaRen(await ren(p), { 381: 92, 383: 90 });
   },
 );
 await prueba('j. las tablas nuevas tienen RLS forzada y auditoría', async () => {

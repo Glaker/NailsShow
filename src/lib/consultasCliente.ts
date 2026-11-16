@@ -86,7 +86,10 @@ export interface CajaCliente {
   unidades_caja: number;
   porcentaje: number;
   precio_promo: number;
-  /** false = no se arma mitad y mitad (unidades por caja impares). */
+  /**
+   * Siempre true desde 20261116120000 (D-opciones-caja-4: con unidades impares el
+   * primer aroma lleva la mitad hacia arriba). Queda por contrato con la base y Hada.
+   */
   mixta: boolean;
 }
 

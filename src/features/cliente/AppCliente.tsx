@@ -25,13 +25,14 @@ import { Marca } from '@/components/Marca';
 import { useSesion } from '@/features/auth/sesion';
 import {
   claveCaja,
+  useCajasCliente,
   useListaCliente,
   type CarritoCajas,
   usePerfilCliente,
   type EnvioPedido,
   type PedidoCliente,
 } from '@/lib/consultasCliente';
-import { aplicarEnvioDemo, CAJAS_DEMO, pedidosDeEjemplo } from './demo';
+import { aplicarEnvioDemo, pedidosDeEjemplo } from './demo';
 import { ArmarPedido, type Carrito } from './ArmarPedido';
 import { MisPedidos } from './MisPedidos';
 import { TextoDual } from './TextoDual';
@@ -62,11 +63,15 @@ export function AppCliente() {
       }
     : consultaPerfil;
   const lista = useListaCliente();
+  const cajasCliente = useCajasCliente(demo);
   const [pedidosDemo, setPedidosDemo] = useState<PedidoCliente[] | null>(null);
-  const ejemplos = pedidosDemo ?? pedidosDeEjemplo(lista.data ?? []);
+  const ejemplos =
+    pedidosDemo ?? pedidosDeEjemplo(lista.data ?? [], cajasCliente.data ?? []);
   const enviarDemo = async (e: EnvioPedido) => {
     await new Promise((r) => setTimeout(r, 600));
-    setPedidosDemo(aplicarEnvioDemo(ejemplos, e, lista.data ?? [], CAJAS_DEMO));
+    setPedidosDemo(
+      aplicarEnvioDemo(ejemplos, e, lista.data ?? [], cajasCliente.data ?? []),
+    );
   };
   const [vista, setVista] = useState<'armar' | 'pedidos'>('armar');
   const [carrito, setCarrito] = useState<Carrito>(new Map());
@@ -220,12 +225,11 @@ export function AppCliente() {
           setCarrito={setCarrito}
           cajas={cajas}
           setCajas={setCajas}
-          cajasDemo={demo ? CAJAS_DEMO : undefined}
           observaciones={observaciones}
           setObservaciones={setObservaciones}
           editando={editando}
           claveEnvio={claveEnvio}
-          hada={!demo && !tutorial}
+          hada={!tutorial}
           onMisPedidos={() => setVista('pedidos')}
           onTutorial={() => setTutorial(true)}
           onVaciar={vaciar}

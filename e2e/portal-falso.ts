@@ -29,7 +29,7 @@ export const LISTA = NOMBRES.map((producto, i) => ({
   precio_promo: 9000 + i * 700,
   minimo: i % 3 === 0 ? 6 : null,
 }));
-/** cliente_cajas: un grupo que se arma mitad y mitad y otro de unidades impares. */
+/** cliente_cajas: un grupo de unidades pares y otro de impares; los dos admiten mixtas (D-opciones-caja-4). */
 export const CAJAS = [
   {
     caja_id: '00000000-0000-4000-9000-000000000001',
@@ -45,7 +45,7 @@ export const CAJAS = [
     unidades_caja: 91,
     porcentaje: 10,
     precio_promo: 2500,
-    mixta: false,
+    mixta: true,
   },
 ];
 const ESCALA = [

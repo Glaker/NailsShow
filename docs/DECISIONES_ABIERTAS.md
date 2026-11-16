@@ -2394,6 +2394,18 @@ asignación vuelve a pendiente y la reserva se libera (se marca, no se borra).
 **Riesgo.** Las reservas de un BORRADOR abandonado no vencen: hace falta un
 listado de reservas de surtido por antigüedad.
 
+### D-opciones-caja-4 · Mixtas con unidades por caja impares — adoptada 2026-11-16
+
+**Pregunta.** Amor y Paz, Amor y Aire y Paz y Aire estaban deshabilitadas en
+las cajas de unidades impares (aceite de cutícula 8 ml = 91, sanitizante 1 L =
+15), porque la mitad no es entera.
+**Decisión (del codirector técnico).** Se habilitan para todas las cajas. Con
+unidades impares, cada caja mixta lleva la mitad redondeada hacia arriba del
+PRIMER aroma nombrado y la mitad hacia abajo del segundo: Amor y Paz con 91 →
+46 Amor + 45 Paz por caja; N cajas → N×46 y N×45 (`caja_aporte`, por caja, no
+sobre el total). En pares no cambia nada. `cliente_cajas.mixta` queda siempre
+en true, por contrato con el portal y con Hada (`20261116120000`).
+
 ## Rama pedidos-p6-hada (número definitivo al integrar en main)
 
 Diseño en `docs/disenos/P6-hada.md`; plan en `docs/PROMPT_PEDIDOS_HADA.md`, P6.
@@ -2412,6 +2424,12 @@ que es el respaldo real: los precios de la tabla son estimados.
 
 **Aplicado.** Apagada (`limite_dia_demo` = 0), y el portal no la muestra en la
 cuenta demo, para que una cuenta compartida no consuma el tope de los clientes.
+**Cambio 2026-11-16.** Habilitada en demo con 10 por día desde 2026-11-16, por
+pedido del codirector técnico; el tope por usuario evita que la cuenta
+compartida agote el global (`20261116120000`). El portal la muestra también en
+la demo y el borrador se suma al carrito como en una cuenta real; para eso la
+demo usa las cajas reales de `cliente_cajas` (antes, unas de ejemplo en
+`demo.ts`, cuyos identificadores no coincidían con los de Hada).
 
 ### D-hada-3 · Retención del registro de Hada — provisoria 2026-11-13
 
