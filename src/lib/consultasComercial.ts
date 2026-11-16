@@ -180,8 +180,29 @@ export interface MovimientoPtRow {
   lote_texto: string | null;
   motivo: string | null;
   ocurrido_en: string;
+  registrado_por: string;
+  /** Lote: la orden de producción (gmp.ordenes_produccion). */
+  orden_id: string | null;
+  documento_tipo: string | null;
+  documento_id: string | null;
   producto: { nombre: string; codigo_interno: string } | null;
 }
+
+/** Nombre legible de cada tipo de movimiento, para el historial. */
+export const ETIQUETA_MOVIMIENTO_PT: Record<string, string> = {
+  ENTRADA_COMPRA: 'Ingreso por compra',
+  ENTRADA_PRODUCCION: 'Ingreso de producción',
+  ENTRADA_DEVOLUCION: 'Ingreso desde planta o devolución',
+  ENTRADA_AJUSTE: 'Ajuste de inventario (entra)',
+  ENTRADA_SALDO_APERTURA: 'Saldo de apertura',
+  ENTRADA_PROVISTO_TERCERO: 'Provisto por tercero',
+  SALIDA_VENTA: 'Venta',
+  SALIDA_CONSUMO_PRODUCCION: 'Consumo en producción',
+  SALIDA_MUESTRA: 'Muestra',
+  SALIDA_DESCARTE: 'Descarte',
+  SALIDA_AJUSTE: 'Ajuste de inventario (sale)',
+  SALIDA_RETIRO_MERCADO: 'Retiro de mercado',
+};
 
 /** Tipos de movimiento que el punto de venta puede registrar. */
 export const TIPOS_MOVIMIENTO_PT = [
@@ -1070,6 +1091,50 @@ export function useMovimientosPuntoVenta(depositoId: string | undefined) {
         .order('ocurrido_en', { ascending: false });
       if (error) throw error;
       return data ?? [];
+    },
+  });
+}
+
+/**
+ * Lote y pedido de cada movimiento, para el historial. `orden_id` apunta a
+ * gmp y `documento_id` no es clave foránea, así que PostgREST no los embebe:
+ * se buscan aparte por id. Lo que el rol no puede leer (RLS) queda sin nombre.
+ */
+export function useReferenciasMovimientosPt(filas: MovimientoPtRow[] | undefined) {
+  const ordenes = [
+    ...new Set((filas ?? []).flatMap((m) => (m.orden_id ? [m.orden_id] : []))),
+  ];
+  const pedidos = [
+    ...new Set(
+      (filas ?? []).flatMap((m) =>
+        m.documento_tipo === 'PEDIDO' && m.documento_id ? [m.documento_id] : [],
+      ),
+    ),
+  ];
+  return useQuery({
+    queryKey: ['movimientos-pt-referencias', ordenes, pedidos],
+    enabled: filas !== undefined,
+    queryFn: async () => {
+      // ponytail: todos los ids en una consulta; si el libro crece a miles, paginar el historial.
+      const [o, p] = await Promise.all([
+        ordenes.length
+          ? gmp()
+              .from('ordenes_produccion')
+              .select('id, numero, numero_lote')
+              .in('id', ordenes)
+          : Promise.resolve({ data: [], error: null }),
+        pedidos.length
+          ? tablaComercial<{ id: string; numero: string; cliente: string }[]>('pedidos')
+              .select('id, numero, cliente')
+              .in('id', pedidos)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+      if (o.error) throw o.error;
+      if (p.error) throw p.error;
+      return {
+        ordenes: new Map((o.data ?? []).map((x) => [x.id, x])),
+        pedidos: new Map((p.data ?? []).map((x) => [x.id, x])),
+      };
     },
   });
 }

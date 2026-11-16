@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import {
   ActionIcon,
   Alert,
-  Badge,
   Box,
   Button,
   Group,
@@ -19,6 +18,7 @@ import {
   Text,
   TextInput,
   Textarea,
+  Timeline,
   UnstyledButton,
 } from '@mantine/core';
 import {
@@ -27,6 +27,7 @@ import {
   IconBuildingStore,
   IconClipboardCheck,
   IconFileText,
+  IconHistory,
   IconInfoCircle,
   IconSearch,
   IconPackage,
@@ -39,10 +40,14 @@ import { Vacio } from '@/components/Vacio';
 import { useDepositos, useProductos } from '@/lib/consultas';
 import { fecha, numero } from '@/lib/formato';
 import {
+  ETIQUETA_MOVIMIENTO_PT,
   TIPOS_MOVIMIENTO_PT,
   TIPOS_PT_CON_MOTIVO,
   useMovimientosPuntoVenta,
+  useNomina,
+  useReferenciasMovimientosPt,
   useRegistrarMovimientoPt,
+  type MovimientoPtRow,
   useStockPtLotes,
   useStockPuntoVenta,
 } from '@/lib/consultasComercial';
@@ -247,6 +252,7 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
   const lotesDe = (productoId: string | null) =>
     (lotes.data ?? []).filter((l) => l.producto_id === productoId && Number(l.saldo) > 0);
 
+  const [viendoHistorial, setViendoHistorial] = useState(false);
   const [abierto, setAbierto] = useState(false);
   const [sentido, setSentido] = useState<'entra' | 'sale'>('sale');
   const [tipo, setTipo] = useState<string>('SALIDA_VENTA');
@@ -364,6 +370,14 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
         descripcion={config.descripcion}
         acciones={
           <Group gap="sm">
+            <Button
+              size="md"
+              variant="default"
+              leftSection={<IconHistory size={18} />}
+              onClick={() => setViendoHistorial(true)}
+            >
+              Movimientos
+            </Button>
             <Button
               size="md"
               variant="default"
@@ -497,7 +511,6 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
                     <Table.Th>Código</Table.Th>
                     <Table.Th>Producto</Table.Th>
                     <Table.Th ta="right">Unidades</Table.Th>
-                    <Table.Th>Último movimiento</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
@@ -551,13 +564,6 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
                             </Text>
                           ) : null}
                         </Table.Td>
-                        <Table.Td>
-                          <Text size="sm" c="dimmed">
-                            {f.ultimo_movimiento
-                              ? new Date(f.ultimo_movimiento).toLocaleDateString('es-AR')
-                              : '—'}
-                          </Text>
-                        </Table.Td>
                       </Table.Tr>
                     ))}
                 </Table.Tbody>
@@ -567,12 +573,17 @@ export function PaginaPuntoVenta({ config = CALLE5 }: { config?: ConfigDeposito 
         )}
 
         {esCalle5 ? <PanelCalle5 /> : null}
-
-        <UltimosMovimientos
-          filas={movimientos.data ?? []}
-          cargando={movimientos.isLoading}
-        />
       </Stack>
+
+      <Modal
+        opened={viendoHistorial}
+        onClose={() => setViendoHistorial(false)}
+        title={`Movimientos · ${config.titulo}`}
+        size="xl"
+        radius="md"
+      >
+        <HistorialMovimientos filas={movimientos.data} cargando={movimientos.isLoading} />
+      </Modal>
 
       <Modal
         opened={contando}
@@ -908,85 +919,128 @@ function RenglonesPt({
   );
 }
 
-function UltimosMovimientos({
+/**
+ * Historial del depósito como línea de tiempo: qué entró o salió, de qué
+ * lote (orden de producción), por qué pedido y quién lo registró. Solo lee el
+ * libro `movimientos_pt`; nada se edita desde acá (RN-54).
+ */
+function HistorialMovimientos({
   filas,
   cargando,
 }: {
-  filas: NonNullable<ReturnType<typeof useMovimientosPuntoVenta>['data']>;
+  filas: MovimientoPtRow[] | undefined;
   cargando: boolean;
 }) {
-  if (cargando) return <Skeleton h={160} />;
-  if (filas.length === 0) return null;
+  const nomina = useNomina();
+  const refs = useReferenciasMovimientosPt(filas);
+  const [producto, setProducto] = useState<string | null>(null);
+  const [cuantos, setCuantos] = useState(50);
+
+  if (cargando) return <Skeleton h={240} />;
+  const todas = filas ?? [];
+  if (todas.length === 0) {
+    return (
+      <Text size="sm" c="dimmed">
+        Todavía no hay movimientos en este depósito.
+      </Text>
+    );
+  }
+
+  const nombre = (m: MovimientoPtRow) =>
+    m.producto ? `${m.producto.codigo_interno} · ${m.producto.nombre}` : '—';
+  const productos = [...new Map(todas.map((m) => [m.producto_id, nombre(m)]))].map(
+    ([value, label]) => ({ value, label }),
+  );
+  const visibles = todas.filter((m) => !producto || m.producto_id === producto);
 
   return (
-    <Stack gap="xs">
-      <Text fw={600} size="sm" c="dimmed">
-        Últimos movimientos
-      </Text>
-      <Paper
-        withBorder
-        style={{ borderColor: 'var(--superficie-borde)', overflow: 'hidden' }}
-      >
-        <Table.ScrollContainer minWidth={640}>
-          <Table verticalSpacing="sm">
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Fecha</Table.Th>
-                <Table.Th>Producto</Table.Th>
-                <Table.Th>Motivo</Table.Th>
-                <Table.Th>Lote</Table.Th>
-                <Table.Th ta="right">Cantidad</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {filas.slice(0, 40).map((m) => {
-                const entra = Number(m.cantidad) > 0;
-                return (
-                  <Table.Tr key={m.id}>
-                    <Table.Td>
-                      <Text size="sm" c="dimmed">
-                        {new Date(m.ocurrido_en).toLocaleDateString('es-AR')}
-                      </Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm">
-                        {m.producto
-                          ? `${m.producto.codigo_interno} · ${m.producto.nombre}`
-                          : '—'}
-                      </Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Badge
-                        variant="light"
-                        radius="sm"
-                        color={entra ? 'estadoAprobado' : 'azul'}
-                      >
-                        {m.tipo.replace(/_/g, ' ').toLowerCase()}
-                      </Badge>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm" c="dimmed">
-                        {m.lote_texto ?? '—'}
-                      </Text>
-                    </Table.Td>
-                    <Table.Td ta="right">
-                      <Text
-                        size="sm"
-                        ff="monospace"
-                        fw={600}
-                        c={entra ? 'estadoAprobado' : 'inherit'}
-                      >
-                        {entra ? '+' : ''}
-                        {numero(Number(m.cantidad), 0)}
-                      </Text>
-                    </Table.Td>
-                  </Table.Tr>
-                );
-              })}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
-      </Paper>
+    <Stack gap="md">
+      <Select
+        label="Producto"
+        placeholder="Todos los productos"
+        searchable
+        clearable
+        nothingFoundMessage="Sin coincidencias"
+        data={productos}
+        value={producto}
+        onChange={(v) => {
+          setProducto(v);
+          setCuantos(50);
+        }}
+      />
+
+      <Timeline bulletSize={22} lineWidth={2}>
+        {visibles.slice(0, cuantos).map((m) => {
+          const entra = Number(m.cantidad) > 0;
+          const etiqueta =
+            m.tipo === 'TRANSFERENCIA_ENTRE_DEPOSITOS'
+              ? entra
+                ? 'Transferencia recibida'
+                : 'Transferencia enviada'
+              : (ETIQUETA_MOVIMIENTO_PT[m.tipo] ??
+                m.tipo.replace(/_/g, ' ').toLowerCase());
+          const orden = m.orden_id ? refs.data?.ordenes.get(m.orden_id) : undefined;
+          const pedido =
+            m.documento_tipo === 'PEDIDO' && m.documento_id
+              ? refs.data?.pedidos.get(m.documento_id)
+              : undefined;
+          return (
+            <Timeline.Item
+              key={m.id}
+              color={entra ? 'estadoAprobado' : 'azul'}
+              bullet={entra ? <IconArrowDown size={13} /> : <IconArrowUp size={13} />}
+              title={
+                <Group justify="space-between" wrap="nowrap" gap="sm">
+                  <Text size="sm" fw={600}>
+                    {etiqueta} · {nombre(m)}
+                  </Text>
+                  <Text
+                    size="sm"
+                    ff="monospace"
+                    fw={700}
+                    c={entra ? 'estadoAprobado' : 'inherit'}
+                  >
+                    {entra ? '+' : ''}
+                    {numero(Number(m.cantidad), 0)}
+                  </Text>
+                </Group>
+              }
+            >
+              <Text size="xs" c="dimmed">
+                {new Date(m.ocurrido_en).toLocaleString('es-AR', {
+                  dateStyle: 'short',
+                  timeStyle: 'short',
+                })}
+                {' · '}
+                {nomina.data?.get(m.registrado_por) ?? 'usuario sin nombre'}
+              </Text>
+              {orden ? (
+                <Text size="xs">
+                  Orden {orden.numero} · lote {orden.numero_lote}
+                </Text>
+              ) : m.lote_texto ? (
+                <Text size="xs">Lote {m.lote_texto}</Text>
+              ) : null}
+              {pedido ? (
+                <Text size="xs">
+                  Pedido {pedido.numero} — {pedido.cliente}
+                </Text>
+              ) : null}
+              {m.motivo ? (
+                <Text size="xs" c="dimmed">
+                  {m.motivo}
+                </Text>
+              ) : null}
+            </Timeline.Item>
+          );
+        })}
+      </Timeline>
+
+      {visibles.length > cuantos ? (
+        <Button variant="default" onClick={() => setCuantos((c) => c + 50)}>
+          Ver más ({visibles.length - cuantos} restantes)
+        </Button>
+      ) : null}
     </Stack>
   );
 }
