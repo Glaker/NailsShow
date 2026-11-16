@@ -71,12 +71,12 @@ test('pregunta: se muestra como texto y el historial viaja en el próximo mensaj
   await expect.poll(() => escenario.hadaLlamadas.length).toBe(2);
   expect(escenario.hadaLlamadas[1]!['historial']).toEqual([
     { rol: 'cliente', texto: 'poneme 5 cremas' },
-    { rol: 'hada', texto: '¿Cuántas querés?' },
+    { rol: 'hada', texto: '¿Cuántas querés?', tipo: 'pregunta' },
   ]);
   await expect(panel.getByRole('button', { name: 'Pasar al pedido' })).toHaveCount(0);
 });
 
-test('historial: un aviso o una ubicación lo vacían; solo una pregunta lo conserva', async ({
+test('historial: se conserva en toda respuesta, con su tipo, y se vacía al cerrar el panel', async ({
   page,
 }) => {
   const escenario = await portal(page);
@@ -97,17 +97,65 @@ test('historial: un aviso o una ubicación lo vacían; solo una pregunta lo cons
   };
   await mandar('contame un chiste');
   await expect.poll(() => escenario.hadaLlamadas.length).toBe(2);
-  expect(escenario.hadaLlamadas[1]!['historial']).toEqual([]);
-  escenario.hada.cuerpo = { tipo: 'pregunta', textos: ['¿Cuántas querés?'] };
+  expect(escenario.hadaLlamadas[1]!['historial']).toEqual([
+    { rol: 'cliente', texto: '¿dónde veo mis pedidos?' },
+    { rol: 'hada', texto: 'Está en Mis pedidos.', tipo: 'ubicacion' },
+  ]);
   await mandar('poneme cremas');
   await expect.poll(() => escenario.hadaLlamadas.length).toBe(3);
-  expect(escenario.hadaLlamadas[2]!['historial']).toEqual([]);
+  // Tope de 6 turnos: el más viejo sale.
+  expect(escenario.hadaLlamadas[2]!['historial']).toHaveLength(4);
   await mandar('3 cajas');
   await expect.poll(() => escenario.hadaLlamadas.length).toBe(4);
-  expect(escenario.hadaLlamadas[3]!['historial']).toEqual([
-    { rol: 'cliente', texto: 'poneme cremas' },
-    { rol: 'hada', texto: '¿Cuántas querés?' },
-  ]);
+  expect(escenario.hadaLlamadas[3]!['historial']).toHaveLength(6);
+  expect((escenario.hadaLlamadas[3]!['historial'] as unknown[])[0]).toEqual({
+    rol: 'cliente',
+    texto: '¿dónde veo mis pedidos?',
+  });
+  await page.keyboard.press('Escape');
+  await expect(panel).toBeHidden();
+  await preguntar(page, 'hola');
+  await expect.poll(() => escenario.hadaLlamadas.length).toBe(5);
+  expect(escenario.hadaLlamadas[4]!['historial']).toEqual([]);
+});
+
+test('borrador incremental: el segundo mensaje lleva el borrador y el panel muestra los tres ítems', async ({
+  page,
+}) => {
+  const escenario = await portal(page);
+  const primero = {
+    renglones: [{ producto_id: LISTA[0]!.producto_id, cantidad: 2 }],
+    cajas: [{ caja_id: CAJAS[0]!.caja_id, opcion: 'AMOR', cajas: 1 }],
+  };
+  escenario.hada.cuerpo = { tipo: 'borrador', textos: ['Listo.'], borrador: primero };
+  const panel = await preguntar(page, 'poneme 2 cremas amor');
+  await expect(panel.getByText(NOMBRES[0]!, { exact: false })).toBeVisible();
+  escenario.hada.cuerpo = {
+    tipo: 'borrador',
+    textos: ['Listo.'],
+    borrador: {
+      renglones: [
+        ...primero.renglones,
+        { producto_id: LISTA[4]!.producto_id, cantidad: 1 },
+      ],
+      cajas: primero.cajas,
+    },
+  };
+  await panel.getByRole('textbox').fill('agregale un monómero de 100');
+  await panel.getByRole('button', { name: 'Enviar' }).click();
+  await expect.poll(() => escenario.hadaLlamadas.length).toBe(2);
+  expect(escenario.hadaLlamadas[0]).not.toHaveProperty('borrador_actual');
+  expect(escenario.hadaLlamadas[1]!['borrador_actual']).toEqual(primero);
+  const borrador = panel.locator('.hada-borrador');
+  await expect(borrador.getByText(NOMBRES[4]!, { exact: false })).toBeVisible();
+  await expect(borrador.getByText(NOMBRES[0]!, { exact: false })).toBeVisible();
+  await expect(borrador.getByText(CAJAS[0]!.nombre, { exact: false })).toBeVisible();
+  await panel.getByRole('button', { name: 'Pasar al pedido' }).click();
+  await expect(page.getByText('Lo que llevo (3)', { exact: true })).toBeVisible();
+  // Pasado al pedido, el panel empieza de cero.
+  await preguntar(page, 'hola');
+  await expect.poll(() => escenario.hadaLlamadas.length).toBe(3);
+  expect(escenario.hadaLlamadas[2]).toEqual({ mensaje: 'hola', historial: [] });
 });
 
 test('aviso 429: muestra el texto fijo del servidor y no ofrece nada más', async ({

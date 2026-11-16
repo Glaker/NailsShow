@@ -2,7 +2,7 @@
  * Edge Function `hada`: arma el borrador de un pedido a partir de lo que
  * escribe el cliente en el portal (P6, docs/disenos/P6-hada.md).
  *
- * POST { "mensaje": "…", "historial": [{ "rol": "cliente" | "hada", "texto": "…" }] }
+ * POST { "mensaje": "…", "historial": [{ "rol", "texto", "tipo"? }], "borrador_actual"?: {…} }
  * con el Authorization del cliente. Responde un único JSON (ver CuerpoHada en
  * _shared/hada.ts). Todo lo que importa vive en `atender`; esto es el
  * adaptador: lee el pedido HTTP, crea los clientes y les pasa las dependencias.
@@ -24,9 +24,9 @@
 import Anthropic from 'npm:@anthropic-ai/sdk@0.131.0';
 import { createClient } from 'npm:@supabase/supabase-js@2.115.0';
 import { limpiarClaveApi, type RespuestaModelo } from '../_shared/giorgio.ts';
-import { atender, MENSAJES, type NombreRpc } from '../_shared/hada.ts';
+import { atender, MAX_BYTES_CUERPO, MENSAJES, type NombreRpc } from '../_shared/hada.ts';
 
-const MAX_BYTES = 8 * 1024;
+const MAX_BYTES = MAX_BYTES_CUERPO;
 
 function cabeceras(origen: string | null, origenes: string[]): Record<string, string> {
   const h: Record<string, string> = {

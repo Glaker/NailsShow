@@ -17,6 +17,8 @@ export const TEXTO_HADA_NO_DISPONIBLE =
 export interface TurnoHada {
   rol: 'cliente' | 'hada';
   texto: string;
+  /** En los turnos de Hada: qué respondió (el servidor cuenta las preguntas seguidas). */
+  tipo?: RespuestaHada['tipo'];
 }
 
 export interface BorradorHada {
@@ -79,9 +81,14 @@ function leer(x: unknown): RespuestaHada | null {
 export async function preguntarHada(
   mensaje: string,
   historial: TurnoHada[],
+  borradorActual: BorradorHada | null,
 ): Promise<RespuestaHada> {
   const { data, error } = (await supabase.functions.invoke('hada', {
-    body: { mensaje, historial: historial.slice(-6) },
+    body: {
+      mensaje,
+      historial: historial.slice(-6),
+      ...(borradorActual ? { borrador_actual: borradorActual } : {}),
+    },
   })) as { data: unknown; error: unknown };
   let cuerpo: unknown = data;
   if (error instanceof FunctionsHttpError) {
