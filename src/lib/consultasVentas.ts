@@ -705,6 +705,14 @@ export interface AromasSurtido {
  * Cajas que se pueden armar de cada aroma en el depósito del pedido
  * (comercial.surtido_disponible). Devuelve lo ADICIONAL a lo ya asignado.
  */
+export function aromasDeSurtido(
+  data: { amor: number; paz: number; aire: number }[] | null,
+): AromasSurtido {
+  // surtido_disponible es una función de tabla: PostgREST devuelve una lista de una fila.
+  const d = data?.[0];
+  return { amor: n(d?.amor), paz: n(d?.paz), aire: n(d?.aire) };
+}
+
 export function useSurtidoDisponible(pedidoCajaId: string | null) {
   return useQuery({
     queryKey: ['pedido-cajas', 'disponible', pedidoCajaId],
@@ -715,8 +723,7 @@ export function useSurtidoDisponible(pedidoCajaId: string | null) {
         p_pedido_caja_id: pedidoCajaId!,
       });
       if (error) throw error;
-      const d = data as Record<string, unknown>;
-      return { amor: n(d.amor), paz: n(d.paz), aire: n(d.aire) };
+      return aromasDeSurtido(data);
     },
   });
 }
