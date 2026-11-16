@@ -6,6 +6,7 @@
  */
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { supabase } from './supabase';
+import { OPCIONES_CAJA } from './consultasCliente';
 
 export const MAX_MENSAJE_HADA = 500;
 
@@ -47,12 +48,15 @@ function leer(x: unknown): RespuestaHada | null {
     r.borrador = {
       renglones: (Array.isArray(b.renglones) ? b.renglones : []).filter(
         (l) =>
-          typeof l?.producto_id === 'string' && Number.isInteger(l.cantidad) && l.cantidad > 0,
+          typeof l?.producto_id === 'string' &&
+          Number.isInteger(l.cantidad) &&
+          l.cantidad > 0,
       ),
       cajas: (Array.isArray(b.cajas) ? b.cajas : []).filter(
         (c) =>
           typeof c?.caja_id === 'string' &&
-          typeof c.opcion === 'string' &&
+          // Solo las 8 opciones de P3; cualquier otra se descarta.
+          OPCIONES_CAJA.some((o) => o.valor === c.opcion) &&
           Number.isInteger(c.cajas) &&
           c.cajas > 0,
       ),

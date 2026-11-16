@@ -30,6 +30,8 @@ const SOLO_PRODUCCION = new Set([
   '20261113130000_gmp_sustitucion_insumo_orden.sql',
   '20261113120000_baja_alcohol_sanitizante.sql', // carga de datos de la base real
   '20261112170000_sanitizantes_alcohol_cleanser.sql', // carga de datos de la base real
+  '20261113150000_tandas_sin_mp_duplicada.sql', // anula bajas dobles de OP-2026-0020/21/22 (datos reales)
+  '20261113170000_carga_cuenta_cliente_1.sql', // cuenta de demostración real
 ]);
 
 export async function reconstruir({ silencioso = false } = {}) {

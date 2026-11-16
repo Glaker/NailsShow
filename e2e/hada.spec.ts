@@ -5,7 +5,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { CAJAS, LISTA, NOMBRES, prepararPortal, sesion } from './portal-falso';
 
-const TOPE = 'Hoy no estoy disponible. Armá el pedido desde la lista como siempre.';
+const TOPE = 'Hoy no estoy. Armá el pedido desde la lista, como siempre.';
 const ENTRADA = 'Hacele tu pedido a la Hada de Nail Show';
 const uno = (page: Page, i: number) =>
   page.getByRole('button', { name: `Uno más de ${NOMBRES[i]}` });
@@ -80,14 +80,21 @@ test('historial: un aviso o una ubicación lo vacían; solo una pregunta lo cons
   page,
 }) => {
   const escenario = await portal(page);
-  escenario.hada.cuerpo = { tipo: 'ubicacion', textos: ['Está en Mis pedidos.'], destino: 'MIS_PEDIDOS' };
+  escenario.hada.cuerpo = {
+    tipo: 'ubicacion',
+    textos: ['Está en Mis pedidos.'],
+    destino: 'MIS_PEDIDOS',
+  };
   const panel = await preguntar(page, '¿dónde veo mis pedidos?');
   await expect(panel.getByText('Está en Mis pedidos.')).toBeVisible();
   const mandar = async (texto: string) => {
     await panel.getByRole('textbox').fill(texto);
     await panel.getByRole('button', { name: 'Enviar' }).click();
   };
-  escenario.hada = { status: 200, cuerpo: { tipo: 'aviso', textos: ['Solo te ayudo con tu pedido.'] } };
+  escenario.hada = {
+    status: 200,
+    cuerpo: { tipo: 'aviso', textos: ['Solo te ayudo con tu pedido.'] },
+  };
   await mandar('contame un chiste');
   await expect.poll(() => escenario.hadaLlamadas.length).toBe(2);
   expect(escenario.hadaLlamadas[1]!['historial']).toEqual([]);
@@ -207,4 +214,23 @@ test('pedido nuevo: usa cliente_enviar_pedido_unico y reintenta con la misma cla
   expect(a!['p_clave']).toMatch(/^[0-9a-f-]{36}$/);
   expect(b!['p_clave']).toBe(a!['p_clave']);
   expect(a).not.toHaveProperty('p_id');
+});
+
+test('borrador con una opción de caja fuera de las 8 de P3: esa caja se descarta', async ({
+  page,
+}) => {
+  const escenario = await portal(page);
+  escenario.hada.cuerpo = {
+    tipo: 'borrador',
+    textos: ['Te armé esto.'],
+    borrador: {
+      renglones: [{ producto_id: LISTA[0]!.producto_id, cantidad: 5 }],
+      cajas: [{ caja_id: CAJAS[0]!.caja_id, opcion: 'TODO_GRATIS', cajas: 2 }],
+    },
+  };
+  const panel = await preguntar(page);
+  await expect(panel.getByText('Revisá tu pedido antes de confirmar')).toBeVisible();
+  await expect(panel.getByText('TODO_GRATIS', { exact: false })).toHaveCount(0);
+  await panel.getByRole('button', { name: 'Pasar al pedido' }).click();
+  await expect(page.getByText('Lo que llevo (1)', { exact: true })).toBeVisible();
 });

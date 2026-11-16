@@ -1,7 +1,8 @@
 // Hada (borradores 20261113220000 y 20261113220100, P6): el envío del pedido
 // es idempotente por clave; reservar y cerrar cupo con límites por minuto y
 // día, topes diario y mensual, demo apagada y clave del secreto; el cliente no
-// lee ni escribe las tablas. Casos 10, 20 y 21 de docs/disenos/P6-hada.md.
+// lee ni escribe las tablas; tope por usuario y escalado a Sonnet reservado
+// antes de llamarlo (20261113220300). Casos 10, 20 y 21 de docs/disenos/P6-hada.md.
 import { banco } from './lib.mjs';
 const { db, q, uno, prueba, rechaza, como, usuario, fin, invariantes } = await banco();
 await usuario('mati@x', 'VENTAS', 'ADMINISTRACION');
@@ -290,6 +291,30 @@ await prueba('cierra con el costo real, sin texto', async () => {
   )
     throw new Error(JSON.stringify(f));
 });
+await prueba('tarifa de Sonnet 5.5 cargada y cobrada en el cierre', async () => {
+  await db.exec('reset role');
+  const t = await uno(
+    `select (precios -> 'claude-sonnet-5-5' ->> 'entrada')::float e,
+            (precios -> 'claude-sonnet-5-5' ->> 'salida')::float s,
+            precios ? 'claude-haiku-5-5' h from comercial.hada_config`,
+  );
+  if (t.e !== 2 || t.s !== 10 || !t.h) throw new Error(JSON.stringify(t));
+  await comoCliente('cli1@x');
+  const r = await reservar();
+  const ok = (
+    await uno(
+      `select comercial.hada_cerrar($1,$2,'claude-sonnet-5-5',1000,200,5000,0,'experto:proponer_pedido','borrador',1,1,0,'{}',800,null) r`,
+      [CLAVE, r.id],
+    )
+  ).r;
+  await db.exec('reset role');
+  const f = await uno(
+    `select costo_usd::float c from comercial.hada_interacciones where id = $1`,
+    [r.id],
+  );
+  // (1000*2.00 + 200*10.00 + 5000*0.10) / 1e6
+  if (ok !== true || Math.abs(f.c - 0.0045) > 1e-9) throw new Error(JSON.stringify(f));
+});
 await comoCliente('cli1@x');
 await prueba('no se cierra dos veces', async () => {
   if ((await cerrar(fila)) !== false) throw new Error('cerró otra vez');
@@ -518,6 +543,205 @@ await prueba(
         and column_name ~ 'mensaje|respuesta|texto|nombre|ip'`,
     );
     if (cols.length) throw new Error(JSON.stringify(cols));
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Tope por usuario y escalado a Sonnet (20261113220300)
+// ---------------------------------------------------------------------------
+const escalar = async (id, c = CLAVE) =>
+  (await uno(`select comercial.hada_escalar($1,$2) r`, [c, id])).r;
+const costo = async (id) => {
+  await db.exec('reset role');
+  return (
+    await uno(
+      `select costo_usd::float c from comercial.hada_interacciones where id = $1`,
+      [id],
+    )
+  ).c;
+};
+const cerrarCon = (id, modelo, entrada, salida, error = null) =>
+  uno(`select comercial.hada_cerrar($1,$2,$3,$4,$5,0,0,null,'x',0,0,0,'{}',5,$6) r`, [
+    CLAVE,
+    id,
+    modelo,
+    entrada,
+    salida,
+    error,
+  ]);
+const base =
+  'activo = true, tope_diario_usd = 1, tope_mensual_usd = 10, reserva_usd = 0.002, ' +
+  'tope_diario_usuario_usd = 1, limite_escalados_dia = 10, reserva_experto_usd = 0.05, ' +
+  'limite_minuto = 100, limite_dia = 40';
+
+await prueba('valores por defecto de las columnas nuevas', async () => {
+  await db.exec('reset role');
+  const f = await uno(
+    `select tope_diario_usuario_usd::float t, limite_escalados_dia l, reserva_experto_usd::float r
+       from comercial.hada_config`,
+  );
+  if (f.t !== 0.15 || f.l !== 10 || f.r !== 0.05) throw new Error(JSON.stringify(f));
+});
+await prueba(
+  'TOPE_USUARIO: A cierra interacciones caras y queda cortado; B sigue',
+  async () => {
+    await limpiar();
+    await config(base);
+    await config('tope_diario_usuario_usd = 0.10');
+    await comoCliente('cli1@x');
+    // Sonnet, 1000 de entrada y 8192 de salida = 0,08392 por interacción.
+    const a = await reservar();
+    await cerrarCon(a.id, 'claude-sonnet-5-5', 1000, 8192);
+    const b = await reservar(); // 0,08392 + 0,002 <= 0,10
+    if (!b.permitido) throw new Error(JSON.stringify(b));
+    await cerrarCon(b.id, 'claude-sonnet-5-5', 1000, 8192);
+    const c = await reservar();
+    if (c.permitido || c.motivo !== 'TOPE_USUARIO') throw new Error(JSON.stringify(c));
+    await comoCliente('cli2@x');
+    const d = await reservar();
+    if (!d.permitido) throw new Error('B cortado: ' + JSON.stringify(d));
+  },
+);
+await limpiar();
+await config(base);
+await comoCliente('cli1@x');
+await rechaza(
+  'hada_escalar sin clave',
+  `select comercial.hada_escalar(null, gen_random_uuid())`,
+  /no autorizada/,
+);
+await rechaza(
+  'hada_escalar con clave mala',
+  `select comercial.hada_escalar('mala', gen_random_uuid())`,
+  /no autorizada/,
+);
+await prueba(
+  'hada_escalar: fila ajena, cerrada o segunda vez = NO_RESERVADA',
+  async () => {
+    await comoCliente('cli2@x');
+    const ajena = await reservar();
+    await comoCliente('cli1@x');
+    const r1 = await escalar(ajena.id);
+    const cerrada = await reservar();
+    await cerrar(cerrada.id);
+    const r2 = await escalar(cerrada.id);
+    const otra = await reservar();
+    const r3 = await escalar(otra.id);
+    const r4 = await escalar(otra.id);
+    const mal = [r1, r2, r4].filter((r) => r.permitido || r.motivo !== 'NO_RESERVADA');
+    if (mal.length || !r3.permitido) throw new Error(JSON.stringify([r1, r2, r3, r4]));
+    if ((await costo(ajena.id)) !== 0.002) throw new Error('tocó la ajena');
+  },
+);
+await prueba('escalados_restantes y LIMITE_EXPERTO', async () => {
+  await limpiar();
+  await config(base);
+  await config('limite_escalados_dia = 2');
+  await comoCliente('cli1@x');
+  const vistos = [];
+  for (let i = 0; i < 3; i++) {
+    const r = await reservar();
+    vistos.push(r.escalados_restantes);
+    const e = await escalar(r.id);
+    if (i < 2 ? !e.permitido : e.permitido || e.motivo !== 'LIMITE_EXPERTO')
+      throw new Error(`${i}: ${JSON.stringify(e)}`);
+  }
+  if (vistos.join() !== '2,1,0') throw new Error(vistos.join());
+  await comoCliente('cli2@x');
+  const r = await reservar();
+  if (r.escalados_restantes !== 2 || !(await escalar(r.id)).permitido)
+    throw new Error('el límite es por usuario');
+});
+await prueba(
+  'escalar sube el costo a la reserva del experto y cuenta para el tope aunque no se cierre',
+  async () => {
+    await limpiar();
+    await config(base);
+    await config('tope_diario_usd = 0.09');
+    await comoCliente('cli1@x');
+    const a = await reservar();
+    if (!(await escalar(a.id)).permitido) throw new Error('A no escaló');
+    const ca = await costo(a.id);
+    if (ca !== 0.05) throw new Error('costo ' + ca);
+    await comoCliente('cli2@x');
+    const b = await reservar(); // 0,05 + 0,002 <= 0,09
+    if (!b.permitido) throw new Error(JSON.stringify(b));
+    const eb = await escalar(b.id); // 0,052 + 0,048 > 0,09
+    if (eb.permitido || eb.motivo !== 'TOPE') throw new Error(JSON.stringify(eb));
+    if ((await costo(b.id)) !== 0.002) throw new Error('subió la rechazada');
+    await config('tope_diario_usd = 0.053');
+    await comoCliente('cli2@x');
+    const c = await reservar(); // 0,052 + 0,002 > 0,053
+    if (c.permitido || c.motivo !== 'TOPE') throw new Error(JSON.stringify(c));
+  },
+);
+await prueba('escalar respeta el tope por usuario', async () => {
+  await limpiar();
+  await config(base);
+  await config('tope_diario_usuario_usd = 0.04');
+  await comoCliente('cli1@x');
+  const r = await reservar();
+  const e = await escalar(r.id);
+  if (e.permitido || e.motivo !== 'TOPE_USUARIO') throw new Error(JSON.stringify(e));
+});
+await prueba(
+  'cerrar un escalado con tokens 0 o con error no baja lo reservado',
+  async () => {
+    await limpiar();
+    await config(base);
+    await comoCliente('cli1@x');
+    const ids3 = [];
+    for (const [ent, sal, err] of [
+      [0, 0, 'SONNET_500'],
+      [1000, 200, 'ABORTADO'],
+      [0, 0, null],
+    ]) {
+      await comoCliente('cli1@x');
+      const r = await reservar();
+      await escalar(r.id);
+      await cerrarCon(r.id, 'claude-sonnet-5-5', ent, sal, err);
+      ids3.push(r.id);
+    }
+    const cs = [];
+    for (const id of ids3) cs.push(await costo(id));
+    if (cs.some((c) => c !== 0.05)) throw new Error(cs.join());
+  },
+);
+await prueba(
+  'con error y un costo calculado mayor que lo reservado: cobra lo calculado',
+  async () => {
+    await comoCliente('cli1@x');
+    const r = await reservar();
+    await cerrarCon(r.id, 'claude-sonnet-5-5', 1000, 8192, 'CORTE');
+    const c = await costo(r.id);
+    if (Math.abs(c - 0.08392) > 1e-9) throw new Error(String(c));
+  },
+);
+await prueba('cerrar un escalado sin error cobra lo calculado', async () => {
+  await comoCliente('cli1@x');
+  const r = await reservar();
+  await escalar(r.id);
+  await cerrarCon(r.id, 'claude-sonnet-5-5', 1000, 200);
+  const c = await costo(r.id);
+  // (1000*2 + 200*10) / 1e6
+  if (Math.abs(c - 0.004) > 1e-9) throw new Error(String(c));
+});
+await prueba(
+  'el cliente no lee las columnas nuevas; anon no ejecuta hada_escalar',
+  async () => {
+    await comoCliente('cli1@x');
+    const a = await q(
+      `select tope_diario_usuario_usd, limite_escalados_dia, reserva_experto_usd from comercial.hada_config`,
+    );
+    const b = await q(`select escalado_en from comercial.hada_interacciones`);
+    if (a.length || b.length) throw new Error(`${a.length} ${b.length}`);
+    await db.exec('reset role');
+    const x = await uno(
+      `select has_function_privilege('anon','comercial.hada_escalar(text,uuid)','EXECUTE') a,
+            has_function_privilege('public','comercial.hada_escalar(text,uuid)','EXECUTE') p,
+            has_column_privilege('authenticated','comercial.hada_interacciones','escalado_en','UPDATE') u`,
+    );
+    if (x.a || x.p || x.u) throw new Error(JSON.stringify(x));
   },
 );
 

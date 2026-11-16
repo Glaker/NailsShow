@@ -14,7 +14,8 @@
  *
  * Secretos: ANTHROPIC_API_KEY (compartida con Giorgio), HADA_CLAVE (la base
  * guarda su hash en comercial.hada_config.clave_sha256), HADA_MODEL (sin valor
- * por defecto; tiene que empezar con claude-haiku-5-5) y HADA_ORIGENES (orígenes
+ * por defecto; tiene que empezar con claude-haiku-5-5), HADA_MODELO_EXPERTO
+ * (opcional; sin él Hada no escala; si está, exactamente claude-sonnet-5-5) y HADA_ORIGENES (orígenes
  * permitidos separados por coma, por ejemplo https://pedidos.nailshow.com.ar).
  *
  * Orden de despliegue: migraciones, esta función y por último el frente.
@@ -123,6 +124,7 @@ async function responder(
       origenes,
       claveHada: Deno.env.get('HADA_CLAVE') || undefined,
       modelo: Deno.env.get('HADA_MODEL') || undefined,
+      modeloExperto: Deno.env.get('HADA_MODELO_EXPERTO') || undefined,
       apiKeyOk: !problema,
       rpc: async (nombre: NombreRpc, args?: Record<string, unknown>) => {
         const r = await db.rpc(nombre, args);
