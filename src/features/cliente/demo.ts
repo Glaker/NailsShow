@@ -13,26 +13,6 @@ import type {
 
 const DIA = 86_400_000;
 
-/** cliente_cajas de la cuenta de demostración: una caja mixta y una de unidades impares. */
-export const CAJAS_DEMO: CajaCliente[] = [
-  {
-    caja_id: 'demo-caja-1',
-    nombre: 'Crema humectante 250 ml',
-    unidades_caja: 24,
-    porcentaje: 10,
-    precio_promo: 9000,
-    mixta: true,
-  },
-  {
-    caja_id: 'demo-caja-2',
-    nombre: 'Aceite de cutícula 8 ml',
-    unidades_caja: 91,
-    porcentaje: 10,
-    precio_promo: 2500,
-    mixta: false,
-  },
-];
-
 function renglones(lista: ProductoCliente[], desde: number, cuantos: number) {
   return lista.slice(desde, desde + cuantos).map((p, i) => ({
     producto_id: p.producto_id,
@@ -69,17 +49,25 @@ function ejemplo(
   };
 }
 
-export function pedidosDeEjemplo(lista: ProductoCliente[]): PedidoCliente[] {
+/**
+ * Las cajas son las reales de cliente_cajas (también en la demo, para que las
+ * de Hada coincidan con el catálogo, D-hada-2): el pendiente lleva la primera.
+ */
+export function pedidosDeEjemplo(
+  lista: ProductoCliente[],
+  cajas: CajaCliente[],
+): PedidoCliente[] {
   if (lista.length < 12) return [];
+  const c = cajas[0];
   return [
-    ejemplo('V-DEMO-5', 'PENDIENTE', 0, renglones(lista, 0, 3), null, [
-      {
-        caja_id: 'demo-caja-1',
-        nombre: CAJAS_DEMO[0]!.nombre,
-        opcion: 'SURTIDO',
-        cajas: 2,
-      },
-    ]),
+    ejemplo(
+      'V-DEMO-5',
+      'PENDIENTE',
+      0,
+      renglones(lista, 0, 3),
+      null,
+      c ? [{ caja_id: c.caja_id, nombre: c.nombre, opcion: 'SURTIDO', cajas: 2 }] : [],
+    ),
     ejemplo('V-DEMO-4', 'EN_PRODUCCION', 3, renglones(lista, 3, 2), 6),
     ejemplo('V-DEMO-3', 'EN_CAMINO', 7, renglones(lista, 5, 3), 1),
     ejemplo('V-DEMO-2', 'FINALIZADO', 20, renglones(lista, 8, 2), -12),

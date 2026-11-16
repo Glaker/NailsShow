@@ -118,7 +118,6 @@ export function ArmarPedido({
   setCarrito,
   cajas,
   setCajas,
-  cajasDemo,
   observaciones,
   setObservaciones,
   editando,
@@ -134,14 +133,12 @@ export function ArmarPedido({
   setCarrito: Dispatch<SetStateAction<Carrito>>;
   cajas: CarritoCajas;
   setCajas: Dispatch<SetStateAction<CarritoCajas>>;
-  /** Cuenta de demostración: las cajas vienen de demo.ts, no de la base. */
-  cajasDemo?: CajaCliente[] | undefined;
   observaciones: string;
   setObservaciones: (v: string) => void;
   editando: { id: string; numero: string } | null;
   /** Clave de idempotencia del pedido nuevo (cliente_enviar_pedido_unico). */
   claveEnvio: string;
-  /** Hada se ofrece solo en cuentas reales y sin el tutorial abierto (D-hada-2). */
+  /** Hada se ofrece sin el tutorial abierto; en la demo también, con su límite (D-hada-2). */
   hada: boolean;
   onMisPedidos: () => void;
   onTutorial: () => void;
@@ -152,11 +149,9 @@ export function ArmarPedido({
 }) {
   const lista = useListaCliente();
   const escala = useEscalaCliente();
-  const consultaCajas = useCajasCliente(!cajasDemo);
-  const catalogo = useMemo(
-    () => cajasDemo ?? consultaCajas.data ?? [],
-    [cajasDemo, consultaCajas.data],
-  );
+  // También en la demo: las cajas de Hada traen los caja_id de cliente_cajas.
+  const consultaCajas = useCajasCliente();
+  const catalogo = useMemo(() => consultaCajas.data ?? [], [consultaCajas.data]);
   const [busqueda, setBusqueda] = useState('');
   const [buscar] = useDebouncedValue(busqueda, 150);
   const [rubro, setRubro] = useState<string | null>(null);
@@ -380,7 +375,7 @@ export function ArmarPedido({
           productos={productos}
           carrito={carrito}
           catalogo={catalogo}
-          cajasError={!cajasDemo && consultaCajas.isError}
+          cajasError={consultaCajas.isError}
           cajas={cajas}
           onCambiarCaja={cambiarCaja}
           cuenta={cuenta}
@@ -518,14 +513,17 @@ const TarjetaProducto = memo(function TarjetaProducto({
   );
 });
 
-/** Próximo escalón de descuento, badge y barra de avance. Va en la barra (tablet) y en el resumen (celular). */
+/**
+ * Próximo escalón de descuento, badge y barra de avance. Va en la barra fija y
+ * en el resumen; en celular la barra fija muestra solo la de avance (CSS).
+ */
 function AvisoEscala({ cuenta }: { cuenta: Cuenta }) {
   const avance = cuenta.proximo
     ? Math.min(100, (cuenta.lista / (cuenta.lista + cuenta.proximo.falta)) * 100)
     : 100;
   return (
     <>
-      <Group justify="space-between" mb={6} wrap="nowrap">
+      <Group className="cli-aviso-texto" justify="space-between" mb={6} wrap="nowrap">
         <Text size="sm" fw={600} lh={1.2}>
           {cuenta.proximo ? (
             <>
@@ -568,7 +566,7 @@ function BarraTotal({ cuenta, onAbrir }: { cuenta: Cuenta; onAbrir: () => void }
   }, []);
   return (
     <div className="cli-barra" ref={barra}>
-      {/* En celular el aviso de escala va en el resumen: la barra queda en una línea. */}
+      {/* En celular solo la barra de avance, fina: el texto y el badge van en el resumen. */}
       <div className="cli-barra-aviso">
         <AvisoEscala cuenta={cuenta} />
       </div>

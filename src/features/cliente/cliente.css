@@ -339,8 +339,9 @@
   padding-block: 6px;
 }
 
-/* Barra fija en una línea en celular: el aviso de escala se lee en el resumen,
-   y en tablet/escritorio el resumen no lo repite. */
+/* Barra fija en celular: solo la barra de avance, fina (el texto y el badge se
+   leen en el resumen, así la barra no crece con el texto al 200 %). En
+   tablet/escritorio va todo y el resumen no lo repite. */
 .cli-barra-aviso {
   margin-bottom: 10px;
 }
@@ -349,7 +350,13 @@
 }
 @media (max-width: 420px) {
   .cli-barra-aviso {
+    margin-bottom: 8px;
+  }
+  .cli-barra-aviso .cli-aviso-texto {
     display: none;
+  }
+  .cli-barra-aviso .cli-progreso {
+    height: 5px;
   }
   .cli-aviso-resumen {
     display: block;

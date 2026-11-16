@@ -305,12 +305,12 @@ for (const modo of MODOS) {
       await page.getByText('Todo', { exact: true }).click();
       await quieto(page);
 
-      // 5b. Cajas de aromas: «Una de cada una» (sets de 3) y la caja que no se arma mitad y mitad.
+      // 5b. Cajas de aromas: «Una de cada una» (sets de 3); la impar también se arma mitad y mitad.
       fallas.cajas = [];
       await opcion(page, 0, 'Una de cada una').click();
       await tocar(masCaja(page, 0, 'Una de cada una'), fallas.cajas, 'caja');
       await expect(page.getByText('1 set (3 cajas)')).toBeVisible();
-      await expect(page.getByText('Esta caja no se arma mitad y mitad')).toBeVisible();
+      await expect(page.getByText('Esta caja no se arma mitad y mitad')).toHaveCount(0);
       fallas.cajasArmar = await revisarControles(page);
       fallas.cajasPie = await revisarPie(page, '.cli-barra');
       await page.evaluate(() => window.scrollTo(0, 0));
@@ -526,14 +526,11 @@ test('cajas: arma una de cada opción, manda p_cajas y la red no trae claves de 
   }
   await expect(page.getByText('2 sets (6 cajas)')).toBeVisible();
 
-  // La caja de unidades impares no ofrece mitad y mitad, pero muestra las 8 opciones.
+  // La caja de unidades impares también ofrece las 8 opciones, mixtas incluidas (D-opciones-caja-4).
   const impar = tarjetaCaja(page, 1);
-  await expect(impar.getByText('Esta caja no se arma mitad y mitad')).toBeVisible();
+  await expect(impar.getByText('Esta caja no se arma mitad y mitad')).toHaveCount(0);
   for (const [etiqueta, valor] of OPCIONES) {
-    const input = impar.locator(`input[value="${valor}"]`);
-    if (valor.includes('_') && valor !== 'UNA_DE_CADA')
-      await expect(input).toBeDisabled();
-    else await expect(input).toBeEnabled();
+    await expect(impar.locator(`input[value="${valor}"]`)).toBeEnabled();
     await expect(impar.getByText(etiqueta, { exact: true })).toBeVisible();
   }
 
