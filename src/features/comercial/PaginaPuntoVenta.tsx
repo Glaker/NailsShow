@@ -957,6 +957,14 @@ function HistorialMovimientos({
   const [cuantos, setCuantos] = useState(50);
 
   if (todas.isLoading) return <Skeleton h={240} />;
+  // Un error no es «sin movimientos»: decirlo así escondía la falla.
+  if (todas.isError) {
+    return (
+      <Alert color="red" variant="light" radius="md" title="No se pudo leer el historial">
+        {todas.error.message}
+      </Alert>
+    );
+  }
   const visibles = (todas.data ?? []).filter((m) => m.deposito_id === depositoId);
   if (visibles.length === 0) {
     return (
