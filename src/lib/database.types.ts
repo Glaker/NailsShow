@@ -445,6 +445,100 @@ export type Database = {
           },
         ]
       }
+      cajas_aromas: {
+        Row: {
+          activo: boolean
+          creado_en: string
+          id: string
+          nombre: string
+          producto_aire_id: string
+          producto_amor_id: string
+          producto_paz_id: string
+        }
+        Insert: {
+          activo?: boolean
+          creado_en?: string
+          id?: string
+          nombre: string
+          producto_aire_id: string
+          producto_amor_id: string
+          producto_paz_id: string
+        }
+        Update: {
+          activo?: boolean
+          creado_en?: string
+          id?: string
+          nombre?: string
+          producto_aire_id?: string
+          producto_amor_id?: string
+          producto_paz_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cajas_aromas_producto_aire_id_fkey"
+            columns: ["producto_aire_id"]
+            isOneToOne: false
+            referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "cajas_aromas_producto_aire_id_fkey"
+            columns: ["producto_aire_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "cajas_aromas_producto_aire_id_fkey"
+            columns: ["producto_aire_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "cajas_aromas_producto_amor_id_fkey"
+            columns: ["producto_amor_id"]
+            isOneToOne: false
+            referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "cajas_aromas_producto_amor_id_fkey"
+            columns: ["producto_amor_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "cajas_aromas_producto_amor_id_fkey"
+            columns: ["producto_amor_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "cajas_aromas_producto_paz_id_fkey"
+            columns: ["producto_paz_id"]
+            isOneToOne: false
+            referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "cajas_aromas_producto_paz_id_fkey"
+            columns: ["producto_paz_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "cajas_aromas_producto_paz_id_fkey"
+            columns: ["producto_paz_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
+        ]
+      }
       categorias_gasto: {
         Row: {
           activa: boolean
@@ -1974,33 +2068,6 @@ export type Database = {
         }
         Relationships: []
       }
-      cajas_aromas: {
-        Row: {
-          activo: boolean
-          id: string
-          nombre: string
-          producto_aire_id: string
-          producto_amor_id: string
-          producto_paz_id: string
-        }
-        Insert: {
-          activo?: boolean
-          id?: string
-          nombre: string
-          producto_aire_id: string
-          producto_amor_id: string
-          producto_paz_id: string
-        }
-        Update: {
-          activo?: boolean
-          id?: string
-          nombre?: string
-          producto_aire_id?: string
-          producto_amor_id?: string
-          producto_paz_id?: string
-        }
-        Relationships: []
-      }
       descuentos_caja: {
         Row: {
           cargado_en: string
@@ -3076,6 +3143,144 @@ export type Database = {
           },
         ]
       }
+      hada_config: {
+        Row: {
+          activo: boolean
+          cambiado_en: string
+          cambiado_por: string | null
+          clave_sha256: string | null
+          id: string
+          limite_dia: number
+          limite_dia_demo: number
+          limite_escalados_dia: number
+          limite_minuto: number
+          max_cajas: number
+          max_lineas: number
+          max_unidades: number
+          precios: Json
+          reserva_experto_usd: number
+          reserva_usd: number
+          tope_diario_usd: number
+          tope_diario_usuario_usd: number
+          tope_mensual_usd: number
+          unica: boolean
+        }
+        Insert: {
+          activo?: boolean
+          cambiado_en?: string
+          cambiado_por?: string | null
+          clave_sha256?: string | null
+          id?: string
+          limite_dia?: number
+          limite_dia_demo?: number
+          limite_escalados_dia?: number
+          limite_minuto?: number
+          max_cajas?: number
+          max_lineas?: number
+          max_unidades?: number
+          precios?: Json
+          reserva_experto_usd?: number
+          reserva_usd?: number
+          tope_diario_usd?: number
+          tope_diario_usuario_usd?: number
+          tope_mensual_usd?: number
+          unica?: boolean
+        }
+        Update: {
+          activo?: boolean
+          cambiado_en?: string
+          cambiado_por?: string | null
+          clave_sha256?: string | null
+          id?: string
+          limite_dia?: number
+          limite_dia_demo?: number
+          limite_escalados_dia?: number
+          limite_minuto?: number
+          max_cajas?: number
+          max_lineas?: number
+          max_unidades?: number
+          precios?: Json
+          reserva_experto_usd?: number
+          reserva_usd?: number
+          tope_diario_usd?: number
+          tope_diario_usuario_usd?: number
+          tope_mensual_usd?: number
+          unica?: boolean
+        }
+        Relationships: []
+      }
+      hada_interacciones: {
+        Row: {
+          cerrado_en: string | null
+          costo_usd: number
+          creado_en: string
+          error: string | null
+          es_demo: boolean
+          escalado_en: string | null
+          estado: string
+          herramienta: string | null
+          id: string
+          items_propuestos: number
+          items_rechazados: number
+          items_validos: number
+          latencia_ms: number | null
+          modelo: string | null
+          rechazos: string[]
+          resultado: string | null
+          tokens_cache_escritura: number
+          tokens_cache_lectura: number
+          tokens_entrada: number
+          tokens_salida: number
+          usuario_id: string
+        }
+        Insert: {
+          cerrado_en?: string | null
+          costo_usd: number
+          creado_en?: string
+          error?: string | null
+          es_demo?: boolean
+          escalado_en?: string | null
+          estado?: string
+          herramienta?: string | null
+          id?: string
+          items_propuestos?: number
+          items_rechazados?: number
+          items_validos?: number
+          latencia_ms?: number | null
+          modelo?: string | null
+          rechazos?: string[]
+          resultado?: string | null
+          tokens_cache_escritura?: number
+          tokens_cache_lectura?: number
+          tokens_entrada?: number
+          tokens_salida?: number
+          usuario_id: string
+        }
+        Update: {
+          cerrado_en?: string | null
+          costo_usd?: number
+          creado_en?: string
+          error?: string | null
+          es_demo?: boolean
+          escalado_en?: string | null
+          estado?: string
+          herramienta?: string | null
+          id?: string
+          items_propuestos?: number
+          items_rechazados?: number
+          items_validos?: number
+          latencia_ms?: number | null
+          modelo?: string | null
+          rechazos?: string[]
+          resultado?: string | null
+          tokens_cache_escritura?: number
+          tokens_cache_lectura?: number
+          tokens_entrada?: number
+          tokens_salida?: number
+          usuario_id?: string
+        }
+        Relationships: []
+      }
       importaciones: {
         Row: {
           archivo: string
@@ -4067,13 +4272,17 @@ export type Database = {
       pedido_cajas: {
         Row: {
           anulado: boolean
-          asignado_amor: number | null
+          anulado_en: string | null
+          anulado_por: string | null
           asignado_aire: number | null
+          asignado_amor: number | null
           asignado_en: string | null
           asignado_paz: number | null
           asignado_por: string | null
           caja_id: string
           cajas: number
+          creado_en: string
+          creado_por: string
           id: string
           opcion: Database["comercial"]["Enums"]["opcion_caja_enum"]
           pedido_id: string
@@ -4081,13 +4290,17 @@ export type Database = {
         }
         Insert: {
           anulado?: boolean
-          asignado_amor?: number | null
+          anulado_en?: string | null
+          anulado_por?: string | null
           asignado_aire?: number | null
+          asignado_amor?: number | null
           asignado_en?: string | null
           asignado_paz?: number | null
           asignado_por?: string | null
           caja_id: string
           cajas: number
+          creado_en?: string
+          creado_por?: string
           id?: string
           opcion: Database["comercial"]["Enums"]["opcion_caja_enum"]
           pedido_id: string
@@ -4095,13 +4308,17 @@ export type Database = {
         }
         Update: {
           anulado?: boolean
-          asignado_amor?: number | null
+          anulado_en?: string | null
+          anulado_por?: string | null
           asignado_aire?: number | null
+          asignado_amor?: number | null
           asignado_en?: string | null
           asignado_paz?: number | null
           asignado_por?: string | null
           caja_id?: string
           cajas?: number
+          creado_en?: string
+          creado_por?: string
           id?: string
           opcion?: Database["comercial"]["Enums"]["opcion_caja_enum"]
           pedido_id?: string
@@ -4114,6 +4331,48 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cajas_aromas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_cajas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_cajas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_calle5_tomado_ventas"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_cajas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pendientes_despacho"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_cajas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_cajas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["pedido_stock_id"]
+          },
+          {
+            foreignKeyName: "pedido_cajas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas_pedidas"
+            referencedColumns: ["pedido_id"]
           },
         ]
       }
@@ -4651,6 +4910,7 @@ export type Database = {
       }
       pedidos: {
         Row: {
+          clave_cliente: string | null
           cliente: string
           cliente_id: string | null
           creado_en: string
@@ -4687,6 +4947,7 @@ export type Database = {
           tercero_id: string | null
         }
         Insert: {
+          clave_cliente?: string | null
           cliente: string
           cliente_id?: string | null
           creado_en?: string
@@ -4723,6 +4984,7 @@ export type Database = {
           tercero_id?: string | null
         }
         Update: {
+          clave_cliente?: string | null
           cliente?: string
           cliente_id?: string | null
           creado_en?: string
@@ -4870,6 +5132,55 @@ export type Database = {
             foreignKeyName: "precios_producto_producto_id_fkey"
             columns: ["producto_id"]
             isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
+          },
+        ]
+      }
+      productos_nombre_comercial: {
+        Row: {
+          actualizado_en: string
+          actualizado_por: string
+          alias: string[]
+          id: string
+          nombre_comercial: string
+          producto_id: string
+        }
+        Insert: {
+          actualizado_en?: string
+          actualizado_por?: string
+          alias?: string[]
+          id?: string
+          nombre_comercial: string
+          producto_id: string
+        }
+        Update: {
+          actualizado_en?: string
+          actualizado_por?: string
+          alias?: string[]
+          id?: string
+          nombre_comercial?: string
+          producto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "productos_nombre_comercial_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: true
+            referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "productos_nombre_comercial_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: true
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "productos_nombre_comercial_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: true
             referencedRelation: "v_tareas_carga"
             referencedColumns: ["producto_id"]
           },
@@ -5126,6 +5437,7 @@ export type Database = {
           liberada_por: string | null
           motivo_liberacion: string | null
           observacion: string | null
+          pedido_caja_id: string | null
           pedido_id: string | null
           producto_id: string
         }
@@ -5142,6 +5454,7 @@ export type Database = {
           liberada_por?: string | null
           motivo_liberacion?: string | null
           observacion?: string | null
+          pedido_caja_id?: string | null
           pedido_id?: string | null
           producto_id: string
         }
@@ -5158,6 +5471,7 @@ export type Database = {
           liberada_por?: string | null
           motivo_liberacion?: string | null
           observacion?: string | null
+          pedido_caja_id?: string | null
           pedido_id?: string | null
           producto_id?: string
         }
@@ -5175,6 +5489,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_saldos_clientes"
             referencedColumns: ["cliente_id"]
+          },
+          {
+            foreignKeyName: "reservas_pt_pedido_caja_id_fkey"
+            columns: ["pedido_caja_id"]
+            isOneToOne: false
+            referencedRelation: "pedido_cajas"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "reservas_pt_pedido_id_fkey"
@@ -8330,19 +8651,6 @@ export type Database = {
         Returns: string
       }
       articulo_de_insumo: { Args: { p_insumo_id: string }; Returns: string }
-      asignar_surtido: {
-        Args: {
-          p_aire: number
-          p_amor: number
-          p_paz: number
-          p_pedido_caja_id: string
-        }
-        Returns: undefined
-      }
-      surtido_disponible: {
-        Args: { p_pedido_caja_id: string }
-        Returns: Json
-      }
       asignar_lotes_pt: {
         Args: {
           p_cantidad: number
@@ -8353,6 +8661,30 @@ export type Database = {
         Returns: {
           cantidad: number
           orden_id: string
+        }[]
+      }
+      asignar_surtido: {
+        Args: {
+          p_aire: number
+          p_amor: number
+          p_paz: number
+          p_pedido_caja_id: string
+        }
+        Returns: undefined
+      }
+      caja_aporte: {
+        Args: {
+          p_aire: number
+          p_amor: number
+          p_caja: Database["comercial"]["Tables"]["cajas_aromas"]["Row"]
+          p_cajas: number
+          p_opcion: Database["comercial"]["Enums"]["opcion_caja_enum"]
+          p_paz: number
+          p_unidades: number
+        }
+        Returns: {
+          cantidad: number
+          producto_id: string
         }[]
       }
       cargar_apertura_a_stock: {
@@ -8438,25 +8770,6 @@ export type Database = {
             Returns: string
           }
       cliente_actual: { Args: never; Returns: string }
-      cliente_cancelar_pedido: { Args: { p_id: string }; Returns: undefined }
-      cliente_enviar_pedido: {
-        Args: {
-          p_cajas?: Json | null
-          p_id: string
-          p_observaciones?: string
-          p_renglones: Json
-        }
-        Returns: string
-      }
-      cliente_enviar_pedido_unico: {
-        Args: {
-          p_cajas?: Json | null
-          p_clave: string
-          p_observaciones?: string
-          p_renglones: Json
-        }
-        Returns: string
-      }
       cliente_cajas: {
         Args: never
         Returns: {
@@ -8467,6 +8780,25 @@ export type Database = {
           precio_promo: number
           unidades_caja: number
         }[]
+      }
+      cliente_cancelar_pedido: { Args: { p_id: string }; Returns: undefined }
+      cliente_enviar_pedido: {
+        Args: {
+          p_cajas?: Json
+          p_id: string
+          p_observaciones?: string
+          p_renglones: Json
+        }
+        Returns: string
+      }
+      cliente_enviar_pedido_unico: {
+        Args: {
+          p_cajas?: Json
+          p_clave: string
+          p_observaciones?: string
+          p_renglones: Json
+        }
+        Returns: string
       }
       cliente_escala: {
         Args: never
@@ -8790,6 +9122,28 @@ export type Database = {
           version: string
         }[]
       }
+      hada_cerrar: {
+        Args: {
+          p_clave: string
+          p_error: string
+          p_herramienta: string
+          p_id: string
+          p_items_propuestos: number
+          p_items_rechazados: number
+          p_items_validos: number
+          p_latencia_ms: number
+          p_modelo: string
+          p_rechazos: string[]
+          p_resultado: string
+          p_tokens_cache_escritura: number
+          p_tokens_cache_lectura: number
+          p_tokens_entrada: number
+          p_tokens_salida: number
+        }
+        Returns: boolean
+      }
+      hada_escalar: { Args: { p_clave: string; p_id: string }; Returns: Json }
+      hada_reservar: { Args: { p_clave: string }; Returns: Json }
       historia_precios: {
         Args: { p_meses?: number; p_producto_id: string }
         Returns: {
@@ -9053,6 +9407,18 @@ export type Database = {
         Args: { p_ambito: string; p_anio: number }
         Returns: number
       }
+      surtido_disponible: {
+        Args: { p_pedido_caja_id: string }
+        Returns: {
+          aire: number
+          amor: number
+          paz: number
+        }[]
+      }
+      surtido_libre_unidades: {
+        Args: { p_pedido_id: string; p_producto_id: string }
+        Returns: number
+      }
       terminar_orden: {
         Args: {
           p_cantidad: number
@@ -9178,15 +9544,6 @@ export type Database = {
       }
     }
     Enums: {
-      opcion_caja_enum:
-        | "SURTIDO"
-        | "AMOR"
-        | "PAZ"
-        | "AIRE"
-        | "AMOR_PAZ"
-        | "AMOR_AIRE"
-        | "PAZ_AIRE"
-        | "UNA_DE_CADA"
       ambiente_fiscal_enum: "HOMOLOGACION" | "PRODUCCION"
       clase_gasto_enum: "FIJO" | "OPERATIVO" | "INVERSION"
       comprobante_costo_enum:
@@ -9244,6 +9601,15 @@ export type Database = {
         | "MUESTRA_DE_ARCHIVO"
         | "DEVOLUCION_A_PROVEEDOR"
         | "DISCONTINUADO"
+      opcion_caja_enum:
+        | "SURTIDO"
+        | "AMOR"
+        | "PAZ"
+        | "AIRE"
+        | "AMOR_PAZ"
+        | "AMOR_AIRE"
+        | "PAZ_AIRE"
+        | "UNA_DE_CADA"
       origen_costo_enum: "RECEPCION" | "APERTURA"
       serie_macro_enum: "IPC" | "TC_A3500_PROMEDIO" | "TC_A3500_CIERRE"
       tipo_comprobante_proveedor_enum:
@@ -13488,6 +13854,16 @@ export const Constants = {
         "MUESTRA_DE_ARCHIVO",
         "DEVOLUCION_A_PROVEEDOR",
         "DISCONTINUADO",
+      ],
+      opcion_caja_enum: [
+        "SURTIDO",
+        "AMOR",
+        "PAZ",
+        "AIRE",
+        "AMOR_PAZ",
+        "AMOR_AIRE",
+        "PAZ_AIRE",
+        "UNA_DE_CADA",
       ],
       origen_costo_enum: ["RECEPCION", "APERTURA"],
       serie_macro_enum: ["IPC", "TC_A3500_PROMEDIO", "TC_A3500_CIERRE"],

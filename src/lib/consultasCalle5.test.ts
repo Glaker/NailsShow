@@ -38,6 +38,7 @@ const reserva = (o: Partial<ReservaPtRow>): ReservaPtRow => ({
   liberada_en: null,
   motivo_liberacion: null,
   liberada_por: null,
+  pedido_caja_id: null,
   creado_por: 'u',
   creado_en: '2026-09-29',
   ...o,
