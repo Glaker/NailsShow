@@ -1,4 +1,13 @@
-import { memo, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import {
+  memo,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type Dispatch,
+  type SetStateAction,
+} from 'react';
 import {
   ActionIcon,
   Badge,
@@ -18,7 +27,7 @@ import {
   ThemeIcon,
   Title,
 } from '@mantine/core';
-import { useDebouncedValue, useElementSize } from '@mantine/hooks';
+import { useDebouncedValue, useElementSize, useMediaQuery } from '@mantine/hooks';
 import {
   IconCheck,
   IconMinus,
@@ -32,7 +41,12 @@ import {
 } from '@tabler/icons-react';
 import SlideCommit from '@/vendor/reactbits/SlideCommit';
 import HoldButton from '@/vendor/reactbits/HoldButton';
+import FuseButton from '@/components/reactbits/FuseButton';
 import { numero } from '@/lib/formato';
+import { normalizarNombre } from '@/lib/consultasVentas';
+import { TextoDual } from './TextoDual';
+import { TarjetaCaja } from './CajasAromas';
+import { Hada } from './Hada';
 import {
   calcularVenta,
   precioFinalUnidad,
@@ -40,9 +54,16 @@ import {
   type Escalon,
 } from '@/lib/consultasVentas';
 import {
+  claveCaja,
+  etiquetaOpcion,
+  textoCajas,
+  partirClaveCaja,
+  useCajasCliente,
   useEnviarPedidoCliente,
   useEscalaCliente,
   useListaCliente,
+  type CajaCliente,
+  type CarritoCajas,
   type EnvioPedido,
   type ProductoCliente,
 } from '@/lib/consultasCliente';
@@ -52,10 +73,16 @@ export type Carrito = Map<string, number>;
 const pesos = (n: number) => `$${numero(n, 0)}`;
 
 /** Lo que cuesta el carrito con la escala de descuentos, igual que en Ventas. */
-function useCuenta(carrito: Carrito, lista: ProductoCliente[], escala: Escalon[]) {
+function useCuenta(
+  carrito: Carrito,
+  lista: ProductoCliente[],
+  escala: Escalon[],
+  cajas: CarritoCajas,
+  catalogo: CajaCliente[],
+) {
   return useMemo(() => {
     const porId = new Map(lista.map((p) => [p.producto_id, p]));
-    const lineas = [...carrito]
+    const sueltas = [...carrito]
       .filter(([pid, c]) => c > 0 && porId.has(pid))
       .map(([pid, c]) => ({
         cantidad: c,
@@ -63,28 +90,61 @@ function useCuenta(carrito: Carrito, lista: ProductoCliente[], escala: Escalon[]
         unidades_pack: 1,
         manual: null,
       }));
+    // Una caja vale precio_promo × unidades de la caja, con su % de caja (como calcularVenta).
+    const porCaja = new Map(catalogo.map((c) => [c.caja_id, c]));
+    const deCajas = [...cajas]
+      .filter(([k, c]) => c > 0 && porCaja.has(partirClaveCaja(k).caja_id))
+      .map(([k, c]) => {
+        const g = porCaja.get(partirClaveCaja(k).caja_id)!;
+        return {
+          cantidad: c * g.unidades_caja,
+          precio_promo: g.precio_promo,
+          unidades_pack: 1,
+          manual: null,
+          caja: g.porcentaje,
+          cantidad_caja: c * g.unidades_caja,
+        };
+      });
+    const lineas = [...sueltas, ...deCajas];
     const cuenta = calcularVenta(lineas, escala, null);
     const proximo = proximoEscalon(cuenta.lista, escala);
     const unidades = lineas.reduce((a, l) => a + l.cantidad, 0);
     return { ...cuenta, proximo, unidades, productos: lineas.length };
-  }, [carrito, lista, escala]);
+  }, [carrito, lista, escala, cajas, catalogo]);
 }
 
 export function ArmarPedido({
   carrito,
   setCarrito,
+  cajas,
+  setCajas,
+  cajasDemo,
   observaciones,
   setObservaciones,
   editando,
+  claveEnvio,
+  hada,
+  onMisPedidos,
+  onTutorial,
   onVaciar,
   onEnviado,
   enviarDemo,
 }: {
   carrito: Carrito;
   setCarrito: Dispatch<SetStateAction<Carrito>>;
+  cajas: CarritoCajas;
+  setCajas: Dispatch<SetStateAction<CarritoCajas>>;
+  /** Cuenta de demostración: las cajas vienen de demo.ts, no de la base. */
+  cajasDemo?: CajaCliente[] | undefined;
   observaciones: string;
   setObservaciones: (v: string) => void;
   editando: { id: string; numero: string } | null;
+  /** Clave de idempotencia del pedido nuevo (cliente_enviar_pedido_unico). */
+  claveEnvio: string;
+  /** Hada se ofrece solo en cuentas reales y sin el tutorial abierto (D-hada-2). */
+  hada: boolean;
+  onMisPedidos: () => void;
+  onTutorial: () => void;
   onVaciar: () => void;
   onEnviado: () => void;
   /** Modo demostración: el envío no va a la base (20261112130000). */
@@ -92,6 +152,11 @@ export function ArmarPedido({
 }) {
   const lista = useListaCliente();
   const escala = useEscalaCliente();
+  const consultaCajas = useCajasCliente(!cajasDemo);
+  const catalogo = useMemo(
+    () => cajasDemo ?? consultaCajas.data ?? [],
+    [cajasDemo, consultaCajas.data],
+  );
   const [busqueda, setBusqueda] = useState('');
   const [buscar] = useDebouncedValue(busqueda, 150);
   const [rubro, setRubro] = useState<string | null>(null);
@@ -100,20 +165,36 @@ export function ArmarPedido({
   const [festejo, setFestejo] = useState(false);
 
   const productos = useMemo(() => lista.data ?? [], [lista.data]);
-  const cuenta = useCuenta(carrito, productos, escala.data ?? []);
+  const cuenta = useCuenta(carrito, productos, escala.data ?? [], cajas, catalogo);
   const rubros = useMemo(
     () => [...new Set(productos.map((p) => p.rubro).filter(Boolean))] as string[],
     [productos],
   );
 
+  const cajasVisibles = useMemo(() => {
+    if (rubro) return [];
+    const palabras = normalizarNombre(buscar).split(' ').filter(Boolean);
+    return catalogo.filter((g) => {
+      if (
+        soloMios &&
+        ![...cajas].some(([k, c]) => c > 0 && k.startsWith(`${g.caja_id}|`))
+      )
+        return false;
+      const texto = normalizarNombre(`${g.nombre} caja cajas`);
+      return palabras.every((w) => texto.includes(w));
+    });
+  }, [catalogo, buscar, rubro, soloMios, cajas]);
+
   const visibles = useMemo(() => {
-    const t = buscar.trim().toLowerCase();
-    const palabras = t.split(/\s+/).filter(Boolean);
+    // Sin tildes ni mayúsculas; los alias («crema», «cremas») cuentan como texto (P2).
+    const palabras = normalizarNombre(buscar).split(' ').filter(Boolean);
     return productos.filter((p) => {
       if (soloMios && !(carrito.get(p.producto_id) ?? 0)) return false;
       if (rubro && p.rubro !== rubro) return false;
       if (!palabras.length) return true;
-      const texto = `${p.producto} ${p.codigo} ${p.rubro ?? ''}`.toLowerCase();
+      const texto = normalizarNombre(
+        `${p.producto} ${p.codigo} ${p.rubro ?? ''} ${p.alias.join(' ')}`,
+      );
       return palabras.every((w) => texto.includes(w));
     });
   }, [productos, buscar, rubro, soloMios, carrito]);
@@ -127,7 +208,16 @@ export function ArmarPedido({
       return n;
     });
 
-  if (lista.isLoading || escala.isLoading) {
+  const cambiarCaja = (clave: string, cantidad: number) =>
+    setCajas((m) => {
+      const n = new Map(m);
+      const c = Math.max(0, Math.min(10000, Math.round(cantidad || 0)));
+      if (c === 0) n.delete(clave);
+      else n.set(clave, c);
+      return n;
+    });
+
+  if (lista.isLoading || escala.isLoading || consultaCajas.isLoading) {
     return (
       <Stack p="md" gap="sm">
         {Array.from({ length: 6 }, (_, i) => (
@@ -139,6 +229,41 @@ export function ArmarPedido({
 
   return (
     <>
+      {hada && !abierto && !festejo ? (
+        <Box px="md" pt="sm">
+          <Hada
+            productos={productos}
+            catalogo={catalogo}
+            irA={{
+              ARMAR_PEDIDO: () => window.scrollTo({ top: 0 }),
+              // Las cajas son lo primero de la lista, justo bajo el buscador.
+              CAJAS_AROMAS: () => window.scrollTo({ top: 0 }),
+              RESUMEN: () => setAbierto(true),
+              MIS_PEDIDOS: onMisPedidos,
+              TUTORIAL: onTutorial,
+            }}
+            onPasar={(b) => {
+              setCarrito((m) => {
+                const n = new Map(m);
+                for (const r of b.renglones)
+                  n.set(
+                    r.producto_id,
+                    Math.min(100000, (n.get(r.producto_id) ?? 0) + r.cantidad),
+                  );
+                return n;
+              });
+              setCajas((m) => {
+                const n = new Map(m);
+                for (const c of b.cajas) {
+                  const k = claveCaja(c.caja_id, c.opcion);
+                  n.set(k, Math.min(10000, (n.get(k) ?? 0) + c.cajas));
+                }
+                return n;
+              });
+            }}
+          />
+        </Box>
+      ) : null}
       <Box className="cli-buscador" px="md" pt="sm" pb={6}>
         <TextInput
           size="lg"
@@ -197,8 +322,23 @@ export function ArmarPedido({
         </div>
       </Box>
 
-      <Stack gap={10} px="md" pt="xs" pb={cuenta.productos ? 190 : 40}>
-        {visibles.length === 0 ? (
+      <Stack
+        gap={10}
+        px="md"
+        pt="xs"
+        {...(cuenta.productos ? {} : { pb: 40 })}
+        {...(cuenta.productos ? { className: 'cli-pie-barra' } : {})}
+      >
+        {cajasVisibles.map((g) => (
+          <TarjetaCaja
+            key={g.caja_id}
+            caja={g}
+            descuento={cuenta.descuento}
+            cantidades={cajas}
+            onCambiar={cambiarCaja}
+          />
+        ))}
+        {visibles.length === 0 && cajasVisibles.length === 0 ? (
           <Center py={60}>
             <Stack align="center" gap={6}>
               <IconSearch size={36} opacity={0.4} />
@@ -228,6 +368,7 @@ export function ArmarPedido({
         position="bottom"
         size="92%"
         radius="xl"
+        className="cli-portal"
         title={
           <Text fw={800} size="lg">
             {editando ? `Tu pedido ${editando.numero}` : 'Tu pedido'}
@@ -238,11 +379,16 @@ export function ArmarPedido({
           enviarDemo={enviarDemo}
           productos={productos}
           carrito={carrito}
+          catalogo={catalogo}
+          cajasError={!cajasDemo && consultaCajas.isError}
+          cajas={cajas}
+          onCambiarCaja={cambiarCaja}
           cuenta={cuenta}
           onCambiar={cambiar}
           observaciones={observaciones}
           setObservaciones={setObservaciones}
           editando={editando}
+          claveEnvio={claveEnvio}
           onVaciar={() => {
             onVaciar();
             setAbierto(false);
@@ -267,6 +413,9 @@ export function ArmarPedido({
 }
 
 type Cuenta = ReturnType<typeof useCuenta>;
+
+/** Botones de ícono de 44 px fijos: no crecen con el texto del sistema. */
+const PX44 = { '--ai-size': '44px' } as CSSProperties;
 
 const TarjetaProducto = memo(function TarjetaProducto({
   p,
@@ -313,7 +462,7 @@ const TarjetaProducto = memo(function TarjetaProducto({
           )}
         </div>
       </Group>
-      <Group mt="sm" justify="space-between" wrap="nowrap" gap={8}>
+      <Group mt="sm" justify="space-between" gap={8}>
         {p.pack ? (
           <Button
             variant="light"
@@ -328,9 +477,9 @@ const TarjetaProducto = memo(function TarjetaProducto({
         ) : (
           <span />
         )}
-        <Group gap={6} wrap="nowrap">
+        <Group gap={6} wrap="nowrap" ml="auto">
           <ActionIcon
-            size={46}
+            style={PX44}
             radius="xl"
             variant="light"
             color="gray"
@@ -342,7 +491,7 @@ const TarjetaProducto = memo(function TarjetaProducto({
           </ActionIcon>
           <NumberInput
             classNames={{ input: 'cli-cantidad' }}
-            w={64}
+            style={{ width: 64, flexShrink: 0 }}
             size="md"
             radius="md"
             hideControls
@@ -355,7 +504,7 @@ const TarjetaProducto = memo(function TarjetaProducto({
             aria-label={`Cantidad de ${p.producto}`}
           />
           <ActionIcon
-            size={46}
+            style={PX44}
             radius="xl"
             color="grape"
             onClick={() => onCambiar(p.producto_id, cantidad + 1)}
@@ -369,12 +518,13 @@ const TarjetaProducto = memo(function TarjetaProducto({
   );
 });
 
-function BarraTotal({ cuenta, onAbrir }: { cuenta: Cuenta; onAbrir: () => void }) {
+/** Próximo escalón de descuento, badge y barra de avance. Va en la barra (tablet) y en el resumen (celular). */
+function AvisoEscala({ cuenta }: { cuenta: Cuenta }) {
   const avance = cuenta.proximo
     ? Math.min(100, (cuenta.lista / (cuenta.lista + cuenta.proximo.falta)) * 100)
     : 100;
   return (
-    <div className="cli-barra">
+    <>
       <Group justify="space-between" mb={6} wrap="nowrap">
         <Text size="sm" fw={600} lh={1.2}>
           {cuenta.proximo ? (
@@ -397,9 +547,33 @@ function BarraTotal({ cuenta, onAbrir }: { cuenta: Cuenta; onAbrir: () => void }
       <div className="cli-progreso">
         <div style={{ transform: `scaleX(${avance / 100})` }} />
       </div>
+    </>
+  );
+}
+
+function BarraTotal({ cuenta, onAbrir }: { cuenta: Cuenta; onAbrir: () => void }) {
+  const barra = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = barra.current;
+    if (!el) return;
+    const raiz = document.documentElement.style;
+    const medir = () => raiz.setProperty('--cli-barra-h', `${el.offsetHeight}px`);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      raiz.removeProperty('--cli-barra-h');
+    };
+  }, []);
+  return (
+    <div className="cli-barra" ref={barra}>
+      {/* En celular el aviso de escala va en el resumen: la barra queda en una línea. */}
+      <div className="cli-barra-aviso">
+        <AvisoEscala cuenta={cuenta} />
+      </div>
       <Button
         fullWidth
-        mt={10}
         size="xl"
         radius="xl"
         color="grape"
@@ -418,35 +592,112 @@ function BarraTotal({ cuenta, onAbrir }: { cuenta: Cuenta; onAbrir: () => void }
   );
 }
 
+function MarcaPorBorrar() {
+  return (
+    <Text size="xs" fw={700} c="orange.8">
+      por borrar
+    </Text>
+  );
+}
+
+/**
+ * Borra UNA línea con mecha de 4 s: el borrado ocurre al terminar la mecha y
+ * «Deshacer» (o Escape) lo cancela. Si se cierra el resumen, se sale de la
+ * pantalla o se oculta la pestaña, se cancela: no se pierde nada por accidente.
+ */
+function BorrarLinea({
+  nombre,
+  onArmado,
+  onBorrar,
+}: {
+  nombre: string;
+  onArmado: (armado: boolean) => void;
+  onBorrar: () => void;
+}) {
+  // Al desmontarse (cierre del cajón, otra pantalla) la mecha se cancela sola.
+  return (
+    <div className="cli-borrar-linea">
+      <FuseButton
+        commitOn="fuseEnd"
+        undoWindow={4000}
+        fuse="outline"
+        size="sm"
+        label="Borrar"
+        undoLabel="Deshacer"
+        doneLabel="Borrado"
+        ariaLabel={`Borrar ${nombre}`}
+        undoAriaLabel={`Deshacer borrar ${nombre}`}
+        background="var(--mantine-color-red-light)"
+        color="var(--mantine-color-red-light-color)"
+        fuseColor="var(--mantine-color-orange-6)"
+        cancelarAlOcultar
+        onPhaseChange={(f) => onArmado(f === 'armed')}
+        onFuseEnd={onBorrar}
+      />
+    </div>
+  );
+}
+
 function ResumenPedido({
   productos,
   carrito,
+  catalogo,
+  cajasError,
+  cajas,
+  onCambiarCaja,
   cuenta,
   onCambiar,
   observaciones,
   setObservaciones,
   editando,
+  claveEnvio,
   onVaciar,
   onEnviado,
   enviarDemo,
 }: {
   productos: ProductoCliente[];
   carrito: Carrito;
+  catalogo: CajaCliente[];
+  /** cliente_cajas falló: no se sabe qué cajas hay, así que no se tocan las del pedido. */
+  cajasError: boolean;
+  cajas: CarritoCajas;
+  onCambiarCaja: (clave: string, c: number) => void;
   cuenta: Cuenta;
   onCambiar: (pid: string, c: number) => void;
   observaciones: string;
   setObservaciones: (v: string) => void;
   editando: { id: string; numero: string } | null;
+  claveEnvio: string;
   onVaciar: () => void;
   onEnviado: () => void;
   enviarDemo?: ((e: EnvioPedido) => Promise<unknown>) | undefined;
 }) {
   const enviar = useEnviarPedidoCliente();
+  // Líneas con la mecha encendida (se ven atenuadas hasta que termina o se deshace).
+  const [porBorrar, setPorBorrar] = useState<ReadonlySet<string>>(new Set());
+  const marcar = (clave: string, armado: boolean) =>
+    setPorBorrar((prev) => {
+      const sig = new Set(prev);
+      if (armado) sig.add(clave);
+      else sig.delete(clave);
+      return sig;
+    });
   const { ref, width } = useElementSize();
+  // Celular: más alto para que «Deslizá…» entre en dos renglones.
+  const alto = useMediaQuery('(max-width: 420px)') ? 64 : 56;
   const porId = new Map(productos.map((p) => [p.producto_id, p]));
   const items = [...carrito].filter(([pid, c]) => c > 0 && porId.has(pid));
+  const porCaja = new Map(catalogo.map((g) => [g.caja_id, g]));
+  const delCarrito = [...cajas]
+    .map(([clave, c]) => ({ clave, c, ...partirClaveCaja(clave) }))
+    .filter((x) => x.c > 0);
+  const itemsCajas = delCarrito.filter((x) => porCaja.has(x.caja_id));
+  // Una caja que ya no está en la lista no se descarta en silencio: se muestra y frena el envío.
+  const faltantes = cajasError ? [] : delCarrito.filter((x) => !porCaja.has(x.caja_id));
+  const sinCajas = cajasError && delCarrito.length > 0;
+  const bloqueado = sinCajas || faltantes.length > 0;
 
-  if (items.length === 0) {
+  if (items.length === 0 && delCarrito.length === 0) {
     return (
       <Center py={60}>
         <Text c="dimmed">Tu pedido está vacío.</Text>
@@ -457,22 +708,103 @@ function ResumenPedido({
   return (
     <Stack gap="md" pb="xl">
       <Stack gap={8}>
+        {sinCajas ? (
+          <Text size="sm" c="red" fw={600} role="alert">
+            No pudimos cargar las cajas. Probá de nuevo en un rato.
+          </Text>
+        ) : null}
+        {faltantes.map(({ clave, c, opcion }) => (
+          <Group key={clave} gap={4} wrap="nowrap" justify="space-between">
+            <div style={{ minWidth: 0 }}>
+              <Text fw={600} size="sm" c="red" lh={1.25}>
+                Caja que ya no está en la lista · {etiquetaOpcion(opcion)}
+              </Text>
+              <Text size="xs" c="dimmed">
+                {textoCajas(opcion, c)}. Sacala para poder enviar el pedido.
+              </Text>
+            </div>
+            <ActionIcon
+              style={PX44}
+              radius="xl"
+              variant="subtle"
+              color="red"
+              onClick={() => onCambiarCaja(clave, 0)}
+              aria-label="Sacar caja que ya no está en la lista"
+            >
+              <IconTrash size={18} />
+            </ActionIcon>
+          </Group>
+        ))}
+        {itemsCajas.map(({ clave, c, caja_id, opcion }) => {
+          const g = porCaja.get(caja_id)!;
+          const paso = opcion === 'UNA_DE_CADA' ? 3 : 1;
+          const final =
+            precioFinalUnidad(g.precio_promo, cuenta.descuento, g.porcentaje) *
+            g.unidades_caja;
+          const que = `${g.nombre}, ${etiquetaOpcion(opcion)}`;
+          return (
+            <Stack key={clave} gap={4}>
+              <div
+                style={{ minWidth: 0 }}
+                className={porBorrar.has(clave) ? 'cli-por-borrar' : undefined}
+              >
+                <Text fw={600} size="sm" lh={1.25} lineClamp={2}>
+                  {g.nombre} · {etiquetaOpcion(opcion)}
+                </Text>
+                {porBorrar.has(clave) ? <MarcaPorBorrar /> : null}
+                <Text size="xs" c="dimmed">
+                  {textoCajas(opcion, c)} × {pesos(final)} = <b>{pesos(c * final)}</b>
+                </Text>
+              </div>
+              <Group gap={4} wrap="wrap" justify="flex-end">
+                <ActionIcon
+                  style={PX44}
+                  radius="xl"
+                  variant="light"
+                  color="gray"
+                  onClick={() => onCambiarCaja(clave, c - paso)}
+                  aria-label={`Menos de ${que}`}
+                >
+                  <IconMinus size={18} />
+                </ActionIcon>
+                <ActionIcon
+                  style={PX44}
+                  radius="xl"
+                  color="grape"
+                  onClick={() => onCambiarCaja(clave, c + paso)}
+                  aria-label={`Más de ${que}`}
+                >
+                  <IconPlus size={18} />
+                </ActionIcon>
+                <BorrarLinea
+                  nombre={que}
+                  onArmado={(a) => marcar(clave, a)}
+                  onBorrar={() => onCambiarCaja(clave, 0)}
+                />
+              </Group>
+            </Stack>
+          );
+        })}
         {items.map(([pid, c]) => {
           const p = porId.get(pid)!;
           const final = precioFinalUnidad(p.precio_promo, cuenta.descuento, null);
           return (
-            <Group key={pid} justify="space-between" wrap="nowrap" gap="xs">
-              <div style={{ minWidth: 0 }}>
+            <Stack key={pid} gap={4}>
+              <div
+                style={{ minWidth: 0 }}
+                className={porBorrar.has(pid) ? 'cli-por-borrar' : undefined}
+              >
                 <Text fw={600} size="sm" lh={1.25} lineClamp={2}>
                   {p.producto}
                 </Text>
+                {porBorrar.has(pid) ? <MarcaPorBorrar /> : null}
                 <Text size="xs" c="dimmed">
                   {numero(c, 0)} × {pesos(final)} = <b>{pesos(c * final)}</b>
                 </Text>
               </div>
-              <Group gap={4} wrap="nowrap">
+              <Group gap={4} wrap="wrap" justify="flex-end">
                 <ActionIcon
-                  size={40}
+                  style={PX44}
                   radius="xl"
                   variant="light"
                   color="gray"
@@ -481,11 +813,11 @@ function ResumenPedido({
                 >
                   <IconMinus size={18} />
                 </ActionIcon>
-                <Text fw={800} w={40} ta="center">
+                <Text fw={800} miw={40} ta="center">
                   {numero(c, 0)}
                 </Text>
                 <ActionIcon
-                  size={40}
+                  style={PX44}
                   radius="xl"
                   color="grape"
                   onClick={() => onCambiar(pid, c + 1)}
@@ -493,21 +825,20 @@ function ResumenPedido({
                 >
                   <IconPlus size={18} />
                 </ActionIcon>
-                <ActionIcon
-                  size={40}
-                  radius="xl"
-                  variant="subtle"
-                  color="red"
-                  onClick={() => onCambiar(pid, 0)}
-                  aria-label={`Sacar ${p.producto}`}
-                >
-                  <IconTrash size={18} />
-                </ActionIcon>
+                <BorrarLinea
+                  nombre={p.producto}
+                  onArmado={(a) => marcar(pid, a)}
+                  onBorrar={() => onCambiar(pid, 0)}
+                />
               </Group>
-            </Group>
+            </Stack>
           );
         })}
       </Stack>
+
+      <div className="cli-aviso-resumen">
+        <AvisoEscala cuenta={cuenta} />
+      </div>
 
       <Box
         p="md"
@@ -554,7 +885,7 @@ function ResumenPedido({
       />
 
       <div ref={ref}>
-        {width > 0 ? (
+        {width > 0 && !bloqueado ? (
           <SlideCommit
             label={
               editando
@@ -563,9 +894,10 @@ function ResumenPedido({
             }
             doneLabel="¡Listo!"
             errorLabel="No salió, probá de nuevo"
+            className="cli-slide"
             width={width}
-            height={64}
-            radius={32}
+            height={alto}
+            radius={alto / 2}
             trackColor="#f3e8f8"
             handleColor="#be4bdb"
             successColor="#2f9e44"
@@ -573,10 +905,20 @@ function ResumenPedido({
             onConfirm={() =>
               (enviarDemo ?? enviar.mutateAsync)({
                 id: editando?.id ?? null,
+                clave: claveEnvio,
                 renglones: items.map(([producto_id, cantidad]) => ({
                   producto_id,
                   cantidad,
                 })),
+                // Sin cajas y con la consulta caída: null = no tocar las del pedido.
+                cajas:
+                  cajasError && delCarrito.length === 0
+                    ? null
+                    : itemsCajas.map((x) => ({
+                        caja_id: x.caja_id,
+                        opcion: x.opcion,
+                        cajas: x.c,
+                      })),
                 observaciones,
               })
             }
@@ -587,6 +929,7 @@ function ResumenPedido({
 
       <HoldButton
         size="md"
+        className="cli-hold"
         holdTime={900}
         releaseTime={150}
         backgroundColor="#fdecec"
@@ -598,9 +941,17 @@ function ResumenPedido({
         resetAfter={0}
         onHold={onVaciar}
       >
-        {editando
-          ? 'Mantené apretado para descartar los cambios'
-          : 'Mantené apretado para borrar todo'}
+        {editando ? (
+          <TextoDual
+            corto="Mantené para descartar"
+            largo="Mantené apretado para descartar los cambios"
+          />
+        ) : (
+          <TextoDual
+            corto="Mantené para borrar todo"
+            largo="Mantené apretado para borrar todo"
+          />
+        )}
       </HoldButton>
     </Stack>
   );
@@ -626,7 +977,13 @@ function Festejo({
     })),
   );
   return (
-    <Modal opened={abierto} onClose={onCerrar} fullScreen withCloseButton={false}>
+    <Modal
+      opened={abierto}
+      onClose={onCerrar}
+      fullScreen
+      withCloseButton={false}
+      className="cli-portal"
+    >
       {abierto
         ? piezas.map((p, i) => (
             <span

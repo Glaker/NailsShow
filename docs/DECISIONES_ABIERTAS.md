@@ -2359,3 +2359,80 @@ tenía 1,00000 mal cargado: quedó sin medida y rige la estimada (0,8099 g/mL a
 proyecto: automático, sin que Gerencia de Producción elija. Sale primero del
 lote que vence antes; entre los que no vencen, del más antiguo en el sistema.
 Cada baja queda con su lote en el kardex. Se revisa cuando llegue I.20.3.
+
+## Rama pedidos-p3-opciones-caja (número definitivo al integrar en main)
+
+Diseño en `docs/disenos/P3-opciones-caja.md`; plan en `docs/PROMPT_PEDIDOS_HADA.md`, P3.
+
+### D-opciones-caja-1 · Surtido que no alcanza con los tres aromas — provisoria 2026-11-13
+
+**Pregunta.** El cliente pide N cajas «Surtido» y lo libre de Amor, Paz y Aire
+en el depósito del pedido no alcanza para repartirlas.
+**Conservador (aplicado).** `asignar_surtido` no deja asignar de más ni hay
+forma de forzarlo. El pedido no pasa a ESPERANDO_FECHA hasta que el surtido
+esté asignado. Las salidas son esperar producción, cambiar el depósito del
+pedido, o acordar con el cliente y pasar la línea a aromas fijos, que sí se
+mandan a producir. El cliente no recibe aviso (regla 8: no ve stock).
+**A confirmar.** Si Ventas debe poder asignar contra producción futura.
+
+### D-opciones-caja-2 · Descuento de caja en las cajas que elige el cliente — provisoria 2026-11-13
+
+**Pregunta.** Hasta ahora el descuento por caja lo marca Ventas en cada renglón.
+Con las opciones por caja, el cliente pide cajas directamente.
+**Conservador (aplicado).** El renglón que sale de una caja lleva el porcentaje
+por defecto de la caja (D-descuento-caja-1), y Ventas lo puede cambiar antes de
+aprobar. Si Ventas lo quita, el siguiente cambio de cajas lo vuelve a aplicar.
+**A confirmar.** Que el porcentaje por defecto sea el correcto para el portal.
+
+### D-opciones-caja-3 · Asignar el surtido reserva con el pedido en BORRADOR — provisoria 2026-11-13
+
+**Pregunta.** La asignación se hace con el pedido en BORRADOR, que el cliente
+todavía puede editar, y reserva stock (`reservas_pt.pedido_caja_id`).
+**Conservador (aplicado).** Se reserva al asignar, para que dos surtidos no
+cuenten el mismo stock. Si el cliente cambia la cantidad de cajas, la
+asignación vuelve a pendiente y la reserva se libera (se marca, no se borra).
+**Riesgo.** Las reservas de un BORRADOR abandonado no vencen: hace falta un
+listado de reservas de surtido por antigüedad.
+
+## Rama pedidos-p6-hada (número definitivo al integrar en main)
+
+Diseño en `docs/disenos/P6-hada.md`; plan en `docs/PROMPT_PEDIDOS_HADA.md`, P6.
+
+### D-hada-1 · Límites, topes y máximos de Hada — provisoria 2026-11-13
+
+**Aplicado.** 5 mensajes por minuto y 40 por día por cliente; topes de 1 USD
+por día y 10 USD por mes para todos; borrador de hasta 25 líneas, 500 unidades
+o 50 cajas por línea. Viven en `comercial.hada_config` y los cambia el
+Administrador del sistema. El presupuesto es propio, separado del de Giorgio,
+aunque comparten `ANTHROPIC_API_KEY`.
+**A confirmar.** Los valores, y el tope de gasto en la consola de Anthropic,
+que es el respaldo real: los precios de la tabla son estimados.
+
+### D-hada-2 · Hada en la cuenta de demostración — provisoria 2026-11-13
+
+**Aplicado.** Apagada (`limite_dia_demo` = 0), y el portal no la muestra en la
+cuenta demo, para que una cuenta compartida no consuma el tope de los clientes.
+
+### D-hada-3 · Retención del registro de Hada — provisoria 2026-11-13
+
+**Aplicado.** Sin purga: el trigger de auditoría prohíbe DELETE. Las filas de
+`comercial.hada_interacciones` no guardan texto del cliente ni de Hada, nombres
+ni IP: solo usuario, hora, tokens, costo y códigos.
+**A confirmar.** Si hace falta un plazo, requiere una excepción explícita al
+trigger genérico.
+
+### D-hada-4 · Cómo entra el borrador de Hada — provisoria 2026-11-13
+
+**Aplicado.** El borrador se suma al carrito (no lo reemplaza) y se confirma con
+el «Deslizá para enviar» de siempre. «2 cajas» de un producto sin grupo de
+cajas genera una pregunta, nunca una conversión a unidades. Un destino de la
+app se ofrece como botón: nada que diga el modelo dispara una acción.
+
+### D-hada-5 · Reintento con la misma clave y otro contenido — abierta 2026-11-14
+
+**Pregunta.** Si se pierde la respuesta del envío y el cliente cambia el
+carrito (o cancela ese pedido) y reenvía con la misma clave, vuelve el pedido
+anterior y la pantalla dice «¡Pedido enviado!». El cliente ve el pedido real en
+«Mis pedidos».
+**A confirmar con Ventas.** Si alcanza así, o si el portal debe renovar la
+clave cuando cambia el carrito después de un envío fallido.

@@ -24,6 +24,15 @@ const SOLO_PRODUCCION = new Set([
   '20261110110000_ingreso_etiqueta_192et.sql',
   '20261110150100_carga_lista_codigos_pack_a_unidad.sql', // lista real: los PACK pasan a unidad
   '20261112130100_carga_cuenta_cliente_prueba.sql', // cuenta de demostración real
+  '20261112160000_anula_ajustes_romero_lotes_reales.sql', // ajustes de la carga Romero sobre lotes reales
+  // ponytail: mezcla esquema gmp con el arreglo de OP-2026-0008 (que en PGlite no existe) y aborta;
+  // se omite entera, así que las suites no cubren la sustitución de insumo hasta separarla.
+  '20261113130000_gmp_sustitucion_insumo_orden.sql',
+  '20261113120000_baja_alcohol_sanitizante.sql', // carga de datos de la base real
+  '20261112170000_sanitizantes_alcohol_cleanser.sql', // carga de datos de la base real
+  '20261113150000_tandas_sin_mp_duplicada.sql', // anula bajas dobles de OP-2026-0020/21/22 (datos reales)
+  '20261113170000_carga_cuenta_cliente_1.sql', // cuenta de demostración real
+  '20261116100000_comercial_stock_berna_casiopea_13_11.sql', // stock real de Berna (productos dados de alta desde la pantalla)
 ]);
 
 export async function reconstruir({ silencioso = false } = {}) {

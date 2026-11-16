@@ -612,9 +612,135 @@ const invalidar = (qc: ReturnType<typeof useQueryClient>) => {
     'calle5',
     'pendientes-despacho',
     'propuesta-fecha',
+    'pedido-cajas',
+    'surtidos-sin-asignar',
   ])
     void qc.invalidateQueries({ queryKey: [k] });
 };
+
+/* ------------------------- Cajas del portal (P3) ------------------------ */
+
+export type OpcionCaja = Database['comercial']['Enums']['opcion_caja_enum'];
+
+export const TEXTO_OPCION: Record<OpcionCaja, string> = {
+  SURTIDO: 'Surtido',
+  AMOR: 'Amor',
+  PAZ: 'Paz',
+  AIRE: 'Aire',
+  AMOR_PAZ: 'Amor y Paz',
+  AMOR_AIRE: 'Amor y Aire',
+  PAZ_AIRE: 'Paz y Aire',
+  UNA_DE_CADA: 'Una de cada una',
+};
+
+export interface PedidoCaja {
+  id: string;
+  grupo: string;
+  opcion: OpcionCaja;
+  cajas: number;
+  unidades_caja: number;
+  asignado: AromasSurtido | null;
+  asignado_por: string | null;
+  asignado_en: string | null;
+}
+
+/** Cajas del portal vigentes de un pedido (comercial.pedido_cajas, P3). */
+export function usePedidoCajas(pedidoId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['pedido-cajas', pedidoId],
+    enabled: !!pedidoId,
+    queryFn: async (): Promise<PedidoCaja[]> => {
+      const { data, error } = await comercial()
+        .from('pedido_cajas')
+        .select('*, cajas_aromas(nombre)')
+        .eq('pedido_id', pedidoId!)
+        .eq('anulado', false)
+        .order('id');
+      if (error) throw error;
+      return data.map((x) => ({
+        id: x.id,
+        grupo: x.cajas_aromas?.nombre ?? '(caja)',
+        opcion: x.opcion,
+        cajas: x.cajas,
+        unidades_caja: x.unidades_caja,
+        asignado:
+          x.asignado_en && x.asignado_amor !== null
+            ? {
+                amor: x.asignado_amor,
+                paz: x.asignado_paz ?? 0,
+                aire: x.asignado_aire ?? 0,
+              }
+            : null,
+        asignado_por: x.asignado_por,
+        asignado_en: x.asignado_en,
+      }));
+    },
+  });
+}
+
+/** Pedidos con algún SURTIDO vigente sin asignar (badge de la lista). */
+export function usePedidosSurtidoSinAsignar() {
+  return useQuery({
+    queryKey: ['surtidos-sin-asignar'],
+    queryFn: async () => {
+      const { data, error } = await comercial()
+        .from('pedido_cajas')
+        .select('pedido_id')
+        .eq('opcion', 'SURTIDO')
+        .eq('anulado', false)
+        .is('asignado_en', null);
+      if (error) throw error;
+      return new Set(data.map((x) => x.pedido_id));
+    },
+  });
+}
+
+export interface AromasSurtido {
+  amor: number;
+  paz: number;
+  aire: number;
+}
+
+/**
+ * Cajas que se pueden armar de cada aroma en el depósito del pedido
+ * (comercial.surtido_disponible). Devuelve lo ADICIONAL a lo ya asignado.
+ */
+export function useSurtidoDisponible(pedidoCajaId: string | null) {
+  return useQuery({
+    queryKey: ['pedido-cajas', 'disponible', pedidoCajaId],
+    enabled: !!pedidoCajaId,
+    gcTime: 0,
+    queryFn: async (): Promise<AromasSurtido> => {
+      const { data, error } = await comercial().rpc('surtido_disponible', {
+        p_pedido_caja_id: pedidoCajaId!,
+      });
+      if (error) throw error;
+      const d = data as Record<string, unknown>;
+      return { amor: n(d.amor), paz: n(d.paz), aire: n(d.aire) };
+    },
+  });
+}
+
+/** Reparte el surtido entre los tres aromas (comercial.asignar_surtido). */
+export function useAsignarSurtido() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: { pedidoCajaId: string } & AromasSurtido) => {
+      const { error } = await comercial().rpc('asignar_surtido', {
+        p_pedido_caja_id: a.pedidoCajaId,
+        p_amor: a.amor,
+        p_paz: a.paz,
+        p_aire: a.aire,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidar(qc);
+      avisarExito('Surtido asignado.');
+    },
+    onError: avisarError,
+  });
+}
 
 export type CabeceraVenta = Pick<
   Tablas['pedidos']['Update'],

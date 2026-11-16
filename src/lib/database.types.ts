@@ -1974,6 +1974,33 @@ export type Database = {
         }
         Relationships: []
       }
+      cajas_aromas: {
+        Row: {
+          activo: boolean
+          id: string
+          nombre: string
+          producto_aire_id: string
+          producto_amor_id: string
+          producto_paz_id: string
+        }
+        Insert: {
+          activo?: boolean
+          id?: string
+          nombre: string
+          producto_aire_id: string
+          producto_amor_id: string
+          producto_paz_id: string
+        }
+        Update: {
+          activo?: boolean
+          id?: string
+          nombre?: string
+          producto_aire_id?: string
+          producto_amor_id?: string
+          producto_paz_id?: string
+        }
+        Relationships: []
+      }
       descuentos_caja: {
         Row: {
           cargado_en: string
@@ -4037,6 +4064,59 @@ export type Database = {
         }
         Relationships: []
       }
+      pedido_cajas: {
+        Row: {
+          anulado: boolean
+          asignado_amor: number | null
+          asignado_aire: number | null
+          asignado_en: string | null
+          asignado_paz: number | null
+          asignado_por: string | null
+          caja_id: string
+          cajas: number
+          id: string
+          opcion: Database["comercial"]["Enums"]["opcion_caja_enum"]
+          pedido_id: string
+          unidades_caja: number
+        }
+        Insert: {
+          anulado?: boolean
+          asignado_amor?: number | null
+          asignado_aire?: number | null
+          asignado_en?: string | null
+          asignado_paz?: number | null
+          asignado_por?: string | null
+          caja_id: string
+          cajas: number
+          id?: string
+          opcion: Database["comercial"]["Enums"]["opcion_caja_enum"]
+          pedido_id: string
+          unidades_caja: number
+        }
+        Update: {
+          anulado?: boolean
+          asignado_amor?: number | null
+          asignado_aire?: number | null
+          asignado_en?: string | null
+          asignado_paz?: number | null
+          asignado_por?: string | null
+          caja_id?: string
+          cajas?: number
+          id?: string
+          opcion?: Database["comercial"]["Enums"]["opcion_caja_enum"]
+          pedido_id?: string
+          unidades_caja?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_cajas_caja_id_fkey"
+            columns: ["caja_id"]
+            isOneToOne: false
+            referencedRelation: "cajas_aromas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedido_consumos: {
         Row: {
           cantidad_real: number
@@ -4454,6 +4534,7 @@ export type Database = {
           anulado_por: string | null
           cantidad: number
           cantidad_caja: number | null
+          cantidad_opcion: number
           de_calle5: number | null
           descuento_caja_pct: number | null
           id: string
@@ -4472,6 +4553,7 @@ export type Database = {
           anulado_por?: string | null
           cantidad: number
           cantidad_caja?: number | null
+          cantidad_opcion?: number
           de_calle5?: number | null
           descuento_caja_pct?: number | null
           id?: string
@@ -4490,6 +4572,7 @@ export type Database = {
           anulado_por?: string | null
           cantidad?: number
           cantidad_caja?: number | null
+          cantidad_opcion?: number
           de_calle5?: number | null
           descuento_caja_pct?: number | null
           id?: string
@@ -8247,6 +8330,19 @@ export type Database = {
         Returns: string
       }
       articulo_de_insumo: { Args: { p_insumo_id: string }; Returns: string }
+      asignar_surtido: {
+        Args: {
+          p_aire: number
+          p_amor: number
+          p_paz: number
+          p_pedido_caja_id: string
+        }
+        Returns: undefined
+      }
+      surtido_disponible: {
+        Args: { p_pedido_caja_id: string }
+        Returns: Json
+      }
       asignar_lotes_pt: {
         Args: {
           p_cantidad: number
@@ -8344,8 +8440,33 @@ export type Database = {
       cliente_actual: { Args: never; Returns: string }
       cliente_cancelar_pedido: { Args: { p_id: string }; Returns: undefined }
       cliente_enviar_pedido: {
-        Args: { p_id: string; p_observaciones?: string; p_renglones: Json }
+        Args: {
+          p_cajas?: Json | null
+          p_id: string
+          p_observaciones?: string
+          p_renglones: Json
+        }
         Returns: string
+      }
+      cliente_enviar_pedido_unico: {
+        Args: {
+          p_cajas?: Json | null
+          p_clave: string
+          p_observaciones?: string
+          p_renglones: Json
+        }
+        Returns: string
+      }
+      cliente_cajas: {
+        Args: never
+        Returns: {
+          caja_id: string
+          mixta: boolean
+          nombre: string
+          porcentaje: number
+          precio_promo: number
+          unidades_caja: number
+        }[]
       }
       cliente_escala: {
         Args: never
@@ -8358,6 +8479,7 @@ export type Database = {
       cliente_lista: {
         Args: never
         Returns: {
+          alias: string[]
           codigo: string
           minimo: number
           orden_lista: number
@@ -8371,6 +8493,7 @@ export type Database = {
       cliente_pedidos: {
         Args: never
         Returns: {
+          cajas: Json
           cancelado: boolean
           editable: boolean
           enviado_en: string
@@ -9055,6 +9178,15 @@ export type Database = {
       }
     }
     Enums: {
+      opcion_caja_enum:
+        | "SURTIDO"
+        | "AMOR"
+        | "PAZ"
+        | "AIRE"
+        | "AMOR_PAZ"
+        | "AMOR_AIRE"
+        | "PAZ_AIRE"
+        | "UNA_DE_CADA"
       ambiente_fiscal_enum: "HOMOLOGACION" | "PRODUCCION"
       clase_gasto_enum: "FIJO" | "OPERATIVO" | "INVERSION"
       comprobante_costo_enum:

@@ -1,0 +1,697 @@
+/**
+ * P1 de docs/PROMPT_PEDIDOS_HADA.md: ningún botón del portal de pedidos recorta
+ * su texto ni se encima con otro control, en 5 anchos, claro y oscuro, y con el
+ * texto del sistema al 200 %.
+ *
+ * Recorre las pantallas del portal de clientes (src/features/cliente/): armar
+ * pedido (vacío, con productos, filtros y búsqueda sin resultados), menú,
+ * tutorial completo, resumen para enviar y para editar, festejos, «Mis pedidos»
+ * con cada estado, y los estados de cuenta sin vincular y sin pedidos.
+ *
+ * Corre la app con un Supabase falso: sesión de cliente armada a mano y las
+ * funciones comercial.cliente_* respondidas desde acá.
+ * Capturas: CAPTURAS=antes|despues npx playwright test → docs/capturas/pedidos/.
+ */
+import { expect, test, type Locator, type Page } from '@playwright/test';
+import {
+  CAJAS,
+  CLAVE_SESION,
+  LISTA,
+  NOMBRES,
+  prepararPortal,
+  sesion,
+} from './portal-falso';
+
+const ANCHOS = [320, 360, 390, 768, 1280];
+const MODOS = [
+  { nombre: 'claro', oscuro: false, texto: 100 },
+  { nombre: 'oscuro', oscuro: true, texto: 100 },
+  { nombre: 'texto200', oscuro: false, texto: 200 },
+];
+const CAPTURAS = process.env.CAPTURAS;
+
+interface Falla {
+  tipo: string;
+  control: string;
+  otro?: string;
+}
+
+/**
+ * Recorre los controles visibles: texto recortado (scrollWidth > clientWidth en
+ * el control o en algo de adentro), cajas encimadas en la misma capa, y el
+ * texto de «Deslizá…» debajo de la manija.
+ */
+function revisarControles(page: Page): Promise<Falla[]> {
+  return page.evaluate(() => {
+    const SEL =
+      'button, a[href], [role="button"], [role="slider"], [role="radio"], .slide-commit';
+    const visible = (el: Element) => {
+      const r = el.getBoundingClientRect();
+      const cs = getComputedStyle(el);
+      return (
+        r.width > 0 &&
+        r.height > 0 &&
+        cs.visibility !== 'hidden' &&
+        // Dentro de content-visibility:auto fuera de pantalla no hay cajas reales.
+        el.checkVisibility({ contentVisibilityAuto: true }) &&
+        el.closest('[aria-hidden="true"]') === null
+      );
+    };
+    const nombre = (el: Element) =>
+      (el.getAttribute('aria-label') || el.textContent || el.className.toString())
+        .trim()
+        .slice(0, 60);
+    // Capa: el ancestro fijo o pegajoso más cercano (o el documento).
+    const capa = (el: Element) => {
+      for (let e: Element | null = el; e; e = e.parentElement) {
+        const p = getComputedStyle(e).position;
+        if (p === 'fixed' || p === 'sticky') return e;
+      }
+      return document.body;
+    };
+    // Con un diálogo abierto, lo de atrás queda bajo el velo: se revisa el diálogo.
+    const raiz = [...document.querySelectorAll('[role="dialog"]')].at(-1) ?? document;
+    const controles = [...raiz.querySelectorAll(SEL)].filter(
+      (el) => visible(el) && !el.parentElement?.closest(SEL),
+    );
+    const fallas: { tipo: string; control: string; otro?: string }[] = [];
+
+    for (const c of controles) {
+      for (const e of [c, ...c.querySelectorAll('*')]) {
+        // ≤ 2 px: texto solo para lectores de pantalla, oculto a propósito.
+        if (!(e instanceof HTMLElement) || e.clientWidth <= 2) continue;
+        if (e.scrollWidth > e.clientWidth + 1) {
+          fallas.push({
+            tipo: 'recortado',
+            control: nombre(c),
+            otro: e.className.toString().slice(0, 50),
+          });
+          break;
+        }
+      }
+      const r = c.getBoundingClientRect();
+      if (r.right > document.documentElement.clientWidth + 1 || r.left < -1) {
+        fallas.push({ tipo: 'fuera de pantalla', control: nombre(c) });
+      }
+    }
+
+    for (let i = 0; i < controles.length; i++) {
+      for (let j = i + 1; j < controles.length; j++) {
+        const a = controles[i]!;
+        const b = controles[j]!;
+        if (capa(a) !== capa(b) || a.contains(b) || b.contains(a)) continue;
+        const ra = a.getBoundingClientRect();
+        const rb = b.getBoundingClientRect();
+        const ancho = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left);
+        const alto = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top);
+        if (ancho > 1 && alto > 1)
+          fallas.push({ tipo: 'encimado', control: nombre(a), otro: nombre(b) });
+      }
+    }
+
+    // SlideCommit en reposo: la manija ocupa un cuadrado a la izquierda.
+    for (const s of document.querySelectorAll('.slide-commit')) {
+      const pista = s.getBoundingClientRect();
+      const texto = s.querySelector('.slide-commit__text--plain');
+      if (!texto) continue;
+      const rango = document.createRange();
+      rango.selectNodeContents(texto);
+      const rt = rango.getBoundingClientRect();
+      if (rt.left < pista.left + pista.height - 2 || rt.right > pista.right + 1) {
+        fallas.push({ tipo: 'texto bajo la manija', control: nombre(texto) });
+      }
+    }
+    return fallas;
+  });
+}
+
+/** Con la página al fondo, lo último del contenido queda arriba de la barra fija. */
+async function revisarPie(page: Page, barra: string): Promise<Falla[]> {
+  return page.evaluate(async (selBarra) => {
+    // Dos pasadas: al llegar al fondo se despliegan tarjetas salteadas (content-visibility) y el alto cambia.
+    for (let i = 0; i < 3; i++) {
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    }
+    const b = document.querySelector(selBarra);
+    if (!b) return [];
+    const tope = b.getBoundingClientRect().top;
+    const ultimos = [
+      ...document.querySelectorAll('.cli-tarjeta button, .cli-tarjeta input'),
+    ].filter((e) => !b.contains(e));
+    const ultimo = ultimos.at(-1);
+    if (!ultimo) return [];
+    return ultimo.getBoundingClientRect().bottom > tope + 1
+      ? [
+          {
+            tipo: 'tapado por la barra',
+            control: ultimo.getAttribute('aria-label') ?? '',
+          },
+        ]
+      : [];
+  }, barra);
+}
+
+/**
+ * Espera a que terminen las transiciones en curso (Stepper, Collapse, Drawer, Modal).
+ * Solo las que corren: con movimiento reducido algunas quedan en pausa y su
+ * `finished` no se resuelve nunca. Tope de 2 s por las dudas.
+ */
+async function quieto(page: Page) {
+  await page.evaluate(() =>
+    Promise.race([
+      Promise.all(
+        document
+          .getAnimations()
+          .filter(
+            (a) =>
+              a.playState === 'running' &&
+              Number.isFinite(a.effect?.getComputedTiming().endTime),
+          )
+          .map((a) => a.finished.catch(() => undefined)),
+      ),
+      new Promise((r) => setTimeout(r, 2000)),
+    ]),
+  );
+}
+
+/**
+ * Toca un control como lo haría el cliente. Si algo lo tapa o queda fuera de la
+ * pantalla, lo anota como falla y lo activa igual para seguir el recorrido.
+ */
+async function tocar(loc: Locator, fallas: Falla[], donde: string) {
+  // Dos pasadas: al llegar se despliegan tarjetas salteadas (content-visibility), el alto
+  // cambia y el control se corre; se espera ese diseño antes de tocar (era la prueba intermitente).
+  await loc.evaluate(async (e) => {
+    for (let i = 0; i < 2; i++) {
+      e.scrollIntoView({ block: 'center', inline: 'center' });
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    }
+  });
+  try {
+    await loc.click({ timeout: 5000 });
+  } catch (e) {
+    const motivo = /intercepts pointer events/.test(String(e))
+      ? 'tapado por otro elemento'
+      : /outside of the viewport/.test(String(e))
+        ? 'fuera de pantalla al tocar'
+        : 'no se puede tocar';
+    fallas.push({
+      tipo: motivo,
+      control: `${donde}: ${(await loc.getAttribute('aria-label')) ?? ''}`,
+    });
+    await loc.dispatchEvent('click');
+  }
+}
+
+/** Confirma el SlideCommit (equivale a deslizarlo hasta el final). */
+async function deslizar(page: Page) {
+  // Por teclado (End confirma, SlideCommit.jsx onKeyDown): el arrastre con mouse
+  // sintético no es confiable y esta prueba mide diseño, no el gesto.
+  const manija = page.locator('.slide-commit__capsule').first();
+  await manija.focus();
+  await manija.press('End');
+}
+
+async function captura(page: Page, nombre: string) {
+  if (!CAPTURAS) return;
+  await page.screenshot({
+    path: `docs/capturas/pedidos/${CAPTURAS}/${nombre}.jpg`,
+    type: 'jpeg',
+    quality: 60,
+  });
+}
+
+/** La tarjeta de la caja `i` del catálogo. */
+const tarjetaCaja = (page: Page, i: number) =>
+  page.locator('.cli-tarjeta', { hasText: CAJAS[i]!.nombre }).first();
+const opcion = (page: Page, i: number, etiqueta: string) =>
+  tarjetaCaja(page, i).getByText(etiqueta, { exact: true });
+/** El «+» de la caja `i` con la opción `etiqueta` elegida. */
+const masCaja = (page: Page, i: number, etiqueta: string) =>
+  page.getByRole('button', {
+    name: new RegExp(`^Más: (set|caja) de ${CAJAS[i]!.nombre}, ${etiqueta}$`),
+  });
+
+/** La cara de cada tarjeta de pedido que se ve (la otra va aria-hidden). */
+const carasVisibles = (page: Page) =>
+  page.locator('.flip-card__face[aria-hidden="false"]');
+
+for (const modo of MODOS) {
+  for (const ancho of ANCHOS) {
+    test(`botones del portal a ${ancho}px, ${modo.nombre}`, async ({ page }) => {
+      await page.setViewportSize({ width: ancho, height: ancho < 768 ? 720 : 900 });
+      const escenario = await prepararPortal(page, modo.oscuro, modo.texto);
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      const fallas: Record<string, Falla[]> = {};
+      const sufijo = `${ancho}-${modo.nombre}`;
+      const buscador = page.getByPlaceholder('Buscá por nombre o código');
+      const uno = (i: number) =>
+        page.getByRole('button', { name: `Uno más de ${NOMBRES[i]}` });
+
+      // 1. Armar pedido vacío: lo que ve el cliente antes de agregar nada.
+      await expect(uno(0)).toBeVisible({ timeout: 30_000 });
+      fallas.inicial = await revisarControles(page);
+      await captura(page, `inicial-${sufijo}`);
+
+      // 2. Búsqueda sin resultados, y el botón que la borra.
+      await buscador.fill('zzqx');
+      await expect(page.getByText(/No encontramos/)).toBeVisible();
+      fallas.sinResultados = await revisarControles(page);
+      await page.getByRole('button', { name: 'Borrar búsqueda' }).click();
+      await expect(page.getByText(/No encontramos/)).toBeHidden();
+      await quieto(page);
+
+      // 3. Menú «Más opciones», abierto.
+      await page.getByRole('button', { name: 'Más opciones' }).click();
+      await expect(page.getByRole('menuitem', { name: 'Ver cómo se usa' })).toBeVisible();
+      fallas.menu = await revisarControles(page);
+      await captura(page, `menu-${sufijo}`);
+
+      // 4. Tutorial desde el menú: cada paso, hasta «¡Empezar!», que cierra.
+      await page.getByRole('menuitem', { name: 'Ver cómo se usa' }).click();
+      const tutorial = page
+        .getByRole('dialog')
+        .filter({ hasText: 'Así se arma tu pedido' });
+      await expect(tutorial).toBeVisible();
+      await quieto(page);
+      fallas.tutorial1 = await revisarControles(page);
+      await captura(page, `tutorial1-${sufijo}`);
+      for (const paso of [2, 3, 4]) {
+        await tutorial.getByRole('button', { name: 'Siguiente', exact: true }).click();
+        await quieto(page);
+        fallas[`tutorial${paso}`] = await revisarControles(page);
+        await captura(page, `tutorial${paso}-${sufijo}`);
+      }
+      await tutorial.getByRole('button', { name: '¡Empezar!' }).click();
+      await expect(tutorial).toBeHidden();
+      await quieto(page);
+
+      // 5. Armar pedido con productos, y los filtros «Lo que llevo» y «Uñas».
+      fallas.tocar = [];
+      await tocar(uno(0), fallas.tocar, 'armar');
+      await tocar(uno(1), fallas.tocar, 'armar');
+      await tocar(uno(6), fallas.tocar, 'armar');
+      fallas.armar = await revisarControles(page);
+      fallas.pie = await revisarPie(page, '.cli-barra');
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await captura(page, `armar-${sufijo}`);
+      await page.getByText('Lo que llevo (3)', { exact: true }).click();
+      fallas.loQueLlevo = await revisarControles(page);
+      await page.getByText('Lo que llevo (3)', { exact: true }).click();
+      await page.getByText('Uñas', { exact: true }).click();
+      fallas.rubro = await revisarControles(page);
+      await page.getByText('Todo', { exact: true }).click();
+      await quieto(page);
+
+      // 5b. Cajas de aromas: «Una de cada una» (sets de 3) y la caja que no se arma mitad y mitad.
+      fallas.cajas = [];
+      await opcion(page, 0, 'Una de cada una').click();
+      await tocar(masCaja(page, 0, 'Una de cada una'), fallas.cajas, 'caja');
+      await expect(page.getByText('1 set (3 cajas)')).toBeVisible();
+      await expect(page.getByText('Esta caja no se arma mitad y mitad')).toBeVisible();
+      fallas.cajasArmar = await revisarControles(page);
+      fallas.cajasPie = await revisarPie(page, '.cli-barra');
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await captura(page, `cajas-${sufijo}`);
+
+      // 6. Resumen para enviar: el cajón con el total y el deslizador.
+      await page.getByRole('button', { name: /Ver pedido/ }).click();
+      const cajon = page.getByRole('dialog');
+      await expect(cajon.locator('.slide-commit')).toBeVisible();
+      await quieto(page);
+      fallas.resumenNuevo = await revisarControles(page);
+      await cajon.locator('.slide-commit').scrollIntoViewIfNeeded();
+      fallas.resumenNuevoPie = await revisarControles(page);
+      await captura(page, `resumen-nuevo-${sufijo}`);
+
+      // 6b. Una línea «por borrar» (mecha encendida): la pastilla «Deshacer» cabe en la fila.
+      const borrar = cajon.getByRole('button', { name: `Borrar ${NOMBRES[0]}` });
+      fallas.porBorrar = [];
+      await tocar(borrar, fallas.porBorrar, 'borrar');
+      await expect(cajon.getByText('por borrar')).toBeVisible();
+      await quieto(page);
+      fallas.resumenPorBorrar = await revisarControles(page);
+      await captura(page, `resumen-por-borrar-${sufijo}`);
+      await cajon.getByRole('button', { name: `Deshacer borrar ${NOMBRES[0]}` }).click();
+      await expect(cajon.getByText('por borrar')).toBeHidden();
+      await page.keyboard.press('Escape');
+      await expect(cajon).toBeHidden();
+      await quieto(page);
+
+      // 7. Mis pedidos: la lista cerrada, y cada tarjeta abierta según su estado.
+      await page.getByRole('radio', { name: /Mis pedidos/ }).click();
+      await expect(carasVisibles(page).getByText('V-DEMO-5')).toBeVisible();
+      await quieto(page);
+      fallas.pedidosLista = await revisarControles(page);
+      await captura(page, `lista-${sufijo}`);
+
+      await quieto(page);
+      fallas.pedidos = await revisarControles(page);
+      await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
+      fallas.confirmar = await revisarControles(page);
+      await captura(page, `pedidos-${sufijo}`);
+
+      for (const [numero, clave] of [
+        ['V-DEMO-4', 'pedidosEnProduccion'],
+        ['V-DEMO-3', 'pedidosEnCamino'],
+        ['V-DEMO-2', 'pedidosFinalizado'],
+        ['V-DEMO-1', 'pedidosCancelado'],
+      ] as const) {
+        // Frente (sin tocar) y dorso («Ver detalle» o «Editar» → «Volver»).
+        const tarjeta = page.locator('.flip-card', { hasText: numero });
+        await tarjeta.scrollIntoViewIfNeeded();
+        await quieto(page);
+        fallas[clave] = await revisarControles(page);
+        await tarjeta.getByRole('button', { name: 'Ver detalle' }).click();
+        await expect(tarjeta.getByRole('button', { name: 'Volver' })).toBeVisible();
+        await quieto(page);
+        fallas[`${clave}Dorso`] = await revisarControles(page);
+        await tarjeta.getByRole('button', { name: 'Volver' }).click();
+        await expect(tarjeta.getByRole('button', { name: 'Ver detalle' })).toBeVisible();
+      }
+
+      // 8. Editar el pendiente: el armado en modo edición y el resumen con los textos más largos.
+      const pendiente = page.locator('.flip-card', { hasText: 'V-DEMO-5' });
+      await pendiente.scrollIntoViewIfNeeded();
+      await pendiente.getByRole('button', { name: 'Editar', exact: true }).click();
+      await expect(pendiente.getByRole('button', { name: 'Volver' })).toBeVisible();
+      await quieto(page);
+      fallas.pedidoDorso = await revisarControles(page);
+      await pendiente.getByRole('button', { name: 'Editar en el armado' }).click();
+      await expect(page.getByRole('radio', { name: /Editando V-DEMO-5/ })).toBeVisible();
+      await quieto(page);
+      fallas.editando = await revisarControles(page);
+      await page.getByRole('button', { name: /Ver pedido/ }).click();
+      await expect(cajon.locator('.slide-commit')).toBeVisible();
+      await quieto(page);
+      fallas.resumen = await revisarControles(page);
+      await cajon.locator('.slide-commit').scrollIntoViewIfNeeded();
+      fallas.resumenPie = await revisarControles(page);
+      await captura(page, `resumen-${sufijo}`);
+
+      // 9. Guardar la edición: el festejo y el regreso a «Mis pedidos».
+      await deslizar(page);
+      await expect(
+        page.getByRole('heading', { name: '¡Cambios guardados!' }),
+      ).toBeVisible({
+        timeout: 15_000,
+      });
+      await quieto(page);
+      fallas.festejoEditado = await revisarControles(page);
+      await page.getByRole('button', { name: 'Ver mis pedidos' }).click();
+      await quieto(page);
+      fallas.pedidosTrasEditar = await revisarControles(page);
+
+      // 10. Repetir un pedido anterior y enviarlo: el festejo de «¡Pedido enviado!».
+      await page
+        .locator('.flip-card', { hasText: 'V-DEMO-4' })
+        .getByRole('button', { name: 'Repetir', exact: true })
+        .click();
+      await expect(page.getByRole('button', { name: /Ver pedido/ })).toBeVisible();
+      await quieto(page);
+      fallas.repetir = await revisarControles(page);
+      fallas.repetirPie = await revisarPie(page, '.cli-barra');
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.getByRole('button', { name: /Ver pedido/ }).click();
+      await expect(cajon.locator('.slide-commit')).toBeVisible();
+      await deslizar(page);
+      await expect(page.getByRole('heading', { name: '¡Pedido enviado!' })).toBeVisible({
+        timeout: 15_000,
+      });
+      await quieto(page);
+      fallas.festejo = await revisarControles(page);
+      await captura(page, `festejo-${sufijo}`);
+      await page.getByRole('button', { name: 'Ver mis pedidos' }).click();
+      await quieto(page);
+      fallas.pedidosTrasEnviar = await revisarControles(page);
+
+      // 11. Cuenta sin vincular: «¡Ya casi!» con los botones de reintentar y salir.
+      await page.evaluate(({ clave, valor }) => sessionStorage.setItem(clave, valor), {
+        clave: CLAVE_SESION,
+        valor: sesion(false),
+      });
+      escenario.perfilCaido = true;
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await expect(page.getByRole('heading', { name: '¡Ya casi!' })).toBeVisible();
+      fallas.sinVincular = await revisarControles(page);
+      await captura(page, `sin-vincular-${sufijo}`);
+
+      // 12. Cuenta vinculada sin pedidos: «Mis pedidos» vacío.
+      escenario.perfilCaido = false;
+      await page.getByRole('button', { name: 'Ya me avisaron, probar de nuevo' }).click();
+      await expect(uno(0)).toBeVisible({ timeout: 30_000 });
+      await page.getByRole('radio', { name: /Mis pedidos/ }).click();
+      await expect(page.getByText('Todavía no hiciste pedidos')).toBeVisible();
+      await quieto(page);
+      fallas.sinPedidos = await revisarControles(page);
+      await captura(page, `sin-pedidos-${sufijo}`);
+
+      // 13. Hada (cuenta real): el panel abierto y con un borrador, sin recortes ni encimados.
+      await page.getByRole('radio', { name: /Armar pedido/ }).click();
+      escenario.hada.cuerpo = {
+        tipo: 'borrador',
+        textos: ['Te armé esto. Revisalo y pasalo al pedido.'],
+        borrador: {
+          renglones: [{ producto_id: LISTA[0]!.producto_id, cantidad: 5 }],
+          cajas: [{ caja_id: CAJAS[0]!.caja_id, opcion: 'UNA_DE_CADA', cajas: 3 }],
+        },
+      };
+      await page
+        .getByRole('button', { name: 'Hacele tu pedido a la Hada de Nail Show' })
+        .click();
+      const panelHada = page.getByRole('dialog', { name: 'Hada de Nail Show' });
+      await expect(panelHada.getByRole('textbox')).toBeVisible();
+      await quieto(page);
+      fallas.hadaAbierta = await revisarControles(page);
+      await captura(page, `hada-abierta-${sufijo}`);
+      await panelHada.getByRole('textbox').fill('poneme 5 cremas y una de cada una');
+      await panelHada.getByRole('button', { name: 'Enviar' }).click();
+      await expect(
+        panelHada.getByRole('button', { name: 'Pasar al pedido' }),
+      ).toBeVisible();
+      await quieto(page);
+      fallas.hadaBorrador = await revisarControles(page);
+      await captura(page, `hada-borrador-${sufijo}`);
+
+      const todas = Object.entries(fallas).flatMap(([donde, f]) =>
+        f.map((x) => ({ donde, ...x })),
+      );
+      expect(
+        todas.map(
+          (f) => `${f.donde} · ${f.tipo} · ${f.control}${f.otro ? ` ↔ ${f.otro}` : ''}`,
+        ),
+      ).toEqual([]);
+    });
+  }
+}
+
+/** Claves que delatarían stock en cualquier respuesta de red del portal (caso «l» del diseño P3). */
+const CLAVE_DE_STOCK = /stock|dispon|reserv|asign|saldo/i;
+const clavesDe = (x: unknown): string[] =>
+  Array.isArray(x)
+    ? x.flatMap(clavesDe)
+    : x && typeof x === 'object'
+      ? Object.entries(x).flatMap(([k, v]) => [k, ...clavesDe(v)])
+      : [];
+
+test('cajas: arma una de cada opción, manda p_cajas y la red no trae claves de stock', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  const escenario = await prepararPortal(page, false, 100);
+  // Cuenta real (no demo): el envío sale por cliente_enviar_pedido.
+  await page.addInitScript(
+    (s) => localStorage.setItem('sb-falso-auth-token', s),
+    sesion(false),
+  );
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  const nombre = CAJAS[0]!.nombre;
+  const OPCIONES = [
+    ['Surtido', 'SURTIDO', 1],
+    ['Amor', 'AMOR', 1],
+    ['Paz', 'PAZ', 1],
+    ['Aire', 'AIRE', 1],
+    ['Amor y Paz', 'AMOR_PAZ', 1],
+    ['Amor y Aire', 'AMOR_AIRE', 1],
+    ['Paz y Aire', 'PAZ_AIRE', 1],
+    ['Una de cada una', 'UNA_DE_CADA', 2],
+  ] as const;
+
+  await expect(tarjetaCaja(page, 0)).toBeVisible({ timeout: 30_000 });
+  for (const [etiqueta, , toques] of OPCIONES) {
+    await opcion(page, 0, etiqueta).click();
+    for (let i = 0; i < toques; i++) await masCaja(page, 0, etiqueta).click();
+  }
+  await expect(page.getByText('2 sets (6 cajas)')).toBeVisible();
+
+  // La caja de unidades impares no ofrece mitad y mitad, pero muestra las 8 opciones.
+  const impar = tarjetaCaja(page, 1);
+  await expect(impar.getByText('Esta caja no se arma mitad y mitad')).toBeVisible();
+  for (const [etiqueta, valor] of OPCIONES) {
+    const input = impar.locator(`input[value="${valor}"]`);
+    if (valor.includes('_') && valor !== 'UNA_DE_CADA')
+      await expect(input).toBeDisabled();
+    else await expect(input).toBeEnabled();
+    await expect(impar.getByText(etiqueta, { exact: true })).toBeVisible();
+  }
+
+  await page.getByRole('button', { name: /Ver pedido/ }).click();
+  const cajon = page.getByRole('dialog');
+  await expect(cajon.getByText(`${nombre} · Surtido`, { exact: true })).toBeVisible();
+  await expect(cajon.getByText('2 sets (6 cajas) ×')).toBeVisible();
+  await deslizar(page);
+  await expect(page.getByRole('heading', { name: '¡Pedido enviado!' })).toBeVisible({
+    timeout: 15_000,
+  });
+
+  expect(escenario.enviados).toHaveLength(1);
+  const enviado = escenario.enviados[0]!;
+  expect(enviado['p_renglones']).toEqual([]);
+  expect(enviado['p_cajas']).toEqual(
+    OPCIONES.map(([, opcion, toques]) => ({
+      caja_id: CAJAS[0]!.caja_id,
+      opcion,
+      cajas: opcion === 'UNA_DE_CADA' ? toques * 3 : toques,
+    })),
+  );
+
+  await page.getByRole('button', { name: 'Ver mis pedidos' }).click();
+  await expect(page.getByText('Todavía no hiciste pedidos')).toBeVisible();
+  expect(clavesDe(escenario.respuestas).filter((k) => CLAVE_DE_STOCK.test(k))).toEqual(
+    [],
+  );
+});
+
+/** Un pedido editable, con las cajas y los renglones que se le pasen. */
+const PEDIDO_EDITABLE = (cajas: unknown[], renglones: unknown[]) => ({
+  id: '00000000-0000-4000-a000-000000000009',
+  numero: 'V-0009',
+  estado: 'PENDIENTE',
+  estado_cliente: 'PENDIENTE',
+  enviado_en: '2026-11-10T12:00:00Z',
+  fecha_entrega: null,
+  editable: true,
+  cancelado: false,
+  observaciones: null,
+  renglones,
+  cajas,
+});
+
+async function editarPedido(page: Page, cajas: unknown[], renglones: unknown[]) {
+  await page.setViewportSize({ width: 390, height: 800 });
+  const escenario = await prepararPortal(page, false, 100);
+  escenario.cajasCaidas = true;
+  escenario.pedidos = [PEDIDO_EDITABLE(cajas, renglones)];
+  await page.addInitScript(
+    (s) => localStorage.setItem('sb-falso-auth-token', s),
+    sesion(false),
+  );
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('radio', { name: /Mis pedidos/ }).click();
+  await page
+    .getByRole('button', { name: 'Editar', exact: true })
+    .click({ timeout: 30_000 });
+  await page.getByRole('button', { name: 'Editar en el armado' }).click();
+  await page.getByRole('button', { name: /Ver pedido/ }).click();
+  return escenario;
+}
+
+const RENGLON = {
+  producto_id: '00000000-0000-4000-8000-000000000000',
+  cantidad: 6,
+  producto: NOMBRES[0],
+  codigo: '360',
+};
+
+test('editar con cajas y cliente_cajas caído: el envío no sale', async ({ page }) => {
+  const caja = {
+    caja_id: CAJAS[0]!.caja_id,
+    nombre: CAJAS[0]!.nombre,
+    opcion: 'AMOR',
+    cajas: 2,
+  };
+  const escenario = await editarPedido(page, [caja], [RENGLON]);
+  await expect(
+    page
+      .getByRole('dialog')
+      .getByText('No pudimos cargar las cajas. Probá de nuevo en un rato.'),
+  ).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('.slide-commit__capsule')).toHaveCount(0);
+  expect(escenario.enviados).toHaveLength(0);
+});
+
+test('editar sin cajas y cliente_cajas caído: sale con p_cajas null', async ({
+  page,
+}) => {
+  const escenario = await editarPedido(page, [], [RENGLON]);
+  await expect(page.locator('.slide-commit__capsule').first()).toBeVisible({
+    timeout: 30_000,
+  });
+  await deslizar(page);
+  await expect.poll(() => escenario.enviados.length).toBe(1);
+  expect(escenario.enviados[0]!['p_cajas']).toBeNull();
+});
+
+/** Portal con un producto en el pedido y el resumen abierto. */
+async function resumenConUnaLinea(page: Page) {
+  await page.setViewportSize({ width: 390, height: 800 });
+  await prepararPortal(page, false, 100);
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('button', { name: `Uno más de ${NOMBRES[0]}` }).click({
+    timeout: 30_000,
+  });
+  await page.getByRole('button', { name: /Ver pedido/ }).click();
+  const cajon = page.getByRole('dialog');
+  const linea = cajon.getByText(NOMBRES[0]!, { exact: true });
+  await expect(linea).toBeVisible();
+  return {
+    cajon,
+    linea,
+    borrar: cajon.getByRole('button', { name: `Borrar ${NOMBRES[0]}` }),
+  };
+}
+
+test('borrar una línea: con la mecha completa la saca', async ({ page }) => {
+  const { cajon, linea, borrar } = await resumenConUnaLinea(page);
+  await borrar.click();
+  await expect(cajon.getByText('por borrar')).toBeVisible();
+  await expect(linea).toBeVisible();
+  await expect(cajon.getByText('Tu pedido está vacío.')).toBeVisible({ timeout: 8000 });
+  await expect(linea).toBeHidden();
+});
+
+test('borrar una línea: Deshacer dentro de la ventana no la saca', async ({ page }) => {
+  const { cajon, linea, borrar } = await resumenConUnaLinea(page);
+  await borrar.click();
+  await cajon.getByRole('button', { name: `Deshacer borrar ${NOMBRES[0]}` }).click();
+  await expect(cajon.getByText('por borrar')).toBeHidden();
+  await page.waitForTimeout(4500);
+  await expect(linea).toBeVisible();
+});
+
+test('borrar una línea: Escape deshace y no cierra el resumen', async ({ page }) => {
+  const { cajon, linea, borrar } = await resumenConUnaLinea(page);
+  await borrar.click();
+  await expect(cajon.getByText('por borrar')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(cajon.getByText('por borrar')).toBeHidden();
+  await expect(cajon).toBeVisible();
+  await page.waitForTimeout(4500);
+  await expect(linea).toBeVisible();
+});
+
+test('borrar una línea: cerrar el resumen con la mecha encendida no la saca', async ({
+  page,
+}) => {
+  const { cajon, borrar } = await resumenConUnaLinea(page);
+  await borrar.click();
+  await expect(cajon.getByText('por borrar')).toBeVisible();
+  await page.locator('.mantine-Drawer-close').click();
+  await expect(cajon).toBeHidden();
+  await page.waitForTimeout(4500);
+  await page.getByRole('button', { name: /Ver pedido/ }).click();
+  await expect(cajon.getByText(NOMBRES[0]!, { exact: true })).toBeVisible();
+  await expect(cajon.getByText('por borrar')).toBeHidden();
+});

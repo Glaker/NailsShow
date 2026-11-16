@@ -1,0 +1,5 @@
+/* React Bits — GradualBlur (JavaScript + CSS), copiado de reactbits.dev el 2026-11-13;
+   licencia MIT + Commons Clause (verificada el 2026-11-13). CSS sin cambios. */
+.gradual-blur {
+  pointer-events: none;
+}

@@ -40,6 +40,9 @@ export function mensajeError(error: unknown): string {
   if (e?.code === '42501' || /row-level security/i.test(texto)) {
     return 'Tu rol no tiene permiso para esta operación. Si creés que corresponde, pedile al administrador que revise tu rol.';
   }
+  if (/renglones_anulado_sin_opcion/.test(`${texto} ${e?.details ?? ''}`)) {
+    return 'Ese producto viene de una caja del portal: cambiá la caja en «Cajas del portal».';
+  }
   if (e?.code === '23505') {
     return 'Ya existe un registro con ese identificador.';
   }

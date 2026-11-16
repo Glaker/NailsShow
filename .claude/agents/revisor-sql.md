@@ -2,7 +2,7 @@
 name: revisor-sql
 description: Usar proactivamente al escribir o modificar una migración en supabase/migrations. Revisa nombres contra el esquema real, grants, RLS forzada, políticas, triggers e índices. Devuelve problemas con severidad y línea. No edita.
 tools: Read, Grep, Glob
-model: inherit
+model: sonnet
 ---
 
 Revisás cada migración nueva contra el esquema real que describen las migraciones

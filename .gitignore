@@ -44,3 +44,11 @@ supabase/.env
 npm-debug.log*
 # Playwright CLI output (may contain credentials)
 .playwright-cli/
+
+# Pruebas en navegador (P1): build de prueba, resultados y reporte
+dist-e2e/
+test-results/
+playwright-report/
+
+# Originales pesados (video y fotos de Hada); al repo van solo los procesados de public/hada/.
+assets-originales/
