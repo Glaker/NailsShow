@@ -33,6 +33,7 @@ import {
   IconChecklist,
   IconTemperature,
   IconDownload,
+  IconTruckDelivery,
   type Icon,
 } from '@tabler/icons-react';
 import { FINANZAS, useSesion, type Rol } from '@/features/auth/sesion';
@@ -103,6 +104,15 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiquetaCorta: 'Armado',
     icono: IconPackage,
     roles: ['ENCARGADA_STOCK', 'GERENCIA'],
+    principal: true,
+  },
+  {
+    // Facturas X y despacho (D-factura-x-1, pedido del 2026-11-18).
+    ruta: '/despacho',
+    etiqueta: 'Despacho',
+    etiquetaCorta: 'Despacho',
+    icono: IconTruckDelivery,
+    roles: ['DESPACHO', 'VENTAS', 'ADMINISTRACION', 'GERENCIA'],
     principal: true,
   },
   {

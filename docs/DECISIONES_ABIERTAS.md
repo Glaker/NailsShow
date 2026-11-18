@@ -2454,3 +2454,27 @@ anterior y la pantalla dice «¡Pedido enviado!». El cliente ve el pedido real 
 «Mis pedidos».
 **A confirmar con Ventas.** Si alcanza así, o si el portal debe renovar la
 clave cuando cambia el carrito después de un envío fallido.
+
+### D-factura-x-1 · La factura X es lo que salió de verdad — decidida 2026-11-18
+
+**Decidido por el codirector técnico.** La factura X de un pedido de venta es
+la fuente verdadera de lo que salió del depósito. Un rol nuevo, DESPACHO
+(primera cuenta: Johana Ponce), la carga asociada al pedido: el stock baja por
+lo facturado, lo reservado que no salió vuelve a quedar libre y el pedido queda
+entregado. Si Ventas ya había marcado «Despachado», la factura corrige contra
+lo que salió (lo de más baja, lo de menos vuelve). El stock que ve Ventas al
+reservar es orientativo: el real baja solo con la factura X o con
+«Despachado», que DESPACHO también puede marcar.
+**Stock negativo.** Si la factura dice que salió más de lo que el sistema tiene,
+descuenta igual y el SKU queda en negativo; DESPACHO carga el conteo real de
+esos SKU y queda registrado como conteo (`CONTEO_PT`).
+**PDF.** Se lee en el navegador y no se guarda: el respaldo está en otro lado.
+Se guardan los renglones de la factura (`comercial.facturas_x_renglones`).
+**Implementado en** `20261118170000` y `20261118170100`.
+**A confirmar con la DT titular (RN-51/RN-52).** Lo facturado sale primero de
+lotes despachables; si no alcanza, el excedente sale sin lote y el motivo lo
+marca («sin stock en el sistema, queda para contar»). Eso registra una venta
+sin trazabilidad de lote. Lo decidió el codirector técnico; como toca una regla
+regulada, conviene que la Dirección Técnica titular lo valide. Ventas y
+Administración también pueden cargar facturas X: siguen haciendo todo lo que
+hacían.

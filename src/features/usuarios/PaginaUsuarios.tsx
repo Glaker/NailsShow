@@ -35,6 +35,8 @@ const ROLES: Rol[] = [
   'ENCARGADA_STOCK',
   'VENTAS',
   'RECEPCION',
+  // Facturas X y despacho (D-factura-x-1).
+  'DESPACHO',
   // Portal de clientes (D-portal-clientes-1): va vinculada a un cliente.
   'CLIENTE',
 ];
