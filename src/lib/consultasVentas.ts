@@ -195,6 +195,29 @@ export function useAprobarVentaReservada() {
 }
 
 /**
+ * Aprobar con faltantes (pedido del 2026-11-18): sale con lo que hay en el
+ * depósito, con nota obligatoria; lo que falta no va a Producción
+ * (comercial.aprobar_venta_con_faltantes, 20261118160000).
+ */
+export function useAprobarVentaConFaltantes() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: { id: string; nota: string }) => {
+      const { error } = await comercialST().rpc('aprobar_venta_con_faltantes', {
+        p_pedido_id: a.id,
+        p_nota: a.nota,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidar(qc);
+      avisarExito('Pedido aprobado con faltantes: sale con lo que hay.');
+    },
+    onError: avisarError,
+  });
+}
+
+/**
  * Ventas marca entregado un pedido aprobado que seguía abierto
  * (comercial.finalizar_pedido_venta, 20261112120000). No mueve stock.
  */
@@ -623,13 +646,14 @@ export function useVenta(id: string | undefined) {
       // v_ventas no lo trae (D-venta-deposito-1).
       const { data: o, error: e3 } = await comercial()
         .from('pedidos')
-        .select('deposito_origen_id')
+        .select('deposito_origen_id, faltantes_nota')
         .eq('id', id!)
         .single();
       if (e3) throw e3;
       return {
         venta: aFilaVenta(data),
         depositoOrigenId: o.deposito_origen_id,
+        faltantesNota: o.faltantes_nota,
         renglones: (
           (rs ?? []) as (Omit<RenglonVenta, 'descuento_caja_pct' | 'cantidad_caja'> & {
             descuento_caja_pct: number | string | null;

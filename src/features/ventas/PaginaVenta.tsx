@@ -65,6 +65,7 @@ import {
   useDisponiblePt,
   useEnviarVenta,
   useAprobarVentaReservada,
+  useAprobarVentaConFaltantes,
   useFinalizarPedidoVenta,
   useDespacharPedidoReservado,
   useCambiarReservaPedido,
@@ -478,6 +479,9 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
       .filter((x) => x.producto_id === pid && x.deposito_id === origenId)
       .reduce((s, x) => s + x.vigente, 0);
   const aprobarReservada = useAprobarVentaReservada();
+  const aprobarFaltantes = useAprobarVentaConFaltantes();
+  const [conFaltantes, setConFaltantes] = useState(false);
+  const [notaFaltantes, setNotaFaltantes] = useState('');
   const finalizar = useFinalizarPedidoVenta();
   const [finalizando, setFinalizando] = useState(false);
   const [motivoFinal, setMotivoFinal] = useState('');
@@ -697,6 +701,20 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
     ? pedidos.filter((p) => p.c > resOrigen(p.pid) + (libres.data?.get(p.pid) ?? 0))
     : [];
   const todoReservado = editable && pedidos.length > 0 && !faltaReservar;
+  /* Con faltantes (pedido del 2026-11-18): lo que sale con menos de lo pedido,
+     contando lo reservado y lo libre del depósito. */
+  const cortos = editable
+    ? pedidos
+        .map((p) => ({ ...p, sale: Math.min(p.c, dispDe(p.pid)) }))
+        .filter((p) => p.sale < p.c)
+    : [];
+  const puedeConFaltantes =
+    editable &&
+    puedeAprobar &&
+    !todoReservado &&
+    cortos.length > 0 &&
+    pedidos.some((p) => dispDe(p.pid) > 0) &&
+    (etapa === 'BORRADOR' || etapa === 'ESPERANDO_FECHA' || etapa === 'FECHA_PROPUESTA');
   const cambiarOrigen = async (dep: string) => {
     const { error } = await comercial()
       .from('pedidos')
@@ -870,6 +888,24 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                     : 'Pedir fecha a Producción'}
                 </Button>
               ) : null}
+              {/* Mandar con menos unidades (pedido del 2026-11-18). */}
+              {puedeConFaltantes ? (
+                <Button
+                  variant="light"
+                  color="estadoAprobado"
+                  leftSection={<IconCircleCheck size={18} />}
+                  disabled={!cliente.trim()}
+                  loading={guardar.isPending && conFaltantes}
+                  onClick={() =>
+                    void (async () => {
+                      await guardarBorrador();
+                      setConFaltantes(true);
+                    })()
+                  }
+                >
+                  Aprobar con faltantes
+                </Button>
+              ) : null}
               {etapa === 'FECHA_PROPUESTA' && puedeAprobar ? (
                 <Button
                   leftSection={<IconCircleCheck size={18} />}
@@ -905,6 +941,18 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
           Lo envió el cliente desde el portal el {fechaHora(envioPortal.data)}. Revisalo,
           reservá lo que haya y aprobalo o pedí fecha a Producción. Mientras siga en
           borrador el cliente todavía puede corregirlo.
+        </Alert>
+      ) : null}
+
+      {datos?.faltantesNota ? (
+        <Alert
+          color="orange"
+          variant="light"
+          mb="md"
+          icon={<IconTruckDelivery size={20} />}
+          title="Aprobado con faltantes: sale con menos unidades"
+        >
+          {datos.faltantesNota}
         </Alert>
       ) : null}
 
@@ -1680,6 +1728,55 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
       </Modal>
 
       <Modal
+        opened={conFaltantes}
+        onClose={() => setConFaltantes(false)}
+        title="Aprobar con faltantes"
+        centered
+      >
+        <Stack gap="md">
+          <Text size="sm">
+            Sale con lo que hay en {nombreOrigen}. Lo que falta no se pide a Producción:
+          </Text>
+          <Stack gap={2}>
+            {cortos.map((p) => (
+              <Text key={p.pid} size="sm">
+                {p.f?.codigo_interno ?? ''} {p.f?.producto ?? ''}: sale{' '}
+                <b>{numero(p.sale)}</b> de {numero(p.c)}
+              </Text>
+            ))}
+          </Stack>
+          <Textarea
+            label="Nota"
+            description="Queda en el pedido y en el despacho."
+            placeholder="Se mandan algunos SKU con menos cantidad: el cliente lo acepta…"
+            required
+            autosize
+            minRows={2}
+            value={notaFaltantes}
+            onChange={(e) => setNotaFaltantes(e.currentTarget.value)}
+          />
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setConFaltantes(false)}>
+              Volver
+            </Button>
+            <Button
+              color="estadoAprobado"
+              disabled={!notaFaltantes.trim()}
+              loading={aprobarFaltantes.isPending}
+              onClick={() =>
+                aprobarFaltantes.mutate(
+                  { id: id!, nota: notaFaltantes.trim() },
+                  { onSuccess: () => setConFaltantes(false) },
+                )
+              }
+            >
+              Aprobar con faltantes
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Modal
         opened={despachando}
         onClose={() => setDespachando(false)}
         title="Marcar el pedido despachado"
@@ -1689,7 +1786,8 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
           <Text size="sm">
             Sale del stock lo que el pedido tiene reservado (
             {numero((reservas.data ?? []).reduce((s, x) => s + x.vigente, 0))} u), con su
-            remito, y el pedido queda entregado. Lo que no estaba reservado no se descuenta.
+            remito, y el pedido queda entregado. Lo que no estaba reservado no se descuenta;
+            si algo sale con menos de lo pedido, el despacho lo anota solo.
           </Text>
           <Textarea
             label="Observación (opcional)"
