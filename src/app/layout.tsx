@@ -92,7 +92,7 @@ const RAMAS: { etiqueta: string; rutas: string[] }[] = [
   {
     etiqueta: 'Ventas',
 
-    rutas: ['/ventas', '/armado', '/pedidos', '/clientes', '/precios', '/cotizaciones'],
+    rutas: ['/ventas', '/armado', '/despacho', '/pedidos', '/clientes', '/precios', '/cotizaciones'],
   },
   {
     etiqueta: 'Producción',

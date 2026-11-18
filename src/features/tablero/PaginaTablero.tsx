@@ -122,6 +122,9 @@ export function PaginaTablero() {
       return <InicioPedidos descripcion="Así vienen los pedidos." soloEntregas />;
     case 'ENCARGADA_STOCK':
       return <PaginaArmado />;
+    case 'DESPACHO':
+      // Entra directo a lo suyo (D-factura-x-1).
+      return <Navigate to="/despacho" replace />;
     case 'RECEPCION':
       // Sin tablero: entra directo a lo suyo (pedido del 2026-10-20).
       return <Navigate to="/stock?vista=recepciones" replace />;

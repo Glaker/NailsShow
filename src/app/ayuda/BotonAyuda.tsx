@@ -24,6 +24,7 @@ export const NOMBRE_ROL: Record<Rol, string> = {
   RECEPCION: 'Recepción',
   PRODUCCION: 'Producción',
   CLIENTE: 'Cliente (portal de pedidos)',
+  DESPACHO: 'Despacho (facturas X)',
 };
 
 /**

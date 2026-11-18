@@ -21,6 +21,7 @@ import { PaginaCatalogos, RedirigirACatalogo } from '@/features/maestros/PaginaC
 import { PaginaVentas } from '@/features/ventas/PaginaVentas';
 import { PaginaVenta } from '@/features/ventas/PaginaVenta';
 import { PaginaArmado } from '@/features/ventas/PaginaArmado';
+import { PaginaDespacho } from '@/features/despacho/PaginaDespacho';
 import { PaginaUsuarios } from '@/features/usuarios/PaginaUsuarios';
 import { PaginaInformes } from '@/features/informes/PaginaInformes';
 import { PaginaDescargas } from '@/features/descargas/PaginaDescargas';
@@ -114,6 +115,7 @@ export function AppRoutes() {
       <Route path="/ventas" element={<PaginaVentas />} />
       <Route path="/ventas/:id" element={<PaginaVenta />} />
       <Route path="/armado" element={<PaginaArmado />} />
+      <Route path="/despacho" element={<PaginaDespacho />} />
       <Route path="/punto-venta" element={<RedirigirAStock vista="calle5" />} />
       <Route path="/catalogos" element={<PaginaCatalogos />} />
       {/* Rutas viejas de los catálogos: llevan a su pestaña. */}

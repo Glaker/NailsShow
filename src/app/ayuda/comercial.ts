@@ -88,6 +88,25 @@ export const AYUDA_COMERCIAL: MapaAyuda = {
     ],
   },
 
+  '/despacho': {
+    queEs:
+      'Es donde se registra lo que salió de verdad. La factura X de cada pedido es la fuente verdadera: al cargarla, el stock baja por lo facturado, lo reservado que no se mandó vuelve a quedar libre y el pedido pasa al historial. «Para despachar» lista los pedidos que Ventas aprobó; «Historial», los que ya salieron, con su factura.',
+    porRol: {
+      DESPACHO: [
+        'Tocá «Cargar factura X» (arriba, o en la fila del pedido) y elegí el PDF. Se lee en tu dispositivo y no se guarda.',
+        'Revisá que el pedido sea el correcto: se sugiere solo por el nombre del cliente. La tabla compara el pedido con la factura y dice qué pasa con cada producto.',
+        'Tocá «Cargar factura y descontar stock». Si algún producto queda en negativo, contá cuántos hay de verdad y cargalo ahí mismo: el stock queda como lo contaste.',
+        'Si un pedido salió sin factura todavía, tocá «Despachado»: sale lo reservado. Cuando llegue la factura, cargala igual y corrige la diferencia.',
+      ],
+      VENTAS: [
+        'Ves los mismos pedidos que Despacho. El stock que ves al reservar es orientativo: el real baja cuando se carga la factura X o se marca «Despachado».',
+      ],
+    },
+    aTener: [
+      'Una factura X no se carga dos veces: el número no se repite.',
+      'Los códigos que no están en el catálogo quedan anotados pero no mueven stock.',
+    ],
+  },
   '/armado': {
     queEs:
       'Es lo único que ve la encargada de Calle 5. Tiene dos pestañas. «Pedidos a armar» muestra una tarjeta por cada pedido que Ventas envió y todavía no salió completo: número, cliente, destino, fecha de entrega y una tabla con el código, el producto, cuánto hay que armar y cuánto hay en Calle 5. «Stock de Calle 5» es el stock de producto terminado del local, para contar, registrar lo que entra o sacar lo fallado. Lo que se confirma acá descuenta el stock y deja registrado el lote de cada unidad.',
