@@ -2470,7 +2470,7 @@ descuenta igual y el SKU queda en negativo; DESPACHO carga el conteo real de
 esos SKU y queda registrado como conteo (`CONTEO_PT`).
 **PDF.** Se lee en el navegador y no se guarda: el respaldo está en otro lado.
 Se guardan los renglones de la factura (`comercial.facturas_x_renglones`).
-**Implementado en** `20261118170000` y `20261118170100`.
+**Implementado en** `20261118180000` y `20261118180100`.
 **A confirmar con la DT titular (RN-51/RN-52).** Lo facturado sale primero de
 lotes despachables; si no alcanza, el excedente sale sin lote y el motivo lo
 marca («sin stock en el sistema, queda para contar»). Eso registra una venta

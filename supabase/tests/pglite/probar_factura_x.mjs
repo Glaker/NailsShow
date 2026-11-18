@@ -1,4 +1,4 @@
-// La factura X es lo que salió de verdad (20261118170100, D-factura-x-1):
+// La factura X es lo que salió de verdad (20261118180100, D-factura-x-1):
 // DESPACHO la carga, el stock baja por lo facturado, lo reservado que no
 // salió se libera, y los SKU en negativo se cuentan.
 import { banco } from './lib.mjs';

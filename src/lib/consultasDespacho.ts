@@ -1,5 +1,5 @@
 /**
- * Despacho (D-factura-x-1, 20261118170100): la factura X de un pedido de venta
+ * Despacho (D-factura-x-1, 20261118180100): la factura X de un pedido de venta
  * es lo que salió de verdad. Despacho la carga y el stock baja por lo
  * facturado; si algún SKU queda en negativo, carga su conteo.
  */

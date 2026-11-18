@@ -161,9 +161,8 @@ create trigger trg_despacho_factura_x_guarda before insert or update on comercia
 -- 2. Los controles de stock dejan pasar lo que registra una factura X
 -- ===========================================================================
 
--- Copia de 20260930160000. Cambios: la entrada de un conteo no se rechaza
--- (solo mejora el saldo; la necesita el conteo de un SKU en negativo) y lo
--- que registra una factura X tampoco (D-factura-x-1).
+-- Copia de 20261118170000 (una entrada nunca se frena: solo mejora un
+-- negativo). Cambio: lo que registra una factura X tampoco (D-factura-x-1).
 create or replace function comercial.fn_stock_pt_no_negativo()
 returns trigger
 language plpgsql
@@ -172,7 +171,7 @@ as $$
 declare
   v_saldo numeric;
 begin
-  if (new.cantidad >= 0 and new.documento_tipo = 'CONTEO_PT')
+  if new.cantidad >= 0
      or comercial.es_movimiento_factura_x(new.despacho_id, new.documento_tipo, new.documento_id) then
     return null;
   end if;
@@ -185,7 +184,7 @@ begin
   if v_saldo < 0 then
     raise exception
       'El movimiento dejaría el stock de este producto en % unidades en el depósito%. No se puede sacar lo que no hay.',
-      v_saldo, case when new.orden_id is null then ' (sin lote)' else ' para ese lote' end
+      trim_scale(v_saldo), case when new.orden_id is null then ' (sin lote)' else ' para ese lote' end
       using errcode = 'check_violation';
   end if;
 

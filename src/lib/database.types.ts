@@ -2303,6 +2303,7 @@ export type Database = {
         Row: {
           con_faltantes: boolean
           deposito_id: string
+          factura_x_id: string | null
           id: string
           observacion: string | null
           pedido_id: string
@@ -2312,6 +2313,7 @@ export type Database = {
         Insert: {
           con_faltantes: boolean
           deposito_id: string
+          factura_x_id?: string | null
           id?: string
           observacion?: string | null
           pedido_id: string
@@ -2321,6 +2323,7 @@ export type Database = {
         Update: {
           con_faltantes?: boolean
           deposito_id?: string
+          factura_x_id?: string | null
           id?: string
           observacion?: string | null
           pedido_id?: string
@@ -2328,6 +2331,13 @@ export type Database = {
           registrado_por?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "despachos_pt_factura_x_id_fkey"
+            columns: ["factura_x_id"]
+            isOneToOne: false
+            referencedRelation: "facturas_x"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "despachos_pt_pedido_id_fkey"
             columns: ["pedido_id"]
@@ -2801,6 +2811,153 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_ventas_pedidas"
             referencedColumns: ["pedido_id"]
+          },
+        ]
+      }
+      facturas_x: {
+        Row: {
+          cargada_en: string
+          cargada_por: string
+          cliente: string | null
+          deposito_id: string
+          fecha: string
+          id: string
+          numero: string
+          pedido_id: string
+          total: number | null
+        }
+        Insert: {
+          cargada_en?: string
+          cargada_por?: string
+          cliente?: string | null
+          deposito_id: string
+          fecha: string
+          id?: string
+          numero: string
+          pedido_id: string
+          total?: number | null
+        }
+        Update: {
+          cargada_en?: string
+          cargada_por?: string
+          cliente?: string | null
+          deposito_id?: string
+          fecha?: string
+          id?: string
+          numero?: string
+          pedido_id?: string
+          total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facturas_x_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_x_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_calle5_tomado_ventas"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "facturas_x_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_pendientes_despacho"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "facturas_x_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_x_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas"
+            referencedColumns: ["pedido_stock_id"]
+          },
+          {
+            foreignKeyName: "facturas_x_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "v_ventas_pedidas"
+            referencedColumns: ["pedido_id"]
+          },
+        ]
+      }
+      facturas_x_renglones: {
+        Row: {
+          bonificacion_pct: number | null
+          cantidad: number
+          codigo: string
+          descripcion: string | null
+          factura_id: string
+          id: string
+          orden: number
+          precio_unitario: number | null
+          producto_id: string | null
+          subtotal: number | null
+        }
+        Insert: {
+          bonificacion_pct?: number | null
+          cantidad: number
+          codigo: string
+          descripcion?: string | null
+          factura_id: string
+          id?: string
+          orden: number
+          precio_unitario?: number | null
+          producto_id?: string | null
+          subtotal?: number | null
+        }
+        Update: {
+          bonificacion_pct?: number | null
+          cantidad?: number
+          codigo?: string
+          descripcion?: string | null
+          factura_id?: string
+          id?: string
+          orden?: number
+          precio_unitario?: number | null
+          producto_id?: string | null
+          subtotal?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facturas_x_renglones_factura_id_fkey"
+            columns: ["factura_id"]
+            isOneToOne: false
+            referencedRelation: "facturas_x"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_x_renglones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_costo_producto"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "facturas_x_renglones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_faltan_etiquetar"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "facturas_x_renglones_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "v_tareas_carga"
+            referencedColumns: ["producto_id"]
           },
         ]
       }
@@ -8735,9 +8892,17 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      cargar_conteo_pt: {
+        Args: { p_conteos: Json; p_deposito_id: string }
+        Returns: number
+      }
       cargar_escala_descuento: {
         Args: { p_escalones: Json; p_vigente_desde?: string }
         Returns: number
+      }
+      cargar_factura_x: {
+        Args: { p_factura: Json; p_pedido_id: string }
+        Returns: Json
       }
       cargar_recepcion_a_stock: {
         Args: { p_recepcion_id: string }
@@ -9053,6 +9218,14 @@ export type Database = {
         Args: { p_de_calle5?: Json; p_pedido_id: string }
         Returns: Json
       }
+      es_movimiento_factura_x: {
+        Args: {
+          p_despacho_id: string
+          p_documento_id: string
+          p_documento_tipo: string
+        }
+        Returns: boolean
+      }
       etiquetados_en_stock: { Args: { p_producto_id: string }; Returns: number }
       explotar_pedido: {
         Args: { p_pedido_id: string }
@@ -9063,6 +9236,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      factura_x_de_esta_transaccion: {
+        Args: { p_factura_id: string }
+        Returns: boolean
       }
       faltantes_en_curso: {
         Args: never
@@ -10142,6 +10319,7 @@ export type Database = {
         | "RECEPCION"
         | "PRODUCCION"
         | "CLIENTE"
+        | "DESPACHO"
       sector_enum:
         | "ADMINISTRACION"
         | "RECEPCION_EXPEDICION"
@@ -13938,6 +14116,7 @@ export const Constants = {
         "RECEPCION",
         "PRODUCCION",
         "CLIENTE",
+        "DESPACHO",
       ],
       sector_enum: [
         "ADMINISTRACION",

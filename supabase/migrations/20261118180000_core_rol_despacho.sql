@@ -2,7 +2,7 @@
 -- Propósito : Agregar el rol DESPACHO a core.rol_enum: carga las facturas X
 --             de los pedidos de venta (lo que de verdad salió descuenta el
 --             stock), marca pedidos despachados y cuenta los SKU que quedan
---             en negativo (20261118170100).
+--             en negativo (20261118180100).
 -- Reglas    : §3.3 (matriz de permisos), RN-50, RN-54. Decisión del codirector técnico del
 --             2026-11-18 (D-factura-x-1). Primera cuenta: Johana Ponce.
 -- Fecha     : 2026-11-18
