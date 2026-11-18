@@ -4927,6 +4927,7 @@ export type Database = {
           es_venta: boolean
           estado: Database["comercial"]["Enums"]["estado_pedido_enum"]
           estado_pago: string
+          faltantes_nota: string | null
           fecha: string
           fecha_entrega: string | null
           forma_pago: string | null
@@ -4964,6 +4965,7 @@ export type Database = {
           es_venta?: boolean
           estado?: Database["comercial"]["Enums"]["estado_pedido_enum"]
           estado_pago?: string
+          faltantes_nota?: string | null
           fecha?: string
           fecha_entrega?: string | null
           forma_pago?: string | null
@@ -5001,6 +5003,7 @@ export type Database = {
           es_venta?: boolean
           estado?: Database["comercial"]["Enums"]["estado_pedido_enum"]
           estado_pago?: string
+          faltantes_nota?: string | null
           fecha?: string
           fecha_entrega?: string | null
           forma_pago?: string | null
@@ -8636,6 +8639,10 @@ export type Database = {
         Returns: number
       }
       aplicar_precios_pedido: { Args: { p_pedido_id: string }; Returns: number }
+      aprobar_venta_con_faltantes: {
+        Args: { p_nota: string; p_pedido_id: string }
+        Returns: Json
+      }
       aprobar_venta_interna: {
         Args: { p_de_deposito?: Json; p_pedido_id: string }
         Returns: Json
@@ -8686,6 +8693,15 @@ export type Database = {
           cantidad: number
           producto_id: string
         }[]
+      }
+      cambiar_reserva_pedido: {
+        Args: {
+          p_cantidad: number
+          p_deposito_id: string
+          p_pedido_id: string
+          p_producto_id: string
+        }
+        Returns: undefined
       }
       cargar_apertura_a_stock: {
         Args: { p_migracion_id: string }
@@ -8976,6 +8992,10 @@ export type Database = {
           p_renglones: Json
         }
         Returns: string
+      }
+      despachar_pedido_reservado: {
+        Args: { p_observacion?: string; p_pedido_id: string }
+        Returns: number
       }
       disponible_para: {
         Args: { p_insumo_id: string; p_para: string; p_titular: string }

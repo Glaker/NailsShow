@@ -644,15 +644,11 @@ export function useVenta(id: string | undefined) {
         .eq('anulado', false);
       if (e2) throw e2;
       // v_ventas no lo trae (D-venta-deposito-1).
-      // Sin tipos hasta regenerar database.types.ts con 20261118160000 (faltantes_nota).
-      const { data: o, error: e3 } = (await comercialST()
+      const { data: o, error: e3 } = await comercial()
         .from('pedidos')
         .select('deposito_origen_id, faltantes_nota')
         .eq('id', id!)
-        .single()) as {
-        data: { deposito_origen_id: string | null; faltantes_nota: string | null };
-        error: Error | null;
-      };
+        .single();
       if (e3) throw e3;
       return {
         venta: aFilaVenta(data),
