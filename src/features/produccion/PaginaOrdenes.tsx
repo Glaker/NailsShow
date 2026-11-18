@@ -48,6 +48,8 @@ import {
 } from '@/lib/consultasOrdenes';
 import { estadoOrdenVisible } from './etapasOrden';
 import { CabeceraEspecificacion } from './PaginaEspecificaciones';
+import { CamposReparto, ProductosHermanos } from './Hermanos';
+import { hermanosDe, repartoDe, type ConFamilia } from '@/lib/consultasHermanos';
 import { PlanillaRotulosProduccion } from '@/features/rotulos/RotulosProduccion';
 
 /** `/ordenes` es una pestaña de Planificación (pedido del 2026-10-22). */
@@ -267,6 +269,9 @@ export function ModalAbrirOrden({
   /* El producto no trae fórmula: se envasa un granel comprado. */
   const [sinFormula, setSinFormula] = useState(false);
   const [granelId, setGranelId] = useState<string | null>(null);
+  /* Hermanos (pedido del 2026-11-18): del mismo granel, unidades de cada uno
+     desde que se abre la orden (D-hermanos-1). */
+  const [deHermanos, setDeHermanos] = useState<Record<string, number | string>>({});
   const producto = productoId;
   // Las del producto, vigentes primero (useFormulasFabricacion).
   const delProducto = (formulas.data ?? []).filter((f) => f.producto_id === producto);
@@ -285,7 +290,37 @@ export function ModalAbrirOrden({
           valor: fichaProducto?.contenido_neto ?? '',
           unidad: (fichaProducto?.unidad_contenido === 'mL' ? 'ml' : 'g') as UnidadGranel,
         };
-  const calculada = totalOrden(n(pu.valor), pu.unidad, n(unidades));
+  const hermanos = hermanosDe((productos.data ?? []) as ConFamilia[], producto);
+  const repHermanos = repartoDe(deHermanos).filter((r) =>
+    hermanos.some((h) => h.id === r.producto_id),
+  );
+  const unidadesTotales = n(unidades) + repHermanos.reduce((a, r) => a + r.unidades, 0);
+  /* Granel de cada hermano con su contenido de rótulo; si a alguno le falta o
+     va en otra unidad, la teórica se escribe a mano. */
+  const granelHermanos = repHermanos.map((r) => {
+    const f = (productos.data ?? []).find((x) => x.id === r.producto_id);
+    return totalOrden(
+      n(f?.contenido_neto ?? 0),
+      (f?.unidad_contenido === 'mL' ? 'ml' : 'g'),
+      r.unidades,
+    );
+  });
+  const principal = totalOrden(n(pu.valor), pu.unidad, n(unidades));
+  const base = principal ?? granelHermanos[0] ?? null;
+  const calculada =
+    base &&
+    (principal !== null || n(unidades) === 0) &&
+    granelHermanos.every((g) => g !== null && g.unidad === base.unidad)
+      ? {
+          unidad: base.unidad,
+          cantidad:
+            Math.round(
+              ((principal?.cantidad ?? 0) +
+                granelHermanos.reduce((a, g) => a + (g?.cantidad ?? 0), 0)) *
+                1000,
+            ) / 1000,
+        }
+      : null;
   const cantidadFinal = calculada?.cantidad ?? n(cantidad);
   const unidadFinal = calculada?.unidad ?? unidad;
   const delDia =
@@ -364,6 +399,7 @@ export function ModalAbrirOrden({
             setFormulaId(null);
             setSinFormula(false);
             setGranelId(null);
+            setDeHermanos({});
           }}
         />
         {delProducto.length > 1 ? (
@@ -489,7 +525,9 @@ export function ModalAbrirOrden({
               label={`Cantidad teórica (${unidadFinal})`}
               description={
                 calculada
-                  ? `${numero(n(pu.valor), 3)} ${pu.unidad} × ${numero(n(unidades))} unidades`
+                  ? repHermanos.length > 0
+                    ? `Suma el granel de los ${numero(unidadesTotales)} frascos, hermanos incluidos`
+                    : `${numero(n(pu.valor), 3)} ${pu.unidad} × ${numero(n(unidades))} unidades`
                   : undefined
               }
               min={0}
@@ -579,6 +617,26 @@ export function ModalAbrirOrden({
             onChange={setUnidades}
           />
         </Group>
+        {producto ? (
+          <Stack gap={6}>
+            <Text size="sm" fw={600}>
+              Productos hermanos (mismo granel)
+            </Text>
+            {hermanos.length > 0 ? (
+              <CamposReparto
+                productos={hermanos}
+                valores={deHermanos}
+                onCambio={setDeHermanos}
+              />
+            ) : null}
+            <ProductosHermanos productoId={producto} />
+            {repHermanos.length > 0 ? (
+              <Text size="sm">
+                Total a envasar: <b>{numero(unidadesTotales)}</b> unidades
+              </Text>
+            ) : null}
+          </Stack>
+        ) : null}
         <Text size="sm">
           Lote:{' '}
           <b>
@@ -635,11 +693,12 @@ export function ModalAbrirOrden({
                   unidad: unidadFinal,
                   vencimiento: vencimientoISO(textoVenc),
                   especificacion_id: esDT ? especId : null,
-                  unidades_previstas: n(unidades) > 0 ? n(unidades) : null,
+                  unidades_previstas: unidadesTotales > 0 ? unidadesTotales : null,
                   pedidoId: pedidoId ?? elegido?.pedidoId ?? nueva ?? null,
                 });
                 setEleccion(null);
                 setUnidades('');
+                setDeHermanos({});
                 onCerrar();
               })().catch(() => {
                 /* El error ya lo muestra el onError de cada mutación. */
