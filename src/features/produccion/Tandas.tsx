@@ -24,7 +24,7 @@ import {
   type TandaFila,
 } from '@/lib/consultasOrdenes';
 import { desdeCalendario, fecha, fechaISO, numero } from '@/lib/formato';
-import { CamposReparto } from './Hermanos';
+import { CamposReparto, ProductosHermanos } from './Hermanos';
 
 /** Tabla de tandas: día, producto y unidades (pantalla y batch record). */
 export function TablaTandas({
@@ -239,6 +239,8 @@ export function ModalEnvasado({
             Unidades que salieron ese día
           </Text>
           <CamposReparto productos={familia} valores={valores} onCambio={setValores} />
+          {/* Pedido del 2026-11-18: Naza suma un hermano (mismo granel) desde la orden. */}
+          <ProductosHermanos productoId={orden.producto_id} />
           {hoy > 0 && lista_falta.length > 0 ? (
             <TablaFaltantes filas={lista_falta} />
           ) : null}
