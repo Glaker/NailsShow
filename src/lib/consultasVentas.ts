@@ -216,6 +216,59 @@ export function useFinalizarPedidoVenta() {
   });
 }
 
+/**
+ * Ventas marca despachado un pedido aprobado: lo reservado sale del stock
+ * (comercial.despachar_pedido_reservado, 20261118120000) y queda entregado.
+ */
+export function useDespacharPedidoReservado() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: { id: string; observacion: string }) => {
+      const { error } = await comercialST().rpc('despachar_pedido_reservado', {
+        p_pedido_id: a.id,
+        p_observacion: a.observacion || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidar(qc);
+      void qc.invalidateQueries({ queryKey: ['reservas-pt'] });
+      avisarExito('Pedido despachado: lo reservado salió del stock.');
+    },
+    onError: avisarError,
+  });
+}
+
+/**
+ * Cambia lo reservado de un producto del pedido en un depósito
+ * (comercial.cambiar_reserva_pedido, 20261118120000). 0 libera todo.
+ */
+export function useCambiarReservaPedido() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: {
+      pedidoId: string;
+      productoId: string;
+      depositoId: string;
+      cantidad: number;
+    }) => {
+      const { error } = await comercialST().rpc('cambiar_reserva_pedido', {
+        p_pedido_id: a.pedidoId,
+        p_producto_id: a.productoId,
+        p_deposito_id: a.depositoId,
+        p_cantidad: a.cantidad,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidar(qc);
+      void qc.invalidateQueries({ queryKey: ['reservas-pt'] });
+      avisarExito('Reserva actualizada.');
+    },
+    onError: avisarError,
+  });
+}
+
 /** Lo que el pedido ya tiene reservado, por producto. */
 export function useReservadoPedido(pedidoId: string | null | undefined) {
   return useQuery({

@@ -36,6 +36,7 @@ import {
   IconPencil,
   IconSearch,
   IconTrash,
+  IconTruckDelivery,
 } from '@tabler/icons-react';
 import { useClientes } from '@/lib/consultasFacturacion';
 import { useEliminarPedido, useNomina } from '@/lib/consultasComercial';
@@ -65,6 +66,8 @@ import {
   useEnviarVenta,
   useAprobarVentaReservada,
   useFinalizarPedidoVenta,
+  useDespacharPedidoReservado,
+  useCambiarReservaPedido,
   useReservadoPedido,
   useReservasPedido,
   useReservarParaPedido,
@@ -478,6 +481,15 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
   const finalizar = useFinalizarPedidoVenta();
   const [finalizando, setFinalizando] = useState(false);
   const [motivoFinal, setMotivoFinal] = useState('');
+  const despachar = useDespacharPedidoReservado();
+  const [despachando, setDespachando] = useState(false);
+  const [obsDespacho, setObsDespacho] = useState('');
+  const cambiarReserva = useCambiarReservaPedido();
+  const [editRes, setEditRes] = useState<{
+    productoId: string;
+    depositoId: string;
+    cantidad: number | string;
+  } | null>(null);
   const reservarTodo = useReservarParaPedido();
   const [entrega, setEntrega] = useState<Date | null>(
     g?.fecha_entrega ? new Date(`${g.fecha_entrega}T12:00:00`) : null,
@@ -800,6 +812,19 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
               Finalizar pedido
             </Button>
           ) : null}
+          {/* Despachado (pedido del 2026-11-18): lo reservado sale del stock. */}
+          {!nuevo &&
+          puedeAprobar &&
+          (v!.estado === 'CONFIRMADO' || v!.estado === 'EN_PRODUCCION') &&
+          reservas.data?.length ? (
+            <Button
+              color="teal"
+              leftSection={<IconTruckDelivery size={18} />}
+              onClick={() => setDespachando(true)}
+            >
+              Despachado
+            </Button>
+          ) : null}
           {editable ? (
             <>
               <Button
@@ -991,10 +1016,21 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                 <Table.Th ta="right">Reservado</Table.Th>
                 <Table.Th>Quién</Table.Th>
                 <Table.Th>Cuándo</Table.Th>
+                {puedeAprobar && !v?.entregado_en ? <Table.Th /> : null}
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {reservas.data.map((x) => {
+              {/* Una fila por producto y depósito: es lo que se edita. */}
+              {[
+                ...reservas.data
+                  .reduce((m, x) => {
+                    const k = `${x.producto_id}|${x.deposito_id}`;
+                    const a = m.get(k);
+                    m.set(k, a ? { ...x, vigente: a.vigente + x.vigente } : x);
+                    return m;
+                  }, new Map<string, (typeof reservas.data)[number]>())
+                  .values(),
+              ].map((x) => {
                 const depNum = (depositos.data ?? []).find(
                   (d) => d.id === x.deposito_id,
                 )?.numero;
@@ -1017,6 +1053,24 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
                       {x.creado_por ? (nomina.data?.get(x.creado_por) ?? '—') : '—'}
                     </Table.Td>
                     <Table.Td>{fechaHora(x.creado_en)}</Table.Td>
+                    {puedeAprobar && !v?.entregado_en ? (
+                      <Table.Td>
+                        <ActionIcon
+                          variant="subtle"
+                          size="lg"
+                          aria-label="Cambiar lo reservado"
+                          onClick={() =>
+                            setEditRes({
+                              productoId: x.producto_id,
+                              depositoId: x.deposito_id,
+                              cantidad: x.vigente,
+                            })
+                          }
+                        >
+                          <IconPencil size={18} />
+                        </ActionIcon>
+                      </Table.Td>
+                    ) : null}
                   </Table.Tr>
                 );
               })}
@@ -1620,6 +1674,95 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
               }
             >
               Finalizar
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Modal
+        opened={despachando}
+        onClose={() => setDespachando(false)}
+        title="Marcar el pedido despachado"
+        centered
+      >
+        <Stack gap="md">
+          <Text size="sm">
+            Sale del stock lo que el pedido tiene reservado (
+            {numero((reservas.data ?? []).reduce((s, x) => s + x.vigente, 0))} u), con su
+            remito, y el pedido queda entregado. Lo que no estaba reservado no se descuenta.
+          </Text>
+          <Textarea
+            label="Observación (opcional)"
+            placeholder="Lo retiró el cliente, se mandó por expreso…"
+            autosize
+            minRows={2}
+            value={obsDespacho}
+            onChange={(e) => setObsDespacho(e.currentTarget.value)}
+          />
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setDespachando(false)}>
+              Volver
+            </Button>
+            <Button
+              color="teal"
+              loading={despachar.isPending}
+              onClick={() =>
+                despachar.mutate(
+                  { id: id!, observacion: obsDespacho.trim() },
+                  { onSuccess: () => setDespachando(false) },
+                )
+              }
+            >
+              Despachado
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Modal
+        opened={editRes !== null}
+        onClose={() => setEditRes(null)}
+        title={`Reservado de ${
+          editRes
+            ? (porId.get(editRes.productoId)?.producto ??
+              aReservar.find((r) => r.productoId === editRes.productoId)?.producto ??
+              'el producto')
+            : ''
+        }`}
+        centered
+      >
+        <Stack gap="md">
+          <NumberInput
+            label="Cantidad reservada"
+            description="0 libera la reserva. No puede pasar lo que lleva el pedido ni lo libre del depósito."
+            min={0}
+            allowDecimal={false}
+            size="lg"
+            value={editRes?.cantidad ?? 0}
+            onChange={(c) => setEditRes((e) => (e ? { ...e, cantidad: c } : e))}
+            data-autofocus
+          />
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setEditRes(null)}>
+              Volver
+            </Button>
+            <Button
+              loading={cambiarReserva.isPending}
+              disabled={editRes === null || editRes.cantidad === ''}
+              onClick={() =>
+                editRes &&
+                cambiarReserva.mutate(
+                  {
+                    pedidoId: id!,
+                    productoId: editRes.productoId,
+                    depositoId: editRes.depositoId,
+                    cantidad: Number(editRes.cantidad),
+                  },
+                  { onSuccess: () => setEditRes(null) },
+                )
+              }
+            >
+              Guardar
             </Button>
           </Group>
         </Stack>

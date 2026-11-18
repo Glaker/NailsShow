@@ -33,6 +33,8 @@ const SOLO_PRODUCCION = new Set([
   '20261113150000_tandas_sin_mp_duplicada.sql', // anula bajas dobles de OP-2026-0020/21/22 (datos reales)
   '20261113170000_carga_cuenta_cliente_1.sql', // cuenta de demostración real
   '20261116100000_comercial_stock_berna_casiopea_13_11.sql', // stock real de Berna (productos dados de alta desde la pantalla)
+  '20261116130000_comercial_stock_berna_casiopea_16_11.sql', // ídem, 16/11
+  '20261116140000_comercial_stock_fabrica_conteo_16_11.sql', // conteo real de fábrica
 ]);
 
 export async function reconstruir({ silencioso = false } = {}) {
