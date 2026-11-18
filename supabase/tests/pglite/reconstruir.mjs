@@ -35,6 +35,7 @@ const SOLO_PRODUCCION = new Set([
   '20261116100000_comercial_stock_berna_casiopea_13_11.sql', // stock real de Berna (productos dados de alta desde la pantalla)
   '20261116130000_comercial_stock_berna_casiopea_16_11.sql', // ídem, 16/11
   '20261116140000_comercial_stock_fabrica_conteo_16_11.sql', // conteo real de fábrica
+  '20261118130000_comercial_stock_fabrica_ceros_16_11.sql', // ídem, los que no estaban en la lista
 ]);
 
 export async function reconstruir({ silencioso = false } = {}) {
