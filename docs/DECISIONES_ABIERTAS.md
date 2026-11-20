@@ -2478,3 +2478,18 @@ sin trazabilidad de lote. Lo decidió el codirector técnico; como toca una regl
 regulada, conviene que la Dirección Técnica titular lo valide. Ventas y
 Administración también pueden cargar facturas X: siguen haciendo todo lo que
 hacían.
+
+### D-rectificar-etapa-1 · Rectificar una etapa controlada — decidida 2026-11-20
+
+**Decidido por el codirector técnico.** Una etapa ya controlada de una orden no
+se edita (invariante 1). Si se registró mal, se rectifica: un registro nuevo en
+`gmp.op_etapas_rectificaciones` que apunta al original, con los datos
+anteriores, los nuevos, el motivo, quién y cuándo. Vale la última. La
+liberación lee los datos vigentes. El control de producto terminado lo
+rectifica Calidad o Dirección Técnica; el resto, Dirección Técnica. El granel
+no: se corrige con un nuevo registro de análisis R.50.10.1. Liberada,
+rechazada o anulada la orden, ya no se rectifica. El batch record muestra la
+rectificación junto a las firmas.
+**Caso que lo originó.** OP-2026-0028: el control de producto terminado quedó
+«no aplica» por error y la DT no podía liberar el lote.
+**Implementado en** `20261120121700`.

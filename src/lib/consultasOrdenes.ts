@@ -273,8 +273,26 @@ export type OrdenProduccion = TablasGmp['ordenes_produccion']['Row'];
 export type DatosEtapa = Record<string, unknown>;
 
 /** `datos` es jsonb en la base; acá, siempre un objeto. */
+/** Rectificación de una etapa controlada (D-rectificar-etapa-1). */
+export interface RectificacionEtapa {
+  id: string;
+  etapa_id: string;
+  motivo: string;
+  rectifico_por: string;
+  rectifico_en: string;
+  datos: DatosEtapa;
+  observaciones: string | null;
+  datos_anteriores: DatosEtapa;
+}
+
+/**
+ * `datos` es jsonb en la base; acá, siempre un objeto. Si la etapa se
+ * rectificó, `datos` y `observaciones` son los vigentes (la última
+ * rectificación) y `rectificaciones` guarda la historia.
+ */
 export type EtapaRegistrada = Omit<TablasGmp['op_etapas']['Row'], 'datos'> & {
   datos: DatosEtapa;
+  rectificaciones?: RectificacionEtapa[];
 };
 
 export function useOrdenes() {
@@ -302,9 +320,33 @@ export function useOrden(id: string | undefined) {
       ]);
       if (o.error) throw o.error;
       if (e.error) throw e.error;
+      const etapas = (e.data ?? []) as EtapaRegistrada[];
+      // Sin tipos hasta regenerar database.types.ts con 20261120121700.
+      const r = (await gmpST()
+        .from('op_etapas_rectificaciones')
+        .select(
+          'id, etapa_id, motivo, rectifico_por, rectifico_en, datos, observaciones, datos_anteriores',
+        )
+        .in(
+          'etapa_id',
+          etapas.map((x) => x.id),
+        )
+        .order('orden')) as { data: RectificacionEtapa[] | null; error: Error | null };
+      if (r.error) throw r.error;
       return {
         orden: o.data,
-        etapas: (e.data ?? []) as EtapaRegistrada[],
+        etapas: etapas.map((x) => {
+          const rect = (r.data ?? []).filter((y) => y.etapa_id === x.id);
+          const ultima = rect.at(-1);
+          return ultima
+            ? {
+                ...x,
+                datos: ultima.datos,
+                observaciones: ultima.observaciones,
+                rectificaciones: rect,
+              }
+            : x;
+        }),
       };
     },
   });
@@ -505,6 +547,36 @@ export function useGuardarEtapa() {
     onSuccess: (_d, v) => {
       inv(v.ordenId);
       avisarExito('Etapa registrada.');
+    },
+    onError: avisarError,
+  });
+}
+
+/**
+ * Rectificar una etapa ya controlada (D-rectificar-etapa-1): un registro
+ * nuevo con motivo; el original no se toca (gmp.rectificar_etapa).
+ */
+export function useRectificarEtapa() {
+  const inv = useInvalidarOrden();
+  return useMutation({
+    mutationFn: async (e: {
+      etapaId: string;
+      ordenId: string;
+      datos: DatosEtapa;
+      observaciones: string | null;
+      motivo: string;
+    }) => {
+      const { error } = await gmpST().rpc('rectificar_etapa', {
+        p_etapa_id: e.etapaId,
+        p_datos: e.datos,
+        p_observaciones: e.observaciones,
+        p_motivo: e.motivo,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      inv(v.ordenId);
+      avisarExito('Etapa rectificada: queda registrado el cambio y el motivo.');
     },
     onError: avisarError,
   });
