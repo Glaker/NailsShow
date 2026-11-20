@@ -79,9 +79,28 @@ function Firmas({ e, quien }: { e: EtapaRegistrada | undefined; quien: Quien }) 
       {e?.controlo_por && e.controlo_por === e.realizo_por
         ? ' (misma persona, §3.4)'
         : ''}
+      {/* Rectificación (D-rectificar-etapa-1): lo de arriba son los datos vigentes. */}
+      {(e?.rectificaciones ?? []).map((r) => (
+        <span key={r.id}>
+          <br />
+          <b>Rectificó:</b> {quien(r.rectifico_por)} <b>Fecha:</b> {fecha(r.rectifico_en)}{' '}
+          <b>Hora:</b> {hora(r.rectifico_en)} <b>Motivo:</b> {r.motivo}{' '}
+          <b>Decía antes:</b> {resumenDatos(r.datos_anteriores)}
+        </span>
+      ))}
     </p>
   );
 }
+
+/** Lo que decía la etapa antes de rectificarla, en una línea. */
+const resumenDatos = (d: Record<string, unknown>) =>
+  d.no_aplica
+    ? `no aplica${typeof d.motivo === 'string' ? ` (${d.motivo})` : ''}`
+    : d.aprobado === true
+      ? 'aprobado'
+      : d.aprobado === false
+        ? 'rechazado'
+        : 'otros datos';
 
 function Resultados({ d, espec }: { d: Datos; espec: NonNullable<Espec> }) {
   const res = (d.resultados ?? {}) as Record<
