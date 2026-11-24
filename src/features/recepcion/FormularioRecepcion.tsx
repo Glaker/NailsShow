@@ -67,6 +67,7 @@ import {
   type ValorCosto,
 } from '@/features/costos/CamposCosto';
 import { FormularioInsumo } from '@/features/maestros/PaginaInsumos';
+import { FormularioProveedor } from '@/features/maestros/PaginaProveedores';
 
 /*
  * Esquema derivado de las restricciones reales de la base. La aplicación
@@ -321,6 +322,9 @@ const desdeGuardado = (l: LoteInsumo): ValoresRecepcion['lotes'][number] => ({
 
 export function FormularioRecepcion({ onListo, desdeCompra, editar }: Props) {
   const proveedores = useProveedores();
+  /* Alta de proveedor sin salir de la recepción (pedido del 2026-11-24). */
+  const [altaProveedor, setAltaProveedor] = useState(false);
+  const [buscaProveedor, setBuscaProveedor] = useState('');
   const insumos = useInsumos();
   const crear = useCrearRecepcion();
   const actualizarInsumo = useActualizarInsumo();
@@ -611,590 +615,637 @@ export function FormularioRecepcion({ onListo, desdeCompra, editar }: Props) {
   });
 
   return (
-    <form onSubmit={enviar}>
-      <ScrollArea.Autosize mah="65vh" offsetScrollbars>
-        <Stack gap="lg" pr="xs">
-          <Stack gap="md">
-            <Title order={4}>Remito</Title>
-            <Grid gutter="md">
-              <Grid.Col span={{ base: 12, sm: 7 }}>
-                <Select
-                  label="Proveedor"
-                  placeholder="Buscar proveedor"
-                  data={opcionesProveedor}
-                  searchable
-                  nothingFoundMessage="Sin coincidencias. Dalo de alta en Proveedores."
-                  {...form.getInputProps('proveedor_id')}
-                />
-              </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 5 }}>
-                <TextInput
-                  label="N° de remito (opcional)"
-                  placeholder="0001-00012345"
-                  {...form.getInputProps('numero_remito')}
-                />
-              </Grid.Col>
-            </Grid>
+    <>
+      <form onSubmit={enviar}>
+        <ScrollArea.Autosize mah="65vh" offsetScrollbars>
+          <Stack gap="lg" pr="xs">
+            <Stack gap="md">
+              <Title order={4}>Remito</Title>
+              <Grid gutter="md">
+                <Grid.Col span={{ base: 12, sm: 7 }}>
+                  <Group gap="xs" align="flex-end" wrap="nowrap">
+                    <Select
+                      style={{ flex: 1 }}
+                      label="Proveedor"
+                      placeholder="Buscar proveedor"
+                      data={opcionesProveedor}
+                      searchable
+                      searchValue={buscaProveedor}
+                      onSearchChange={setBuscaProveedor}
+                      nothingFoundMessage="Sin coincidencias: tocá «+» para darlo de alta."
+                      {...form.getInputProps('proveedor_id')}
+                    />
+                    <Tooltip label="Nuevo proveedor">
+                      <ActionIcon
+                        size={36}
+                        variant="light"
+                        aria-label="Dar de alta un proveedor"
+                        onClick={() => setAltaProveedor(true)}
+                      >
+                        <IconPlus size={20} />
+                      </ActionIcon>
+                    </Tooltip>
+                  </Group>
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, sm: 5 }}>
+                  <TextInput
+                    label="N° de remito (opcional)"
+                    placeholder="0001-00012345"
+                    {...form.getInputProps('numero_remito')}
+                  />
+                </Grid.Col>
+              </Grid>
 
-            <Group gap="xl" wrap="wrap">
-              <Switch
-                label="Coincide con lo pedido"
-                description="I.20.1 paso 2"
-                {...form.getInputProps('coincide_con_pedido', { type: 'checkbox' })}
-              />
-              <Switch
-                label="Proveedor nuevo"
-                description="Primera compra a este proveedor"
-                {...form.getInputProps('proveedor_nuevo', { type: 'checkbox' })}
-              />
-            </Group>
+              <Group gap="xl" wrap="wrap">
+                <Switch
+                  label="Coincide con lo pedido"
+                  description="I.20.1 paso 2"
+                  {...form.getInputProps('coincide_con_pedido', { type: 'checkbox' })}
+                />
+                <Switch
+                  label="Proveedor nuevo"
+                  description="Primera compra a este proveedor"
+                  {...form.getInputProps('proveedor_nuevo', { type: 'checkbox' })}
+                />
+              </Group>
 
-            {!form.values.coincide_con_pedido ? (
-              <Alert
-                color="estadoCuarentena"
-                variant="light"
-                icon={<IconAlertTriangle size={18} />}
-                radius="md"
-              >
-                Si lo recibido no coincide con lo pedido, dejá el detalle en
-                observaciones: es el dato que después sostiene el reclamo al proveedor.
-              </Alert>
+              {!form.values.coincide_con_pedido ? (
+                <Alert
+                  color="estadoCuarentena"
+                  variant="light"
+                  icon={<IconAlertTriangle size={18} />}
+                  radius="md"
+                >
+                  Si lo recibido no coincide con lo pedido, dejá el detalle en
+                  observaciones: es el dato que después sostiene el reclamo al proveedor.
+                </Alert>
+              ) : null}
+
+              <Textarea
+                label="Observaciones"
+                placeholder="Faltantes, roturas, diferencias con el remito…"
+                autosize
+                minRows={2}
+                {...form.getInputProps('observaciones')}
+              />
+            </Stack>
+
+            <Divider />
+
+            {veComprobante ? (
+              <>
+                <ComprobanteDelProveedor form={form} />
+                <Divider />
+              </>
             ) : null}
 
-            <Textarea
-              label="Observaciones"
-              placeholder="Faltantes, roturas, diferencias con el remito…"
-              autosize
-              minRows={2}
-              {...form.getInputProps('observaciones')}
-            />
-          </Stack>
-
-          <Divider />
-
-          {veComprobante ? (
-            <>
-              <ComprobanteDelProveedor form={form} />
-              <Divider />
-            </>
-          ) : null}
-
-          <Group justify="space-between">
-            <Title order={4}>Lotes recibidos</Title>
-            <Button
-              variant="light"
-              size="sm"
-              leftSection={<IconPlus size={16} />}
-              onClick={() => form.insertListItem('lotes', { ...LOTE_VACIO })}
-            >
-              Agregar lote
-            </Button>
-          </Group>
-
-          {form.values.lotes.map((lote, i) => {
-            const insumo = porId.get(lote.insumo_id);
-            const esEtiqueta = insumo?.tipo === 'ETIQUETA';
-            const bloqueado = pasoPorCalidad(lote.estado);
-            const enQue = lote.unidad ? ` (${etiquetaUnidad(lote.unidad)})` : '';
-            const fichaUnidad = insumo?.unidad_medida ?? null;
-            const conv = aUnidadFicha(lote.cantidad_unidades, lote.unidad, fichaUnidad);
-            const calculada = lote.por_bulto !== null || lote.otros_bultos.length > 0;
-            /* Cambia bultos, cantidad por bulto o los bultos con otra
-               cantidad, y recalcula el total. */
-            const recalcular = (c: {
-              cantidad_bultos?: number;
-              por_bulto?: number | null;
-              otros_bultos?: (number | null)[];
-            }) => {
-              const l = { ...lote, ...c };
-              for (const [k, v] of Object.entries(c))
-                form.setFieldValue(`lotes.${i}.${k}`, v);
-              form.setFieldValue(
-                `lotes.${i}.cantidad_unidades`,
-                totalDeBultos(l.cantidad_bultos, l.por_bulto, l.otros_bultos),
-              );
-            };
-
-            return (
-              <Paper
-                key={i}
-                withBorder
-                p="md"
-                radius="md"
-                style={{ borderColor: 'var(--superficie-borde)' }}
-                className="entrada"
+            <Group justify="space-between">
+              <Title order={4}>Lotes recibidos</Title>
+              <Button
+                variant="light"
+                size="sm"
+                leftSection={<IconPlus size={16} />}
+                onClick={() => form.insertListItem('lotes', { ...LOTE_VACIO })}
               >
-                <Group justify="space-between" mb="sm">
-                  <Group gap="xs">
-                    <Text fw={600} size="sm">
-                      Lote {i + 1}
-                    </Text>
-                    {lote.id ? (
-                      <Text size="xs" c="dimmed" ff="monospace">
-                        {
-                          editar?.lotes.find((x) => x.id === lote.id)
-                            ?.numero_registro_interno
-                        }
+                Agregar lote
+              </Button>
+            </Group>
+
+            {form.values.lotes.map((lote, i) => {
+              const insumo = porId.get(lote.insumo_id);
+              const esEtiqueta = insumo?.tipo === 'ETIQUETA';
+              const bloqueado = pasoPorCalidad(lote.estado);
+              const enQue = lote.unidad ? ` (${etiquetaUnidad(lote.unidad)})` : '';
+              const fichaUnidad = insumo?.unidad_medida ?? null;
+              const conv = aUnidadFicha(lote.cantidad_unidades, lote.unidad, fichaUnidad);
+              const calculada = lote.por_bulto !== null || lote.otros_bultos.length > 0;
+              /* Cambia bultos, cantidad por bulto o los bultos con otra
+               cantidad, y recalcula el total. */
+              const recalcular = (c: {
+                cantidad_bultos?: number;
+                por_bulto?: number | null;
+                otros_bultos?: (number | null)[];
+              }) => {
+                const l = { ...lote, ...c };
+                for (const [k, v] of Object.entries(c))
+                  form.setFieldValue(`lotes.${i}.${k}`, v);
+                form.setFieldValue(
+                  `lotes.${i}.cantidad_unidades`,
+                  totalDeBultos(l.cantidad_bultos, l.por_bulto, l.otros_bultos),
+                );
+              };
+
+              return (
+                <Paper
+                  key={i}
+                  withBorder
+                  p="md"
+                  radius="md"
+                  style={{ borderColor: 'var(--superficie-borde)' }}
+                  className="entrada"
+                >
+                  <Group justify="space-between" mb="sm">
+                    <Group gap="xs">
+                      <Text fw={600} size="sm">
+                        Lote {i + 1}
                       </Text>
-                    ) : editar ? (
-                      <Text size="xs" c="azul" fw={600}>
-                        nuevo
-                      </Text>
-                    ) : null}
-                    {bloqueado ? (
-                      <Tooltip label="Ya pasó por calidad: no cambia de insumo ni de casillas, y no se quita">
-                        <Text size="xs" c="dimmed">
-                          controlado
+                      {lote.id ? (
+                        <Text size="xs" c="dimmed" ff="monospace">
+                          {
+                            editar?.lotes.find((x) => x.id === lote.id)
+                              ?.numero_registro_interno
+                          }
                         </Text>
-                      </Tooltip>
-                    ) : null}
-                    {insumo?.es_inflamable ? (
-                      <Tooltip label="RN-48: va al depósito exterior de inflamables">
-                        <IconFlame
-                          size={17}
-                          color="var(--mantine-color-estadoRechazado-6)"
-                        />
-                      </Tooltip>
-                    ) : null}
-                    {insumo?.requiere_protocolo ? (
-                      <Tooltip label="RN-01: exige protocolo de análisis">
-                        <IconFileCheck size={17} color="var(--mantine-color-azul-6)" />
-                      </Tooltip>
-                    ) : null}
-                    {insumo?.requiere_pesada_recepcion ? (
-                      <Tooltip label="RN-03: se pesa en la recepción">
-                        <IconScale size={17} color="var(--mantine-color-azul-6)" />
-                      </Tooltip>
-                    ) : null}
-                  </Group>
-                  {form.values.lotes.length > 1 && !bloqueado ? (
-                    <ActionIcon
-                      variant="subtle"
-                      color="gray"
-                      size="md"
-                      aria-label="Quitar lote"
-                      onClick={() => {
-                        if (lote.id) setQuitados((q) => [...q, lote.id!]);
-                        form.removeListItem('lotes', i);
-                      }}
-                    >
-                      <IconTrash size={17} />
-                    </ActionIcon>
-                  ) : null}
-                </Group>
-
-                <Grid gutter="sm">
-                  <Grid.Col span={{ base: 12, sm: 7 }}>
-                    <Select
-                      label="Insumo"
-                      disabled={bloqueado}
-                      placeholder="Buscar en el catálogo"
-                      data={opcionesInsumo}
-                      searchable
-                      onSearchChange={setBuscado}
-                      nothingFoundMessage={
-                        creaInsumo ? (
-                          <Button
-                            fullWidth
-                            size="md"
-                            variant="light"
-                            leftSection={<IconPlus size={18} />}
-                            onClick={() => setAltaParaLote(i)}
-                          >
-                            Nuevo insumo
-                          </Button>
-                        ) : (
-                          'No está en el catálogo. El alta la hace Dirección Técnica o Gerencia de Producción.'
-                        )
-                      }
-                      {...form.getInputProps(`lotes.${i}.insumo_id`)}
-                      onChange={(valor) => {
-                        form.setFieldValue(`lotes.${i}.insumo_id`, valor ?? '');
-                        const elegido = valor ? porId.get(valor) : undefined;
-                        if (elegido) elegirInsumo(i, elegido);
-                      }}
-                    />
-                  </Grid.Col>
-                  <Grid.Col span={{ base: 12, sm: 5 }}>
-                    <TextInput
-                      label={
-                        form.values.numero_remito.trim()
-                          ? 'Lote del proveedor (opcional)'
-                          : 'Lote del proveedor'
-                      }
-                      placeholder="Como figura en el envase"
-                      description={
-                        form.values.numero_remito.trim()
-                          ? 'Si no viene, el remito sostiene la trazabilidad.'
-                          : 'Sin remito es obligatorio.'
-                      }
-                      {...form.getInputProps(`lotes.${i}.lote_proveedor`)}
-                    />
-                  </Grid.Col>
-
-                  <Grid.Col span={{ base: 6, sm: 3 }}>
-                    <NumberInput
-                      label="Bultos"
-                      min={1}
-                      allowDecimal={false}
-                      {...form.getInputProps(`lotes.${i}.cantidad_bultos`)}
-                      onChange={(n) =>
-                        calculada
-                          ? recalcular({ cantidad_bultos: typeof n === 'number' ? n : 0 })
-                          : form.setFieldValue(
-                              `lotes.${i}.cantidad_bultos`,
-                              typeof n === 'number' ? n : 0,
-                            )
-                      }
-                    />
-                  </Grid.Col>
-                  <Grid.Col span={{ base: 6, sm: 3 }}>
-                    <NumberInput
-                      label={`Cantidad por bulto${enQue}`}
-                      placeholder="Opcional"
-                      description="Calcula el total"
-                      min={0}
-                      decimalScale={3}
-                      {...form.getInputProps(`lotes.${i}.por_bulto`)}
-                      onChange={(n) =>
-                        recalcular({
-                          por_bulto: typeof n === 'number' && n > 0 ? n : null,
-                        })
-                      }
-                    />
-                  </Grid.Col>
-                  <Grid.Col span={{ base: 6, sm: 3 }}>
-                    {/* Con la calculadora en uso el total es la suma, no se tipea;
-                        sin ella se carga a mano, como antes. */}
-                    <NumberInput
-                      label={`Cantidad total${enQue}`}
-                      description={
-                        !conv.cambiaFicha &&
-                        conv.cantidad !== null &&
-                        unidadCanonica(fichaUnidad) !== lote.unidad
-                          ? `Se guarda como ${numero(conv.cantidad, 3)} ${etiquetaUnidad(conv.unidad)}`
-                          : calculada
-                            ? 'Suma de los bultos'
-                            : undefined
-                      }
-                      min={0}
-                      decimalScale={3}
-                      readOnly={calculada}
-                      variant={calculada ? 'filled' : 'default'}
-                      {...form.getInputProps(`lotes.${i}.cantidad_unidades`)}
-                      onChange={(n) =>
-                        form.setFieldValue(
-                          `lotes.${i}.cantidad_unidades`,
-                          typeof n === 'number' ? n : null,
-                        )
-                      }
-                    />
-                  </Grid.Col>
-                  <Grid.Col span={{ base: 6, sm: 3 }}>
-                    {/* La elige quien recibe (pedido del 2026-11-03). Se guarda
-                        en la de la ficha: kg y g, o L y ml, se convierten. */}
-                    <Select
-                      label="Unidad"
-                      placeholder="Elegí"
-                      data={UNIDADES_RECEPCION}
-                      allowDeselect={false}
-                      {...form.getInputProps(`lotes.${i}.unidad`)}
-                      inputWrapperOrder={['label', 'input', 'description', 'error']}
-                      description={
-                        lote.unidad && insumo && conv.cambiaFicha ? (
-                          <Text span size="xs" c={fichaUnidad ? 'orange.8' : 'dimmed'}>
-                            {fichaUnidad
-                              ? `La ficha dice ${etiquetaUnidad(fichaUnidad)}: al guardar pasa a ${etiquetaUnidad(lote.unidad)}`
-                              : `La ficha no tenía unidad: queda en ${etiquetaUnidad(lote.unidad)}`}
-                          </Text>
-                        ) : null
-                      }
-                    />
-                  </Grid.Col>
-                  <Grid.Col span={{ base: 6, sm: 3 }}>
-                    <DateInput
-                      label="Plazo de validez"
-                      placeholder="dd/mm/aaaa"
-                      valueFormat="DD/MM/YYYY"
-                      clearable
-                      {...form.getInputProps(`lotes.${i}.plazo_validez`)}
-                      onChange={(v) =>
-                        form.setFieldValue(`lotes.${i}.plazo_validez`, desdeCalendario(v))
-                      }
-                    />
-                  </Grid.Col>
-
-                  <Grid.Col span={12}>
-                    <Stack gap="xs">
-                      {lote.otros_bultos.map((o, j) => (
-                        <Group key={j} gap="xs" align="flex-end" wrap="nowrap">
-                          <NumberInput
-                            style={{ flex: 1, maxWidth: 320 }}
-                            label={`Bulto con otra cantidad${enQue}`}
-                            placeholder="p. ej. la mitad"
-                            min={0}
-                            decimalScale={3}
-                            value={o ?? ''}
-                            error={form.errors[`lotes.${i}.otros_bultos.${j}`]}
-                            onChange={(n) =>
-                              recalcular({
-                                otros_bultos: lote.otros_bultos.map((x, k) =>
-                                  k === j
-                                    ? typeof n === 'number' && n > 0
-                                      ? n
-                                      : null
-                                    : x,
-                                ),
-                              })
-                            }
-                          />
-                          <ActionIcon
-                            size="input-sm"
-                            variant="subtle"
-                            color="gray"
-                            aria-label="Quitar bulto con otra cantidad"
-                            onClick={() =>
-                              recalcular({
-                                otros_bultos: lote.otros_bultos.filter((_, k) => k !== j),
-                              })
-                            }
-                          >
-                            <IconTrash size={18} />
-                          </ActionIcon>
-                        </Group>
-                      ))}
-                      <Button
-                        variant="subtle"
-                        size="sm"
-                        leftSection={<IconPlus size={16} />}
-                        style={{ alignSelf: 'flex-start' }}
-                        disabled={lote.otros_bultos.length >= lote.cantidad_bultos}
-                        onClick={() =>
-                          recalcular({ otros_bultos: [...lote.otros_bultos, null] })
-                        }
-                      >
-                        Un bulto vino con otra cantidad
-                      </Button>
-                      {lote.otros_bultos.length > 0 ? (
-                        <Text size="sm" c="dimmed">
-                          {lote.cantidad_bultos - lote.otros_bultos.length} completos de{' '}
-                          {lote.por_bulto === null ? '—' : numero(lote.por_bulto, 3)} +{' '}
-                          {lote.otros_bultos.length} con otra cantidad ={' '}
-                          <b>
-                            {lote.cantidad_unidades === null
-                              ? '—'
-                              : numero(lote.cantidad_unidades, 3)}
-                            {enQue}
-                          </b>
+                      ) : editar ? (
+                        <Text size="xs" c="azul" fw={600}>
+                          nuevo
                         </Text>
                       ) : null}
-                    </Stack>
-                  </Grid.Col>
+                      {bloqueado ? (
+                        <Tooltip label="Ya pasó por calidad: no cambia de insumo ni de casillas, y no se quita">
+                          <Text size="xs" c="dimmed">
+                            controlado
+                          </Text>
+                        </Tooltip>
+                      ) : null}
+                      {insumo?.es_inflamable ? (
+                        <Tooltip label="RN-48: va al depósito exterior de inflamables">
+                          <IconFlame
+                            size={17}
+                            color="var(--mantine-color-estadoRechazado-6)"
+                          />
+                        </Tooltip>
+                      ) : null}
+                      {insumo?.requiere_protocolo ? (
+                        <Tooltip label="RN-01: exige protocolo de análisis">
+                          <IconFileCheck size={17} color="var(--mantine-color-azul-6)" />
+                        </Tooltip>
+                      ) : null}
+                      {insumo?.requiere_pesada_recepcion ? (
+                        <Tooltip label="RN-03: se pesa en la recepción">
+                          <IconScale size={17} color="var(--mantine-color-azul-6)" />
+                        </Tooltip>
+                      ) : null}
+                    </Group>
+                    {form.values.lotes.length > 1 && !bloqueado ? (
+                      <ActionIcon
+                        variant="subtle"
+                        color="gray"
+                        size="md"
+                        aria-label="Quitar lote"
+                        onClick={() => {
+                          if (lote.id) setQuitados((q) => [...q, lote.id!]);
+                          form.removeListItem('lotes', i);
+                        }}
+                      >
+                        <IconTrash size={17} />
+                      </ActionIcon>
+                    ) : null}
+                  </Group>
 
-                  <Grid.Col span={{ base: 12, sm: 6 }}>
-                    <Text size="sm" fw={500} mb={6}>
-                      ¿Los bultos pesan parecido?
-                    </Text>
-                    <SegmentedControl
-                      fullWidth
-                      data={[
-                        { label: 'Sí', value: 'si' },
-                        { label: 'No', value: 'no' },
-                        { label: 'No aplica', value: 'na' },
-                      ]}
-                      {...form.getInputProps(`lotes.${i}.peso_bultos`)}
-                    />
-                    <Text size="xs" c="dimmed" mt={4}>
-                      I.20.1 paso 3
-                    </Text>
-                  </Grid.Col>
+                  <Grid gutter="sm">
+                    <Grid.Col span={{ base: 12, sm: 7 }}>
+                      <Select
+                        label="Insumo"
+                        disabled={bloqueado}
+                        placeholder="Buscar en el catálogo"
+                        data={opcionesInsumo}
+                        searchable
+                        onSearchChange={setBuscado}
+                        nothingFoundMessage={
+                          creaInsumo ? (
+                            <Button
+                              fullWidth
+                              size="md"
+                              variant="light"
+                              leftSection={<IconPlus size={18} />}
+                              onClick={() => setAltaParaLote(i)}
+                            >
+                              Nuevo insumo
+                            </Button>
+                          ) : (
+                            'No está en el catálogo. El alta la hace Dirección Técnica o Gerencia de Producción.'
+                          )
+                        }
+                        {...form.getInputProps(`lotes.${i}.insumo_id`)}
+                        onChange={(valor) => {
+                          form.setFieldValue(`lotes.${i}.insumo_id`, valor ?? '');
+                          const elegido = valor ? porId.get(valor) : undefined;
+                          if (elegido) elegirInsumo(i, elegido);
+                        }}
+                      />
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, sm: 5 }}>
+                      <TextInput
+                        label={
+                          form.values.numero_remito.trim()
+                            ? 'Lote del proveedor (opcional)'
+                            : 'Lote del proveedor'
+                        }
+                        placeholder="Como figura en el envase"
+                        description={
+                          form.values.numero_remito.trim()
+                            ? 'Si no viene, el remito sostiene la trazabilidad.'
+                            : 'Sin remito es obligatorio.'
+                        }
+                        {...form.getInputProps(`lotes.${i}.lote_proveedor`)}
+                      />
+                    </Grid.Col>
 
-                  {lote.peso_bultos === 'no' ? (
-                    <Grid.Col span={{ base: 12, sm: 6 }}>
+                    <Grid.Col span={{ base: 6, sm: 3 }}>
                       <NumberInput
-                        label="Unidades contadas"
-                        description="RN-02: bulto disparejo se abre y se cuenta"
+                        label="Bultos"
+                        min={1}
+                        allowDecimal={false}
+                        {...form.getInputProps(`lotes.${i}.cantidad_bultos`)}
+                        onChange={(n) =>
+                          calculada
+                            ? recalcular({
+                                cantidad_bultos: typeof n === 'number' ? n : 0,
+                              })
+                            : form.setFieldValue(
+                                `lotes.${i}.cantidad_bultos`,
+                                typeof n === 'number' ? n : 0,
+                              )
+                        }
+                      />
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 6, sm: 3 }}>
+                      <NumberInput
+                        label={`Cantidad por bulto${enQue}`}
+                        placeholder="Opcional"
+                        description="Calcula el total"
                         min={0}
                         decimalScale={3}
-                        {...form.getInputProps(`lotes.${i}.unidades_contadas`)}
+                        {...form.getInputProps(`lotes.${i}.por_bulto`)}
+                        onChange={(n) =>
+                          recalcular({
+                            por_bulto: typeof n === 'number' && n > 0 ? n : null,
+                          })
+                        }
                       />
                     </Grid.Col>
-                  ) : null}
-
-                  {esEtiqueta ? (
-                    <>
-                      <Grid.Col span={{ base: 6, sm: 3 }}>
-                        <NumberInput
-                          label="Planchas"
-                          min={0}
-                          allowDecimal={false}
-                          {...form.getInputProps(`lotes.${i}.planchas_etiquetas`)}
-                        />
-                      </Grid.Col>
-                      <Grid.Col span={{ base: 6, sm: 3 }}>
-                        <NumberInput
-                          label="Etiquetas por plancha"
-                          min={0}
-                          allowDecimal={false}
-                          {...form.getInputProps(`lotes.${i}.etiquetas_por_plancha`)}
-                        />
-                      </Grid.Col>
-                      <Grid.Col span={{ base: 12, sm: 6 }}>
-                        <Text size="sm" fw={500} mb={6}>
-                          Total de etiquetas
-                        </Text>
-                        <Text size="lg" fw={700} c="azul">
-                          {(lote.planchas_etiquetas ?? 0) *
-                            (lote.etiquetas_por_plancha ?? 0)}
-                        </Text>
-                        <Text size="xs" c="dimmed">
-                          RN-44: lo calcula la base, acá solo se previsualiza
-                        </Text>
-                      </Grid.Col>
-                    </>
-                  ) : null}
-
-                  {insumo?.requiere_pesada_recepcion ? (
-                    <Grid.Col span={{ base: 12, sm: 6 }}>
+                    <Grid.Col span={{ base: 6, sm: 3 }}>
+                      {/* Con la calculadora en uso el total es la suma, no se tipea;
+                        sin ella se carga a mano, como antes. */}
                       <NumberInput
-                        label="Peso del pigmento (kg)"
-                        description="RN-03: se pesa antes de continuar"
+                        label={`Cantidad total${enQue}`}
+                        description={
+                          !conv.cambiaFicha &&
+                          conv.cantidad !== null &&
+                          unidadCanonica(fichaUnidad) !== lote.unidad
+                            ? `Se guarda como ${numero(conv.cantidad, 3)} ${etiquetaUnidad(conv.unidad)}`
+                            : calculada
+                              ? 'Suma de los bultos'
+                              : undefined
+                        }
                         min={0}
-                        decimalScale={4}
-                        {...form.getInputProps(`lotes.${i}.peso_pigmento_kg`)}
+                        decimalScale={3}
+                        readOnly={calculada}
+                        variant={calculada ? 'filled' : 'default'}
+                        {...form.getInputProps(`lotes.${i}.cantidad_unidades`)}
+                        onChange={(n) =>
+                          form.setFieldValue(
+                            `lotes.${i}.cantidad_unidades`,
+                            typeof n === 'number' ? n : null,
+                          )
+                        }
                       />
                     </Grid.Col>
-                  ) : null}
+                    <Grid.Col span={{ base: 6, sm: 3 }}>
+                      {/* La elige quien recibe (pedido del 2026-11-03). Se guarda
+                        en la de la ficha: kg y g, o L y ml, se convierten. */}
+                      <Select
+                        label="Unidad"
+                        placeholder="Elegí"
+                        data={UNIDADES_RECEPCION}
+                        allowDeselect={false}
+                        {...form.getInputProps(`lotes.${i}.unidad`)}
+                        inputWrapperOrder={['label', 'input', 'description', 'error']}
+                        description={
+                          lote.unidad && insumo && conv.cambiaFicha ? (
+                            <Text span size="xs" c={fichaUnidad ? 'orange.8' : 'dimmed'}>
+                              {fichaUnidad
+                                ? `La ficha dice ${etiquetaUnidad(fichaUnidad)}: al guardar pasa a ${etiquetaUnidad(lote.unidad)}`
+                                : `La ficha no tenía unidad: queda en ${etiquetaUnidad(lote.unidad)}`}
+                            </Text>
+                          ) : null
+                        }
+                      />
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 6, sm: 3 }}>
+                      <DateInput
+                        label="Plazo de validez"
+                        placeholder="dd/mm/aaaa"
+                        valueFormat="DD/MM/YYYY"
+                        clearable
+                        {...form.getInputProps(`lotes.${i}.plazo_validez`)}
+                        onChange={(v) =>
+                          form.setFieldValue(
+                            `lotes.${i}.plazo_validez`,
+                            desdeCalendario(v),
+                          )
+                        }
+                      />
+                    </Grid.Col>
 
-                  <Grid.Col span={12}>
-                    <Stack gap="xs" mt={4}>
-                      {insumo?.requiere_protocolo ? (
+                    <Grid.Col span={12}>
+                      <Stack gap="xs">
+                        {lote.otros_bultos.map((o, j) => (
+                          <Group key={j} gap="xs" align="flex-end" wrap="nowrap">
+                            <NumberInput
+                              style={{ flex: 1, maxWidth: 320 }}
+                              label={`Bulto con otra cantidad${enQue}`}
+                              placeholder="p. ej. la mitad"
+                              min={0}
+                              decimalScale={3}
+                              value={o ?? ''}
+                              error={form.errors[`lotes.${i}.otros_bultos.${j}`]}
+                              onChange={(n) =>
+                                recalcular({
+                                  otros_bultos: lote.otros_bultos.map((x, k) =>
+                                    k === j
+                                      ? typeof n === 'number' && n > 0
+                                        ? n
+                                        : null
+                                      : x,
+                                  ),
+                                })
+                              }
+                            />
+                            <ActionIcon
+                              size="input-sm"
+                              variant="subtle"
+                              color="gray"
+                              aria-label="Quitar bulto con otra cantidad"
+                              onClick={() =>
+                                recalcular({
+                                  otros_bultos: lote.otros_bultos.filter(
+                                    (_, k) => k !== j,
+                                  ),
+                                })
+                              }
+                            >
+                              <IconTrash size={18} />
+                            </ActionIcon>
+                          </Group>
+                        ))}
+                        <Button
+                          variant="subtle"
+                          size="sm"
+                          leftSection={<IconPlus size={16} />}
+                          style={{ alignSelf: 'flex-start' }}
+                          disabled={lote.otros_bultos.length >= lote.cantidad_bultos}
+                          onClick={() =>
+                            recalcular({ otros_bultos: [...lote.otros_bultos, null] })
+                          }
+                        >
+                          Un bulto vino con otra cantidad
+                        </Button>
+                        {lote.otros_bultos.length > 0 ? (
+                          <Text size="sm" c="dimmed">
+                            {lote.cantidad_bultos - lote.otros_bultos.length} completos de{' '}
+                            {lote.por_bulto === null ? '—' : numero(lote.por_bulto, 3)} +{' '}
+                            {lote.otros_bultos.length} con otra cantidad ={' '}
+                            <b>
+                              {lote.cantidad_unidades === null
+                                ? '—'
+                                : numero(lote.cantidad_unidades, 3)}
+                              {enQue}
+                            </b>
+                          </Text>
+                        ) : null}
+                      </Stack>
+                    </Grid.Col>
+
+                    <Grid.Col span={{ base: 12, sm: 6 }}>
+                      <Text size="sm" fw={500} mb={6}>
+                        ¿Los bultos pesan parecido?
+                      </Text>
+                      <SegmentedControl
+                        fullWidth
+                        data={[
+                          { label: 'Sí', value: 'si' },
+                          { label: 'No', value: 'no' },
+                          { label: 'No aplica', value: 'na' },
+                        ]}
+                        {...form.getInputProps(`lotes.${i}.peso_bultos`)}
+                      />
+                      <Text size="xs" c="dimmed" mt={4}>
+                        I.20.1 paso 3
+                      </Text>
+                    </Grid.Col>
+
+                    {lote.peso_bultos === 'no' ? (
+                      <Grid.Col span={{ base: 12, sm: 6 }}>
+                        <NumberInput
+                          label="Unidades contadas"
+                          description="RN-02: bulto disparejo se abre y se cuenta"
+                          min={0}
+                          decimalScale={3}
+                          {...form.getInputProps(`lotes.${i}.unidades_contadas`)}
+                        />
+                      </Grid.Col>
+                    ) : null}
+
+                    {esEtiqueta ? (
+                      <>
+                        <Grid.Col span={{ base: 6, sm: 3 }}>
+                          <NumberInput
+                            label="Planchas"
+                            min={0}
+                            allowDecimal={false}
+                            {...form.getInputProps(`lotes.${i}.planchas_etiquetas`)}
+                          />
+                        </Grid.Col>
+                        <Grid.Col span={{ base: 6, sm: 3 }}>
+                          <NumberInput
+                            label="Etiquetas por plancha"
+                            min={0}
+                            allowDecimal={false}
+                            {...form.getInputProps(`lotes.${i}.etiquetas_por_plancha`)}
+                          />
+                        </Grid.Col>
+                        <Grid.Col span={{ base: 12, sm: 6 }}>
+                          <Text size="sm" fw={500} mb={6}>
+                            Total de etiquetas
+                          </Text>
+                          <Text size="lg" fw={700} c="azul">
+                            {(lote.planchas_etiquetas ?? 0) *
+                              (lote.etiquetas_por_plancha ?? 0)}
+                          </Text>
+                          <Text size="xs" c="dimmed">
+                            RN-44: lo calcula la base, acá solo se previsualiza
+                          </Text>
+                        </Grid.Col>
+                      </>
+                    ) : null}
+
+                    {insumo?.requiere_pesada_recepcion ? (
+                      <Grid.Col span={{ base: 12, sm: 6 }}>
+                        <NumberInput
+                          label="Peso del pigmento (kg)"
+                          description="RN-03: se pesa antes de continuar"
+                          min={0}
+                          decimalScale={4}
+                          {...form.getInputProps(`lotes.${i}.peso_pigmento_kg`)}
+                        />
+                      </Grid.Col>
+                    ) : null}
+
+                    <Grid.Col span={12}>
+                      <Stack gap="xs" mt={4}>
+                        {insumo?.requiere_protocolo ? (
+                          <Checkbox
+                            label="Protocolo de análisis del fabricante recibido"
+                            description="RN-01, I.20.1 paso 5. Sin esto no se recepciona."
+                            disabled={bloqueado}
+                            {...form.getInputProps(`lotes.${i}.protocolo_recibido`, {
+                              type: 'checkbox',
+                            })}
+                          />
+                        ) : null}
                         <Checkbox
-                          label="Protocolo de análisis del fabricante recibido"
-                          description="RN-01, I.20.1 paso 5. Sin esto no se recepciona."
+                          label="Contenedores limpiados"
+                          description="I.20.1: se limpian antes de ingresar a depósito"
                           disabled={bloqueado}
-                          {...form.getInputProps(`lotes.${i}.protocolo_recibido`, {
+                          {...form.getInputProps(`lotes.${i}.contenedores_limpiados`, {
                             type: 'checkbox',
                           })}
                         />
-                      ) : null}
-                      <Checkbox
-                        label="Contenedores limpiados"
-                        description="I.20.1: se limpian antes de ingresar a depósito"
-                        disabled={bloqueado}
-                        {...form.getInputProps(`lotes.${i}.contenedores_limpiados`, {
-                          type: 'checkbox',
-                        })}
-                      />
-                    </Stack>
-                  </Grid.Col>
-                  {cargaCosto ? (
-                    <Grid.Col span={12}>
-                      <Divider
-                        my="xs"
-                        label="Costo (opcional: si no lo sabés ahora, se carga después en Costos)"
-                        labelPosition="left"
-                      />
-                      <CamposCosto
-                        valor={
-                          form.values.con_comprobante
-                            ? {
-                                ...lote.costo,
-                                tipo_comprobante: comprobanteDeRecepcion(
-                                  form.values.comprobante.tipo,
-                                ),
-                              }
-                            : lote.costo
-                        }
-                        onChange={(v) => form.setFieldValue(`lotes.${i}.costo`, v)}
-                        unidadCatalogo={insumo?.unidad_medida ?? null}
-                        referencia={
-                          (referencias.data ?? []).find(
-                            (r) => r.insumo_id === lote.insumo_id,
-                          ) ?? null
-                        }
-                        comprobanteFijo={form.values.con_comprobante}
-                      />
+                      </Stack>
                     </Grid.Col>
-                  ) : null}
-                </Grid>
-              </Paper>
-            );
-          })}
+                    {cargaCosto ? (
+                      <Grid.Col span={12}>
+                        <Divider
+                          my="xs"
+                          label="Costo (opcional: si no lo sabés ahora, se carga después en Costos)"
+                          labelPosition="left"
+                        />
+                        <CamposCosto
+                          valor={
+                            form.values.con_comprobante
+                              ? {
+                                  ...lote.costo,
+                                  tipo_comprobante: comprobanteDeRecepcion(
+                                    form.values.comprobante.tipo,
+                                  ),
+                                }
+                              : lote.costo
+                          }
+                          onChange={(v) => form.setFieldValue(`lotes.${i}.costo`, v)}
+                          unidadCatalogo={insumo?.unidad_medida ?? null}
+                          referencia={
+                            (referencias.data ?? []).find(
+                              (r) => r.insumo_id === lote.insumo_id,
+                            ) ?? null
+                          }
+                          comprobanteFijo={form.values.con_comprobante}
+                        />
+                      </Grid.Col>
+                    ) : null}
+                  </Grid>
+                </Paper>
+              );
+            })}
 
-          {typeof form.errors.lotes === 'string' ? (
-            <Text c="red" size="sm">
-              {form.errors.lotes}
+            {typeof form.errors.lotes === 'string' ? (
+              <Text c="red" size="sm">
+                {form.errors.lotes}
+              </Text>
+            ) : null}
+          </Stack>
+        </ScrollArea.Autosize>
+
+        <Divider my="md" />
+
+        <ComprasDeLaRecepcion
+          avisos={(editar ? [] : (avisos.data ?? [])).filter(
+            (a) =>
+              (a.estado === 'PENDIENTE' || a.estado === 'EN_COMPRA') &&
+              form.values.lotes.some((l) => l.insumo_id === a.insumo_id),
+          )}
+          proveedorId={form.values.proveedor_id}
+          nombreInsumo={(id) => porId.get(id)?.nombre ?? '(insumo)'}
+          elegidas={compras}
+          onCambiar={setCompras}
+        />
+
+        <Stack gap="md">
+          {editar ? (
+            <Text size="sm" c="dimmed">
+              Cada cambio queda auditado con el valor anterior. Si cambia lo que dice un
+              rótulo, se emite uno nuevo: reimprimilo y reemplazá el pegado.
             </Text>
-          ) : null}
+          ) : (
+            <Switch
+              label="Emitir rótulo de cuarentena al guardar"
+              description="I.20.2: el material entra a cuarentena rotulado en amarillo. Se puede hacer después desde el lote."
+              {...form.getInputProps('rotularEnCuarentena', { type: 'checkbox' })}
+            />
+          )}
+          <Group justify="flex-end">
+            <Button
+              variant="subtle"
+              color="gray"
+              onClick={onListo}
+              disabled={crear.isPending || editarMut.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              loading={
+                crear.isPending ||
+                editarMut.isPending ||
+                vincular.isPending ||
+                registrarComprobante.isPending
+              }
+            >
+              {editar ? 'Guardar cambios' : 'Registrar recepción'}
+            </Button>
+          </Group>
         </Stack>
-      </ScrollArea.Autosize>
 
-      <Divider my="md" />
-
-      <ComprasDeLaRecepcion
-        avisos={(editar ? [] : (avisos.data ?? [])).filter(
-          (a) =>
-            (a.estado === 'PENDIENTE' || a.estado === 'EN_COMPRA') &&
-            form.values.lotes.some((l) => l.insumo_id === a.insumo_id),
-        )}
-        proveedorId={form.values.proveedor_id}
-        nombreInsumo={(id) => porId.get(id)?.nombre ?? '(insumo)'}
-        elegidas={compras}
-        onCambiar={setCompras}
-      />
-
-      <Stack gap="md">
-        {editar ? (
-          <Text size="sm" c="dimmed">
-            Cada cambio queda auditado con el valor anterior. Si cambia lo que dice un
-            rótulo, se emite uno nuevo: reimprimilo y reemplazá el pegado.
-          </Text>
-        ) : (
-          <Switch
-            label="Emitir rótulo de cuarentena al guardar"
-            description="I.20.2: el material entra a cuarentena rotulado en amarillo. Se puede hacer después desde el lote."
-            {...form.getInputProps('rotularEnCuarentena', { type: 'checkbox' })}
+        <Modal
+          opened={altaParaLote !== null}
+          onClose={() => setAltaParaLote(null)}
+          title={<Text fw={700}>Nuevo insumo</Text>}
+          size="lg"
+        >
+          <FormularioInsumo
+            nombreInicial={buscado.trim()}
+            onListo={(creado) => {
+              if (creado && altaParaLote !== null) elegirInsumo(altaParaLote, creado);
+              setAltaParaLote(null);
+            }}
           />
-        )}
-        <Group justify="flex-end">
-          <Button
-            variant="subtle"
-            color="gray"
-            onClick={onListo}
-            disabled={crear.isPending || editarMut.isPending}
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="submit"
-            loading={
-              crear.isPending ||
-              editarMut.isPending ||
-              vincular.isPending ||
-              registrarComprobante.isPending
-            }
-          >
-            {editar ? 'Guardar cambios' : 'Registrar recepción'}
-          </Button>
-        </Group>
-      </Stack>
+        </Modal>
+      </form>
 
+      {/* Fuera del <form>: el envío del alta no tiene que subir a la recepción. */}
       <Modal
-        opened={altaParaLote !== null}
-        onClose={() => setAltaParaLote(null)}
-        title={<Text fw={700}>Nuevo insumo</Text>}
+        opened={altaProveedor}
+        onClose={() => setAltaProveedor(false)}
+        title={<Text fw={700}>Nuevo proveedor</Text>}
         size="lg"
+        centered
       >
-        <FormularioInsumo
-          nombreInicial={buscado.trim()}
+        <FormularioProveedor
+          key={altaProveedor ? buscaProveedor : 'cerrado'}
+          razonSocialInicial={buscaProveedor.trim()}
           onListo={(creado) => {
-            if (creado && altaParaLote !== null) elegirInsumo(altaParaLote, creado);
-            setAltaParaLote(null);
+            if (creado) {
+              form.setFieldValue('proveedor_id', creado.id);
+              // Recién dado de alta: es la primera compra a este proveedor.
+              form.setFieldValue('proveedor_nuevo', true);
+              setBuscaProveedor(creado.razon_social);
+            }
+            setAltaProveedor(false);
           }}
         />
       </Modal>
-    </form>
+    </>
   );
 }
 
