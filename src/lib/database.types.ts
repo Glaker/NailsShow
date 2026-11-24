@@ -9169,7 +9169,11 @@ export type Database = {
         Returns: string
       }
       despachar_pedido_reservado: {
-        Args: { p_observacion?: string; p_pedido_id: string }
+        Args: {
+          p_bajar_stock?: boolean
+          p_observacion?: string
+          p_pedido_id: string
+        }
         Returns: number
       }
       disponible_para: {

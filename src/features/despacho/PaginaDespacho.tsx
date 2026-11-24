@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   Button,
+  Checkbox,
   Group,
   Modal,
   Paper,
@@ -50,6 +51,7 @@ export function PaginaDespacho() {
   const [cargando, setCargando] = useState<{ pedido: string | null } | null>(null);
   const [despachando, setDespachando] = useState<FilaVenta | null>(null);
   const [obs, setObs] = useState('');
+  const [bajarStock, setBajarStock] = useState(false);
 
   const aprobados = useMemo(
     () => (ventas.data ?? []).filter((v) => APROBADO.includes(v.estado)),
@@ -203,6 +205,7 @@ export function PaginaDespacho() {
                               leftSection={<IconTruckDelivery size={18} />}
                               onClick={() => {
                                 setObs('');
+                                setBajarStock(false);
                                 setDespachando(v);
                               }}
                             >
@@ -246,6 +249,13 @@ export function PaginaDespacho() {
             value={obs}
             onChange={(e) => setObs(e.currentTarget.value)}
           />
+          <Checkbox
+            size="md"
+            label="Bajar también el stock (ajuste de stock)"
+            description="Por las dudas: baja lo reservado ahora, como antes. Si después se carga la factura X, corrige la diferencia sin descontar dos veces."
+            checked={bajarStock}
+            onChange={(e) => setBajarStock(e.currentTarget.checked)}
+          />
           <Group justify="flex-end">
             <Button variant="default" size="md" onClick={() => setDespachando(null)}>
               Volver
@@ -256,7 +266,7 @@ export function PaginaDespacho() {
               loading={despachar.isPending}
               onClick={() =>
                 despachar.mutate(
-                  { id: despachando!.id, observacion: obs.trim() },
+                  { id: despachando!.id, observacion: obs.trim(), bajarStock },
                   { onSuccess: () => setDespachando(null) },
                 )
               }

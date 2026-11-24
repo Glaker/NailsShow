@@ -129,5 +129,36 @@ await rechaza(
   /aprobado|vigente/,
 );
 
+// «Despachado» con baja de stock (ajuste, 20261124141900): baja lo reservado
+// y la factura X posterior no descuenta dos veces.
+await como('mati@x');
+const w = (
+  await uno(
+    `insert into comercial.pedidos (numero, cliente, es_venta, deposito_origen_id) values ('V-D2','Kiosco Pepe',true,$1) returning id`,
+    [BER],
+  )
+).id;
+await q(`insert into comercial.pedido_renglones (pedido_id, producto_id, cantidad) values ($1,$2,2)`, [w, p101]);
+await q(
+  `insert into comercial.reservas_pt (producto_id, deposito_id, pedido_id, cantidad) values ($1,$2,$3,2)`,
+  [p101, BER, w],
+);
+await q(`select comercial.aprobar_venta_reservada($1)`, [w]);
+await prueba('Despachado con baja de stock: baja lo reservado y cierra', async () => {
+  const antes = await saldo(p101);
+  await q(`select comercial.despachar_pedido_reservado($1, null, true)`, [w]);
+  if ((await saldo(p101)) !== antes - 2) throw new Error('101 ' + (await saldo(p101)));
+  const p = await uno(`select estado from comercial.pedidos where id=$1`, [w]);
+  if (p.estado !== 'CUMPLIDO') throw new Error(p.estado);
+});
+await prueba('la factura X por lo mismo no vuelve a bajar', async () => {
+  const antes = await saldo(p101);
+  await q(`select comercial.cargar_factura_x($1, $2::jsonb)`, [
+    w,
+    JSON.stringify({ numero: 'X-D2', renglones: [{ codigo: '101', cantidad: 2 }] }),
+  ]);
+  if ((await saldo(p101)) !== antes) throw new Error('101 ' + (await saldo(p101)));
+});
+
 await invariantes();
 fin();
