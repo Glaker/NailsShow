@@ -7,6 +7,7 @@ import {
   Group,
   Modal,
   NumberInput,
+  SegmentedControl,
   Select,
   Stack,
   Table,
@@ -17,9 +18,11 @@ import { fecha, numero } from '@/lib/formato';
 import { facturadoPorCodigo, leerPdfFacturaX, type FacturaX } from '@/lib/facturaX';
 import {
   useCargarConteo,
+  useCargarFacturaVenta,
   useCargarFacturaX,
   useProductosPorCodigo,
   useRenglonesPedido,
+  type Canal,
   type ResultadoFacturaX,
 } from '@/lib/consultasDespacho';
 import type { FilaVenta } from '@/lib/consultasVentas';
@@ -27,9 +30,10 @@ import type { FilaVenta } from '@/lib/consultasVentas';
 const norm = (s: string | null | undefined) => (s ?? '').trim().toUpperCase();
 
 /**
- * Cargar la factura X de un pedido (D-factura-x-1): se lee el PDF en el
- * navegador (no se guarda), se compara con el pedido y, al confirmar, el
- * stock baja por lo facturado. Si un SKU queda en negativo, se cuenta acá.
+ * Cargar una factura de venta (D-factura-x-1, D-factura-x-2): se lee el PDF
+ * en el navegador (no se guarda). Mayorista: factura X de un pedido, se compara
+ * con el pedido. Educadores (J) y Minorista (C, B, X de mostrador): sin pedido,
+ * baja el stock de Berna. Si un SKU queda en negativo, se cuenta acá.
  */
 export function CargarFacturaX({
   abierto,
@@ -47,9 +51,11 @@ export function CargarFacturaX({
   const [leyendo, setLeyendo] = useState(false);
   const [errorPdf, setErrorPdf] = useState<string | null>(null);
   const [pedidoElegido, setPedidoElegido] = useState<string | null>(null);
+  const [canalElegido, setCanalElegido] = useState<Canal | null>(null);
   const [resultado, setResultado] = useState<ResultadoFacturaX | null>(null);
   const [conteo, setConteo] = useState<Record<string, number | string>>({});
   const cargar = useCargarFacturaX();
+  const vender = useCargarFacturaVenta();
   const contar = useCargarConteo();
 
   // El pedido sugerido: el elegido a mano, el que vino de la fila, o el abierto del mismo cliente.
@@ -59,7 +65,18 @@ export function CargarFacturaX({
     const delCliente = pedidos.filter((p) => norm(p.cliente) === norm(factura.cliente));
     return (delCliente.find((p) => !p.entregado_en) ?? delCliente[0])?.id ?? null;
   }, [pedidoInicial, factura, pedidos]);
-  const pedidoId = pedidoElegido ?? sugerido;
+  // Canal sugerido: J es de Educadores; una X con pedido del cliente, Mayorista; el resto, Minorista.
+  const canal: Canal =
+    canalElegido ??
+    (pedidoInicial
+      ? 'MAYORISTA'
+      : factura?.tipo === 'J'
+        ? 'EDUCADORES'
+        : factura?.tipo === 'X' && sugerido
+          ? 'MAYORISTA'
+          : 'MINORISTA');
+  const mayorista = canal === 'MAYORISTA';
+  const pedidoId = mayorista ? (pedidoElegido ?? sugerido) : null;
   const renglones = useRenglonesPedido(pedidoId);
   const codigos = useMemo(
     () => (factura ? [...new Set(factura.renglones.map((r) => r.codigo))] : []),
@@ -72,7 +89,13 @@ export function CargarFacturaX({
     const fact = facturadoPorCodigo(factura);
     const filas = new Map<
       string,
-      { codigo: string; producto: string; pedido: number; factura: number; enCatalogo: boolean }
+      {
+        codigo: string;
+        producto: string;
+        pedido: number;
+        factura: number;
+        enCatalogo: boolean;
+      }
     >();
     for (const r of renglones.data ?? [])
       filas.set(norm(r.codigo), {
@@ -105,6 +128,7 @@ export function CargarFacturaX({
     setFactura(null);
     setErrorPdf(null);
     setPedidoElegido(null);
+    setCanalElegido(null);
     setResultado(null);
     setConteo({});
     cerrar();
@@ -114,12 +138,15 @@ export function CargarFacturaX({
     setFactura(null);
     setErrorPdf(null);
     setPedidoElegido(null);
+    setCanalElegido(null);
     if (!archivo) return;
     setLeyendo(true);
     try {
       const f = await leerPdfFacturaX(archivo);
       if (!f.numero || f.renglones.length === 0)
-        setErrorPdf('No se encontró el número ni los renglones: ¿es una factura X del sistema?');
+        setErrorPdf(
+          'No se encontró el número ni los renglones: ¿es una factura del sistema?',
+        );
       else setFactura(f);
     } catch {
       setErrorPdf('No se pudo leer el PDF.');
@@ -132,12 +159,13 @@ export function CargarFacturaX({
   const negativos = resultado?.negativos ?? [];
 
   return (
-    <Modal opened={abierto} onClose={salir} title="Cargar factura X" size="xl" centered>
+    <Modal opened={abierto} onClose={salir} title="Cargar factura" size="xl" centered>
       {resultado ? (
         <Stack gap="md">
           <Alert color="estadoAprobado" variant="light" title="Factura cargada">
-            El stock bajó por lo facturado y lo reservado que no salió volvió a quedar libre.
-            El pedido {pedido?.numero ?? ''} quedó despachado.
+            {mayorista
+              ? `El stock bajó por lo facturado y lo reservado que no salió volvió a quedar libre. El pedido ${pedido?.numero ?? ''} quedó despachado.`
+              : 'El stock de Berna bajó por lo facturado.'}
           </Alert>
           {resultado.sin_catalogo ? (
             <Alert color="orange" variant="light" icon={<IconAlertTriangle size={20} />}>
@@ -153,8 +181,9 @@ export function CargarFacturaX({
                 icon={<IconAlertTriangle size={20} />}
                 title="Estos SKU quedaron en negativo: contalos"
               >
-                La factura dice que salieron más de los que tenía el sistema. Contá cuántos hay
-                de verdad en el depósito y cargalo: el stock queda como lo contaste.
+                La factura dice que salieron más de los que tenía el sistema. Contá
+                cuántos hay de verdad en el depósito y cargalo: el stock queda como lo
+                contaste.
               </Alert>
               <Table verticalSpacing="sm">
                 <Table.Thead>
@@ -179,7 +208,9 @@ export function CargarFacturaX({
                           min={0}
                           allowDecimal={false}
                           value={conteo[n.producto_id] ?? ''}
-                          onChange={(v) => setConteo((c) => ({ ...c, [n.producto_id]: v }))}
+                          onChange={(v) =>
+                            setConteo((c) => ({ ...c, [n.producto_id]: v }))
+                          }
                           aria-label={`Contados de ${n.codigo}`}
                         />
                       </Table.Td>
@@ -194,7 +225,10 @@ export function CargarFacturaX({
                 <Button
                   size="md"
                   loading={contar.isPending}
-                  disabled={negativos.some((n) => conteo[n.producto_id] === undefined || conteo[n.producto_id] === '')}
+                  disabled={negativos.some(
+                    (n) =>
+                      conteo[n.producto_id] === undefined || conteo[n.producto_id] === '',
+                  )}
                   onClick={() =>
                     contar.mutate(
                       {
@@ -224,7 +258,7 @@ export function CargarFacturaX({
         <Stack gap="md">
           <FileInput
             size="md"
-            label="PDF de la factura X"
+            label="PDF de la factura (X, J, C o B)"
             description="Se lee en este dispositivo: el PDF no se guarda."
             placeholder="Elegí el archivo"
             accept="application/pdf"
@@ -242,35 +276,54 @@ export function CargarFacturaX({
           {factura ? (
             <>
               <Text size="sm">
-                Factura <b>{factura.numero}</b>
-                {factura.fecha ? ` del ${fecha(factura.fecha)}` : ''} · {factura.cliente ?? ''}
+                Factura {factura.tipo} <b>{factura.numero}</b>
+                {factura.fecha ? ` del ${fecha(factura.fecha)}` : ''} ·{' '}
+                {factura.cliente ?? ''}
                 {factura.total !== null ? ` · total $${numero(factura.total, 0)}` : ''}
               </Text>
-              <Select
+              <SegmentedControl
                 size="md"
-                label="Pedido"
-                searchable
-                placeholder="Elegí el pedido de esta factura"
-                data={pedidos.map((p) => ({
-                  value: p.id,
-                  label: `${p.numero} · ${p.cliente}${p.entregado_en ? ' (ya despachado)' : ''}`,
-                }))}
-                value={pedidoId}
-                onChange={setPedidoElegido}
+                fullWidth
+                value={canal}
+                onChange={(v) => setCanalElegido(v as Canal)}
+                data={[
+                  { value: 'MAYORISTA', label: 'Mayorista (pedido)' },
+                  { value: 'EDUCADORES', label: 'Educadores' },
+                  { value: 'MINORISTA', label: 'Minorista' },
+                ]}
               />
-              {pedido?.entregado_en ? (
+              {!mayorista ? (
                 <Text size="sm" c="dimmed">
-                  Este pedido ya figura despachado: la factura corrige contra lo que salió (lo de
-                  más baja, lo de menos vuelve al stock).
+                  Sin pedido: lo facturado baja del stock de Berna.
                 </Text>
               ) : null}
-              {pedidoId ? (
+              {mayorista ? (
+                <Select
+                  size="md"
+                  label="Pedido"
+                  searchable
+                  placeholder="Elegí el pedido de esta factura"
+                  data={pedidos.map((p) => ({
+                    value: p.id,
+                    label: `${p.numero} · ${p.cliente}${p.entregado_en ? ' (ya despachado)' : ''}`,
+                  }))}
+                  value={pedidoId}
+                  onChange={setPedidoElegido}
+                />
+              ) : null}
+              {pedido?.entregado_en ? (
+                <Text size="sm" c="dimmed">
+                  Este pedido ya figura despachado: la factura corrige contra lo que salió
+                  (lo de más baja, lo de menos vuelve al stock).
+                </Text>
+              ) : null}
+              {pedidoId || !mayorista ? (
                 <Table verticalSpacing="xs" striped>
                   <Table.Thead>
                     <Table.Tr>
                       <Table.Th>Código</Table.Th>
                       <Table.Th>Producto</Table.Th>
-                      <Table.Th ta="right">Pedido</Table.Th>
+                      {mayorista ? <Table.Th ta="right">Pedido</Table.Th> : null}
                       <Table.Th ta="right">Factura</Table.Th>
                       <Table.Th>Qué pasa</Table.Th>
                     </Table.Tr>
@@ -280,7 +333,9 @@ export function CargarFacturaX({
                       <Table.Tr key={c.codigo}>
                         <Table.Td>{c.codigo}</Table.Td>
                         <Table.Td>{c.producto}</Table.Td>
-                        <Table.Td ta="right">{numero(c.pedido)}</Table.Td>
+                        {mayorista ? (
+                          <Table.Td ta="right">{numero(c.pedido)}</Table.Td>
+                        ) : null}
                         <Table.Td ta="right" fw={600}>
                           {numero(c.factura)}
                         </Table.Td>
@@ -288,6 +343,10 @@ export function CargarFacturaX({
                           {!c.enCatalogo ? (
                             <Badge color="red" variant="light">
                               no está en el catálogo
+                            </Badge>
+                          ) : !mayorista ? (
+                            <Badge color="azul" variant="light">
+                              baja de Berna
                             </Badge>
                           ) : c.pedido === 0 ? (
                             <Badge color="orange" variant="light">
@@ -318,13 +377,18 @@ export function CargarFacturaX({
                 </Button>
                 <Button
                   size="md"
-                  disabled={!pedidoId || renglones.isLoading}
-                  loading={cargar.isPending}
+                  disabled={mayorista && (!pedidoId || renglones.isLoading)}
+                  loading={cargar.isPending || vender.isPending}
                   onClick={() =>
-                    cargar.mutate(
-                      { pedidoId: pedidoId!, factura },
-                      { onSuccess: (r) => setResultado(r) },
-                    )
+                    mayorista
+                      ? cargar.mutate(
+                          { pedidoId: pedidoId!, factura },
+                          { onSuccess: (r) => setResultado(r) },
+                        )
+                      : vender.mutate(
+                          { canal, factura },
+                          { onSuccess: (r) => setResultado(r) },
+                        )
                   }
                 >
                   Cargar factura y descontar stock

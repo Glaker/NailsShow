@@ -91,10 +91,10 @@ await prueba('Mati aprueba con faltantes: toma lo que hay y no pide a Producció
   if (N(res.a) !== 5 || N(res.b) !== 2) throw new Error(JSON.stringify(res));
 });
 
-await prueba('Despachado: sale lo que hay y la observación dice qué salió con menos', async () => {
+await prueba('Despachado: no mueve stock y la observación dice qué sale con menos', async () => {
   await q(`select comercial.despachar_pedido_reservado($1, 'retira el cliente')`, [v]);
-  if ((await saldo(p101)) !== 5) throw new Error('101 ' + (await saldo(p101)));
-  if ((await saldo(p102)) !== 0) throw new Error('102 ' + (await saldo(p102)));
+  if ((await saldo(p101)) !== 10) throw new Error('101 ' + (await saldo(p101)));
+  if ((await saldo(p102)) !== 2) throw new Error('102 ' + (await saldo(p102)));
   const d = await uno(`select observacion from comercial.despachos_pt where pedido_id=$1`, [v]);
   if (!/retira el cliente · Sale con menos: 102 sale 2 de 6, 103 sale 0 de 4/.test(d.observacion))
     throw new Error(d.observacion);
@@ -120,7 +120,7 @@ await prueba('sin faltantes, la observación queda como antes', async () => {
   await q(`select comercial.aprobar_venta_reservada($1)`, [w]);
   await q(`select comercial.despachar_pedido_reservado($1)`, [w]);
   const d = await uno(`select observacion from comercial.despachos_pt where pedido_id=$1`, [w]);
-  if (d.observacion !== 'Despachado por Ventas') throw new Error(d.observacion);
+  if (d.observacion !== 'Despachado por Ventas · El stock baja con la factura X') throw new Error(d.observacion);
 });
 
 const x = (

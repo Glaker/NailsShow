@@ -2816,36 +2816,45 @@ export type Database = {
       }
       facturas_x: {
         Row: {
+          canal: string
           cargada_en: string
           cargada_por: string
           cliente: string | null
           deposito_id: string
+          emisor_cuit: string
           fecha: string
           id: string
           numero: string
-          pedido_id: string
+          pedido_id: string | null
+          tipo: string
           total: number | null
         }
         Insert: {
+          canal?: string
           cargada_en?: string
           cargada_por?: string
           cliente?: string | null
           deposito_id: string
+          emisor_cuit?: string
           fecha: string
           id?: string
           numero: string
-          pedido_id: string
+          pedido_id?: string | null
+          tipo?: string
           total?: number | null
         }
         Update: {
+          canal?: string
           cargada_en?: string
           cargada_por?: string
           cliente?: string | null
           deposito_id?: string
+          emisor_cuit?: string
           fecha?: string
           id?: string
           numero?: string
-          pedido_id?: string
+          pedido_id?: string | null
+          tipo?: string
           total?: number | null
         }
         Relationships: [
@@ -8900,6 +8909,7 @@ export type Database = {
         Args: { p_escalones: Json; p_vigente_desde?: string }
         Returns: number
       }
+      cargar_factura_venta: { Args: { p_factura: Json }; Returns: Json }
       cargar_factura_x: {
         Args: { p_factura: Json; p_pedido_id: string }
         Returns: Json

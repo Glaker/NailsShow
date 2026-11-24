@@ -112,7 +112,8 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiqueta: 'Despacho',
     etiquetaCorta: 'Despacho',
     icono: IconTruckDelivery,
-    roles: ['DESPACHO', 'VENTAS', 'ADMINISTRACION', 'GERENCIA'],
+    // Naza (Gerencia de Producción) también carga facturas (D-factura-x-2).
+    roles: ['DESPACHO', 'VENTAS', 'ADMINISTRACION', 'GERENCIA', 'GERENCIA_PRODUCCION'],
     principal: true,
   },
   {

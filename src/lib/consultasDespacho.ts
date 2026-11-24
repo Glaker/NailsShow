@@ -69,25 +69,35 @@ export function useProductosPorCodigo(codigos: string[]) {
   });
 }
 
+export type Canal = 'MAYORISTA' | 'EDUCADORES' | 'MINORISTA';
+
 export interface FacturaXCargada {
   id: string;
   numero: string;
+  tipo: string;
+  canal: Canal;
   fecha: string;
-  pedido_id: string;
+  cliente: string | null;
+  total: number | null;
+  pedido_id: string | null;
   cargada_en: string;
 }
 
-/** Facturas X ya cargadas (para el historial). */
+/** Facturas de venta ya cargadas (para el historial). */
 export function useFacturasX() {
   return useQuery({
     queryKey: ['facturas-x'],
     queryFn: async (): Promise<FacturaXCargada[]> => {
       const { data, error } = await comercial()
         .from('facturas_x')
-        .select('id, numero, fecha, pedido_id, cargada_en')
+        .select('id, numero, tipo, canal, fecha, cliente, total, pedido_id, cargada_en')
         .order('cargada_en', { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).map((f) => ({
+        ...f,
+        canal: f.canal as Canal,
+        total: f.total === null ? null : Number(f.total),
+      }));
     },
   });
 }
@@ -137,6 +147,29 @@ export function useCargarFacturaX() {
         r.negativos.length
           ? `Factura cargada. ${r.negativos.length} SKU quedaron en negativo: contalos.`
           : 'Factura cargada: el stock bajó por lo facturado.',
+      );
+    },
+    onError: avisarError,
+  });
+}
+
+/** Educadores (J) o Minorista (C, B, X): sin pedido, sale de Berna (20261118193000). */
+export function useCargarFacturaVenta() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: { canal: Exclude<Canal, 'MAYORISTA'>; factura: FacturaX }) => {
+      const { data, error } = await comercial().rpc('cargar_factura_venta', {
+        p_factura: { ...a.factura, canal: a.canal } as unknown as Json,
+      });
+      if (error) throw error;
+      return data as unknown as ResultadoFacturaX;
+    },
+    onSuccess: (r) => {
+      invalidar(qc);
+      avisarExito(
+        r.negativos.length
+          ? `Factura cargada. ${r.negativos.length} SKU quedaron en negativo: contalos.`
+          : 'Factura cargada: el stock de Berna bajó por lo facturado.',
       );
     },
     onError: avisarError,

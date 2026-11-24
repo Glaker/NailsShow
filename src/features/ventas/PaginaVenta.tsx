@@ -1784,10 +1784,10 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
       >
         <Stack gap="md">
           <Text size="sm">
-            Sale del stock lo que el pedido tiene reservado (
-            {numero((reservas.data ?? []).reduce((s, x) => s + x.vigente, 0))} u), con su
-            remito, y el pedido queda entregado. Lo que no estaba reservado no se descuenta;
-            si algo sale con menos de lo pedido, el despacho lo anota solo.
+            El pedido queda entregado y se libera lo reservado (
+            {numero((reservas.data ?? []).reduce((s, x) => s + x.vigente, 0))} u). No mueve stock:
+            el stock real baja cuando se carga la factura X en Despacho. Si algo sale con menos de
+            lo pedido, el despacho lo anota solo.
           </Text>
           <Textarea
             label="Observación (opcional)"

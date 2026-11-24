@@ -2479,6 +2479,22 @@ regulada, conviene que la Dirección Técnica titular lo valide. Ventas y
 Administración también pueden cargar facturas X: siguen haciendo todo lo que
 hacían.
 
+### D-factura-x-2 · Tres salidas de Berna y «Despachado» sin stock — decidida 2026-11-18
+
+**Decidido por el codirector técnico.** De Berna (Casiopea) hay una entrada (lo
+que manda la fábrica) y tres salidas: Mayorista (factura X con su pedido),
+Educadores (factura J) y Minorista (factura C, B electrónica o X de mostrador).
+Las facturas son la única fuente que da de baja el stock real. Las cargan
+indistintamente Despacho (Johana), Ventas (Mati), Administración (Diego) y, desde el 2026-11-24, Gerencia de Producción (Naza).
+Educadores y Minorista no tienen pedido y bajan del stock de Berna.
+«Despachado» deja de mover stock: cierra el pedido y libera lo reservado; la
+factura X que llegue después baja todo lo facturado.
+**Comprobante único** por emisor, letra y número (Virginia Arleo y Athene del
+Plata pueden repetir número).
+**Fuera de alcance.** Calle 5 sigue con su armado y despacho propios
+(`despachar_pedido`), que mueven stock como antes.
+**Implementado en** `20261124103700`.
+
 ### D-rectificar-etapa-1 · Rectificar una etapa controlada — decidida 2026-11-20
 
 **Decidido por el codirector técnico.** Una etapa ya controlada de una orden no
