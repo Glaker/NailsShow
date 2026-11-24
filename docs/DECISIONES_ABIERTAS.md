@@ -2509,3 +2509,11 @@ rectificación junto a las firmas.
 **Caso que lo originó.** OP-2026-0028: el control de producto terminado quedó
 «no aplica» por error y la DT no podía liberar el lote.
 **Implementado en** `20261120121700`.
+
+### D-factura-x-3 · «Despachado» puede bajar stock como ajuste — decidida 2026-11-24
+
+**Decidido por el codirector técnico.** Por las dudas, al marcar «Despachado»
+se puede tildar «Bajar también el stock (ajuste de stock)»: baja lo reservado
+como antes de D-factura-x-2. Sin tildar, solo cierra el pedido. Si después se
+carga la factura X, corrige contra lo que ya salió y no descuenta dos veces.
+**Implementado en** `20261124141900`.

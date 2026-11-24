@@ -246,17 +246,23 @@ export function useFinalizarPedidoVenta() {
 export function useDespacharPedidoReservado() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (a: { id: string; observacion: string }) => {
+    mutationFn: async (a: { id: string; observacion: string; bajarStock?: boolean }) => {
       const { error } = await comercialST().rpc('despachar_pedido_reservado', {
         p_pedido_id: a.id,
         p_observacion: a.observacion || null,
+        // «Ajuste de stock», por las dudas (D-factura-x-3, 20261124141900).
+        p_bajar_stock: a.bajarStock ?? false,
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_d, v) => {
       invalidar(qc);
       void qc.invalidateQueries({ queryKey: ['reservas-pt'] });
-      avisarExito('Pedido despachado. El stock baja cuando se carga la factura X.');
+      avisarExito(
+        v.bajarStock
+          ? 'Pedido despachado: lo reservado bajó del stock (ajuste).'
+          : 'Pedido despachado. El stock baja cuando se carga la factura X.',
+      );
     },
     onError: avisarError,
   });

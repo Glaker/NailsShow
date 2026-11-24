@@ -488,6 +488,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
   const despachar = useDespacharPedidoReservado();
   const [despachando, setDespachando] = useState(false);
   const [obsDespacho, setObsDespacho] = useState('');
+  const [bajarStock, setBajarStock] = useState(false);
   const cambiarReserva = useCambiarReservaPedido();
   const [editRes, setEditRes] = useState<{
     productoId: string;
@@ -1785,9 +1786,9 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
         <Stack gap="md">
           <Text size="sm">
             El pedido queda entregado y se libera lo reservado (
-            {numero((reservas.data ?? []).reduce((s, x) => s + x.vigente, 0))} u). No mueve stock:
-            el stock real baja cuando se carga la factura X en Despacho. Si algo sale con menos de
-            lo pedido, el despacho lo anota solo.
+            {numero((reservas.data ?? []).reduce((s, x) => s + x.vigente, 0))} u). No
+            mueve stock: el stock real baja cuando se carga la factura X en Despacho. Si
+            algo sale con menos de lo pedido, el despacho lo anota solo.
           </Text>
           <Textarea
             label="Observación (opcional)"
@@ -1796,6 +1797,13 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
             minRows={2}
             value={obsDespacho}
             onChange={(e) => setObsDespacho(e.currentTarget.value)}
+          />
+          <Checkbox
+            size="md"
+            label="Bajar también el stock (ajuste de stock)"
+            description="Por las dudas: baja lo reservado ahora, como antes. Si después se carga la factura X, corrige la diferencia sin descontar dos veces."
+            checked={bajarStock}
+            onChange={(e) => setBajarStock(e.currentTarget.checked)}
           />
           <Group justify="flex-end">
             <Button variant="default" onClick={() => setDespachando(false)}>
@@ -1806,7 +1814,7 @@ function Planilla({ id, datos }: { id: string | null; datos: DatosVenta | undefi
               loading={despachar.isPending}
               onClick={() =>
                 despachar.mutate(
-                  { id: id!, observacion: obsDespacho.trim() },
+                  { id: id!, observacion: obsDespacho.trim(), bajarStock },
                   { onSuccess: () => setDespachando(false) },
                 )
               }
