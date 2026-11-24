@@ -71,16 +71,20 @@ const COLOR_ESTADO = {
 export function FormularioProveedor({
   proveedor,
   onListo,
+  razonSocialInicial = '',
 }: {
   proveedor?: Proveedor | undefined;
-  onListo: () => void;
+  /** Al dar de alta recibe el proveedor creado (la recepción lo deja elegido). */
+  onListo: (creado?: Proveedor) => void;
+  /** Lo que se buscó y no estaba: arranca escrito (alta desde la recepción). */
+  razonSocialInicial?: string;
 }) {
   const crear = useCrearProveedor();
   const actualizar = useActualizarProveedor();
   const form = useForm({
     mode: 'controlled',
     initialValues: {
-      razon_social: proveedor?.razon_social ?? '',
+      razon_social: proveedor?.razon_social ?? razonSocialInicial,
       cuit: proveedor?.cuit ?? '',
       contacto_nombre: proveedor?.contacto_nombre ?? '',
       contacto_telefono: proveedor?.contacto_telefono ?? '',
@@ -101,10 +105,10 @@ export function FormularioProveedor({
           contacto_email: v.contacto_email.trim() || null,
           domicilio: v.domicilio.trim() || null,
         };
-        if (proveedor)
+        if (proveedor) {
           await actualizar.mutateAsync({ id: proveedor.id, cambios: campos });
-        else await crear.mutateAsync(campos);
-        onListo();
+          onListo();
+        } else onListo(await crear.mutateAsync(campos));
       })}
     >
       <Stack gap="md">
@@ -141,7 +145,7 @@ export function FormularioProveedor({
         )}
 
         <Group justify="flex-end">
-          <Button variant="subtle" color="gray" onClick={onListo}>
+          <Button variant="subtle" color="gray" onClick={() => onListo()}>
             Cancelar
           </Button>
           <Button type="submit" loading={crear.isPending || actualizar.isPending}>
@@ -371,7 +375,7 @@ export function PaginaProveedores() {
         <FormularioProveedor
           key={enEdicion?.id ?? 'alta'}
           proveedor={enEdicion}
-          onListo={modal.close}
+          onListo={() => modal.close()}
         />
       </Modal>
     </>
