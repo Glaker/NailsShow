@@ -11784,6 +11784,53 @@ export type Database = {
           },
         ]
       }
+      op_etapas_rectificaciones: {
+        Row: {
+          datos: Json
+          datos_anteriores: Json
+          etapa_id: string
+          id: string
+          motivo: string
+          observaciones: string | null
+          observaciones_anteriores: string | null
+          orden: number
+          rectifico_en: string
+          rectifico_por: string
+        }
+        Insert: {
+          datos: Json
+          datos_anteriores: Json
+          etapa_id: string
+          id?: string
+          motivo: string
+          observaciones?: string | null
+          observaciones_anteriores?: string | null
+          orden?: never
+          rectifico_en?: string
+          rectifico_por?: string
+        }
+        Update: {
+          datos?: Json
+          datos_anteriores?: Json
+          etapa_id?: string
+          id?: string
+          motivo?: string
+          observaciones?: string | null
+          observaciones_anteriores?: string | null
+          orden?: never
+          rectifico_en?: string
+          rectifico_por?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "op_etapas_rectificaciones_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "op_etapas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orden_sustituciones: {
         Row: {
           id: string
@@ -13424,6 +13471,10 @@ export type Database = {
         Args: { p_parametro_id: string; p_valor: number }
         Returns: boolean
       }
+      datos_vigentes: {
+        Args: { p_datos: Json; p_etapa_id: string }
+        Returns: Json
+      }
       densidad_a: {
         Args: { p_densidad_id: string; p_temp_c: number }
         Returns: number
@@ -13645,6 +13696,15 @@ export type Database = {
       puede_trabajar_tarea: { Args: { p_tarea_id: string }; Returns: boolean }
       reanudar_tarea: { Args: { p_tarea_id: string }; Returns: string }
       recepcion_editable: { Args: { p_recepcion_id: string }; Returns: boolean }
+      rectificar_etapa: {
+        Args: {
+          p_datos: Json
+          p_etapa_id: string
+          p_motivo: string
+          p_observaciones: string
+        }
+        Returns: string
+      }
       reemitir_rotulo_lote_insumo: {
         Args: { p_lote_id: string }
         Returns: undefined

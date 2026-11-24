@@ -46,6 +46,7 @@ import {
   useEspecificacionCompleta,
   useFaltantesLiberacion,
   useGuardarEtapa,
+  useRectificarEtapa,
   useLiberarOrden,
   useOrden,
   usePesadaTeorica,
@@ -97,6 +98,7 @@ export function PaginaOrden() {
   const esGP = useTieneRol('GERENCIA_PRODUCCION');
   const controlar = useControlarEtapa();
   const [editando, setEditando] = useState<EtapaOrden | null>(null);
+  const [rectificando, setRectificando] = useState(false);
   const [cierre, setCierre] = useState<'liberar' | 'anular' | null>(null);
   const [envasando, setEnvasando] = useState(false);
   const analisisGranel = useRegistrosAnalisis({ ordenId: id });
@@ -235,6 +237,11 @@ export function PaginaOrden() {
                     {(r?.datos as { no_aplica?: boolean } | undefined)?.no_aplica
                       ? ' · no aplica'
                       : ''}
+                    {r?.rectificaciones?.length
+                      ? ` · Rectificó ${quien(r.rectificaciones.at(-1)!.rectifico_por)} · ${fechaHora(
+                          r.rectificaciones.at(-1)!.rectifico_en,
+                        )}: «${r.rectificaciones.at(-1)!.motivo}»`
+                      : ''}
                   </Text>
                 </div>
                 <Group gap="xs">
@@ -279,6 +286,24 @@ export function PaginaOrden() {
                       {esGranel ? 'No aplica' : r ? 'Corregir' : 'Registrar'}
                     </Button>
                   ) : null}
+                  {/* Controlada: no se edita, se rectifica con motivo (D-rectificar-etapa-1).
+                      El granel tiene su propio circuito (R.50.10.1). */}
+                  {habilitada &&
+                  controlada &&
+                  !esGranel &&
+                  (calidad ? esCalidad : esDT) ? (
+                    <Button
+                      size="compact-md"
+                      variant="light"
+                      color="estadoCuarentena"
+                      onClick={() => {
+                        setRectificando(true);
+                        setEditando(etapa);
+                      }}
+                    >
+                      Rectificar
+                    </Button>
+                  ) : null}
                   {habilitada && puedeEsta && r && !controlada && claims?.usuario_id ? (
                     <Button
                       size="compact-md"
@@ -315,7 +340,10 @@ export function PaginaOrden() {
 
       <Modal
         opened={editando !== null}
-        onClose={() => setEditando(null)}
+        onClose={() => {
+          setEditando(null);
+          setRectificando(false);
+        }}
         title={ETAPAS.find((e) => e.etapa === editando)?.titulo}
         size="xl"
         centered
@@ -325,7 +353,11 @@ export function PaginaOrden() {
             orden={o}
             etapa={editando}
             registrada={porEtapa.get(editando) ?? null}
-            onListo={() => setEditando(null)}
+            rectificando={rectificando}
+            onListo={() => {
+              setEditando(null);
+              setRectificando(false);
+            }}
           />
         ) : null}
       </Modal>
@@ -391,6 +423,7 @@ export function EditorEtapa({
   onListo,
   inicio = null,
   etiquetaRegistrar = 'Registrar (realizó)',
+  rectificando = false,
 }: {
   orden: OrdenProduccion;
   etapa: EtapaOrden;
@@ -399,7 +432,11 @@ export function EditorEtapa({
   /** Cuándo se empezó la tarea (lo registró la base). Sin él, al abrir. */
   inicio?: string | null;
   etiquetaRegistrar?: string;
+  /** Etapa ya controlada: se guarda como rectificación con motivo (D-rectificar-etapa-1). */
+  rectificando?: boolean;
 }) {
+  const rectificar = useRectificarEtapa();
+  const [motivoRect, setMotivoRect] = useState('');
   const config = configDe(etapa, registrada?.datos ?? {});
   const { claims } = useSesion();
   const [abiertoEn] = useState(() => new Date());
@@ -672,33 +709,70 @@ export function EditorEtapa({
         value={obs}
         onChange={(e) => setObs(e.currentTarget.value)}
       />
+      {rectificando ? (
+        <Textarea
+          label="Motivo de la rectificación"
+          description="Queda registrado con tu nombre, junto a lo que decía antes. El registro original no se borra."
+          required
+          autosize
+          minRows={2}
+          value={motivoRect}
+          onChange={(e) => setMotivoRect(e.currentTarget.value)}
+        />
+      ) : null}
       <Group justify="flex-end">
         <Button variant="subtle" color="gray" onClick={onListo}>
           Volver
         </Button>
-        <Button
-          loading={guardar.isPending}
-          disabled={Boolean(invalido)}
-          onClick={() =>
-            guardar.mutate(
-              {
-                ordenId: orden.id,
-                etapa,
-                ...(registrada ? { id: registrada.id } : {}),
-                // Horarios, fechas, nombre y número de pesada: el sistema.
-                datos: completarAutomaticos(config, d, {
-                  ahora: new Date(),
-                  inicio: empezo,
-                  nombre: claims?.nombre ?? '',
-                }),
-                observaciones: obs.trim() || null,
-              },
-              { onSuccess: onListo },
-            )
-          }
-        >
-          {registrada ? 'Guardar corrección' : etiquetaRegistrar}
-        </Button>
+        {rectificando && registrada ? (
+          <Button
+            color="estadoCuarentena"
+            loading={rectificar.isPending}
+            disabled={Boolean(invalido) || !motivoRect.trim()}
+            onClick={() =>
+              rectificar.mutate(
+                {
+                  etapaId: registrada.id,
+                  ordenId: orden.id,
+                  datos: completarAutomaticos(config, d, {
+                    ahora: new Date(),
+                    inicio: empezo,
+                    nombre: claims?.nombre ?? '',
+                  }),
+                  observaciones: obs.trim() || null,
+                  motivo: motivoRect.trim(),
+                },
+                { onSuccess: onListo },
+              )
+            }
+          >
+            Rectificar
+          </Button>
+        ) : (
+          <Button
+            loading={guardar.isPending}
+            disabled={Boolean(invalido)}
+            onClick={() =>
+              guardar.mutate(
+                {
+                  ordenId: orden.id,
+                  etapa,
+                  ...(registrada ? { id: registrada.id } : {}),
+                  // Horarios, fechas, nombre y número de pesada: el sistema.
+                  datos: completarAutomaticos(config, d, {
+                    ahora: new Date(),
+                    inicio: empezo,
+                    nombre: claims?.nombre ?? '',
+                  }),
+                  observaciones: obs.trim() || null,
+                },
+                { onSuccess: onListo },
+              )
+            }
+          >
+            {registrada ? 'Guardar corrección' : etiquetaRegistrar}
+          </Button>
+        )}
       </Group>
     </Stack>
   );
