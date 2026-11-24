@@ -90,20 +90,20 @@ export const AYUDA_COMERCIAL: MapaAyuda = {
 
   '/despacho': {
     queEs:
-      'Es donde se registra lo que salió de verdad. La factura X de cada pedido es la fuente verdadera: al cargarla, el stock baja por lo facturado, lo reservado que no se mandó vuelve a quedar libre y el pedido pasa al historial. «Para despachar» lista los pedidos que Ventas aprobó; «Historial», los que ya salieron, con su factura.',
+      'Es donde se registra lo que salió de verdad. Las facturas son lo único que baja el stock real: Mayorista (factura X de un pedido), Educadores (factura J) y Minorista (factura C, B o X de mostrador), estas dos de Berna. «Para despachar» lista los pedidos que Ventas aprobó; «Pedidos despachados», los que ya salieron; «Facturas cargadas», todas las facturas.',
     porRol: {
       DESPACHO: [
-        'Tocá «Cargar factura X» (arriba, o en la fila del pedido) y elegí el PDF. Se lee en tu dispositivo y no se guarda.',
-        'Revisá que el pedido sea el correcto: se sugiere solo por el nombre del cliente. La tabla compara el pedido con la factura y dice qué pasa con cada producto.',
+        'Tocá «Cargar factura» (arriba, o «Factura» en la fila del pedido) y elegí el PDF. Se lee en tu dispositivo y no se guarda.',
+        'Elegí el canal: Mayorista, Educadores o Minorista (se sugiere solo por la letra de la factura). En Mayorista revisá que el pedido sea el correcto: se sugiere por el nombre del cliente y la tabla compara el pedido con la factura.',
         'Tocá «Cargar factura y descontar stock». Si algún producto queda en negativo, contá cuántos hay de verdad y cargalo ahí mismo: el stock queda como lo contaste.',
-        'Si un pedido salió sin factura todavía, tocá «Despachado»: sale lo reservado. Cuando llegue la factura, cargala igual y corrige la diferencia.',
+        '«Despachado» cierra el pedido y libera lo reservado, pero no baja stock: el stock baja cuando cargás la factura X.',
       ],
       VENTAS: [
-        'Ves los mismos pedidos que Despacho. El stock que ves al reservar es orientativo: el real baja cuando se carga la factura X o se marca «Despachado».',
+        'Podés cargar facturas igual que Despacho. El stock que ves al reservar es orientativo: el real baja solo cuando se carga la factura.',
       ],
     },
     aTener: [
-      'Una factura X no se carga dos veces: el número no se repite.',
+      'Una factura no se carga dos veces: la misma letra y número del mismo emisor no se repiten.',
       'Los códigos que no están en el catálogo quedan anotados pero no mueven stock.',
     ],
   },

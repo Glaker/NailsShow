@@ -109,10 +109,10 @@ await prueba('todo reservado, se aprueba; aprobado se sigue editando', async () 
   await q(`select comercial.cambiar_reserva_pedido($1,$2,$3,1)`, [v, p102, BER]);
   if ((await reservado(v, p102)) !== 1) throw new Error(String(await reservado(v, p102)));
 });
-await prueba('Despachado: sale lo reservado y el pedido queda entregado', async () => {
+await prueba('Despachado: no mueve stock (lo baja la factura) y el pedido queda entregado', async () => {
   await q(`select comercial.despachar_pedido_reservado($1, 'lo retiró')`, [v]);
-  if ((await saldo(p101)) !== 5) throw new Error('101 ' + (await saldo(p101)));
-  if ((await saldo(p102)) !== 2) throw new Error('102 ' + (await saldo(p102)));
+  if ((await saldo(p101)) !== 10) throw new Error('101 ' + (await saldo(p101)));
+  if ((await saldo(p102)) !== 3) throw new Error('102 ' + (await saldo(p102)));
   const p = await uno(`select estado, entregado_en from comercial.pedidos where id=$1`, [v]);
   if (p.estado !== 'CUMPLIDO' || !p.entregado_en) throw new Error(JSON.stringify(p));
   const r = await uno(

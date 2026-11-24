@@ -65,6 +65,51 @@ describe('parsearFacturaX', () => {
   });
 });
 
+// Factura J 0002-00004184: sin «U. Medida», las columnas se corren a la derecha.
+describe('parsearFacturaX con otra disposición de columnas', () => {
+  const j = parsearFacturaX([
+    [
+      i(300, 767, 'ORIGINAL'),
+      i(371, 809, 'FACTURA J'),
+      i(369, 794, 'Nº: 0002-00004184'),
+      i(369, 779, 'Fecha:'),
+      i(409, 779, '14/11/2026'),
+      i(371, 764, 'CUIT:'),
+      i(404, 764, '27-30958059-7'),
+      i(371, 738, 'Inicio Actividades:'),
+      i(455, 737, '01/07/2023'),
+      i(43, 577, 'Código'),
+      i(187, 577, 'Descripción'),
+      i(352, 577, 'Cantidad'),
+      i(400, 577, 'Precio Unitario'),
+      i(467, 577, '% Bonif.'),
+      i(504, 577, '% IVA'),
+      i(560, 577, 'Subtotal'),
+      i(27, 562, '381'),
+      i(88, 562, 'Aceite de Cuticula AMOR 8ml.'),
+      i(370, 562, '91,000'),
+      i(426, 562, '2.500,000'),
+      i(478, 562, '8,00'),
+      i(507, 562, '0,000'),
+      i(565, 562, '209.300,00'),
+    ],
+  ]);
+
+  it('lee letra, emisor, fecha y el renglón', () => {
+    expect(j).toMatchObject({ tipo: 'J', emisor_cuit: '27-30958059-7', fecha: '2026-11-14' });
+    expect(j.renglones).toEqual([
+      {
+        codigo: '381',
+        descripcion: 'Aceite de Cuticula AMOR 8ml.',
+        cantidad: 91,
+        precio_unitario: 2500,
+        bonificacion_pct: 8,
+        subtotal: 209300,
+      },
+    ]);
+  });
+});
+
 describe('numeroAr', () => {
   it('convierte el formato argentino', () => {
     expect(numeroAr('1.236.900,00')).toBe(1236900);

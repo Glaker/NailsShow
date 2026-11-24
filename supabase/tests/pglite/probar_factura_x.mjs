@@ -170,7 +170,7 @@ await rechaza(
   /no hay|stock|No alcanza/,
 );
 
-// «Despachado» primero, la factura después dice menos: la diferencia vuelve.
+// «Despachado» primero no mueve stock; la factura después baja lo facturado.
 await como('mati@x');
 const w = await pedido('V-X2', [[p101, 3]]);
 await q(
@@ -179,14 +179,62 @@ await q(
 );
 await q(`select comercial.aprobar_venta_reservada($1)`, [w]);
 await como('johana@x');
-await prueba('Johana marca Despachado', async () => {
+await prueba('Johana marca Despachado: el stock no se mueve', async () => {
   await q(`select comercial.despachar_pedido_reservado($1)`, [w]);
-  if ((await saldo(p101)) !== 3) throw new Error('101 ' + (await saldo(p101)));
+  if ((await saldo(p101)) !== 6) throw new Error('101 ' + (await saldo(p101)));
 });
-await prueba('la factura dice 2: vuelve 1 al stock', async () => {
+await prueba('la factura dice 2: bajan 2', async () => {
   await q(`select comercial.cargar_factura_x($1, $2::jsonb)`, [w, factura('X-2', [['101', 2]])]);
   if ((await saldo(p101)) !== 4) throw new Error('101 ' + (await saldo(p101)));
 });
+
+// Sin pedido: Educadores (J) y Minorista (B, C, X) salen de Berna (20261118193000).
+const venta = (tipo, numero, canal, renglones) =>
+  JSON.stringify({
+    numero,
+    tipo,
+    canal,
+    emisor_cuit: '27-30958059-7',
+    fecha: '2026-11-14',
+    cliente: 'MERCEDES PAINEQUEO',
+    renglones: renglones.map(([codigo, cantidad]) => ({ codigo, cantidad, descripcion: codigo })),
+  });
+await prueba('factura J de Educadores: baja el stock de Berna y el envío no mueve nada', async () => {
+  const antes = await saldo(p101);
+  const r = (
+    await uno(`select comercial.cargar_factura_venta($1::jsonb) j`, [
+      venta('J', '0002-00004184', 'EDUCADORES', [
+        ['101', 3],
+        ['500', 1],
+      ]),
+    ])
+  ).j;
+  if ((await saldo(p101)) !== antes - 3) throw new Error('101 ' + (await saldo(p101)));
+  if (r.sin_catalogo !== '500') throw new Error('sin catálogo ' + r.sin_catalogo);
+});
+await prueba('la misma numeración con otra letra es otra factura (minorista X)', async () => {
+  const antes = await saldo(p101);
+  await q(`select comercial.cargar_factura_venta($1::jsonb)`, [
+    venta('X', '0002-00004184', 'MINORISTA', [['101', 1]]),
+  ]);
+  if ((await saldo(p101)) !== antes - 1) throw new Error('101 ' + (await saldo(p101)));
+});
+await rechaza(
+  'la misma factura J no se carga dos veces',
+  `select comercial.cargar_factura_venta('${venta('J', '0002-00004184', 'EDUCADORES', [['101', 1]])}'::jsonb)`,
+  /ya está cargada/,
+);
+await rechaza(
+  'sin pedido no hay factura mayorista',
+  `select comercial.cargar_factura_venta('${venta('X', '0100-1', 'MAYORISTA', [['101', 1]])}'::jsonb)`,
+  /Educadores o Minorista/,
+);
+await como('naza@x');
+await rechaza(
+  'Producción no carga facturas',
+  `select comercial.cargar_factura_venta('${venta('C', '0003-1', 'MINORISTA', [['101', 1]])}'::jsonb)`,
+  /Despacho, Ventas o Administración/,
+);
 
 await invariantes();
 fin();

@@ -256,7 +256,7 @@ export function useDespacharPedidoReservado() {
     onSuccess: () => {
       invalidar(qc);
       void qc.invalidateQueries({ queryKey: ['reservas-pt'] });
-      avisarExito('Pedido despachado: lo reservado salió del stock.');
+      avisarExito('Pedido despachado. El stock baja cuando se carga la factura X.');
     },
     onError: avisarError,
   });

@@ -16,17 +16,27 @@ import { IconFileInvoice, IconSearch, IconTruckDelivery } from '@tabler/icons-re
 import { EncabezadoPagina } from '@/components/EncabezadoPagina';
 import { Vacio } from '@/components/Vacio';
 import { fecha, fechaHora, numero } from '@/lib/formato';
-import { useDespacharPedidoReservado, useVentas, type FilaVenta } from '@/lib/consultasVentas';
-import { useFacturasX } from '@/lib/consultasDespacho';
+import {
+  useDespacharPedidoReservado,
+  useVentas,
+  type FilaVenta,
+} from '@/lib/consultasVentas';
+import { useFacturasX, type FacturaXCargada } from '@/lib/consultasDespacho';
 import { CargarFacturaX } from './CargarFacturaX';
 
-type Vista = 'despachar' | 'historial';
+type Vista = 'despachar' | 'historial' | 'facturas';
+const CANAL = {
+  MAYORISTA: 'Mayorista',
+  EDUCADORES: 'Educadores',
+  MINORISTA: 'Minorista',
+} as const;
 const APROBADO = ['CONFIRMADO', 'EN_PRODUCCION', 'CUMPLIDO'];
 
 /**
- * Despacho (D-factura-x-1, pedido del 2026-11-18): los pedidos aprobados que
- * esperan salir, con «Cargar factura X» y «Despachado», y el historial de lo
- * que fue saliendo. La factura X es lo que salió de verdad: baja el stock.
+ * Despacho (D-factura-x-1, D-factura-x-2): los pedidos aprobados que esperan
+ * salir, con «Factura» y «Despachado», lo que fue saliendo y las facturas
+ * cargadas. Las facturas (X mayorista, J educadores, C/B/X minorista) son lo
+ * único que baja el stock real; «Despachado» solo cierra el pedido.
  */
 export function PaginaDespacho() {
   const ventas = useVentas();
@@ -44,10 +54,15 @@ export function PaginaDespacho() {
   );
   const facturasDe = useMemo(() => {
     const m = new Map<string, string[]>();
-    for (const f of facturas.data ?? []) m.set(f.pedido_id, [...(m.get(f.pedido_id) ?? []), f.numero]);
+    for (const f of facturas.data ?? [])
+      if (f.pedido_id) m.set(f.pedido_id, [...(m.get(f.pedido_id) ?? []), f.numero]);
     return m;
   }, [facturas.data]);
 
+  const pedidoDe = useMemo(
+    () => new Map((ventas.data ?? []).map((v) => [v.id, v.numero])),
+    [ventas.data],
+  );
   const q = buscar.trim().toLowerCase();
   const filas = aprobados
     .filter((v) => (vista === 'despachar' ? !v.entregado_en : !!v.entregado_en))
@@ -68,14 +83,14 @@ export function PaginaDespacho() {
     <>
       <EncabezadoPagina
         titulo="Despacho"
-        descripcion="La factura X es lo que salió de verdad: al cargarla baja el stock y lo que no se mandó vuelve a quedar libre."
+        descripcion="Las facturas son lo que salió de verdad: solo al cargarlas baja el stock. Mayorista (X con pedido), Educadores (J) y Minorista (C, B o X)."
         acciones={
           <Button
             size="md"
             leftSection={<IconFileInvoice size={20} />}
             onClick={() => setCargando({ pedido: null })}
           >
-            Cargar factura X
+            Cargar factura
           </Button>
         }
       />
@@ -86,7 +101,8 @@ export function PaginaDespacho() {
           onChange={(v) => setVista(v as Vista)}
           data={[
             { value: 'despachar', label: 'Para despachar' },
-            { value: 'historial', label: 'Historial' },
+            { value: 'historial', label: 'Pedidos despachados' },
+            { value: 'facturas', label: 'Facturas cargadas' },
           ]}
         />
         <TextInput
@@ -99,12 +115,28 @@ export function PaginaDespacho() {
         />
       </Group>
 
-      {ventas.isLoading ? (
+      {vista === 'facturas' ? (
+        <TablaFacturas
+          facturas={(facturas.data ?? []).filter(
+            (f) =>
+              !q ||
+              f.numero.includes(q) ||
+              (f.cliente ?? '').toLowerCase().includes(q) ||
+              (pedidoDe.get(f.pedido_id ?? '') ?? '').toLowerCase().includes(q),
+          )}
+          pedidoDe={pedidoDe}
+          cargando={facturas.isLoading}
+        />
+      ) : ventas.isLoading ? (
         <Skeleton h={240} />
       ) : filas.length === 0 ? (
         <Vacio
           icono={IconTruckDelivery}
-          titulo={vista === 'despachar' ? 'No hay pedidos para despachar' : 'Todavía no salió nada'}
+          titulo={
+            vista === 'despachar'
+              ? 'No hay pedidos para despachar'
+              : 'Todavía no salió nada'
+          }
           descripcion={
             vista === 'despachar'
               ? 'Acá aparecen los pedidos que Ventas aprobó.'
@@ -159,7 +191,7 @@ export function PaginaDespacho() {
                             leftSection={<IconFileInvoice size={18} />}
                             onClick={() => setCargando({ pedido: v.id })}
                           >
-                            Factura X
+                            Factura
                           </Button>
                           {vista === 'despachar' ? (
                             <Button
@@ -200,8 +232,8 @@ export function PaginaDespacho() {
       >
         <Stack gap="md">
           <Text size="sm">
-            Sale del stock lo que el pedido tiene reservado y queda entregado. Si después cargás
-            la factura X, corrige contra lo que salió.
+            Cierra el pedido y libera lo reservado. No mueve stock: el stock baja cuando
+            se carga la factura X.
           </Text>
           <Textarea
             label="Observación (opcional)"
@@ -232,5 +264,63 @@ export function PaginaDespacho() {
         </Stack>
       </Modal>
     </>
+  );
+}
+
+function TablaFacturas({
+  facturas,
+  pedidoDe,
+  cargando,
+}: {
+  facturas: FacturaXCargada[];
+  pedidoDe: Map<string, string>;
+  cargando: boolean;
+}) {
+  if (cargando) return <Skeleton h={240} />;
+  if (facturas.length === 0)
+    return (
+      <Vacio
+        icono={IconFileInvoice}
+        titulo="Todavía no hay facturas cargadas"
+        descripcion="Acá quedan todas las facturas que bajaron stock: mayoristas, de educadores y minoristas."
+      />
+    );
+  return (
+    <Paper withBorder>
+      <Table.ScrollContainer minWidth={640}>
+        <Table verticalSpacing="sm" highlightOnHover>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Fecha</Table.Th>
+              <Table.Th>Factura</Table.Th>
+              <Table.Th>Canal</Table.Th>
+              <Table.Th>Cliente</Table.Th>
+              <Table.Th>Pedido</Table.Th>
+              <Table.Th ta="right">Total</Table.Th>
+              <Table.Th>Cargada</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {facturas.map((f) => (
+              <Table.Tr key={f.id}>
+                <Table.Td>{fecha(f.fecha)}</Table.Td>
+                <Table.Td fw={600}>
+                  {f.tipo} {f.numero}
+                </Table.Td>
+                <Table.Td>{CANAL[f.canal]}</Table.Td>
+                <Table.Td>{f.cliente ?? '—'}</Table.Td>
+                <Table.Td>
+                  {f.pedido_id ? (pedidoDe.get(f.pedido_id) ?? '—') : '—'}
+                </Table.Td>
+                <Table.Td ta="right">
+                  {f.total === null ? '—' : `$${numero(f.total, 0)}`}
+                </Table.Td>
+                <Table.Td>{fechaHora(f.cargada_en)}</Table.Td>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
+      </Table.ScrollContainer>
+    </Paper>
   );
 }
