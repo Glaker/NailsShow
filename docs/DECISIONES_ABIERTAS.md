@@ -2485,7 +2485,7 @@ hacían.
 que manda la fábrica) y tres salidas: Mayorista (factura X con su pedido),
 Educadores (factura J) y Minorista (factura C, B electrónica o X de mostrador).
 Las facturas son la única fuente que da de baja el stock real. Las cargan
-indistintamente Despacho (Johana), Ventas (Mati) y Administración (Diego).
+indistintamente Despacho (Johana), Ventas (Mati), Administración (Diego) y, desde el 2026-11-24, Gerencia de Producción (Naza).
 Educadores y Minorista no tienen pedido y bajan del stock de Berna.
 «Despachado» deja de mover stock: cierra el pedido y libera lo reservado; la
 factura X que llegue después baja todo lo facturado.

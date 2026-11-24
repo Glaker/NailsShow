@@ -23,6 +23,7 @@ import {
 } from '@/lib/consultasVentas';
 import { useFacturasX, type FacturaXCargada } from '@/lib/consultasDespacho';
 import { CargarFacturaX } from './CargarFacturaX';
+import { useTieneRol } from '@/features/auth/sesion';
 
 type Vista = 'despachar' | 'historial' | 'facturas';
 const CANAL = {
@@ -42,6 +43,8 @@ export function PaginaDespacho() {
   const ventas = useVentas();
   const facturas = useFacturasX();
   const despachar = useDespacharPedidoReservado();
+  // «Despachado» cierra el pedido: Ventas, Administración o Despacho. Naza solo carga facturas.
+  const cierraPedidos = useTieneRol('VENTAS', 'ADMINISTRACION', 'DESPACHO');
   const [vista, setVista] = useState<Vista>('despachar');
   const [buscar, setBuscar] = useState('');
   const [cargando, setCargando] = useState<{ pedido: string | null } | null>(null);
@@ -193,7 +196,7 @@ export function PaginaDespacho() {
                           >
                             Factura
                           </Button>
-                          {vista === 'despachar' ? (
+                          {vista === 'despachar' && cierraPedidos ? (
                             <Button
                               size="sm"
                               color="teal"

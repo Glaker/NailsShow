@@ -101,6 +101,12 @@ export const AYUDA_COMERCIAL: MapaAyuda = {
       VENTAS: [
         'Podés cargar facturas igual que Despacho. El stock que ves al reservar es orientativo: el real baja solo cuando se carga la factura.',
       ],
+      ADMINISTRACION: [
+        'Podés cargar facturas igual que Despacho: «Cargar factura», elegí el PDF y el canal.',
+      ],
+      GERENCIA_PRODUCCION: [
+        'Podés cargar facturas: «Cargar factura», elegí el PDF y el canal (Mayorista con su pedido, Educadores o Minorista). Si un producto queda en negativo, cargá el conteo ahí mismo.',
+      ],
     },
     aTener: [
       'Una factura no se carga dos veces: la misma letra y número del mismo emisor no se repiten.',

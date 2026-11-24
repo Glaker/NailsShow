@@ -230,10 +230,19 @@ await rechaza(
   /Educadores o Minorista/,
 );
 await como('naza@x');
+await prueba('Naza (Gerencia de Producción) carga una factura C minorista', async () => {
+  const antes = await saldo(p101);
+  await q(`select comercial.cargar_factura_venta($1::jsonb)`, [
+    venta('C', '0003-1', 'MINORISTA', [['101', 1]]),
+  ]);
+  if ((await saldo(p101)) !== antes - 1) throw new Error('101 ' + (await saldo(p101)));
+});
+await usuario('cc@x', 'CONTROL_CALIDAD');
+await como('cc@x');
 await rechaza(
-  'Producción no carga facturas',
-  `select comercial.cargar_factura_venta('${venta('C', '0003-1', 'MINORISTA', [['101', 1]])}'::jsonb)`,
-  /Despacho, Ventas o Administración/,
+  'Calidad no carga facturas',
+  `select comercial.cargar_factura_venta('${venta('C', '0003-2', 'MINORISTA', [['101', 1]])}'::jsonb)`,
+  /Gerencia de Producción/,
 );
 
 await invariantes();
