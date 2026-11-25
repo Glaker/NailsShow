@@ -834,3 +834,31 @@ export function useFaltantesTanda(
     },
   });
 }
+
+/**
+ * Última rectificación de la cantidad teórica de la orden (20261125120100), o
+ * null. La orden no se edita: la que vale es esta.
+ */
+export function useTeoricaRectificada(ordenId: string | undefined) {
+  return useQuery({
+    queryKey: ['orden', ordenId, 'teorica-rectificada'],
+    enabled: Boolean(ordenId),
+    queryFn: async () => {
+      const { data, error } = await gmpST()
+        .from('ordenes_teorica_rectificaciones')
+        .select('cantidad, cantidad_anterior, motivo, rectifico_en')
+        .eq('orden_id', ordenId!)
+        .order('orden', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      const fila: {
+        cantidad: number;
+        cantidad_anterior: number;
+        motivo: string;
+        rectifico_en: string;
+      } | null = data;
+      return fila;
+    },
+  });
+}

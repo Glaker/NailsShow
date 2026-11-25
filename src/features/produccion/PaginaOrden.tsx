@@ -50,6 +50,7 @@ import {
   useLiberarOrden,
   useOrden,
   usePesadaTeorica,
+  useTeoricaRectificada,
   type DatosEtapa,
   type EtapaOrden,
   type EtapaRegistrada,
@@ -104,6 +105,7 @@ export function PaginaOrden() {
   const analisisGranel = useRegistrosAnalisis({ ordenId: id });
   const dictaminarGranel = useDictaminarGranel();
   const [analizando, setAnalizando] = useState(false);
+  const rect = useTeoricaRectificada(id).data ?? null;
 
   if (orden.isLoading) return <Skeleton h={400} />;
   if (!orden.data) {
@@ -180,7 +182,13 @@ export function PaginaOrden() {
           <SimpleGrid cols={{ base: 2, sm: 4 }}>
             <Dato t="Elaboración">{fecha(o.jornada)}</Dato>
             <Dato t="Cantidad teórica">
-              {numero(Number(o.cantidad_teorica), 2)} {o.unidad}
+              {numero(Number(rect?.cantidad ?? o.cantidad_teorica), 2)} {o.unidad}
+              {rect ? (
+                <Text size="xs" c="dimmed">
+                  Rectificada; era {numero(Number(rect.cantidad_anterior), 2)} {o.unidad}.{' '}
+                  {rect.motivo}
+                </Text>
+              ) : null}
             </Dato>
             <Dato t="Obtenido">
               {o.cantidad_obtenida !== null
@@ -443,9 +451,10 @@ export function EditorEtapa({
   const empezo = inicio ? new Date(inicio) : abiertoEn;
   const guardar = useGuardarEtapa();
   const equipos = useEquipos();
+  const rect = useTeoricaRectificada(orden.id).data ?? null;
   const pesada = usePesadaTeorica(
     etapa === 'PESADA' && !registrada ? orden.formula_id : undefined,
-    Number(orden.cantidad_teorica),
+    Number(rect?.cantidad ?? orden.cantidad_teorica),
     orden.unidad,
   );
   const espec = useEspecificacionCompleta(

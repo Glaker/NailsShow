@@ -25,9 +25,6 @@ const SOLO_PRODUCCION = new Set([
   '20261110150100_carga_lista_codigos_pack_a_unidad.sql', // lista real: los PACK pasan a unidad
   '20261112130100_carga_cuenta_cliente_prueba.sql', // cuenta de demostración real
   '20261112160000_anula_ajustes_romero_lotes_reales.sql', // ajustes de la carga Romero sobre lotes reales
-  // ponytail: mezcla esquema gmp con el arreglo de OP-2026-0008 (que en PGlite no existe) y aborta;
-  // se omite entera, así que las suites no cubren la sustitución de insumo hasta separarla.
-  '20261113130000_gmp_sustitucion_insumo_orden.sql',
   '20261113120000_baja_alcohol_sanitizante.sql', // carga de datos de la base real
   '20261112170000_sanitizantes_alcohol_cleanser.sql', // carga de datos de la base real
   '20261113150000_tandas_sin_mp_duplicada.sql', // anula bajas dobles de OP-2026-0020/21/22 (datos reales)
@@ -38,6 +35,7 @@ const SOLO_PRODUCCION = new Set([
   '20261118130000_comercial_stock_fabrica_ceros_16_11.sql', // ídem, los que no estaban en la lista
   '20261118140000_comercial_libera_reserva_duo01_v0111.sql', // reserva real del V-0111
   '20261118150000_carga_lista_mayorista_46_15.sql', // lista 46.15 sobre el catálogo real
+  '20261125120200_comercial_fabrica_91_no_estaba.sql', // 91 real fuera de PTF
 ]);
 
 export async function reconstruir({ silencioso = false } = {}) {
@@ -106,7 +104,10 @@ export async function reconstruir({ silencioso = false } = {}) {
     // Igual que supabase db push: una sola sesión, sin reiniciar el claim entre
     // archivos. Reiniciarlo escondió el defecto que corrige 20260922205000.
     await db.exec('reset role');
-    const sql = readFileSync(ruta, 'utf8');
+    let sql = readFileSync(ruta, 'utf8');
+    // Mezcla esquema con el arreglo de OP-2026-0008, que en PGlite no existe: solo el esquema.
+    if (f === '20261113130000_gmp_sustitucion_insumo_orden.sql')
+      sql = sql.slice(0, sql.indexOf('-- Órdenes con 135SAN'));
     try {
       await db.exec(`begin;\n${sql}\ncommit;`);
       if (!silencioso) console.log('ok   ', f);

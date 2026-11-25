@@ -34,7 +34,7 @@ import {
   type PedidoConConteoRow,
 } from '@/lib/consultasComercial';
 import { fecha, fechaISO, numero, desdeCalendario } from '@/lib/formato';
-import { UNIDADES_GRANEL, totalOrden, type UnidadGranel } from '@/lib/consultasCostos';
+import { totalOrden, type UnidadGranel } from '@/lib/consultasCostos';
 import {
   useAbrirOrden,
   useAnularOrden,
@@ -301,7 +301,7 @@ export function ModalAbrirOrden({
     const f = (productos.data ?? []).find((x) => x.id === r.producto_id);
     return totalOrden(
       n(f?.contenido_neto ?? 0),
-      (f?.unidad_contenido === 'mL' ? 'ml' : 'g'),
+      f?.unidad_contenido === 'mL' ? 'ml' : 'g',
       r.unidades,
     );
   });
@@ -599,7 +599,9 @@ export function ModalAbrirOrden({
           />
           <Select
             label="Unidad"
-            data={UNIDADES_GRANEL.map((u) => u.value)}
+            /* Solo g o ml (2026-11-25): «240 kg» por frasco dio OP-2026-0029
+               con 80.640 kg; un litro se escribe 1000 ml. */
+            data={['g', 'ml']}
             value={pu.unidad}
             onChange={(v) => v && setPorUnidad({ ...pu, unidad: v as UnidadGranel })}
             allowDeselect={false}
