@@ -33,6 +33,14 @@ export interface FacturaX {
   cliente: string | null;
   total: number | null;
   renglones: RenglonFacturaX[];
+  /** SHA-256 de los bytes del PDF: la base no deja cargarlo dos veces (20261125140000). */
+  pdf_sha256?: string;
+}
+
+/** SHA-256 en hexadecimal de los bytes del archivo. */
+export async function huellaPdf(archivo: File): Promise<string> {
+  const h = await crypto.subtle.digest('SHA-256', await archivo.arrayBuffer());
+  return [...new Uint8Array(h)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 /** «1.234,560» → 1234.56. */
@@ -108,7 +116,8 @@ export function parsearFacturaX(paginas: ItemTexto[][]): FacturaX {
     return (
       todas
         .filter((i) => misma(i.y, e.y) && i.x > Math.max(e.x, desdeX) && i.str.trim())
-        .sort((a, b) => a.x - b.x)[0]?.str.trim() ?? null
+        .sort((a, b) => a.x - b.x)[0]
+        ?.str.trim() ?? null
     );
   };
   // La fecha es la de «Fecha:», no la de «Inicio Actividades» (factura B de Athene).
@@ -186,14 +195,17 @@ export async function leerPdfFacturaX(archivo: File): Promise<FacturaX> {
   const pdfjs = await import('pdfjs-dist');
   const { default: worker } = await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
   pdfjs.GlobalWorkerOptions.workerSrc = worker;
-  const doc = await pdfjs.getDocument({ data: new Uint8Array(await archivo.arrayBuffer()) })
-    .promise;
+  const doc = await pdfjs.getDocument({
+    data: new Uint8Array(await archivo.arrayBuffer()),
+  }).promise;
   const paginas: ItemTexto[][] = [];
   for (let n = 1; n <= doc.numPages; n++) {
     const contenido = await (await doc.getPage(n)).getTextContent();
     paginas.push(
       contenido.items.flatMap((i) =>
-        'str' in i ? [{ x: i.transform[4] as number, y: i.transform[5] as number, str: i.str }] : [],
+        'str' in i
+          ? [{ x: i.transform[4] as number, y: i.transform[5] as number, str: i.str }]
+          : [],
       ),
     );
   }

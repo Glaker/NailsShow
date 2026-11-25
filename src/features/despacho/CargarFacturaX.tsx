@@ -14,12 +14,18 @@ import {
   Text,
 } from '@mantine/core';
 import { IconAlertTriangle, IconFileTypePdf } from '@tabler/icons-react';
-import { fecha, numero } from '@/lib/formato';
-import { facturadoPorCodigo, leerPdfFacturaX, type FacturaX } from '@/lib/facturaX';
+import { fecha, fechaHora, numero } from '@/lib/formato';
+import {
+  facturadoPorCodigo,
+  huellaPdf,
+  leerPdfFacturaX,
+  type FacturaX,
+} from '@/lib/facturaX';
 import {
   useCargarConteo,
   useCargarFacturaVenta,
   useCargarFacturaX,
+  useFacturaYaCargada,
   useProductosPorCodigo,
   useRenglonesPedido,
   type Canal,
@@ -57,6 +63,8 @@ export function CargarFacturaX({
   const cargar = useCargarFacturaX();
   const vender = useCargarFacturaVenta();
   const contar = useCargarConteo();
+  const yaCargada = useFacturaYaCargada(resultado ? null : factura);
+  const repetida = yaCargada.data ?? null;
 
   // El pedido sugerido: el elegido a mano, el que vino de la fila, o el abierto del mismo cliente.
   const sugerido = useMemo(() => {
@@ -142,12 +150,15 @@ export function CargarFacturaX({
     if (!archivo) return;
     setLeyendo(true);
     try {
-      const f = await leerPdfFacturaX(archivo);
+      const [f, pdf_sha256] = await Promise.all([
+        leerPdfFacturaX(archivo),
+        huellaPdf(archivo),
+      ]);
       if (!f.numero || f.renglones.length === 0)
         setErrorPdf(
           'No se encontró el número ni los renglones: ¿es una factura del sistema?',
         );
-      else setFactura(f);
+      else setFactura({ ...f, pdf_sha256 });
     } catch {
       setErrorPdf('No se pudo leer el PDF.');
     } finally {
@@ -281,6 +292,19 @@ export function CargarFacturaX({
                 {factura.cliente ?? ''}
                 {factura.total !== null ? ` · total $${numero(factura.total, 0)}` : ''}
               </Text>
+              {repetida ? (
+                <Alert
+                  color="red"
+                  variant="light"
+                  icon={<IconAlertTriangle size={20} />}
+                  title="Esta factura ya está cargada"
+                >
+                  {repetida.pdf_igual ? 'Este mismo PDF' : 'Este comprobante'} ya lo cargó{' '}
+                  {repetida.cargada_por ?? 'otra persona'} el{' '}
+                  {fechaHora(repetida.cargada_en)} (factura {repetida.tipo}{' '}
+                  {repetida.numero}). No se puede cargar de nuevo: el stock ya bajó.
+                </Alert>
+              ) : null}
               <SegmentedControl
                 size="md"
                 fullWidth
@@ -377,7 +401,11 @@ export function CargarFacturaX({
                 </Button>
                 <Button
                   size="md"
-                  disabled={mayorista && (!pedidoId || renglones.isLoading)}
+                  disabled={
+                    !!repetida ||
+                    yaCargada.isLoading ||
+                    (mayorista && (!pedidoId || renglones.isLoading))
+                  }
                   loading={cargar.isPending || vender.isPending}
                   onClick={() =>
                     mayorista

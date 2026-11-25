@@ -8,6 +8,7 @@ import { avisarError, avisarExito } from './consultas';
 import { comercial, gmp } from './supabase';
 import type { FacturaX } from './facturaX';
 import type { Json } from './database.types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface RenglonPedidoDespacho {
   producto_id: string;
@@ -129,6 +130,44 @@ const invalidar = (qc: ReturnType<typeof useQueryClient>) => {
   ])
     void qc.invalidateQueries({ queryKey: [k] });
 };
+
+export interface FacturaYaCargada {
+  tipo: string;
+  numero: string;
+  cargada_en: string;
+  cargada_por: string | null;
+  pdf_igual: boolean;
+}
+
+/**
+ * Si esta factura (mismo PDF o mismo comprobante) ya se cargó, quién y
+ * cuándo (20261125140000). Avisa antes de confirmar; la base igual la rechaza.
+ */
+export function useFacturaYaCargada(factura: FacturaX | null) {
+  return useQuery({
+    queryKey: [
+      'facturas-x',
+      'ya-cargada',
+      factura?.pdf_sha256,
+      factura?.tipo,
+      factura?.numero,
+    ],
+    enabled: !!factura?.pdf_sha256,
+    queryFn: async (): Promise<FacturaYaCargada | null> => {
+      const r = (await (comercial() as unknown as SupabaseClient).rpc(
+        'factura_ya_cargada',
+        {
+          p_pdf_sha256: factura!.pdf_sha256,
+          p_tipo: factura!.tipo,
+          p_emisor_cuit: factura!.emisor_cuit,
+          p_numero: factura!.numero,
+        },
+      )) as { data: FacturaYaCargada[] | null; error: Error | null };
+      if (r.error) throw r.error;
+      return r.data?.[0] ?? null;
+    },
+  });
+}
 
 export function useCargarFacturaX() {
   const qc = useQueryClient();
