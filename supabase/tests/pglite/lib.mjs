@@ -77,10 +77,55 @@ export async function banco() {
     );
     await db.exec('set session_replication_role = origin');
   };
+  // Atajo de preparación: stock aprobado de un insumo por el circuito de
+  // recepción. El saldo de apertura se dio de baja en 20261020120000, así que
+  // lo que una suite consume (p. ej. la bolsita 105BOL del DUO01) lo carga acá.
+  const stockInsumo = async (codigo, cantidad) => {
+    await db.exec('reset role');
+    await db.query(
+      `select public.sesion((select id from core.usuarios where email='verificacion@nailshow.com.ar'))`,
+    );
+    const ins = await uno(`select id, unidad_medida from gmp.insumos_catalogo where codigo_interno=$1`, [
+      codigo,
+    ]);
+    const prov = await uno(
+      `insert into gmp.proveedores (razon_social) values ('Prov stock ' || $1) returning id`,
+      [codigo],
+    );
+    const rec = await uno(
+      `insert into gmp.recepciones (proveedor_id, numero_remito, coincide_con_pedido)
+       values ($1, 'R-stock-' || $2, true) returning id`,
+      [prov.id, codigo],
+    );
+    const lote = await uno(
+      `insert into gmp.lotes_insumo (recepcion_id, insumo_id, lote_proveedor, cantidad_bultos, cantidad_unidades, unidad, contenedores_limpiados)
+       values ($1, $2, 'L-stock', 1, $3, $4, true) returning id`,
+      [rec.id, ins.id, cantidad, ins.unidad_medida],
+    );
+    await db.query(`select * from comercial.cargar_recepcion_a_stock($1)`, [rec.id]);
+    // Aprobado sin recorrer el control de Calidad (como probar_faltantes_tanda).
+    await db.exec('set session_replication_role = replica');
+    await db.query(`update gmp.lotes_insumo set estado = 'APROBADO' where id = $1`, [lote.id]);
+    await db.exec('set session_replication_role = origin');
+    await db.exec('reset role');
+    return lote.id;
+  };
   const fin = () => {
     console.log(`\n${r.ok} en verde, ${r.mal} en rojo`);
     process.exit(r.mal ? 1 : 0);
   };
   await db.exec('begin');
-  return { db, q, uno, prueba, rechaza, como, usuario, fin, invariantes, liberarAtajo };
+  return {
+    db,
+    q,
+    uno,
+    prueba,
+    rechaza,
+    como,
+    usuario,
+    fin,
+    invariantes,
+    liberarAtajo,
+    stockInsumo,
+  };
 }
