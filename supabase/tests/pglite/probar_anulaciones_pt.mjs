@@ -1,6 +1,9 @@
 // Anulaciones de producto terminado (20261016130000): no son una puerta lateral a RN-51.
 import { banco } from './lib.mjs';
-const { db, q, uno, prueba, rechaza, como, usuario, fin, invariantes } = await banco();
+const { db, q, uno, prueba, rechaza, como, usuario, fin, invariantes, stockInsumo } =
+  await banco();
+// El DUO01 lleva la bolsita 105BOL: sin saldo de apertura desde 20261020120000.
+await stockInsumo('105BOL', 10000);
 await usuario('naza@x', 'GERENCIA_PRODUCCION');
 await usuario('mati@x', 'VENTAS', 'ADMINISTRACION');
 const DT = 'salta.agustin@gmail.com';

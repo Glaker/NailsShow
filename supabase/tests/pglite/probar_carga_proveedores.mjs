@@ -1,5 +1,5 @@
 // Carga del listado unificado de proveedores (20261023150000).
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { banco } from './lib.mjs';
 const { db, q, uno, prueba, fin, invariantes } = await banco();
 await db.exec('reset role');
@@ -41,7 +41,8 @@ await prueba('correrla otra vez no cambia nada', async () => {
   const antes = await total();
   const nombre = '20261023150000_carga_proveedores_unificado.sql';
   const borr = new URL('./borradores/', import.meta.url);
-  const ruta = readdirSync(borr).includes(nombre)
+  // borradores/ es opcional (no está en un clon limpio), como en reconstruir.mjs.
+  const ruta = existsSync(borr) && readdirSync(borr).includes(nombre)
     ? new URL(nombre, borr)
     : new URL(`../../migrations/${nombre}`, import.meta.url);
   await db.exec(readFileSync(ruta, 'utf8'));

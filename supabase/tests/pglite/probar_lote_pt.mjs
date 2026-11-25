@@ -1,6 +1,8 @@
 import { banco } from './lib.mjs';
-const { db, q, uno, prueba, rechaza, como, usuario, fin, invariantes, liberarAtajo } =
+const { db, q, uno, prueba, rechaza, como, usuario, fin, invariantes, liberarAtajo, stockInsumo } =
   await banco();
+// El DUO01 lleva la bolsita 105BOL: sin saldo de apertura desde 20261020120000.
+await stockInsumo('105BOL', 10000);
 await usuario('naza@x', 'GERENCIA_PRODUCCION');
 await usuario('silveira@x', 'ENCARGADA_STOCK', 'DEPOSITO');
 const DT = 'salta.agustin@gmail.com';

@@ -1,5 +1,8 @@
 import { banco } from './lib.mjs';
-const { db, q, uno, prueba, rechaza, como, usuario, fin, invariantes } = await banco();
+const { db, q, uno, prueba, rechaza, como, usuario, fin, invariantes, stockInsumo } =
+  await banco();
+// El DUO01 lleva la bolsita 105BOL: sin saldo de apertura desde 20261020120000.
+await stockInsumo('105BOL', 10000);
 const NAZA = 'corporativo.nailshow@gmail.com';
 await db.exec(`update core.usuarios set rol='GERENCIA_PRODUCCION' where email='${NAZA}'`);
 await usuario('silveira@x', 'ENCARGADA_STOCK', 'DEPOSITO');

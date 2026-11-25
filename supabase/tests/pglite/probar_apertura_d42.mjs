@@ -140,11 +140,13 @@ await prueba('su costo anterior se anuló con una fila sin importe', async () =>
   if (r.length && (r[0].importe !== null || !/cantidad/.test(r[0].motivo)))
     throw new Error(JSON.stringify(r));
 });
+// Desde D-densidad-supuesta-1 (20261105160000) la fragancia sin densidad
+// cargada usa la supuesta: la presentación en litros ya se costea.
 await prueba(
-  'presentación en litros de un insumo en gramos sin densidad: pendiente por densidad',
+  'presentación en litros de una fragancia en gramos: se costea con la densidad supuesta',
   async () => {
     const r = await ref('135FRA1');
-    if (r.costo_unitario_ars !== null || !/densidad/i.test(r.pendiente ?? ''))
+    if (!(Number(r.costo_unitario_ars) > 0) || r.pendiente !== null)
       throw new Error(JSON.stringify(r));
   },
 );
@@ -154,23 +156,18 @@ await prueba('el Excel de pendientes trae lo que dice la planilla', async () => 
   );
   const crema = r.find((x) => x.codigo_interno === '370CREMA');
   const fra = r.find((x) => x.codigo_interno === '135FRA1');
-  if (
-    !crema ||
-    crema.cantidad !== null ||
-    !fra ||
-    Number(fra.cantidad) !== 1000 ||
-    fra.unidad !== 'ml'
-  )
+  // La fragancia ya no está pendiente (densidad supuesta).
+  if (!crema || crema.cantidad !== null || fra)
     throw new Error(JSON.stringify({ crema, fra, n: r.length }));
 });
 await prueba(
-  'un producto con un insumo pendiente dice por qué en el desglose',
+  'la fragancia con densidad supuesta no figura como faltante en el desglose',
   async () => {
     const r = await uno(`
     select c.falta from comercial.costos_productos() c
       join gmp.insumos_catalogo i on i.id = c.insumo_id
      where i.codigo_interno = '135FRA1' limit 1`);
-    if (r && !/densidad/i.test(r.falta ?? '')) throw new Error(JSON.stringify(r));
+    if (r && r.falta !== null) throw new Error(JSON.stringify(r));
   },
 );
 await prueba('el costo de referencia manual se carga con IVA y costea neto', async () => {
