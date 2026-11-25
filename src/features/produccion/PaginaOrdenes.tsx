@@ -295,15 +295,13 @@ export function ModalAbrirOrden({
     hermanos.some((h) => h.id === r.producto_id),
   );
   const unidadesTotales = n(unidades) + repHermanos.reduce((a, r) => a + r.unidades, 0);
-  /* Granel de cada hermano con su contenido de rótulo; si a alguno le falta o
-     va en otra unidad, la teórica se escribe a mano. */
+  /* Granel de cada hermano: el número de su rótulo en la unidad elegida para el
+     principal (pedido del 2026-11-25): si la crema de 240 ml se pesa como 240 g,
+     la de 100 ml va como 100 g y la cuenta sigue automática. Si a alguno le
+     falta el contenido, la teórica se escribe a mano. */
   const granelHermanos = repHermanos.map((r) => {
     const f = (productos.data ?? []).find((x) => x.id === r.producto_id);
-    return totalOrden(
-      n(f?.contenido_neto ?? 0),
-      f?.unidad_contenido === 'mL' ? 'ml' : 'g',
-      r.unidades,
-    );
+    return totalOrden(n(f?.contenido_neto ?? 0), pu.unidad, r.unidades);
   });
   const principal = totalOrden(n(pu.valor), pu.unidad, n(unidades));
   const base = principal ?? granelHermanos[0] ?? null;
