@@ -12,6 +12,7 @@ import {
   useEspecificacionCompleta,
   useOrden,
   useTandasOrden,
+  useTeoricaRectificada,
   type EtapaOrden,
   type EtapaRegistrada,
   type OrdenProduccion,
@@ -306,6 +307,7 @@ function Seccion({
 export function BatchRecord() {
   const { id } = useParams<{ id: string }>();
   const orden = useOrden(id);
+  const rect = useTeoricaRectificada(id).data ?? null;
   const productos = useProductos();
   const formulas = useFormulasFabricacion();
   const nomina = useNomina();
@@ -351,6 +353,7 @@ export function BatchRecord() {
         tandas: tandas.data ?? [],
         nombre: (pid) => (productos.data ?? []).find((p) => p.id === pid)?.nombre ?? '',
       }}
+      rect={rect}
     />
   );
 }
@@ -392,6 +395,8 @@ export interface PropsDocumento {
   ejemplo?: boolean;
   /** D-tandas-1: lo envasado cada día del granel. */
   tandas?: { tandas: TandaFila[]; nombre: (productoId: string) => string };
+  /** Rectificación de la cantidad teórica (20261125120100), si la hay. */
+  rect?: ReturnType<typeof useTeoricaRectificada>['data'];
 }
 
 /** El documento, separado de la carga de datos para poder mostrar un ejemplo. */
@@ -409,6 +414,7 @@ export function DocumentoBatchRecord({
   analisisInsumos,
   ejemplo = false,
   tandas,
+  rect = null,
 }: PropsDocumento) {
   const etapas = new Map(lista.map((e) => [e.etapa, e]));
   const registro = formula?.codigo_me
@@ -463,8 +469,11 @@ export function DocumentoBatchRecord({
         </table>
         <p className="nota">
           Fórmula v{formula?.version ?? ''} {formula?.codigo_me ?? ''} · Cantidad teórica{' '}
-          {numero(Number(o.cantidad_teorica), 3)} {o.unidad} · Elaboración{' '}
-          {fecha(o.jornada)}
+          {numero(Number(rect?.cantidad ?? o.cantidad_teorica), 3)} {o.unidad}
+          {rect
+            ? ` (rectificada el ${fecha(rect.rectifico_en)}; era ${numero(Number(rect.cantidad_anterior), 3)} ${o.unidad}: ${rect.motivo})`
+            : ''}{' '}
+          · Elaboración {fecha(o.jornada)}
           {o.cantidad_obtenida !== null
             ? ` · Obtenido ${numero(Number(o.cantidad_obtenida), 3)} ${o.unidad} (${o.unidades_obtenidas ?? ''} u)`
             : ''}
