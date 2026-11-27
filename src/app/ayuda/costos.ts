@@ -198,7 +198,7 @@ export const AYUDA_COSTOS: MapaAyuda = {
         'Tocá «Nueva cotización». Escribí el «Título del producto» y elegí «Partir de»: «Hoja en blanco» o «Copiar un producto» (copiar no cambia el producto original). Tocá «Crear cotización» y se abre el editor.',
         'Ves todas las cotizaciones, con precio unitario y margen.',
         'Filtrá por estado («Todas», «Borradores», «Emitidas», «Anuladas»), por destino, por fechas «Desde» y «Hasta», o buscá por título o cliente.',
-        '«Uso interno» es para saber costo y precio sin cliente. Esas cotizaciones llevan la marca de uso interno.',
+        '«Uso interno» es para saber costo y precio sin cliente. El PDF para el cliente sale limpio; la marca «USO INTERNO» va solo en el «PDF interno (con costos)».',
         'Tocá el título de una fila para abrirla: los borradores se siguen editando; las emitidas se abren solo para mirarlas. Una emitida no se edita: se duplica desde su pantalla.',
       ],
       GERENCIA_PRODUCCION: [
@@ -221,7 +221,9 @@ export const AYUDA_COSTOS: MapaAyuda = {
     porRol: {
       [FINANZAS]: [
         'Completá los datos de arriba: «Producto», «Contenido por unidad» (con su unidad: g, mL o unidades) y «Cantidad cotizada (unidades del pedido)». Cada campo se guarda al salir de él.',
-        'En «Para» elegí «Cliente» (elegí uno de la lista), «Cliente potencial» (elegí uno cargado o cargá uno nuevo con «Razón social», CUIT y contacto opcionales y el botón de alta) o «Uso interno» (sin cliente: sirve para conocer costo y precio; el PDF lleva la marca «USO INTERNO»).',
+        'En «Para» elegí «Cliente» (elegí uno de la lista), «Cliente potencial» (elegí uno cargado o cargá uno nuevo con «Razón social», CUIT y contacto opcionales y el botón de alta) o «Uso interno» (sin cliente: sirve para conocer costo y precio).',
+        'Para cotizar varios productos juntos tocá «Agregar otro producto»: cada uno tiene su composición y su precio, y se emiten juntos con un mismo número y un solo PDF. Si no querés cargar componente por componente, usá «Costo total sin desglose» y poné el costo por unidad.',
+        'En «Imágenes para el PDF» cargá fotos del producto: salen en el PDF para el cliente.',
         'En «Composición por unidad» tocá «Agregar componente» y elegí el tipo: «Insumo del catálogo» (buscalo por código o nombre; usa el costo de referencia vigente), «Insumo nuevo» (uno que no está en el catálogo: cargás su precio y presentación a mano) o «Costo libre» (un flete, un análisis o un servicio). Indicá la cantidad por unidad de producto y la merma, y tocá «Agregar». Si el insumo mezcla masa y volumen, cargá la densidad.',
         'En un insumo nuevo o un costo libre con precio a mano, prendé «Incluye IVA recuperable (factura A)» solo si es factura A. Con monotributista, factura B o C, o sin factura, dejalo apagado: el total es costo.',
         'En la tabla podés cambiar la cantidad de cada componente y quitarlo con el ícono del tacho. Si un componente no tiene costo, aparece en naranja lo que falta y no se puede emitir hasta completarlo.',

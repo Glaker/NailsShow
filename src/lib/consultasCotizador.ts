@@ -56,6 +56,8 @@ export interface Cotizacion {
   foto: FotoCotizacion | null;
   motivo_anulacion: string | null;
   duplicada_de: string | null;
+  /** Producto agregado a otra cotización (20261127130000): se emite con ella. */
+  cotizacion_principal_id: string | null;
   creado_por: string;
   creado_en: string;
 }
@@ -82,7 +84,21 @@ export interface DatosPdf {
   alicuota_iva: number;
   observaciones: string | null;
   emitida_por: string | null;
+  /** Con varios productos (20261127130000): todos, la principal primero. */
+  items?: ItemPdf[];
+  total_general?: number;
 }
+
+/** Un producto del PDF. */
+export type ItemPdf = Pick<
+  DatosPdf,
+  | 'titulo'
+  | 'contenido_cantidad'
+  | 'contenido_unidad'
+  | 'cantidad'
+  | 'precio_unitario'
+  | 'total'
+>;
 
 /** Un componente como lo costeó la base al emitir (comercial.costear_cotizacion). */
 export interface LineaFoto {
@@ -347,6 +363,104 @@ export function useDuplicarCotizacion() {
       return r.data as string;
     },
     onSuccess: () => invalidar(qc),
+    onError: avisarError,
+  });
+}
+
+/** Imagen para el PDF (comercial.cotizacion_imagenes): data URL ya comprimida. */
+export interface ImagenCotizacion {
+  id: string;
+  cotizacion_id: string;
+  nombre: string | null;
+  datos: string;
+}
+
+/** Imágenes vigentes de una o varias cotizaciones (la principal y sus productos). */
+export function useImagenesCotizacion(ids: string[]) {
+  return useQuery({
+    queryKey: ['cotizaciones', 'imagenes', ids],
+    enabled: ids.length > 0,
+    queryFn: () =>
+      filas(
+        c()
+          .from('cotizacion_imagenes')
+          .select('id, cotizacion_id, nombre, datos')
+          .in('cotizacion_id', ids)
+          .eq('anulada', false)
+          .order('creado_en'),
+        (f) => f as unknown as ImagenCotizacion,
+      ),
+  });
+}
+
+export function useAgregarImagen() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { cotizacion_id: string; nombre: string; datos: string }) => {
+      const { error } = await c().from('cotizacion_imagenes').insert(v);
+      if (error) throw error as Error;
+    },
+    onSuccess: () => invalidar(qc),
+    onError: avisarError,
+  });
+}
+
+export function useQuitarImagen() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await c()
+        .from('cotizacion_imagenes')
+        .update({ anulada: true })
+        .eq('id', id);
+      if (error) throw error as Error;
+    },
+    onSuccess: () => invalidar(qc),
+    onError: avisarError,
+  });
+}
+
+/** Productos agregados a una cotización, en el orden en que se cargaron. */
+export function useProductosCotizacion(principal: string | null) {
+  return useQuery({
+    queryKey: ['cotizaciones', 'productos', principal],
+    enabled: !!principal,
+    queryFn: () =>
+      filas(
+        c()
+          .from('cotizaciones')
+          .select('*')
+          .eq('cotizacion_principal_id', principal!)
+          .order('creado_en'),
+        aCotizacion,
+      ),
+  });
+}
+
+export function useAgregarProducto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (principal: string) => {
+      const r = await c().rpc('agregar_producto_cotizacion', { p_principal: principal });
+      if (r.error) throw r.error as Error;
+      return r.data as string;
+    },
+    onSuccess: () => invalidar(qc),
+    onError: avisarError,
+  });
+}
+
+export function useQuitarProducto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await c().rpc('quitar_producto_cotizacion', { p_id: id });
+      if (error) throw error as Error;
+    },
+    onSuccess: () => {
+      invalidar(qc);
+      avisarExito('Producto quitado. Queda como borrador suelto en el historial.');
+    },
     onError: avisarError,
   });
 }

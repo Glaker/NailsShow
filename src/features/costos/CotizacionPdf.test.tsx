@@ -93,6 +93,46 @@ describe('PDF de la cotización', () => {
   it('en la base de práctica lleva la marca PRÁCTICA', () => {
     expect(hoja(true)).toContain('PRÁCTICA');
   });
+  it('cargada como «Uso interno», la hoja del cliente no dice USO INTERNO', () => {
+    const t =
+      render(
+        <MantineProvider theme={theme}>
+          <CotizacionPdf
+            datos={{ ...foto.pdf, destino: 'INTERNO', cliente: null }}
+            marcaPractica={false}
+          />
+        </MantineProvider>,
+      ).container.textContent ?? '';
+    expect(t).not.toMatch(/uso interno/i);
+    expect(t).toContain('Protector solar');
+  });
+  it('con varios productos lista cada uno y el total general', () => {
+    const t =
+      render(
+        <MantineProvider theme={theme}>
+          <CotizacionPdf
+            datos={{
+              ...foto.pdf,
+              items: [
+                foto.pdf,
+                {
+                  titulo: 'Gel 30 g',
+                  contenido_cantidad: null,
+                  contenido_unidad: null,
+                  cantidad: 5,
+                  precio_unitario: 100,
+                  total: 500,
+                },
+              ],
+              total_general: 327000,
+            }}
+            marcaPractica={false}
+          />
+        </MantineProvider>,
+      ).container.textContent ?? '';
+    for (const v of ['Protector solar', 'Gel 30 g', '326.500,00', '500,00', '327.000,00'])
+      expect(t).toContain(v);
+  });
 });
 
 describe('PDF interno de la cotización (con costos)', () => {

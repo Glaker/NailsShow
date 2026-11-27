@@ -33,7 +33,7 @@ export function DetalleCostosPdf({ foto }: { foto: FotoCotizacion }) {
       style={{ breakBefore: 'page' }}
     >
       <Group justify="space-between" align="baseline" mb="md">
-        <Title order={3}>Detalle de costos</Title>
+        <Title order={3}>Detalle de costos · {foto.pdf.titulo}</Title>
         <Text size="sm" fw={700}>
           USO INTERNO — no se envía a clientes
         </Text>

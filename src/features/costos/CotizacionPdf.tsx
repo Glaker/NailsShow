@@ -1,7 +1,7 @@
 import { Box, Group, Stack, Table, Text, Title } from '@mantine/core';
 import { fecha, numero } from '@/lib/formato';
 import { MODO_PRACTICA } from '@/lib/practica';
-import type { DatosPdf } from '@/lib/consultasCotizador';
+import type { DatosPdf, ItemPdf } from '@/lib/consultasCotizador';
 
 /**
  * Hoja de la cotización para el cliente. Recibe SÓLO el bloque `pdf` de la
@@ -13,17 +13,22 @@ export function CotizacionPdf({
   datos,
   marcaPractica = MODO_PRACTICA,
   interna = false,
+  imagenes = [],
 }: {
   datos: DatosPdf;
   marcaPractica?: boolean;
+  /** Imágenes cargadas en la cotización (data URL), debajo de los productos. */
+  imagenes?: string[];
   /** La hoja interna (con el detalle de costos abajo): lleva «USO INTERNO». */
   interna?: boolean;
 }) {
   const pesos = (v: number) => `$ ${numero(v, 2)}`;
-  const contenido =
-    datos.contenido_cantidad !== null && datos.contenido_unidad
-      ? `${numero(datos.contenido_cantidad, datos.contenido_cantidad % 1 ? 2 : 0)} ${datos.contenido_unidad}`
+  const contenido = (i: ItemPdf) =>
+    i.contenido_cantidad !== null && i.contenido_unidad
+      ? `${numero(i.contenido_cantidad, i.contenido_cantidad % 1 ? 2 : 0)} ${i.contenido_unidad}`
       : null;
+  // Con varios productos la base guarda `items`; con uno, sólo los campos sueltos.
+  const items: ItemPdf[] = datos.items ?? [datos];
   const iva =
     datos.leyenda_iva === 'MAS_IVA'
       ? 'Precios más IVA.'
@@ -38,7 +43,9 @@ export function CotizacionPdf({
       c="black"
       style={{ position: 'relative' }}
     >
-      {marcaPractica || interna || datos.destino === 'INTERNO' ? (
+      {/* La marca va sólo en la hoja interna: el PDF para el cliente sale limpio
+          aunque la cotización se haya cargado como «Uso interno». */}
+      {marcaPractica || interna ? (
         <Text
           aria-hidden="true"
           style={{
@@ -70,24 +77,20 @@ export function CotizacionPdf({
         </Stack>
       </Group>
 
-      <Stack gap={2} mb="lg">
-        <Text size="xs" tt="uppercase" c="gray.7">
-          {datos.destino === 'INTERNO' ? 'Uso interno' : 'Cliente'}
-        </Text>
-        {datos.destino === 'INTERNO' ? (
-          <Text fw={600}>USO INTERNO — no se envía a clientes</Text>
-        ) : (
-          <>
-            <Text fw={600}>{datos.cliente?.razon_social}</Text>
-            {datos.cliente?.documento ? (
-              <Text size="sm">CUIT / documento: {datos.cliente.documento}</Text>
-            ) : null}
-            {datos.cliente?.contacto ? (
-              <Text size="sm">Contacto: {datos.cliente.contacto}</Text>
-            ) : null}
-          </>
-        )}
-      </Stack>
+      {datos.cliente ? (
+        <Stack gap={2} mb="lg">
+          <Text size="xs" tt="uppercase" c="gray.7">
+            Cliente
+          </Text>
+          <Text fw={600}>{datos.cliente.razon_social}</Text>
+          {datos.cliente.documento ? (
+            <Text size="sm">CUIT / documento: {datos.cliente.documento}</Text>
+          ) : null}
+          {datos.cliente.contacto ? (
+            <Text size="sm">Contacto: {datos.cliente.contacto}</Text>
+          ) : null}
+        </Stack>
+      ) : null}
 
       <Table withTableBorder withColumnBorders mb="md">
         <Table.Thead>
@@ -99,26 +102,49 @@ export function CotizacionPdf({
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          <Table.Tr>
-            <Table.Td>
-              <Text fw={600}>{datos.titulo}</Text>
-              {contenido ? (
-                <Text size="sm">Contenido por unidad: {contenido}</Text>
-              ) : null}
-            </Table.Td>
-            <Table.Td ta="right">
-              {numero(datos.cantidad, datos.cantidad % 1 ? 2 : 0)}
-            </Table.Td>
-            <Table.Td ta="right">{pesos(datos.precio_unitario)}</Table.Td>
-            <Table.Td ta="right" fw={700}>
-              {pesos(datos.total)}
-            </Table.Td>
-          </Table.Tr>
+          {items.map((i, k) => (
+            <Table.Tr key={k}>
+              <Table.Td>
+                <Text fw={600}>{i.titulo}</Text>
+                {contenido(i) ? (
+                  <Text size="sm">Contenido por unidad: {contenido(i)}</Text>
+                ) : null}
+              </Table.Td>
+              <Table.Td ta="right">{numero(i.cantidad, i.cantidad % 1 ? 2 : 0)}</Table.Td>
+              <Table.Td ta="right">{pesos(i.precio_unitario)}</Table.Td>
+              <Table.Td ta="right" fw={700}>
+                {pesos(i.total)}
+              </Table.Td>
+            </Table.Tr>
+          ))}
+          {datos.total_general !== undefined ? (
+            <Table.Tr>
+              <Table.Td colSpan={3} ta="right" fw={700}>
+                Total
+              </Table.Td>
+              <Table.Td ta="right" fw={800}>
+                {pesos(datos.total_general)}
+              </Table.Td>
+            </Table.Tr>
+          ) : null}
         </Table.Tbody>
       </Table>
       <Text size="sm" mb="lg">
         {iva}
       </Text>
+
+      {imagenes.length ? (
+        <Group gap="md" mb="lg" justify="center">
+          {imagenes.map((src, k) => (
+            <img
+              key={k}
+              src={src}
+              alt=""
+              style={{ maxWidth: imagenes.length === 1 ? '100%' : '48%', maxHeight: 320 }}
+            />
+          ))}
+        </Group>
+      ) : null}
 
       {datos.observaciones ? (
         <Stack gap={2} mb="lg">
