@@ -82,6 +82,9 @@ export interface FacturaXCargada {
   total: number | null;
   pedido_id: string | null;
   cargada_en: string;
+  /** Anulada por error de carga (20261127150000): su stock ya volvió. */
+  anulada_en: string | null;
+  motivo_anulacion: string | null;
 }
 
 /** Facturas de venta ya cargadas (para el historial). */
@@ -91,7 +94,9 @@ export function useFacturasX() {
     queryFn: async (): Promise<FacturaXCargada[]> => {
       const { data, error } = await comercial()
         .from('facturas_x')
-        .select('id, numero, tipo, canal, fecha, cliente, total, pedido_id, cargada_en')
+        .select(
+          'id, numero, tipo, canal, fecha, cliente, total, pedido_id, cargada_en, anulada_en, motivo_anulacion',
+        )
         .order('cargada_en', { ascending: false });
       if (error) throw error;
       return (data ?? []).map((f) => ({
@@ -166,6 +171,25 @@ export function useFacturaYaCargada(factura: FacturaX | null) {
       if (r.error) throw r.error;
       return r.data?.[0] ?? null;
     },
+  });
+}
+
+/** Anula una factura cargada por error: el stock vuelve y se puede cargar de nuevo. */
+export function useAnularFactura() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: { id: string; motivo: string }) => {
+      const { error } = await comercial().rpc('anular_factura_venta', {
+        p_id: a.id,
+        p_motivo: a.motivo,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidar(qc);
+      avisarExito('Factura anulada: el stock volvió. Ya la podés cargar de nuevo.');
+    },
+    onError: avisarError,
   });
 }
 
