@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
+  Badge,
   Button,
   Checkbox,
   Group,
@@ -22,7 +23,11 @@ import {
   useVentas,
   type FilaVenta,
 } from '@/lib/consultasVentas';
-import { useFacturasX, type FacturaXCargada } from '@/lib/consultasDespacho';
+import {
+  useAnularFactura,
+  useFacturasX,
+  type FacturaXCargada,
+} from '@/lib/consultasDespacho';
 import { CargarFacturaX } from './CargarFacturaX';
 import { useTieneRol } from '@/features/auth/sesion';
 
@@ -60,7 +65,8 @@ export function PaginaDespacho() {
   const facturasDe = useMemo(() => {
     const m = new Map<string, string[]>();
     for (const f of facturas.data ?? [])
-      if (f.pedido_id) m.set(f.pedido_id, [...(m.get(f.pedido_id) ?? []), f.numero]);
+      if (f.pedido_id && !f.anulada_en)
+        m.set(f.pedido_id, [...(m.get(f.pedido_id) ?? []), f.numero]);
     return m;
   }, [facturas.data]);
 
@@ -289,6 +295,16 @@ function TablaFacturas({
   pedidoDe: Map<string, string>;
   cargando: boolean;
 }) {
+  // Anula quien puede cargar facturas (20261127150000).
+  const anula = useTieneRol(
+    'DESPACHO',
+    'VENTAS',
+    'ADMINISTRACION',
+    'GERENCIA_PRODUCCION',
+  );
+  const anular = useAnularFactura();
+  const [anulando, setAnulando] = useState<FacturaXCargada | null>(null);
+  const [motivo, setMotivo] = useState('');
   if (cargando) return <Skeleton h={240} />;
   if (facturas.length === 0)
     return (
@@ -311,14 +327,20 @@ function TablaFacturas({
               <Table.Th>Pedido</Table.Th>
               <Table.Th ta="right">Total</Table.Th>
               <Table.Th>Cargada</Table.Th>
+              <Table.Th />
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
             {facturas.map((f) => (
-              <Table.Tr key={f.id}>
+              <Table.Tr key={f.id} opacity={f.anulada_en ? 0.6 : 1}>
                 <Table.Td>{fecha(f.fecha)}</Table.Td>
                 <Table.Td fw={600}>
                   {f.tipo} {f.numero}
+                  {f.anulada_en ? (
+                    <Text size="xs" c="red" fw={500}>
+                      Anulada: {f.motivo_anulacion}
+                    </Text>
+                  ) : null}
                 </Table.Td>
                 <Table.Td>{CANAL[f.canal]}</Table.Td>
                 <Table.Td>{f.cliente ?? '—'}</Table.Td>
@@ -329,11 +351,69 @@ function TablaFacturas({
                   {f.total === null ? '—' : `$${numero(f.total, 0)}`}
                 </Table.Td>
                 <Table.Td>{fechaHora(f.cargada_en)}</Table.Td>
+                <Table.Td>
+                  {f.anulada_en ? (
+                    <Badge color="red" variant="light">
+                      Anulada
+                    </Badge>
+                  ) : anula ? (
+                    <Button
+                      variant="subtle"
+                      color="red"
+                      onClick={() => {
+                        setMotivo('');
+                        setAnulando(f);
+                      }}
+                    >
+                      Anular
+                    </Button>
+                  ) : null}
+                </Table.Td>
               </Table.Tr>
             ))}
           </Table.Tbody>
         </Table>
       </Table.ScrollContainer>
+      <Modal
+        opened={!!anulando}
+        onClose={() => setAnulando(null)}
+        title={anulando ? `Anular la factura ${anulando.tipo} ${anulando.numero}` : ''}
+      >
+        <Stack>
+          <Text size="sm">
+            Lo que bajó del stock vuelve al depósito y la factura queda anulada (no se
+            borra: queda quién, cuándo y por qué). Después la podés cargar de nuevo, bien.
+          </Text>
+          <Textarea
+            label="Por qué se anula"
+            placeholder="Ej.: era mayorista y se cargó como minorista"
+            value={motivo}
+            onChange={(e) => setMotivo(e.currentTarget.value)}
+            autosize
+            minRows={2}
+            data-autofocus
+          />
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setAnulando(null)}>
+              Cancelar
+            </Button>
+            <Button
+              color="red"
+              disabled={!motivo.trim()}
+              loading={anular.isPending}
+              onClick={() =>
+                anulando &&
+                anular.mutate(
+                  { id: anulando.id, motivo: motivo.trim() },
+                  { onSuccess: () => setAnulando(null) },
+                )
+              }
+            >
+              Anular factura
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Paper>
   );
 }
