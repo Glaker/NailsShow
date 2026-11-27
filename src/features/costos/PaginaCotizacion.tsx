@@ -10,6 +10,7 @@ import {
   Modal,
   NumberInput,
   Paper,
+  Popover,
   SegmentedControl,
   Select,
   SimpleGrid,
@@ -50,6 +51,7 @@ import {
   type LineaCotizacion,
 } from '@/lib/cotizador';
 import {
+  useAgregarProducto,
   useAnularCotizacion,
   useClientesPotenciales,
   useCotizacion,
@@ -59,12 +61,15 @@ import {
   useGuardarCotizacion,
   useGuardarLinea,
   useLineasCotizacion,
+  useProductosCotizacion,
   useProponerCatalogo,
   useQuitarLinea,
+  useQuitarProducto,
   type Cotizacion,
   type LineaGuardada,
 } from '@/lib/consultasCotizador';
 import { ORIGEN_PRECIO } from './comun';
+import { ImagenesCotizacion } from './ImagenesCotizacion';
 
 const pesos = (v: number, d = 2) => `$ ${numero(v, d)}`;
 const pct = (v: number | null) => (v === null ? '—' : `${numero(v * 100, 1)} %`);
@@ -91,6 +96,8 @@ export function PaginaCotizacion() {
   if (!c) return <Text>La cotización no existe o no la podés ver.</Text>;
 
   const borrador = c.estado === 'BORRADOR';
+  // Producto agregado a otra cotización: se emite, se anula y se imprime desde la principal.
+  const principal = c.cotizacion_principal_id;
   const cambiar = (cambios: Partial<Cotizacion>) => guardar.mutate({ id: c.id, cambios });
 
   return (
@@ -105,7 +112,12 @@ export function PaginaCotizacion() {
             <Anchor component={Link} to="/cotizaciones" size="sm">
               Volver al historial
             </Anchor>
-            {c.estado !== 'BORRADOR' ? (
+            {principal ? (
+              <Button component={Link} to={`/cotizaciones/${principal}`} variant="light">
+                Ir a la cotización principal
+              </Button>
+            ) : null}
+            {c.estado !== 'BORRADOR' && !principal ? (
               <>
                 <Button
                   component={Link}
@@ -170,6 +182,15 @@ export function PaginaCotizacion() {
         ) : null}
       </Group>
 
+      {principal ? (
+        <Alert color="blue">
+          Este producto es parte de otra cotización. El cliente, el IVA, la vigencia y la
+          emisión son los de la principal.
+        </Alert>
+      ) : (
+        <Productos c={c} />
+      )}
+
       {borrador ? (
         <Cabecera key={c.id} c={c} onCambiar={cambiar} />
       ) : (
@@ -186,6 +207,8 @@ export function PaginaCotizacion() {
         margenMinimo={parametros.data?.margen_minimo ?? 0.25}
         onCambiar={cambiar}
       />
+
+      <ImagenesCotizacion c={c} />
 
       <AnularModal id={c.id} abierto={anulando} onCerrar={() => setAnulando(false)} />
     </Stack>
@@ -258,7 +281,7 @@ function Cabecera({
           }}
         />
       </SimpleGrid>
-      <Stack gap="xs" mt="md">
+      <Stack gap="xs" mt="md" display={c.cotizacion_principal_id ? 'none' : undefined}>
         <Text size="sm" fw={500}>
           Para
         </Text>
@@ -371,7 +394,7 @@ function Cabecera({
         ) : null}
         {destino === 'INTERNO' ? (
           <Text size="sm" c="dimmed">
-            Sin cliente: para conocer costo y precio. El PDF lleva la marca «USO INTERNO».
+            Sin cliente: para conocer costo y precio.
           </Text>
         ) : null}
       </Stack>
@@ -469,13 +492,31 @@ function Composicion({
         <Group justify="space-between" p="md" pb={0}>
           <Title order={4}>Composición por unidad</Title>
           {borrador ? (
-            <Button
-              leftSection={<IconPlus size={18} />}
-              variant="light"
-              onClick={() => setAgregando(true)}
-            >
-              Agregar componente
-            </Button>
+            <Group gap="xs">
+              <CostoTotal
+                onUsar={(importe) => {
+                  guardarLinea.mutate({
+                    cotizacion_id: c.id,
+                    orden: Math.max(0, ...lineas.map((l) => l.orden)) + 1,
+                    tipo: 'LIBRE',
+                    nombre: 'Costo total del producto',
+                    cantidad: 1,
+                    unidad: 'unidad',
+                    precio: importe,
+                    incluye_iva: false,
+                  });
+                  // El total ya trae la mano de obra: no se suma aparte.
+                  if (c.incluir_mano_obra) onCambiar({ incluir_mano_obra: false });
+                }}
+              />
+              <Button
+                leftSection={<IconPlus size={18} />}
+                variant="light"
+                onClick={() => setAgregando(true)}
+              >
+                Agregar componente
+              </Button>
+            </Group>
           ) : null}
         </Group>
         <Table.ScrollContainer minWidth={820}>
@@ -833,56 +874,69 @@ function Composicion({
                     label="Por qué se cotiza con este margen"
                     value={justificacion}
                     onChange={(e) => setJustificacion(e.currentTarget.value)}
+                    // En un producto agregado se guarda: lo lee la base al emitir la principal.
+                    onBlur={() =>
+                      c.cotizacion_principal_id &&
+                      onCambiar({ justificacion_margen: justificacion.trim() || null })
+                    }
                     autosize
                     minRows={2}
                   />
                 ) : null}
-                <Textarea
-                  label="Observaciones para el cliente (van en el PDF)"
-                  defaultValue={c.observaciones ?? ''}
-                  onBlur={(e) =>
-                    onCambiar({ observaciones: e.currentTarget.value.trim() || null })
-                  }
-                  autosize
-                  minRows={2}
-                />
-                <NumberInput
-                  label="Vigencia (días)"
-                  min={1}
-                  allowDecimal={false}
-                  defaultValue={c.vigencia_dias}
-                  onBlur={(e) => {
-                    const v = n(e.currentTarget.value);
-                    if (v && v > 0) onCambiar({ vigencia_dias: v });
-                  }}
-                  w={160}
-                />
-                <Button
-                  size="md"
-                  leftSection={<IconFileTypePdf size={18} />}
-                  disabled={
-                    lineas.length === 0 ||
-                    faltan.length > 0 ||
-                    precio <= 0 ||
-                    (bajoMinimo && !justificacion.trim()) ||
-                    !claims
-                  }
-                  loading={emitir.isPending}
-                  onClick={() =>
-                    emitir.mutate({
-                      id: c.id,
-                      justificacion: justificacion.trim() || null,
-                    })
-                  }
-                >
-                  Emitir cotización
-                </Button>
-                {faltan.length ? (
-                  <Text size="xs" c="orange">
-                    Hay {faltan.length} componente(s) sin costo: completalos antes de
-                    emitir.
+                {c.cotizacion_principal_id ? (
+                  <Text size="sm" c="dimmed">
+                    Se emite junto con la cotización principal.
                   </Text>
-                ) : null}
+                ) : (
+                  <>
+                    <Textarea
+                      label="Observaciones para el cliente (van en el PDF)"
+                      defaultValue={c.observaciones ?? ''}
+                      onBlur={(e) =>
+                        onCambiar({ observaciones: e.currentTarget.value.trim() || null })
+                      }
+                      autosize
+                      minRows={2}
+                    />
+                    <NumberInput
+                      label="Vigencia (días)"
+                      min={1}
+                      allowDecimal={false}
+                      defaultValue={c.vigencia_dias}
+                      onBlur={(e) => {
+                        const v = n(e.currentTarget.value);
+                        if (v && v > 0) onCambiar({ vigencia_dias: v });
+                      }}
+                      w={160}
+                    />
+                    <Button
+                      size="md"
+                      leftSection={<IconFileTypePdf size={18} />}
+                      disabled={
+                        lineas.length === 0 ||
+                        faltan.length > 0 ||
+                        precio <= 0 ||
+                        (bajoMinimo && !justificacion.trim()) ||
+                        !claims
+                      }
+                      loading={emitir.isPending}
+                      onClick={() =>
+                        emitir.mutate({
+                          id: c.id,
+                          justificacion: justificacion.trim() || null,
+                        })
+                      }
+                    >
+                      Emitir cotización
+                    </Button>
+                    {faltan.length ? (
+                      <Text size="xs" c="orange">
+                        Hay {faltan.length} componente(s) sin costo: completalos antes de
+                        emitir.
+                      </Text>
+                    ) : null}
+                  </>
+                )}
               </>
             ) : null}
           </Stack>
@@ -1212,5 +1266,130 @@ function AnularModal({
         </Button>
       </Stack>
     </Modal>
+  );
+}
+
+/**
+ * Productos de la cotización (20261127130000): ésta es la principal y los
+ * agregados se cotizan cada uno en su pantalla. Se emiten juntos, con un número.
+ */
+function Productos({ c }: { c: Cotizacion }) {
+  const navigate = useNavigate();
+  const productos = useProductosCotizacion(c.id);
+  const agregar = useAgregarProducto();
+  const quitar = useQuitarProducto();
+  const borrador = c.estado === 'BORRADOR';
+  const lista = productos.data ?? [];
+  if (!borrador && lista.length === 0) return null;
+  return (
+    <Paper withBorder p="md" style={{ borderColor: 'var(--superficie-borde)' }}>
+      <Group justify="space-between" mb="xs">
+        <Title order={4}>Productos de esta cotización</Title>
+        {borrador ? (
+          <Button
+            leftSection={<IconPlus size={18} />}
+            variant="light"
+            loading={agregar.isPending}
+            onClick={() =>
+              agregar.mutate(c.id, {
+                onSuccess: (id) => void navigate(`/cotizaciones/${id}`),
+              })
+            }
+          >
+            Agregar otro producto
+          </Button>
+        ) : null}
+      </Group>
+      <Table verticalSpacing="xs">
+        <Table.Tbody>
+          <Table.Tr>
+            <Table.Td>
+              <Text fw={600}>{c.titulo}</Text>
+            </Table.Td>
+            <Table.Td ta="right">{numero(c.cantidad_cotizada)} u.</Table.Td>
+            <Table.Td>
+              <Text size="sm" c="dimmed">
+                Este
+              </Text>
+            </Table.Td>
+          </Table.Tr>
+          {lista.map((p) => (
+            <Table.Tr key={p.id}>
+              <Table.Td>
+                <Anchor component={Link} to={`/cotizaciones/${p.id}`} fw={600}>
+                  {p.titulo}
+                </Anchor>
+              </Table.Td>
+              <Table.Td ta="right">{numero(p.cantidad_cotizada)} u.</Table.Td>
+              <Table.Td>
+                {borrador ? (
+                  <Tooltip label="Quitar de esta cotización (queda como borrador suelto)">
+                    <ActionIcon
+                      variant="subtle"
+                      color="gray"
+                      size="lg"
+                      onClick={() => quitar.mutate(p.id)}
+                      aria-label="Quitar producto"
+                    >
+                      <IconTrash size={18} />
+                    </ActionIcon>
+                  </Tooltip>
+                ) : null}
+              </Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
+      {borrador && lista.length === 0 ? (
+        <Text size="sm" c="dimmed">
+          Para cotizar varios productos juntos, agregá otro: cada uno tiene su costo y su
+          precio, y salen todos en el mismo PDF.
+        </Text>
+      ) : null}
+    </Paper>
+  );
+}
+
+/** Costo del producto en un solo importe, sin cargar componente por componente. */
+function CostoTotal({ onUsar }: { onUsar: (importe: number) => void }) {
+  const [abierto, setAbierto] = useState(false);
+  const [importe, setImporte] = useState<number | string>('');
+  return (
+    <Popover opened={abierto} onChange={setAbierto} position="bottom-end" withArrow>
+      <Popover.Target>
+        <Button variant="default" onClick={() => setAbierto((x) => !x)}>
+          Costo total sin desglose
+        </Button>
+      </Popover.Target>
+      <Popover.Dropdown>
+        <Stack gap="xs" w={260}>
+          <NumberInput
+            label="Costo total por unidad, sin IVA"
+            prefix="$ "
+            min={0}
+            decimalScale={2}
+            thousandSeparator="."
+            decimalSeparator=","
+            value={importe}
+            onChange={setImporte}
+            data-autofocus
+          />
+          <Text size="xs" c="dimmed">
+            Entra como un solo componente y saca la mano de obra aparte: el total ya la
+            incluye.
+          </Text>
+          <Button
+            disabled={!(Number(importe) > 0)}
+            onClick={() => {
+              onUsar(Number(importe));
+              setImporte('');
+              setAbierto(false);
+            }}
+          >
+            Usar este costo
+          </Button>
+        </Stack>
+      </Popover.Dropdown>
+    </Popover>
   );
 }

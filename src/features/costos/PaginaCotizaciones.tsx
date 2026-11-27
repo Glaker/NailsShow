@@ -210,6 +210,8 @@ export function PaginaCotizaciones() {
   const hoy = fechaISO(new Date()) ?? '';
 
   const visibles = lista.filter((c) => {
+    // Los productos agregados se ven dentro de su cotización principal.
+    if (c.cotizacion_principal_id) return false;
     if ((seccion === 'interno') !== (c.destino === 'INTERNO')) return false;
     if (estado !== 'TODAS' && c.estado !== estado) return false;
     if (destino !== 'TODOS' && c.destino !== destino) return false;
